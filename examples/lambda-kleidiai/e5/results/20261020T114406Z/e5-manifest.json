@@ -1,0 +1,76 @@
+{
+ "schema": "lkai-e5-manifest/1",
+ "baseline": {
+  "file": "s2b-h512-Q8_0.gguf",
+  "format": "GGUF v3 Q8_0, tokenizer.ggml.model=gpt2 (BPE vocab and merges embedded)",
+  "bytes": 2076712416,
+  "sha256": "8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e",
+  "data_offset": 11000032
+ },
+ "converted": {
+  "file": "s2b-h512-Q8_0-novocab.gguf",
+  "format": "GGUF v3 Q8_0, tokenizer.ggml.model=none (LLAMA_VOCAB_TYPE_NONE), qwen35.vocab_size=248320",
+  "bytes": 2065771264,
+  "sha256": "29aa5abe0fe316b1f6a451c7a313dc3ddcc09d039fc46315e37742e775c05790",
+  "data_offset": 58880
+ },
+ "conversion": {
+  "command": "python examples/lambda-kleidiai/e5/convert_no_vocab.py s2b-h512-Q8_0.gguf s2b-h512-Q8_0-novocab.gguf",
+  "container": "python:3.12-bookworm (digest pinned in baseline/build.sh PY_IMAGE)",
+  "tools": {
+   "python": "3.12.15",
+   "llama_cpp": "",
+   "pip_freeze": [
+    "certifi==2026.10.19",
+    "charset-normalizer==3.5.2",
+    "@",
+    "file:///b/llama.cpp/gguf-py",
+    "idna==3.20",
+    "numpy==2.5.4",
+    "PyYAML==6.0.3",
+    "requests==2.34.2",
+    "tqdm==4.67.1",
+    "urllib3==2.8.0",
+    "gguf (llama.cpp gguf-py)"
+   ]
+  },
+  "removed_keys": [
+   "tokenizer.chat_template",
+   "tokenizer.ggml.add_bos_token",
+   "tokenizer.ggml.add_eos_token",
+   "tokenizer.ggml.eos_token_id",
+   "tokenizer.ggml.merges",
+   "tokenizer.ggml.normalizer.nfc",
+   "tokenizer.ggml.padding_token_id",
+   "tokenizer.ggml.pre",
+   "tokenizer.ggml.token_type",
+   "tokenizer.ggml.tokens"
+  ],
+  "added_keys": {
+   "qwen35.vocab_size": 248320
+  }
+ },
+ "tensors": {
+  "count": [
+   335,
+   335
+  ],
+  "order_same": true,
+  "identical": true,
+  "differing": [],
+  "digest": [
+   "8141645499ea595a96689c024fafef7cecbd7c2c8faac6e6cf71f0300ce945e7",
+   "8141645499ea595a96689c024fafef7cecbd7c2c8faac6e6cf71f0300ce945e7"
+  ],
+  "digest_method": "sha256 over name NUL sha256(tensor bytes), in file order",
+  "data_offset": [
+   11000032,
+   58880
+  ],
+  "alignment": [
+   32,
+   32
+  ]
+ },
+ "size_delta_bytes": -10941152
+}

@@ -1,9 +1,13 @@
 {
  "experiment_id": "E5-mmap-format",
- "status": "inconclusive",
- "hypothesis": "The pinned llama.cpp loader cannot mmap a pre-repacked KleidiAI layout (on-disk repacked types were removed upstream), so the only format change it supports with the same Q8_0 tensors is less metadata to deserialize. Dropping llama.cpp's text vocabulary (248,320 tokens and 247,587 BPE merges, which the engine never uses: it tokenizes in Python) removes ~11 MB of metadata parsing from llama_model_load_from_file; it should shorten deserialize/mmap by a fraction of a second and change no output.",
- "changed_variable": "weight file format: GGUF Q8_0 with embedded gpt2 BPE vocabulary (baseline) -> the same tensors byte for byte in a GGUF with tokenizer.ggml.model=none (convert_no_vocab.py)",
- "conclusion": null,
+ "status": "improved",
+ "hypothesis": "The pinned llama.cpp loader (f74e2fa6a) cannot mmap a pre-repacked KleidiAI weight layout: on-disk repacked types were removed upstream, and every Q8_0 matmul weight is copied out of the mmap and re-packed into the CPU_KLEIDIAI buffer at load. The one format change it supports with the same Q8_0 tensors is less metadata to deserialize. Dropping llama.cpp's text vocabulary (248,320 tokens and 247,587 BPE merges, ~11 MB that llama_model_load_from_file parses into hash maps, and that the engine never uses because it tokenizes in Python) should shorten deserialize/mmap by a fraction of a second and change no output.",
+ "changed_variable": {
+  "name": "weight file format",
+  "baseline": "GGUF v3 Q8_0 s2b-h512-Q8_0.gguf (sha256 8dbb8872...), tokenizer.ggml.model=gpt2 with the BPE vocabulary and merges embedded; 2,076,712,416 bytes",
+  "experiment": "GGUF v3 Q8_0 s2b-h512-Q8_0-novocab.gguf (sha256 29aa5abe...), the same 335 tensors byte for byte (tensor digest e3bbbac1...), tokenizer.ggml.model=none and qwen35.vocab_size=248320; 2,065,771,264 bytes (-10,941,152)"
+ },
+ "conclusion": "Small, consistent improvement, no output change. Matched by Graviton generation and pooled, cold model_load_mmap (deserialize) fell 0.66 s (Graviton3 8.39 -> 7.72 s, -7.9%; Graviton4 7.13 -> 6.53 s), and the cold first request (Init + Duration) fell 0.87 s (Graviton3 36.03 -> 35.17 s, -2.4%), about 3x the cold run-to-run range of the per-round medians (0.30 s). Restore (-0.02 s) and warm inference (+0.02 s, Graviton3 +4.5% but -3.5% on Graviton2) are unchanged within their run-to-run spread, as expected: the snapshot already holds the loaded model. Peak memory (REPORT Max Memory Used) fell 76-94 MB in every class. 1,200 invocations, 0 errors, 0 class mismatches, 600/600 answers per arm bit-identical to P1's reference. The other ~6 s of model_load_mmap is KleidiAI's runtime repack, which no GGUF layout this loader reads can avoid; removing it needs a loader change (a pre-packed tensor type or a cached packed buffer), not a format change, and is out of E5's scope. Weight download is unchanged by design (same path, 0.5% fewer bytes).",
  "reproduce": [
   "git fetch https://github.com/jsamuel1/strands-decider lkai/3259-mmap-format && git checkout FETCH_HEAD",
   "AWS_PROFILE=<profile> examples/lambda-kleidiai/e5/run.sh <run-id>"
