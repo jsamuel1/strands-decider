@@ -186,7 +186,8 @@ def _before_snapshot():
     # SnapStart: the init profile is taken before the snapshot, and the (ITIMER_PROF) sampler is disarmed so a
     # restored copy does not inherit a running timer pointed at a stale buffer state. Measured cost to know about
     # (run 20261020T124451Z): the sampler arm's first invocation after a restore emits its summary ~2.0 s after the
-    # handler returns, so REPORT Duration grows by ~2.1 s while latency_ms does not. Not yet attributed; the candidate
+    # baseline lkai_entry.handler returns, still inside this module's handler and so before Lambda gets the response.
+    # REPORT Duration grows by ~2.1 s while latency_ms does not. Not yet attributed; the candidate
     # is symbolisation re-reading the libraries from /var/task straight after restore (lkai_symbolise now keeps parsed
     # ELF tables across a maps change, which would remove it if so; that is not yet re-measured in Lambda).
     _init_profile()
