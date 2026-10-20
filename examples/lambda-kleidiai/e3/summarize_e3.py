@@ -13,6 +13,9 @@ and an `e3` block with:
                first_request_inference, warm steady_state_inference), arm minus ctl within each CPU part both
                ran on, pooled, with the bootstrap interval of the pooled delta: the check that only transfer changed
   hash         the sha256 of the memfd each strategy filled (verify run), against the GGUF's sha256
+  host         the host metadata the run recorded (CPU part, ggml CPU variant, threads, runtime version, log
+               streams) and the fields it did not record, labelled unknown; the download delta vs ctl within each
+               CPU part, and whether the status holds within the largest part alone (the host-variability check)
 results/<run-id>/summary.json and summary.md tabulate every setting.
 
 status: `improved` if the download interval is entirely below 0 with no errors, no class mismatches, bit-identical
@@ -26,6 +29,7 @@ import gzip
 import json
 import os
 import random
+import re
 import shutil
 import statistics
 import sys
@@ -87,8 +91,8 @@ def boot_median_delta(a: list[float], b: list[float], seed: int = 0) -> dict:
 
 
 def matched(rows_a: list[dict], rows_b: list[dict], f) -> dict | None:
-    """arm minus ctl within each CPU part both ran on (Graviton generations differ ~1.7x in compute), pooled by the
-    smaller side's n. The pooled interval resamples within each part."""
+    """arm minus ctl within each CPU part both ran on (compute differs by CPU part), pooled by the smaller side's n.
+    The pooled interval resamples within each part."""
     per_a, per_b = defaultdict(list), defaultdict(list)
     for r in rows_a:
         if (v := f(r)) is not None:
@@ -215,6 +219,99 @@ def compute_block(rows: list[dict], ctl_rows: list[dict]) -> dict:
     out["method"] = (
         "median(arm) - median(ctl) within each CPU part both ran on, pooled by min(n); 95% bootstrap"
     )
+    return out
+
+
+# Host fields the initiative's HOST VARIABILITY rule asks for that this run's rows and logs do not carry. The handler
+# logged only /proc/cpuinfo's "CPU part" line; nothing else about the host was captured.
+HOST_UNRECORDED = (
+    "cpuinfo CPU implementer",
+    "cpuinfo CPU variant",
+    "cpuinfo CPU revision",
+    "cpuinfo Features / AT_HWCAP / AT_HWCAP2",
+    "online core count (nproc)",
+    "cgroup cpu.max / memory.max",
+    "kernel release",
+    "CPU generation / instance family",
+)
+_GGML_RE = re.compile(r"ggml_cpu=(\S+)")
+_RUNTIME_RE = re.compile(r"INIT_START Runtime Version: (\S+)")
+
+
+def _ggml_variant(r: dict) -> str:
+    m = _GGML_RE.search(r.get("log_tail") or "")
+    return m.group(1) if m else "unknown"
+
+
+def _log_facts(log_paths: list[str]) -> dict:
+    """Runtime versions and distinct log streams in the saved CloudWatch logs of the given functions."""
+    versions: set[str] = set()
+    streams: set[str] = set()
+    for p in log_paths:
+        if not os.path.exists(p):
+            continue
+        with gzip.open(p, "rt") as f:
+            for line in f:
+                e = json.loads(line)
+                streams.add(e.get("logStreamName"))
+                if m := _RUNTIME_RE.search(e.get("message", "")):
+                    versions.add(m.group(1))
+    return {"runtime_versions": sorted(versions), "log_streams": len(streams - {None})}
+
+
+def _cold_wd(rows: list[dict]) -> list[dict]:
+    return [
+        r for r in ok_rows(rows) if r["expected_class"] == "cold" and "weight_download" in init(r)
+    ]
+
+
+def _status_from_ci(ci: list[float]) -> str:
+    return "regressed" if ci[0] > 0 else "improved" if ci[1] < 0 else "no-change"
+
+
+def host_block(rows: list[dict], ctl_rows: list[dict], log_paths: list[str], status: str) -> dict:
+    """What the run recorded about the hosts, and whether the download result depends on which CPU part served it.
+
+    The download is a network transfer, so the CPU part should not move it; this checks that instead of assuming it.
+    `by_cpu_part` is the arm-minus-ctl cold weight_download delta within each part both arms ran on. The status check
+    recomputes the status from the largest shared part alone: if it matches the pooled status, the CPU mix did not
+    decide the result. No CPU generation is inferred: a CPU part is Arm's MIDR part number, nothing more."""
+    a, b = _cold_wd(rows), _cold_wd(ctl_rows)
+    every = ok_rows(rows) + ok_rows(ctl_rows)
+
+    def cells(f) -> dict[str, int]:
+        c: dict[str, int] = defaultdict(int)
+        for r in every:
+            c[f"{r['arm']}:{r['expected_class']}:{f(r)}"] += 1
+        return dict(sorted(c.items()))
+
+    by_part = matched(a, b, lambda r: init(r)["weight_download"])
+    out: dict = {
+        "recorded": {
+            "cpu_part": cells(lambda r: r.get("cpu_part")),
+            "ggml_cpu_variant": cells(_ggml_variant),
+            "threads": sorted({(r.get("timing") or {}).get("threads") for r in every} - {None}),
+            **_log_facts(log_paths),
+        },
+        "unknown": list(HOST_UNRECORDED),
+        "cpu_part_source": "/proc/cpuinfo 'CPU part' line, logged by the handler at init (engine.py _cpu_part)",
+        "download_by_cpu_part": by_part["by_cpu_part"] if by_part else None,
+        "status_check": None,
+    }
+    if by_part:
+        sizes = {p: min(v["n"]) for p, v in by_part["by_cpu_part"].items()}
+        top = max(sizes, key=sizes.get)
+        ci = by_part["by_cpu_part"][top]["ci95_s"]
+        within = _status_from_ci(ci)
+        pooled = status if status in ("improved", "regressed") else "no-change"
+        out["status_check"] = {
+            "largest_cpu_part": top,
+            "n": by_part["by_cpu_part"][top]["n"],
+            "status_within_part": within,
+            "pooled_status": status,
+            "holds": within == pooled,
+            "method": "status rule applied to the delta within the largest CPU part both arms ran on",
+        }
     return out
 
 
@@ -387,6 +484,12 @@ def summarize_arm(arm: str, a: argparse.Namespace, meta: dict) -> dict:
     f0 = cold_cond["functions"][arm]
     spec = cold_cond["e3_dl"].get(arm)
     st = status_of(e3, sum(1 for r in by_arm[arm] if r["error"]), cls["mismatches"], corr)
+    e3["host"] = host_block(
+        by_arm[arm],
+        by_arm["ctl"],
+        [os.path.join(out, "logs", f"{n}.jsonl.gz") for n in sorted(set(fns.values()))],
+        st,
+    )
     res = {
         "schema": "lkai-result/1",
         "experiment_id": EXPERIMENT_ID,
@@ -524,6 +627,13 @@ def conclude(arm: str, res: dict) -> str:
             + ", ".join(f"{k} {v:+.3f} s" for k, v in moved.items())
             + ". "
         )
+    chk = (e3.get("host") or {}).get("status_check")
+    if chk:
+        s += (
+            f"Within CPU part {chk['largest_cpu_part']} alone (n={chk['n'][0]} vs {chk['n'][1]}) the status is "
+            f"{chk['status_within_part']}, so the CPU mix {'does not decide' if chk['holds'] else 'changes'} "
+            "this result. "
+        )
     c = res["correctness"]
     s += (
         f"Answers {c['bit_identical']}/{c['compared']} bit-identical; weights hash "
@@ -546,8 +656,8 @@ def _fmt(v: float | None, nd: int = 2) -> str:
 def table(results: dict[str, dict]) -> str:
     lines = [
         "| arm | strategy | status | cold download p50 s (n) | vs ctl p50 s [95% CI] | MiB/s p50 | GETs | "
-        "peak RSS after dl MB | /tmp MB | hash | answers identical | compute moved |",
-        "|---|---|---|---|---|---|---|---|---|---|---|---|",
+        "peak RSS after dl MB | /tmp MB | hash | answers identical | compute moved | status within largest CPU part |",
+        "|---|---|---|---|---|---|---|---|---|---|---|---|---|",
     ]
     for arm, r in results.items():
         d, e3 = r["e3"]["download"], r["e3"]
@@ -555,6 +665,12 @@ def table(results: dict[str, dict]) -> str:
         comp = e3.get("compute") or {}
         moved = [f"{k} {v:+.3f}s" for k, v in moved_phases(comp).items()]
         c = r["correctness"]
+        chk = (e3.get("host") or {}).get("status_check")
+        within = (
+            f"{chk['status_within_part']} ({chk['largest_cpu_part']}, n={chk['n'][0]})"
+            if chk
+            else "—"
+        )
         lines.append(
             f"| {arm} | `{e3['strategy'] if arm != 'ctl' else 'P1 loader (P1 zip)'}` | {r['status']} | "
             f"{_fmt(_p50(d['weight_download']))} ({(d['weight_download'] or {}).get('n', 0)}) | "
@@ -566,7 +682,7 @@ def table(results: dict[str, dict]) -> str:
             + f" | {_fmt(_p50(d['weight_download_mib_s']), 1)} | {d['s3_get_requests_per_download']} | "
             f"{(d['peak_rss_mb_after_download'] or {}).get('p50')} | {(d['tmp_used_mb'] or {}).get('p50')} | "
             f"{'ok' if e3['hash']['match'] else 'NO'} | {c['bit_identical']}/{c['compared']} | "
-            f"{', '.join(moved) if moved else ('none' if arm != 'ctl' else '—')} |"
+            f"{', '.join(moved) if moved else ('none' if arm != 'ctl' else '—')} | {within} |"
         )
     return "\n".join(lines)
 
@@ -604,6 +720,7 @@ def main() -> None:
                     ).get("p50"),
                 },
                 "hash_match": r["e3"]["hash"]["match"],
+                "host_status_check": r["e3"]["host"]["status_check"],
                 "correctness": {
                     k: r["correctness"][k] for k in ("compared", "bit_identical", "choice_flips")
                 },

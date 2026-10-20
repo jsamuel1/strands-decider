@@ -365,6 +365,43 @@ def test_summarize_status_per_setting_and_isolation(tmp_path):
     assert res["fast"]["e3"]["compute"]["cold.model_load_mmap"]["pooled_delta_p50_s"] == 0
     assert "Status improved" in res["fast"]["conclusion"]
     assert (out / "summary.md").read_text().count("\n") == 4
+    chk = res["fast"]["e3"]["host"]["status_check"]
+    assert chk == chk | {
+        "largest_cpu_part": "0xd40",
+        "status_within_part": "improved",
+        "holds": True,
+    }
+
+
+def test_summarize_host_check_flags_a_cpu_mix_confound(tmp_path):
+    """An arm that only looks slower because half its colds landed on a CPU part the control never saw: the pooled
+    status says regressed, the within-part check says no-change, and `holds` is False. Unrecorded host fields are
+    listed as unknown and the ggml variant comes from the init log line."""
+    arms = ["ctl", "mix"]
+    e3_dl = {"ctl": None, "mix": "threads:64:64"}
+    log = "decider.engine init cpu_part=0xd40 ggml_cpu=libggml-cpu-armv8.6_1.so threads=6\n"
+    rows = []
+    for i in range(20):
+        j = 0.01 * i
+        rows.append(_row("ctl", i % 2, "cold", "0xd40", dl=25.0 + j) | {"log_tail": log})
+        rows.append(_row("mix", i % 2, "cold", "0xd40", dl=25.0 + j) | {"log_tail": log})
+        rows.append(_row("mix", i % 2, "cold", "0xd0c", dl=30.0 + j))
+    rows += [_row(a, 0, "warm", "0xd40") for a in arms]
+    ver = [_row("mix", 0, "cold", "0xd40", dl=25, counters={"e3_weight_sha256": "8" * 64})]
+    res, out = _summarize(tmp_path, rows, ver, arms, e3_dl)
+    r = res["mix"]
+    assert r["status"] == "regressed"
+    host = r["e3"]["host"]
+    assert set(host["download_by_cpu_part"]) == {"0xd40"}  # ctl never ran on 0xd0c
+    assert host["status_check"]["status_within_part"] == "no-change"
+    assert host["status_check"]["holds"] is False
+    assert "changes this result" in r["conclusion"]
+    rec = host["recorded"]
+    assert rec["ggml_cpu_variant"]["mix:cold:libggml-cpu-armv8.6_1.so"] == 20
+    assert rec["ggml_cpu_variant"]["mix:cold:unknown"] == 20
+    assert rec["cpu_part"]["mix:cold:0xd0c"] == 20
+    assert "CPU generation / instance family" in host["unknown"]
+    assert "no-change (0xd40, n=20)" in (out / "summary.md").read_text()
 
 
 def test_summarize_hash_mismatch_is_never_improved(tmp_path):
@@ -391,3 +428,4 @@ def test_summarize_arm_without_rows_is_failed(tmp_path):
     res, _ = _summarize(tmp_path, rows, [], arms, e3_dl)
     assert res["dead"]["status"] == "failed"
     assert res["dead"]["errors"]["count"] == 1
+    assert res["dead"]["e3"]["host"]["status_check"] is None
