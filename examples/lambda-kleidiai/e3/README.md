@@ -42,9 +42,9 @@ the download, before llama.cpp maps the weights.
   bandwidth. The client's parallelism is not the limit.
 - **More, smaller requests lose.** At ≤ 32 MiB parts the median moves a little, but a tail appears. In 6 to 46 of
   the 50 colds per setting, the download took 27 to 78 s. At 8 MiB × 128 threads, all 50 colds were slow. The
-  tail did not come from one Graviton generation: it appeared on 0xd40, which is most samples, as well as on 0xd0c
-  and 0xd4f. Its likely cause is per-request latency and throttling at more concurrent connections, but this run
-  does not isolate it.
+  tail is not tied to one CPU part: it appeared on 0xd40, which is most samples, as well as on 0xd0c and 0xd4f.
+  Its likely cause is per-request latency and throttling at more concurrent connections, but this run does not
+  isolate it.
 - **CRT adds nothing at this bandwidth.** CRT also uses about 0.5 to 1.3 GB more peak RSS before the mmap:
   - `on_body` buffers parts in Python and native memory.
   - `recv_filepath` (crtfile) is the leanest CRT path, at 1,079 MB.
@@ -59,7 +59,7 @@ the download, before llama.cpp maps the weights.
   +0.06 to +2.3 s (`e3.end_to_end`).
 - **Restore: no change that the download can explain.** For SnapStart restores, the weights download only during
   the snapshot init inside `publish_version`, which no request waits for. The restore leg ran the best arm
-  (t64x64) and ctl, 3 rounds × 10 restores each, all on Graviton3:
+  (t64x64) and ctl, 3 rounds × 10 restores each, every one on CPU part 0xd40:
   - Snapshot-init download: 24.82 s against 24.86 s (n = 6 each).
   - Restore Duration p50: 3.26 s against 3.20 s, Δ +0.07 s (+1.7 %), 95 % CI [+0.01, +0.10].
   - First request after restore: Δ +0.07 s, CI [−0.00, +0.11].
@@ -78,6 +78,45 @@ to come from a different variable:
 - a bucket type with more bandwidth per connection (E1)
 
 The ~663 Mbit/s per-environment ceiling is the number those experiments need to beat.
+
+## Host variability (rework, 2026-10-21)
+
+The initiative's HOST VARIABILITY rule asks whether Lambda placing environments on different hosts could explain
+these results. This section assesses the existing run against its recorded metadata. It reruns nothing and spends
+nothing, because the check below shows the host mix does not change any conclusion.
+
+**Recorded per invocation** (`results.json` → `e3.host.recorded`):
+- `cpu_part`: the `CPU part` line of `/proc/cpuinfo`, logged by the handler at init. Cold starts: 423 × 0xd40,
+  51 × 0xd0c, 26 × 0xd4f across all 10 arms. Restores: 60 of 60 on 0xd40. Verify: 9 of 9 on 0xd40.
+- the ggml CPU backend variant llama.cpp loaded. In this run it tracks the CPU part one to one (0xd40 →
+  `armv8.6_1`, 0xd0c → `armv8.2_2`, 0xd4f → `armv8.6_2`). Warm and restore rows have no init line, so their
+  variant is `unknown`.
+- threads: 6 on every row. Runtime: `python:3.12.mainlinev2.v43` on every log stream (P1's pinned runtime ARN).
+- the CloudWatch log stream of every environment (`logs/`).
+
+**Not recorded, labelled unknown** (`e3.host.unknown`): cpuinfo implementer, variant and revision; Features and
+HWCAPs; online core count; cgroup limits; kernel release. A CPU part number is Arm's MIDR part field and nothing
+else. This README no longer names a Graviton generation for any part, because the run holds no evidence that
+maps a part to a generation or instance family on Lambda.
+
+**Does the host mix change a conclusion? No.**
+- The arms were interleaved: every arm ran in every round, with the order rotated each round. Each arm got a
+  similar CPU-part mix (0xd40 is 39 to 48 of each arm's 50 cold starts).
+- `e3.host.download_by_cpu_part` gives the cold weight_download delta vs ctl within each CPU part.
+  `e3.host.status_check` reapplies the status rule to the largest shared part (0xd40, n = 39 to 48 per arm
+  against 42 for ctl). All 9 settings get the same status as the pooled result: ldr, aa and t64x64 no-change; the
+  other 6 regressed. The summary table's last column shows it.
+- The download is a network transfer. For the four arms that run P1's setting or more threads (ctl, ldr, aa,
+  t64x64), the cold download p50 is 24.97 s on 0xd40 (n = 167), 25.12 s on 0xd0c (n = 22) and 25.11 s on 0xd4f
+  (n = 11). That 0.15 s spread is smaller than every regression above, but close to t32x64's +0.17 s and crtf16's
+  +0.18 s. Both of those also regress within 0xd40 alone (+0.14 s and +0.25 s, intervals above 0), so the CPU mix
+  does not create them. This run cannot tell whether the spread comes from the CPU or from the network of the
+  hosts that carry those parts.
+- Compute phases were already compared within each CPU part (`e3.compute`), so they never mixed parts.
+- The restore leg ran both arms on 0xd40 only, so its comparison is within one part.
+
+H1's fixed-host EC2 baseline is not used: E3 changes no CPU or memory work, and only Lambda's network path can
+decide a download strategy. No AWS resources were created and nothing was spent for this rework.
 
 ## Control identity
 
@@ -163,7 +202,8 @@ adds files to P1's zip.
 
 - One region (us-east-2) and one memory size (10,240 MB). Lambda's network share may scale with memory, and this
   run did not test that.
-- Lambda chose the Graviton generation: about 85 % 0xd40. The download tail appears on all three generations.
+- Lambda chose the host for each environment: 85 % of cold starts ran on CPU part 0xd40. The download tail appears
+  on all three parts seen. Fields beyond the CPU part are not recorded (see "Host variability").
 - CRT request counts are computed as ceil(size / part size), not observed. CRT does not expose them, and they are
   labelled as computed.
 - The restore leg covers t64x64 only, by operator choice. Restores never download, so no strategy can change them.

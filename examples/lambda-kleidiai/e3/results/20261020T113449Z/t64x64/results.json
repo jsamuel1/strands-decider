@@ -6142,6 +6142,108 @@
   "runs": {
    "cold": "cold-20261020T113449Z",
    "restore": "restore-20261020T113449Z"
+  },
+  "host": {
+   "recorded": {
+    "cpu_part": {
+     "ctl:cold:0xd0c": 6,
+     "ctl:cold:0xd40": 42,
+     "ctl:cold:0xd4f": 2,
+     "ctl:restore:0xd40": 30,
+     "ctl:warm:0xd0c": 6,
+     "ctl:warm:0xd40": 72,
+     "ctl:warm:0xd4f": 2,
+     "t64x64:cold:0xd0c": 5,
+     "t64x64:cold:0xd40": 44,
+     "t64x64:cold:0xd4f": 1,
+     "t64x64:restore:0xd40": 30,
+     "t64x64:warm:0xd0c": 5,
+     "t64x64:warm:0xd40": 74,
+     "t64x64:warm:0xd4f": 1
+    },
+    "ggml_cpu_variant": {
+     "ctl:cold:libggml-cpu-armv8.0_1.so,libggml-cpu-armv8.2_2.so": 6,
+     "ctl:cold:libggml-cpu-armv8.0_1.so,libggml-cpu-armv8.6_1.so": 42,
+     "ctl:cold:libggml-cpu-armv8.0_1.so,libggml-cpu-armv8.6_2.so": 2,
+     "ctl:restore:unknown": 30,
+     "ctl:warm:unknown": 80,
+     "t64x64:cold:libggml-cpu-armv8.0_1.so,libggml-cpu-armv8.2_2.so": 5,
+     "t64x64:cold:libggml-cpu-armv8.0_1.so,libggml-cpu-armv8.6_1.so": 44,
+     "t64x64:cold:libggml-cpu-armv8.0_1.so,libggml-cpu-armv8.6_2.so": 1,
+     "t64x64:restore:unknown": 30,
+     "t64x64:warm:unknown": 80
+    },
+    "threads": [
+     6
+    ],
+    "runtime_versions": [
+     "python:3.12.mainlinev2.v43"
+    ],
+    "log_streams": 175
+   },
+   "unknown": [
+    "cpuinfo CPU implementer",
+    "cpuinfo CPU variant",
+    "cpuinfo CPU revision",
+    "cpuinfo Features / AT_HWCAP / AT_HWCAP2",
+    "online core count (nproc)",
+    "cgroup cpu.max / memory.max",
+    "kernel release",
+    "CPU generation / instance family"
+   ],
+   "cpu_part_source": "/proc/cpuinfo 'CPU part' line, logged by the handler at init (engine.py _cpu_part)",
+   "download_by_cpu_part": {
+    "0xd0c": {
+     "delta_p50_s": 0.144589,
+     "ci95_s": [
+      -0.253446,
+      0.382007
+     ],
+     "delta_pct": 0.58,
+     "n": [
+      5,
+      6
+     ],
+     "method": "percentile bootstrap, 2000 resamples, seed 0"
+    },
+    "0xd40": {
+     "delta_p50_s": 0.058352,
+     "ci95_s": [
+      -0.061266,
+      0.11485
+     ],
+     "delta_pct": 0.23,
+     "n": [
+      44,
+      42
+     ],
+     "method": "percentile bootstrap, 2000 resamples, seed 0"
+    },
+    "0xd4f": {
+     "delta_p50_s": 0.133953,
+     "ci95_s": [
+      0.124808,
+      0.143098
+     ],
+     "delta_pct": 0.53,
+     "n": [
+      1,
+      2
+     ],
+     "method": "percentile bootstrap, 2000 resamples, seed 0"
+    }
+   },
+   "status_check": {
+    "largest_cpu_part": "0xd40",
+    "n": [
+     44,
+     42
+    ],
+    "status_within_part": "no-change",
+    "pooled_status": "no-change",
+    "holds": true,
+    "method": "status rule applied to the delta within the largest CPU part both arms ran on"
+   }
   }
  },
  "errors": {
@@ -6206,5 +6308,5 @@
   "python examples/lambda-kleidiai/e3/summarize_e3.py --cold build/runs/cold-<id> --restore build/runs/restore-<id> --verify build/runs/verify-<id> --baseline-commit aac59d45555ebded9357c23f6f8e4f939edf25d7 --run-id <id> --out build/runs/summary-<id>",
   "AWS_PROFILE=<p> python examples/lambda-kleidiai/e3/e3deploy.py teardown"
  ],
- "conclusion": "threads:64:64: cold weight_download p50 24.99 s (n=50) vs control 24.95 s (n=50), delta +0.03 s (+0.1%), 95% CI [-0.07, +0.11] s. Compute phases after the download: no interval excludes 0. Answers 159/159 bit-identical; weights hash matches; S3 GETs per download [31]; peak RSS after download p50 597.4 MB; /tmp used p50 0.0 MB. Status no-change."
+ "conclusion": "threads:64:64: cold weight_download p50 24.99 s (n=50) vs control 24.95 s (n=50), delta +0.03 s (+0.1%), 95% CI [-0.07, +0.11] s. Compute phases after the download: no interval excludes 0. Within CPU part 0xd40 alone (n=44 vs 42) the status is no-change, so the CPU mix does not decide this result. Answers 159/159 bit-identical; weights hash matches; S3 GETs per download [31]; peak RSS after download p50 597.4 MB; /tmp used p50 0.0 MB. Status no-change."
 }

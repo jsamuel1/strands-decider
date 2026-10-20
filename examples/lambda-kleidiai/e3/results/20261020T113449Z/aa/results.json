@@ -4120,6 +4120,104 @@
   "runs": {
    "cold": "cold-20261020T113449Z"
   },
+  "host": {
+   "recorded": {
+    "cpu_part": {
+     "aa:cold:0xd0c": 6,
+     "aa:cold:0xd40": 40,
+     "aa:cold:0xd4f": 4,
+     "aa:warm:0xd0c": 6,
+     "aa:warm:0xd40": 40,
+     "aa:warm:0xd4f": 4,
+     "ctl:cold:0xd0c": 6,
+     "ctl:cold:0xd40": 42,
+     "ctl:cold:0xd4f": 2,
+     "ctl:warm:0xd0c": 6,
+     "ctl:warm:0xd40": 42,
+     "ctl:warm:0xd4f": 2
+    },
+    "ggml_cpu_variant": {
+     "aa:cold:libggml-cpu-armv8.0_1.so,libggml-cpu-armv8.2_2.so": 6,
+     "aa:cold:libggml-cpu-armv8.0_1.so,libggml-cpu-armv8.6_1.so": 40,
+     "aa:cold:libggml-cpu-armv8.0_1.so,libggml-cpu-armv8.6_2.so": 4,
+     "aa:warm:unknown": 50,
+     "ctl:cold:libggml-cpu-armv8.0_1.so,libggml-cpu-armv8.2_2.so": 6,
+     "ctl:cold:libggml-cpu-armv8.0_1.so,libggml-cpu-armv8.6_1.so": 42,
+     "ctl:cold:libggml-cpu-armv8.0_1.so,libggml-cpu-armv8.6_2.so": 2,
+     "ctl:warm:unknown": 50
+    },
+    "threads": [
+     6
+    ],
+    "runtime_versions": [
+     "python:3.12.mainlinev2.v43"
+    ],
+    "log_streams": 100
+   },
+   "unknown": [
+    "cpuinfo CPU implementer",
+    "cpuinfo CPU variant",
+    "cpuinfo CPU revision",
+    "cpuinfo Features / AT_HWCAP / AT_HWCAP2",
+    "online core count (nproc)",
+    "cgroup cpu.max / memory.max",
+    "kernel release",
+    "CPU generation / instance family"
+   ],
+   "cpu_part_source": "/proc/cpuinfo 'CPU part' line, logged by the handler at init (engine.py _cpu_part)",
+   "download_by_cpu_part": {
+    "0xd0c": {
+     "delta_p50_s": 0.038655,
+     "ci95_s": [
+      -0.131571,
+      0.250262
+     ],
+     "delta_pct": 0.15,
+     "n": [
+      6,
+      6
+     ],
+     "method": "percentile bootstrap, 2000 resamples, seed 0"
+    },
+    "0xd40": {
+     "delta_p50_s": 0.077911,
+     "ci95_s": [
+      -0.010676,
+      0.155448
+     ],
+     "delta_pct": 0.31,
+     "n": [
+      40,
+      42
+     ],
+     "method": "percentile bootstrap, 2000 resamples, seed 0"
+    },
+    "0xd4f": {
+     "delta_p50_s": 0.021584,
+     "ci95_s": [
+      -0.096741,
+      0.12554
+     ],
+     "delta_pct": 0.09,
+     "n": [
+      4,
+      2
+     ],
+     "method": "percentile bootstrap, 2000 resamples, seed 0"
+    }
+   },
+   "status_check": {
+    "largest_cpu_part": "0xd40",
+    "n": [
+     40,
+     42
+    ],
+    "status_within_part": "no-change",
+    "pooled_status": "no-change",
+    "holds": true,
+    "method": "status rule applied to the delta within the largest CPU part both arms ran on"
+   }
+  },
   "restore_note": "restore not measured for this setting (operator: restore leg for the best arm and ctl only). With SnapStart the weights download only in the snapshot init inside publish_version."
  },
  "errors": {
@@ -4184,5 +4282,5 @@
   "python examples/lambda-kleidiai/e3/summarize_e3.py --cold build/runs/cold-<id> --restore build/runs/restore-<id> --verify build/runs/verify-<id> --baseline-commit aac59d45555ebded9357c23f6f8e4f939edf25d7 --run-id <id> --out build/runs/summary-<id>",
   "AWS_PROFILE=<p> python examples/lambda-kleidiai/e3/e3deploy.py teardown"
  ],
- "conclusion": "threads:64:32: cold weight_download p50 25.03 s (n=50) vs control 24.95 s (n=50), delta +0.07 s (+0.3%), 95% CI [-0.00, +0.16] s. Compute phases after the download: no interval excludes 0. Answers 96/96 bit-identical; weights hash matches; S3 GETs per download [31]; peak RSS after download p50 597.5 MB; /tmp used p50 0.0 MB. Status no-change."
+ "conclusion": "threads:64:32: cold weight_download p50 25.03 s (n=50) vs control 24.95 s (n=50), delta +0.07 s (+0.3%), 95% CI [-0.00, +0.16] s. Compute phases after the download: no interval excludes 0. Within CPU part 0xd40 alone (n=40 vs 42) the status is no-change, so the CPU mix does not decide this result. Answers 96/96 bit-identical; weights hash matches; S3 GETs per download [31]; peak RSS after download p50 597.5 MB; /tmp used p50 0.0 MB. Status no-change."
 }

@@ -28,13 +28,24 @@
     "peak_rss_mb_p50": 599.4
    },
    "hash_match": true,
+   "host_status_check": {
+    "largest_cpu_part": "0xd40",
+    "n": [
+     41,
+     42
+    ],
+    "status_within_part": "no-change",
+    "pooled_status": "no-change",
+    "holds": true,
+    "method": "status rule applied to the delta within the largest CPU part both arms ran on"
+   },
    "correctness": {
     "compared": 96,
     "bit_identical": 96,
     "choice_flips": 0
    },
    "result": "ldr/results.json",
-   "conclusion": "loader: cold weight_download p50 25.03 s (n=50) vs control 24.95 s (n=50), delta +0.08 s (+0.3%), 95% CI [-0.00, +0.16] s. Compute phases after the download: no interval excludes 0. Answers 96/96 bit-identical; weights hash matches; S3 GETs per download [31]; peak RSS after download p50 599.4 MB; /tmp used p50 0.0 MB. Status no-change."
+   "conclusion": "loader: cold weight_download p50 25.03 s (n=50) vs control 24.95 s (n=50), delta +0.08 s (+0.3%), 95% CI [-0.00, +0.16] s. Compute phases after the download: no interval excludes 0. Within CPU part 0xd40 alone (n=41 vs 42) the status is no-change, so the CPU mix does not decide this result. Answers 96/96 bit-identical; weights hash matches; S3 GETs per download [31]; peak RSS after download p50 599.4 MB; /tmp used p50 0.0 MB. Status no-change."
   },
   "aa": {
    "status": "no-change",
@@ -62,13 +73,24 @@
     "peak_rss_mb_p50": 597.5
    },
    "hash_match": true,
+   "host_status_check": {
+    "largest_cpu_part": "0xd40",
+    "n": [
+     40,
+     42
+    ],
+    "status_within_part": "no-change",
+    "pooled_status": "no-change",
+    "holds": true,
+    "method": "status rule applied to the delta within the largest CPU part both arms ran on"
+   },
    "correctness": {
     "compared": 96,
     "bit_identical": 96,
     "choice_flips": 0
    },
    "result": "aa/results.json",
-   "conclusion": "threads:64:32: cold weight_download p50 25.03 s (n=50) vs control 24.95 s (n=50), delta +0.07 s (+0.3%), 95% CI [-0.00, +0.16] s. Compute phases after the download: no interval excludes 0. Answers 96/96 bit-identical; weights hash matches; S3 GETs per download [31]; peak RSS after download p50 597.5 MB; /tmp used p50 0.0 MB. Status no-change."
+   "conclusion": "threads:64:32: cold weight_download p50 25.03 s (n=50) vs control 24.95 s (n=50), delta +0.07 s (+0.3%), 95% CI [-0.00, +0.16] s. Compute phases after the download: no interval excludes 0. Within CPU part 0xd40 alone (n=40 vs 42) the status is no-change, so the CPU mix does not decide this result. Answers 96/96 bit-identical; weights hash matches; S3 GETs per download [31]; peak RSS after download p50 597.5 MB; /tmp used p50 0.0 MB. Status no-change."
   },
   "t16x64": {
    "status": "regressed",
@@ -96,13 +118,24 @@
     "peak_rss_mb_p50": 861.0
    },
    "hash_match": true,
+   "host_status_check": {
+    "largest_cpu_part": "0xd40",
+    "n": [
+     48,
+     42
+    ],
+    "status_within_part": "regressed",
+    "pooled_status": "regressed",
+    "holds": true,
+    "method": "status rule applied to the delta within the largest CPU part both arms ran on"
+   },
    "correctness": {
     "compared": 98,
     "bit_identical": 98,
     "choice_flips": 0
    },
    "result": "t16x64/results.json",
-   "conclusion": "threads:16:64: cold weight_download p50 25.31 s (n=50) vs control 24.95 s (n=50), delta +0.56 s (+2.2%), 95% CI [+0.19, +1.73] s. Compute phases after the download: no interval excludes 0. Answers 98/98 bit-identical; weights hash matches; S3 GETs per download [124]; peak RSS after download p50 861.0 MB; /tmp used p50 0.0 MB. Status regressed."
+   "conclusion": "threads:16:64: cold weight_download p50 25.31 s (n=50) vs control 24.95 s (n=50), delta +0.56 s (+2.2%), 95% CI [+0.19, +1.73] s. Compute phases after the download: no interval excludes 0. Within CPU part 0xd40 alone (n=48 vs 42) the status is regressed, so the CPU mix does not decide this result. Answers 98/98 bit-identical; weights hash matches; S3 GETs per download [124]; peak RSS after download p50 861.0 MB; /tmp used p50 0.0 MB. Status regressed."
   },
   "t8x128": {
    "status": "regressed",
@@ -130,13 +163,24 @@
     "peak_rss_mb_p50": 849.9
    },
    "hash_match": true,
+   "host_status_check": {
+    "largest_cpu_part": "0xd40",
+    "n": [
+     46,
+     42
+    ],
+    "status_within_part": "regressed",
+    "pooled_status": "regressed",
+    "holds": true,
+    "method": "status rule applied to the delta within the largest CPU part both arms ran on"
+   },
    "correctness": {
     "compared": 98,
     "bit_identical": 98,
     "choice_flips": 0
    },
    "result": "t8x128/results.json",
-   "conclusion": "threads:8:128: cold weight_download p50 36.31 s (n=50) vs control 24.95 s (n=50), delta +11.40 s (+45.7%), 95% CI [+10.15, +11.86] s. Compute phases after the download: no interval excludes 0. Answers 98/98 bit-identical; weights hash matches; S3 GETs per download [248]; peak RSS after download p50 849.9 MB; /tmp used p50 0.0 MB. Status regressed."
+   "conclusion": "threads:8:128: cold weight_download p50 36.31 s (n=50) vs control 24.95 s (n=50), delta +11.40 s (+45.7%), 95% CI [+10.15, +11.86] s. Compute phases after the download: no interval excludes 0. Within CPU part 0xd40 alone (n=46 vs 42) the status is regressed, so the CPU mix does not decide this result. Answers 98/98 bit-identical; weights hash matches; S3 GETs per download [248]; peak RSS after download p50 849.9 MB; /tmp used p50 0.0 MB. Status regressed."
   },
   "t32x64": {
    "status": "regressed",
@@ -164,13 +208,24 @@
     "peak_rss_mb_p50": 962.1
    },
    "hash_match": true,
+   "host_status_check": {
+    "largest_cpu_part": "0xd40",
+    "n": [
+     40,
+     42
+    ],
+    "status_within_part": "regressed",
+    "pooled_status": "regressed",
+    "holds": true,
+    "method": "status rule applied to the delta within the largest CPU part both arms ran on"
+   },
    "correctness": {
     "compared": 98,
     "bit_identical": 98,
     "choice_flips": 0
    },
    "result": "t32x64/results.json",
-   "conclusion": "threads:32:64: cold weight_download p50 25.13 s (n=50) vs control 24.95 s (n=50), delta +0.17 s (+0.7%), 95% CI [+0.08, +0.33] s. Compute phases after the download: no interval excludes 0. Answers 98/98 bit-identical; weights hash matches; S3 GETs per download [62]; peak RSS after download p50 962.1 MB; /tmp used p50 0.0 MB. Status regressed."
+   "conclusion": "threads:32:64: cold weight_download p50 25.13 s (n=50) vs control 24.95 s (n=50), delta +0.17 s (+0.7%), 95% CI [+0.08, +0.33] s. Compute phases after the download: no interval excludes 0. Within CPU part 0xd40 alone (n=40 vs 42) the status is regressed, so the CPU mix does not decide this result. Answers 98/98 bit-identical; weights hash matches; S3 GETs per download [62]; peak RSS after download p50 962.1 MB; /tmp used p50 0.0 MB. Status regressed."
   },
   "t64x64": {
    "status": "no-change",
@@ -198,13 +253,24 @@
     "peak_rss_mb_p50": 597.4
    },
    "hash_match": true,
+   "host_status_check": {
+    "largest_cpu_part": "0xd40",
+    "n": [
+     44,
+     42
+    ],
+    "status_within_part": "no-change",
+    "pooled_status": "no-change",
+    "holds": true,
+    "method": "status rule applied to the delta within the largest CPU part both arms ran on"
+   },
    "correctness": {
     "compared": 159,
     "bit_identical": 159,
     "choice_flips": 0
    },
    "result": "t64x64/results.json",
-   "conclusion": "threads:64:64: cold weight_download p50 24.99 s (n=50) vs control 24.95 s (n=50), delta +0.03 s (+0.1%), 95% CI [-0.07, +0.11] s. Compute phases after the download: no interval excludes 0. Answers 159/159 bit-identical; weights hash matches; S3 GETs per download [31]; peak RSS after download p50 597.4 MB; /tmp used p50 0.0 MB. Status no-change."
+   "conclusion": "threads:64:64: cold weight_download p50 24.99 s (n=50) vs control 24.95 s (n=50), delta +0.03 s (+0.1%), 95% CI [-0.07, +0.11] s. Compute phases after the download: no interval excludes 0. Within CPU part 0xd40 alone (n=44 vs 42) the status is no-change, so the CPU mix does not decide this result. Answers 159/159 bit-identical; weights hash matches; S3 GETs per download [31]; peak RSS after download p50 597.4 MB; /tmp used p50 0.0 MB. Status no-change."
   },
   "crt8": {
    "status": "regressed",
@@ -232,13 +298,24 @@
     "peak_rss_mb_p50": 1475.0
    },
    "hash_match": true,
+   "host_status_check": {
+    "largest_cpu_part": "0xd40",
+    "n": [
+     44,
+     42
+    ],
+    "status_within_part": "regressed",
+    "pooled_status": "regressed",
+    "holds": true,
+    "method": "status rule applied to the delta within the largest CPU part both arms ran on"
+   },
    "correctness": {
     "compared": 99,
     "bit_identical": 99,
     "choice_flips": 0
    },
    "result": "crt8/results.json",
-   "conclusion": "crt:8:25: cold weight_download p50 27.21 s (n=50) vs control 24.95 s (n=50), delta +2.27 s (+9.1%), 95% CI [+1.48, +4.70] s. Compute phases whose 95% interval excludes 0 (pooled delta; 6 phases x 9 settings are tested, so about 3 such flags are expected by chance): cold.model_load_mmap -0.245 s. Answers 99/99 bit-identical; weights hash matches; S3 GETs per download [248]; peak RSS after download p50 1475.0 MB; /tmp used p50 0.0 MB. Status regressed."
+   "conclusion": "crt:8:25: cold weight_download p50 27.21 s (n=50) vs control 24.95 s (n=50), delta +2.27 s (+9.1%), 95% CI [+1.48, +4.70] s. Compute phases whose 95% interval excludes 0 (pooled delta; 6 phases x 9 settings are tested, so about 3 such flags are expected by chance): cold.model_load_mmap -0.245 s. Within CPU part 0xd40 alone (n=44 vs 42) the status is regressed, so the CPU mix does not decide this result. Answers 99/99 bit-identical; weights hash matches; S3 GETs per download [248]; peak RSS after download p50 1475.0 MB; /tmp used p50 0.0 MB. Status regressed."
   },
   "crt16": {
    "status": "regressed",
@@ -266,13 +343,24 @@
     "peak_rss_mb_p50": 1875.2
    },
    "hash_match": true,
+   "host_status_check": {
+    "largest_cpu_part": "0xd40",
+    "n": [
+     39,
+     42
+    ],
+    "status_within_part": "regressed",
+    "pooled_status": "regressed",
+    "holds": true,
+    "method": "status rule applied to the delta within the largest CPU part both arms ran on"
+   },
    "correctness": {
     "compared": 96,
     "bit_identical": 96,
     "choice_flips": 0
    },
    "result": "crt16/results.json",
-   "conclusion": "crt:16:25: cold weight_download p50 25.70 s (n=50) vs control 24.95 s (n=50), delta +0.74 s (+3.0%), 95% CI [+0.54, +1.48] s. Compute phases whose 95% interval excludes 0 (pooled delta; 6 phases x 9 settings are tested, so about 3 such flags are expected by chance): cold.model_load_mmap -0.336 s. Answers 96/96 bit-identical; weights hash matches; S3 GETs per download [124]; peak RSS after download p50 1875.2 MB; /tmp used p50 0.0 MB. Status regressed."
+   "conclusion": "crt:16:25: cold weight_download p50 25.70 s (n=50) vs control 24.95 s (n=50), delta +0.74 s (+3.0%), 95% CI [+0.54, +1.48] s. Compute phases whose 95% interval excludes 0 (pooled delta; 6 phases x 9 settings are tested, so about 3 such flags are expected by chance): cold.model_load_mmap -0.336 s. Within CPU part 0xd40 alone (n=39 vs 42) the status is regressed, so the CPU mix does not decide this result. Answers 96/96 bit-identical; weights hash matches; S3 GETs per download [124]; peak RSS after download p50 1875.2 MB; /tmp used p50 0.0 MB. Status regressed."
   },
   "crtf16": {
    "status": "regressed",
@@ -300,13 +388,24 @@
     "peak_rss_mb_p50": 1079.1
    },
    "hash_match": true,
+   "host_status_check": {
+    "largest_cpu_part": "0xd40",
+    "n": [
+     39,
+     42
+    ],
+    "status_within_part": "regressed",
+    "pooled_status": "regressed",
+    "holds": true,
+    "method": "status rule applied to the delta within the largest CPU part both arms ran on"
+   },
    "correctness": {
     "compared": 97,
     "bit_identical": 97,
     "choice_flips": 0
    },
    "result": "crtf16/results.json",
-   "conclusion": "crtfile:16:25: cold weight_download p50 25.14 s (n=50) vs control 24.95 s (n=50), delta +0.18 s (+0.7%), 95% CI [+0.07, +0.69] s. Compute phases whose 95% interval excludes 0 (pooled delta; 6 phases x 9 settings are tested, so about 3 such flags are expected by chance): cold.model_load_mmap -0.194 s. Answers 97/97 bit-identical; weights hash matches; S3 GETs per download [124]; peak RSS after download p50 1079.1 MB; /tmp used p50 0.0 MB. Status regressed."
+   "conclusion": "crtfile:16:25: cold weight_download p50 25.14 s (n=50) vs control 24.95 s (n=50), delta +0.18 s (+0.7%), 95% CI [+0.07, +0.69] s. Compute phases whose 95% interval excludes 0 (pooled delta; 6 phases x 9 settings are tested, so about 3 such flags are expected by chance): cold.model_load_mmap -0.194 s. Within CPU part 0xd40 alone (n=39 vs 42) the status is regressed, so the CPU mix does not decide this result. Answers 97/97 bit-identical; weights hash matches; S3 GETs per download [124]; peak RSS after download p50 1079.1 MB; /tmp used p50 0.0 MB. Status regressed."
   }
  }
 }

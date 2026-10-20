@@ -4161,6 +4161,104 @@
   "runs": {
    "cold": "cold-20261020T113449Z"
   },
+  "host": {
+   "recorded": {
+    "cpu_part": {
+     "crt16:cold:0xd0c": 7,
+     "crt16:cold:0xd40": 39,
+     "crt16:cold:0xd4f": 4,
+     "crt16:warm:0xd0c": 7,
+     "crt16:warm:0xd40": 39,
+     "crt16:warm:0xd4f": 4,
+     "ctl:cold:0xd0c": 6,
+     "ctl:cold:0xd40": 42,
+     "ctl:cold:0xd4f": 2,
+     "ctl:warm:0xd0c": 6,
+     "ctl:warm:0xd40": 42,
+     "ctl:warm:0xd4f": 2
+    },
+    "ggml_cpu_variant": {
+     "crt16:cold:libggml-cpu-armv8.0_1.so,libggml-cpu-armv8.2_2.so": 7,
+     "crt16:cold:libggml-cpu-armv8.0_1.so,libggml-cpu-armv8.6_1.so": 39,
+     "crt16:cold:libggml-cpu-armv8.0_1.so,libggml-cpu-armv8.6_2.so": 4,
+     "crt16:warm:unknown": 50,
+     "ctl:cold:libggml-cpu-armv8.0_1.so,libggml-cpu-armv8.2_2.so": 6,
+     "ctl:cold:libggml-cpu-armv8.0_1.so,libggml-cpu-armv8.6_1.so": 42,
+     "ctl:cold:libggml-cpu-armv8.0_1.so,libggml-cpu-armv8.6_2.so": 2,
+     "ctl:warm:unknown": 50
+    },
+    "threads": [
+     6
+    ],
+    "runtime_versions": [
+     "python:3.12.mainlinev2.v43"
+    ],
+    "log_streams": 100
+   },
+   "unknown": [
+    "cpuinfo CPU implementer",
+    "cpuinfo CPU variant",
+    "cpuinfo CPU revision",
+    "cpuinfo Features / AT_HWCAP / AT_HWCAP2",
+    "online core count (nproc)",
+    "cgroup cpu.max / memory.max",
+    "kernel release",
+    "CPU generation / instance family"
+   ],
+   "cpu_part_source": "/proc/cpuinfo 'CPU part' line, logged by the handler at init (engine.py _cpu_part)",
+   "download_by_cpu_part": {
+    "0xd0c": {
+     "delta_p50_s": 0.550859,
+     "ci95_s": [
+      -0.104651,
+      1.2242
+     ],
+     "delta_pct": 2.2,
+     "n": [
+      7,
+      6
+     ],
+     "method": "percentile bootstrap, 2000 resamples, seed 0"
+    },
+    "0xd40": {
+     "delta_p50_s": 0.766032,
+     "ci95_s": [
+      0.455562,
+      1.254995
+     ],
+     "delta_pct": 3.07,
+     "n": [
+      39,
+      42
+     ],
+     "method": "percentile bootstrap, 2000 resamples, seed 0"
+    },
+    "0xd4f": {
+     "delta_p50_s": 5.723947,
+     "ci95_s": [
+      4.116127,
+      9.798207
+     ],
+     "delta_pct": 22.81,
+     "n": [
+      4,
+      2
+     ],
+     "method": "percentile bootstrap, 2000 resamples, seed 0"
+    }
+   },
+   "status_check": {
+    "largest_cpu_part": "0xd40",
+    "n": [
+     39,
+     42
+    ],
+    "status_within_part": "regressed",
+    "pooled_status": "regressed",
+    "holds": true,
+    "method": "status rule applied to the delta within the largest CPU part both arms ran on"
+   }
+  },
   "restore_note": "restore not measured for this setting (operator: restore leg for the best arm and ctl only). With SnapStart the weights download only in the snapshot init inside publish_version."
  },
  "errors": {
@@ -4225,5 +4323,5 @@
   "python examples/lambda-kleidiai/e3/summarize_e3.py --cold build/runs/cold-<id> --restore build/runs/restore-<id> --verify build/runs/verify-<id> --baseline-commit aac59d45555ebded9357c23f6f8e4f939edf25d7 --run-id <id> --out build/runs/summary-<id>",
   "AWS_PROFILE=<p> python examples/lambda-kleidiai/e3/e3deploy.py teardown"
  ],
- "conclusion": "crt:16:25: cold weight_download p50 25.70 s (n=50) vs control 24.95 s (n=50), delta +0.74 s (+3.0%), 95% CI [+0.54, +1.48] s. Compute phases whose 95% interval excludes 0 (pooled delta; 6 phases x 9 settings are tested, so about 3 such flags are expected by chance): cold.model_load_mmap -0.336 s. Answers 96/96 bit-identical; weights hash matches; S3 GETs per download [124]; peak RSS after download p50 1875.2 MB; /tmp used p50 0.0 MB. Status regressed."
+ "conclusion": "crt:16:25: cold weight_download p50 25.70 s (n=50) vs control 24.95 s (n=50), delta +0.74 s (+3.0%), 95% CI [+0.54, +1.48] s. Compute phases whose 95% interval excludes 0 (pooled delta; 6 phases x 9 settings are tested, so about 3 such flags are expected by chance): cold.model_load_mmap -0.336 s. Within CPU part 0xd40 alone (n=39 vs 42) the status is regressed, so the CPU mix does not decide this result. Answers 96/96 bit-identical; weights hash matches; S3 GETs per download [124]; peak RSS after download p50 1875.2 MB; /tmp used p50 0.0 MB. Status regressed."
 }
