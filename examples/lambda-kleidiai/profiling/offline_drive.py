@@ -115,7 +115,7 @@ def main() -> None:
                           max_request_tokens=24576)
     buf = (ctypes.c_int64 * 4)()
     shim.lib.dec_load_phases_ns(buf, 4)
-    for name, ns in zip(("ggml_backend_load", "model_load_mmap", "context_init"), buf):
+    for name, ns in zip(("ggml_backend_load", "model_load_mmap", "context_init"), buf[:3], strict=True):
         ph.d[name] = round(ns / 1e9, 6)
     ph.d["assets_load"] = round(ph.d["model_load"] - buf[3] / 1e9, 6)
     warm = {"state": "warm up", "questions": {"q": {"type": "noul", "instructions": "A warm-up?"}}}

@@ -69,7 +69,10 @@ class _Elf:
 
 
 class Symbolizer:
-    def __init__(self, maps_text: str):
+    def __init__(self, maps_text: str, remap: dict[str, str] | None = None):
+        """remap: path prefixes to rewrite before opening a mapped file (a dump taken in a container, read on its
+        host: {"/pkg/": "/tmp/x/pkg/"}). Library names in the output keep the original basename."""
+        self.remap = remap or {}
         self.maps: list[tuple[int, int, int, str]] = []
         for line in maps_text.splitlines():
             parts = line.split(maxsplit=5)
@@ -92,6 +95,10 @@ class Symbolizer:
             lo, _hi, off, path = self.maps[i]
             lib = os.path.basename(path) or path
             if path.startswith("/") and not path.startswith("/memfd:"):
+                for a, b in self.remap.items():
+                    if path.startswith(a):
+                        path = b + path[len(a):]
+                        break
                 elf = self._elf.get(path) or self._elf.setdefault(path, _Elf(path))
                 # file offset of addr, then the ELF vaddr it was linked at
                 vaddr = addr - lo + off + elf.load_bias_vaddr
@@ -167,9 +174,25 @@ def summary(lib, tag_names: dict[int, str] | None = None, top: int = 25) -> dict
     return hdr | {"phases": tables(recs, sym, tag_names, top)}
 
 
-def summary_file(samples: str, maps: str, tag_names: dict[int, str] | None = None, top: int = 25) -> dict:
+def summary_file(samples: str, maps: str, tag_names: dict[int, str] | None = None, top: int = 25,
+                 remap: dict[str, str] | None = None) -> dict:
     """Offline: a dump plus the maps file saved beside it (offline_drive.py --samples)."""
     hdr, recs = read_samples(samples)
     with open(maps) as f:
-        sym = Symbolizer(f.read())
+        sym = Symbolizer(f.read(), remap)
     return hdr | {"phases": tables(recs, sym, tag_names, top)}
+
+
+if __name__ == "__main__":
+    import argparse
+    import json
+
+    ap = argparse.ArgumentParser(description="symbolise an lkaisamp dump: <samples> <maps> [--remap old=new]")
+    ap.add_argument("samples")
+    ap.add_argument("maps")
+    ap.add_argument("--remap", action="append", default=[])
+    ap.add_argument("--top", type=int, default=25)
+    a = ap.parse_args()
+    names = {1: "imports", 2: "weight_read", 3: "model_load", 4: "assets_load", 5: "warmup_inference",
+             6: "steady_state_inference"}
+    print(json.dumps(summary_file(a.samples, a.maps, names, a.top, dict(r.split("=", 1) for r in a.remap)), indent=1))

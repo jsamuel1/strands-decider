@@ -56,7 +56,7 @@ if MODE == "cprofile":
         """The top functions by cumulative time and the top by own time (tottime), deduplicated."""
         st = pstats.Stats(prof)
         rows = []
-        for (file, line, fn), (cc, nc, tt, ct, _callers) in st.stats.items():  # type: ignore[attr-defined]
+        for (file, line, fn), (_cc, nc, tt, ct, _callers) in st.stats.items():  # type: ignore[attr-defined]
             rows.append({"fn": f"{os.path.basename(file)}:{line}:{fn}", "ncalls": nc, "tottime": round(tt, 6),
                          "cumtime": round(ct, 6)})
         keep = {id(r): r for r in sorted(rows, key=lambda r: -r["cumtime"])[:top]}
@@ -200,7 +200,7 @@ def handler(event, context):
         # first lets the init profile cover the whole load and keeps it out of the first invocation's profile.
         import handler as _pr77
 
-        _pr77._ENGINE.result()
+        _pr77._ENGINE.result()  # noqa: SLF001 (PR #77's load future; lkai_entry reads it the same way)
     _init_profile()
     if MODE == "cprofile":
         prof = cProfile.Profile()

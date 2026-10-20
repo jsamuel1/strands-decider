@@ -38,7 +38,7 @@ def _req(method, path, body=None, headers=None):
 
 
 class _H(http.server.BaseHTTPRequestHandler):
-    def do_POST(self):  # noqa: N802
+    def do_POST(self):
         n = int(self.headers.get("Content-Length", "0"))
         try:
             events = json.loads(self.rfile.read(n))

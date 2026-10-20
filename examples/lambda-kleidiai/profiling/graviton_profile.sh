@@ -21,7 +21,8 @@ LAMBDA_IMAGE=public.ecr.aws/lambda/python@sha256:37fe9ca4183c36ec57e4c5eabb8893c
 [ "$(uname -m)" = aarch64 ] || { echo "needs an arm64 host"; exit 1; }
 W=$(mktemp -d)
 trap 'rm -rf "$W"' EXIT
-(cd "$W" && python3 -m zipfile -e "$ZIP" pkg)
+# unzip, not python -m zipfile: the zip stores lib/*.so.N as symlinks (zip -y), which zipfile writes out as text files.
+(cd "$W" && unzip -q "$ZIP" -d pkg)
 python3 -m pip download -q --no-deps --only-binary=:all: --platform manylinux2014_aarch64 --python-version 3.12 \
   py-spy==0.4.2 -d "$W/whl"
 (cd "$W/whl" && python3 -m zipfile -e py_spy-*.whl x && cp x/py_spy-0.4.2.data/scripts/py-spy "$W/py-spy")
