@@ -30,6 +30,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 
 import boto3
+from botocore.config import Config
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 BASE = os.path.join(os.path.dirname(HERE), "baseline")
@@ -41,17 +42,21 @@ import e3deploy  # noqa: E402
 
 
 def set_env(b: p1bench.Bench, arm: str, **kv: str | None) -> None:
-    """Update $LATEST's environment (a None value removes the key) and wait for the update."""
+    """Update $LATEST's environment (a None value removes the key) and wait for the update.
+
+    Uses b.ctl, a control-plane client with standard retries: P1's invoke client has retries off (a retried invoke
+    would be a second sample), and one read timeout on a configuration call must not abort a run."""
+    lam = b.ctl
     name = b.st["functions"][arm]["name"]
-    c = b.lam.get_function_configuration(FunctionName=name)
+    c = lam.get_function_configuration(FunctionName=name)
     env = dict(c["Environment"]["Variables"])
     for k, v in kv.items():
         if v is None:
             env.pop(k, None)
         else:
             env[k] = v
-    b.lam.update_function_configuration(FunctionName=name, Environment={"Variables": env})
-    p1deploy.wait_updated(b.lam, name)
+    lam.update_function_configuration(FunctionName=name, Environment={"Variables": env})
+    p1deploy.wait_updated(lam, name)
 
 
 def rotated(arms: list[str], rnd: int) -> list[str]:
@@ -144,6 +149,12 @@ def main() -> None:
     os.makedirs(a.out, exist_ok=True)
     sess = boto3.Session(profile_name=a.profile, region_name=a.region)
     b = p1bench.Bench(sess, st, reqs, a.out, max(a.concurrency, 1))
+    b.ctl = sess.client(
+        "lambda", config=Config(retries={"mode": "standard", "max_attempts": 8}, read_timeout=60)
+    )
+    if a.mode != "verify":  # a verify run that died must not leave a hashing arm in a measured run
+        with ThreadPoolExecutor(len(arms)) as ex:
+            list(ex.map(lambda arm: set_env(b, arm, E3_VERIFY=None), arms))
     cond = conditions(b, sess, a, arms, reqs)
     path = os.path.join(a.out, "conditions.json")
     json.dump(cond, open(path, "w"), indent=1)
