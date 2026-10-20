@@ -44,19 +44,18 @@ def functions(sess, st: dict) -> None:
     real_pin = deploy.pin_runtime
 
     def pin_runtime(lam_, st_, logs=None):
-        # P1's pin_runtime smoke-invokes functions["inst"] and pins every function in st["functions"]. The first arm
-        # deployed (base) is smoke-invoked once; later arms reuse its runtime version.
-        if "runtime_version_arn" in st_:
-            for f in st_["functions"].values():
-                lam_.put_runtime_management_config(
-                    FunctionName=f["name"],
-                    UpdateRuntimeOn="Manual",
-                    RuntimeVersionArn=st_["runtime_version_arn"],
-                )
-            return
-        view = dict(st_, functions={"inst": st_["functions"]["base"]})
-        real_pin(lam_, view, logs)
-        st_["runtime_version_arn"] = view["runtime_version_arn"]
+        # P1's pin_runtime smoke-invokes functions["inst"] and pins every function in st["functions"]: give it
+        # base as "inst" (one smoke invoke), then pin every arm to the version base reported.
+        if "runtime_version_arn" not in st_:
+            view = dict(st_, functions={"inst": st_["functions"]["base"]})
+            real_pin(lam_, view, logs)
+            st_["runtime_version_arn"] = view["runtime_version_arn"]
+        for f in st_["functions"].values():
+            lam_.put_runtime_management_config(
+                FunctionName=f["name"],
+                UpdateRuntimeOn="Manual",
+                RuntimeVersionArn=st_["runtime_version_arn"],
+            )
 
     real_functions_cfg, real_role = deploy.functions, deploy.ensure_role
 
