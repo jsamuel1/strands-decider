@@ -15,7 +15,7 @@ RUN_ID=${1:-$(date -u +%Y%m%dT%H%M%SZ)}
 REGION=${REGION:-us-east-2}
 RAW=$HERE/build/runs/$RUN_ID
 PY=${PYTHON:-python3}
-: "${SOURCE_BUCKET:?the bucket P1's deploy.py upload wrote (it holds the pinned zip and GGUF)}"
+: "${SOURCE_BUCKET:?set SOURCE_BUCKET to the bucket that the P1 deploy.py upload wrote (pinned zip and GGUF)}"
 "$PY" -c "import boto3" 2>/dev/null || { echo "needs boto3 for $PY (pip install boto3)"; exit 1; }
 # P1's pushed baseline HEAD this experiment is measured against (baseline/ is unchanged from it).
 BASELINE_COMMIT=${BASELINE_COMMIT:-aac59d45555ebded9357c23f6f8e4f939edf25d7}

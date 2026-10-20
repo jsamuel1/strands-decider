@@ -357,6 +357,16 @@ def test_summarize_end_to_end(tmp_path, ozia_wd, want):
     )
 
 
+def test_run_script_parses_and_cleans_up_before_benchmark():
+    import subprocess
+
+    path = os.path.join(E2, "run.sh")
+    subprocess.run(["bash", "-n", path], check=True)
+    src = open(path).read()
+    assert src.index("trap cleanup_versions EXIT") < src.index("bench.py")
+    assert "--arms std,ozia" in src
+
+
 def test_answer_hash_detects_a_changed_answer(tmp_path):
     s = _load("summarize")
     rows = [
