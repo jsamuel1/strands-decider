@@ -19,11 +19,13 @@ and correctness, then replaces the parts that assume P1's inst/rep pair:
 from __future__ import annotations
 
 import argparse
+import gzip
 import hashlib
 import json
 import math
 import os
 import random
+import re
 import statistics
 import sys
 from collections import defaultdict
@@ -221,7 +223,7 @@ def comparison(rows: list[dict], snaps: dict[str, list[dict]]) -> dict:
                 c[ph]["ratio_ci95_round_cluster"] = cluster_boot_ratio(
                     _by_round(by_arm["ozia"], cls, ph), _by_round(by_arm["std"], cls, ph)
                 )
-        # Engine-bound phases depend on the Graviton generation; compare those within a CPU part as well.
+        # Engine-bound phases depend on the host CPU (the cpuinfo `CPU part`); compare within a CPU part as well.
         per_cpu: dict = {}
         cpus = sorted(
             {r.get("cpu_part") for r in by_arm["std"] if r["expected_class"] == cls}
@@ -257,6 +259,141 @@ def comparison(rows: list[dict], snaps: dict[str, list[dict]]) -> dict:
         "agrees_with_primary": decide(cl) == out["outcome"],
     }
     return out
+
+
+# What the run could and could not observe about the host. bench.py keeps the handler's `cpu_part` (the /proc/cpuinfo
+# "CPU part" line) per invocation; the saved CloudWatch logs carry each environment's `init cpu_part=... ggml_cpu=...`
+# line (the ggml CPU backend variants that ggml's own feature probe loaded). Nothing else about the host was logged.
+HOST_UNOBSERVED = (
+    "cpuinfo CPU implementer",
+    "cpuinfo CPU variant and revision",
+    "cpuinfo Features / AT_HWCAP / AT_HWCAP2",
+    "core count of a restored environment (threads come from the snapshotting init)",
+    "cgroup CPU and memory limits",
+    "kernel release",
+    "processor generation or product name (not inferred from CPU part or from timings)",
+)
+
+
+def _log_hosts(run: str) -> dict[str, dict]:
+    """Per function: {cpu_part: set of ggml variants} from init lines, and the CPU part of every snapshot init."""
+    out: dict[str, dict] = {}
+    d = os.path.join(run, "logs")
+    if not os.path.isdir(d):
+        return out
+    for f in sorted(os.listdir(d)):
+        fn = f.removesuffix(".jsonl.gz")
+        streams: dict[str, dict] = defaultdict(lambda: {"parts": [], "snap": 0})
+        variants: dict[str, set[str]] = defaultdict(set)
+        with gzip.open(os.path.join(d, f), "rt") as fh:
+            for line in fh:
+                e = json.loads(line)
+                msg, st = e.get("message", ""), streams[e.get("logStreamName", "")]
+                m = re.search(r"init cpu_part=(\S+) ggml_cpu=(\S+)", msg)
+                if m:
+                    st["parts"].append(m.group(1))
+                    variants[m.group(1)].add(m.group(2))
+                if msg.startswith("LKAI ") and '"before_snapshot"' in msg:
+                    st["snap"] += 1
+        snap_parts: dict[str, int] = defaultdict(int)
+        for st in streams.values():
+            if st["snap"]:
+                for p in st["parts"] or ["unknown"]:
+                    snap_parts[p] += 1
+        out[fn] = {
+            "ggml_cpu_by_cpu_part": {p: sorted(v) for p, v in sorted(variants.items())},
+            "snapshot_init_cpu_parts": dict(sorted(snap_parts.items())),
+        }
+    return out
+
+
+def _round_cv(rows: list[dict], cls: str, f) -> dict | None:
+    per: dict[object, list[float]] = defaultdict(list)
+    for r in rows:
+        if r["expected_class"] == cls and not r["error"] and not r["class_mismatch"]:
+            per[r["round"]].append(f(r))
+    meds = [statistics.median(v) for _, v in sorted(per.items(), key=lambda kv: str(kv[0]))]
+    if len(meds) < 2:
+        return None
+    return {
+        "per_round_median_s": [round(m, 4) for m in meds],
+        "cv": round(statistics.stdev(meds) / statistics.fmean(meds), 4),
+    }
+
+
+def host_variability(run: str, cond: dict, rows: list[dict], cmp_: dict) -> dict:
+    """Host identity observed per invocation, what was not observed, and whether the host mix can move the result."""
+    by_arm = {a: [r for r in rows if r["arm"] == a] for a in ARMS}
+    counts = {
+        a: {
+            cls: _count(r.get("cpu_part") for r in by_arm[a] if r["expected_class"] == cls)
+            for cls in COMPARE
+        }
+        for a in ARMS
+    }
+    envs: dict[str, set] = defaultdict(set)
+    for r in rows:
+        env = (r.get("lkai") or {}).get("env_id")
+        if env:
+            envs[env].add(r.get("cpu_part"))
+    logs = _log_hosts(run)
+    fns = {a: cond["functions"][a]["FunctionName"] for a in ARMS}
+    cold_parts = _count(r.get("cpu_part") for r in rows if r["expected_class"] == "cold")
+    dominant = max(cold_parts, key=cold_parts.get) if cold_parts else None
+    within = ((cmp_.get("cold") or {}).get("by_cpu_part") or {}).get(str(dominant)) or {}
+    wd = within.get("weight_download") or {}
+    # Warm round-to-round spread with and without the CPU-part mix (pooled vs one part only).
+    lat = lambda r: r["latency_ms"] / 1000  # noqa: E731
+    warm_cv = {
+        a: {
+            "all_cpu_parts": _round_cv(by_arm[a], "warm", lat),
+            str(dominant): _round_cv(
+                [r for r in by_arm[a] if r.get("cpu_part") == dominant], "warm", lat
+            ),
+        }
+        for a in ARMS
+    }
+    return {
+        "identity_field": "cpu_part: the /proc/cpuinfo 'CPU part' line read by the handler in each environment",
+        "observed": {
+            "cpu_part_by_arm_and_class": counts,
+            "execution_environments": len(envs),
+            "environments_with_more_than_one_cpu_part": sum(len(v) > 1 for v in envs.values()),
+            "ggml_cpu_variant_by_cpu_part": {
+                a: logs.get(fns[a], {}).get("ggml_cpu_by_cpu_part") for a in ARMS
+            },
+            "snapshot_init_cpu_parts": {
+                a: logs.get(fns[a], {}).get("snapshot_init_cpu_parts") for a in ARMS
+            },
+            "threads": sorted({(r.get("timing") or {}).get("threads") for r in rows}, key=str),
+            "threads_source": "os.cpu_count() in the init that loaded the model (THREADS unset); a restored "
+            "environment reports its snapshotting init's value",
+            "memory_mb": sorted({r["report"].get("Memory Size") for r in rows}, key=str),
+            "runtime_version_arn": cond.get("runtime_version_arn"),
+            "log_streams": "logs/<function>.jsonl.gz, logStreamName per record; env_id per invocation",
+        },
+        "unobserved": list(HOST_UNOBSERVED),
+        "generation": "unknown: not recorded, and not inferred from CPU part or timings",
+        "primary_within_dominant_cpu_part": {
+            "cpu_part": dominant,
+            "n": wd.get("n"),
+            "ratio_p50": wd.get("ratio_p50"),
+            "ratio_ci95": wd.get("ratio_ci95"),
+            "ratio_ci95_round_cluster": wd.get("ratio_ci95_round_cluster"),
+            "outcome": decide(wd.get("ratio_ci95")),
+            "outcome_round_cluster": decide(wd.get("ratio_ci95_round_cluster")),
+            "agrees_with_primary": decide(wd.get("ratio_ci95")) == cmp_.get("outcome")
+            and decide(wd.get("ratio_ci95_round_cluster")) == cmp_.get("outcome"),
+        },
+        "warm_round_cv": warm_cv,
+    }
+
+
+def _count(xs) -> dict:
+    out: dict = defaultdict(int)
+    for x in xs:
+        out[str(x) if x is not None else "unknown"] += 1
+    return dict(sorted(out.items()))
 
 
 # Every one-off charge of this run, by key in `cost()`'s dict. total_usd is the sum of exactly these. Monthly storage
@@ -435,6 +572,7 @@ def summarize(
     cmp_ = comparison(rows, snaps)
     res["primary_arm"] = "ozia"
     res["comparison"] = cmp_
+    res["host_variability"] = host_variability(run, cond, rows, cmp_)
     res["cost"] = cost(res, cond, rows, snaps, dep) | {
         "snapshot_inits_per_version": res["cost"].get("snapshot_inits_per_version", {})
     }

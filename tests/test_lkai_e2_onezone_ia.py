@@ -442,3 +442,93 @@ def test_committed_result_total_matches_its_components():
     c = json.load(open(p))["cost"]
     assert c["total_usd"] == pytest.approx(sum(c[k] for k in c["total_components"]), abs=1e-9)
     assert c["total_usd"] == pytest.approx(3.639428, abs=1e-6)
+
+
+def _host_log(tmp_path, fn, envs):
+    """envs: [(stream, cpu_part, variant, snapshot?)] -> a saved CloudWatch log in bench.py's shape."""
+    with gzip.open(tmp_path / "logs" / f"{fn}.jsonl.gz", "wt") as f:
+        for i, (stream, part, variant, snap) in enumerate(envs):
+            msgs = [
+                f"x decider.engine init cpu_part={part} ggml_cpu={variant} threads=6 ubatch=512"
+            ]
+            if snap:
+                msgs.append("LKAI " + json.dumps({"kind": "before_snapshot", "wall_ns": i + 1}))
+            for m in msgs:
+                f.write(json.dumps({"timestamp": 0, "logStreamName": stream, "message": m}) + "\n")
+
+
+def test_host_variability_reports_cpu_parts_unknowns_and_within_part_outcome(tmp_path):
+    s = _load("summarize")
+    run = _run(tmp_path, 25.0)
+    rows = [json.loads(x) for x in open(os.path.join(run, "invocations.jsonl"))]
+    # Put two std cold starts on another CPU part; give every row an env id.
+    for i, r in enumerate(rows):
+        r["lkai"]["env_id"] = f"e{i}"
+        r["timing"] = {"threads": 6}
+        r["report"]["Memory Size"] = 10240.0
+    colds = [r for r in rows if r["arm"] == "std" and r["expected_class"] == "cold"]
+    for r in colds[:2]:
+        r["cpu_part"] = "0xd0c"
+    (tmp_path / "invocations.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
+    for fn in ("lkai-e2-std", "lkai-e2-ozia"):
+        _host_log(
+            tmp_path,
+            fn,
+            [("2026/10/20/[1]a", "0xd0c", "v82", True), ("2026/10/20/[1]b", "0xd40", "v86", True)],
+        )
+    meta = json.load(open(os.path.join(E2, "meta.json")))
+    res = s.summarize(run, str(tmp_path / "ref.json"), str(tmp_path / "dep.json"), "aac59d4", meta)
+    h = res["host_variability"]
+    o = h["observed"]
+    assert o["cpu_part_by_arm_and_class"]["std"]["cold"] == {"0xd0c": 2, "0xd40": 18}
+    assert o["cpu_part_by_arm_and_class"]["ozia"]["cold"] == {"0xd40": 20}
+    assert o["environments_with_more_than_one_cpu_part"] == 0
+    assert o["ggml_cpu_variant_by_cpu_part"]["std"] == {"0xd0c": ["v82"], "0xd40": ["v86"]}
+    assert o["snapshot_init_cpu_parts"]["ozia"] == {"0xd0c": 1, "0xd40": 1}
+    assert o["threads"] == [6]
+    # What was not logged is named as unknown; no processor generation is claimed.
+    assert any("implementer" in u for u in h["unobserved"])
+    assert any("HWCAP" in u for u in h["unobserved"])
+    assert h["generation"].startswith("unknown")
+    assert "graviton" not in json.dumps(h).lower()
+    w = h["primary_within_dominant_cpu_part"]
+    assert w["cpu_part"] == "0xd40" and w["n"] == [18, 20]
+    assert w["outcome"] == s.decide(w["ratio_ci95"]) == "no-change"
+    assert w["agrees_with_primary"] is True
+
+
+def test_host_variability_flags_a_conclusion_that_flips_within_one_cpu_part(tmp_path):
+    s = _load("summarize")
+    run = _run(tmp_path, 25.0)
+    rows = [json.loads(x) for x in open(os.path.join(run, "invocations.jsonl"))]
+    # Pooled the arms look equal, but within the dominant part One Zone-IA is 10% slower: a host-mix artefact.
+    for r in rows:
+        if r["expected_class"] != "cold":
+            continue
+        i = int(r["lkai"]["init"]["weight_download"] * 100) % 10
+        if r["arm"] == "ozia":
+            r["cpu_part"] = "0xd40" if i < 6 else "0xd4f"
+            r["lkai"]["init"]["weight_download"] = 27.5 if i < 6 else 22.0
+        else:
+            r["cpu_part"] = "0xd40" if i < 6 else "0xd4f"
+    (tmp_path / "invocations.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
+    meta = json.load(open(os.path.join(E2, "meta.json")))
+    res = s.summarize(run, str(tmp_path / "ref.json"), str(tmp_path / "dep.json"), "aac59d4", meta)
+    w = res["host_variability"]["primary_within_dominant_cpu_part"]
+    assert w["cpu_part"] == "0xd40"
+    assert w["outcome"] == "regressed"
+    assert w["agrees_with_primary"] is False
+
+
+def test_committed_result_names_cpu_parts_not_generations():
+    base = os.path.join(E2, "results", "20261020T1125Z-e2")
+    res = json.load(open(os.path.join(base, "results.json")))
+    h = res["host_variability"]
+    assert h["primary_within_dominant_cpu_part"]["outcome"] == res["status"] == "no-change"
+    assert h["observed"]["environments_with_more_than_one_cpu_part"] == 0
+    for p in (
+        os.path.join(base, "results.json"),
+        os.path.join(base, "meta.json"),
+        os.path.join(E2, "README.md"),
+    ):
+        assert "graviton" not in open(p).read().lower(), p

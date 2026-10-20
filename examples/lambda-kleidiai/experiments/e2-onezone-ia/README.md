@@ -68,26 +68,29 @@ outcome does not depend on treating concurrent cold starts as independent.
 
 - **Download.** The two storage classes give the same download time. The p99 is 28.7 s for Standard and 25.2 s for
   One Zone-IA, a single slow Standard sample that is not a class effect. Both arms match P1's 25.04 s and 79 MiB/s.
-- **CPU mix.** Lambda chose Graviton generations independently per arm (cold: Standard 43/1/6 and One Zone-IA 41/3/6
-  for Graviton3/2/4). Within Graviton3 alone, the cold download ratio is 0.9995 [0.997, 1.005] and Restore Duration is
-  0.9961 [0.985, 1.005].
+- **CPU mix.** Lambda placed each execution environment on a host independently per arm. The handler records the
+  `/proc/cpuinfo` `CPU part` (see [Host variability](#host-variability)). Cold starts: Standard 43 `0xd40`, 1
+  `0xd0c`, 6 `0xd4f`; One Zone-IA 41 / 3 / 6. Within `0xd40` alone, the cold download ratio is 0.9995 [0.997, 1.005]
+  and Restore Duration is 0.9961 [0.985, 1.005].
 - **Intervals that exclude 1.0.** Every interval in the table above contains 1.0 except the cold probe forward.
   In `comparison.<class>.by_cpu_part`, these primary intervals also exclude 1.0:
-  - Cold probe forward on Graviton3 (`0xd40`): 0.2374 s against 0.2393 s, ratio 1.008 [1.0019, 1.0131], n=43/41.
+  - Cold probe forward on CPU part `0xd40`: 0.2374 s against 0.2393 s, ratio 1.008 [1.0019, 1.0131], n=43/41.
     The aggregate probe-forward interval [1.0012, 1.0136] is this effect plus the CPU mix (One Zone-IA drew 3
-    Graviton2 cold starts at about 0.43 s, Standard drew 1). The forward runs on weights already in memory and never
+    `0xd0c` cold starts, whose probe forward is about 0.43 s, and Standard drew 1). The forward runs on weights already in memory and never
     touches S3, so a storage-class cause is not plausible. Read it as run-to-run drift in a 2 ms quantity.
-  - Cold weight download on Graviton4 (`0xd4f`): 25.06 s against 25.18 s, ratio 1.0049 [1.0017, 1.009], and
+  - Cold weight download on CPU part `0xd4f`: 25.06 s against 25.18 s, ratio 1.0049 [1.0017, 1.009], and
     throughput 79.05 against 78.65 MiB/s, 0.9949 [0.9912, 0.9987]. This is n=6 per arm, drawn from different rounds
     (Standard rounds 0, 1, 2, 4; One Zone-IA rounds 1, 2, 3, 4). The paired round-cluster interval uses only the
-    3 shared rounds. The point estimate is +0.5%, inside the ±2% band, and the Graviton3 subset (n=43/41) shows no
+    3 shared rounds. The point estimate is +0.5%, inside the ±2% band, and the `0xd40` subset (n=43/41) shows no
     difference. This is a small, low-n signal that the run cannot separate from round timing. It is not a
     performance effect of the storage class at the scale the decision rule tests.
-  - Under the round-cluster sensitivity, cold model load on Graviton3 also excludes 1.0 by a hair, [1.0001,
-    1.0033] (+0.16%), and Graviton4 probe forward is lower for One Zone-IA, [0.9461, 0.983] (n=6). Neither is a
+  - Under the round-cluster sensitivity, cold model load on `0xd40` also excludes 1.0 by a hair, [1.0001,
+    1.0033] (+0.16%), and `0xd4f` probe forward is lower for One Zone-IA, [0.9461, 0.983] (n=6). Neither is a
     download phase.
 - **Run-to-run variance** (CV of per-round medians, Standard / One Zone-IA): cold 0.09% / 0.15%, restore 0.73% /
-  0.94%, warm 1.1% / 10.3%. The warm figure reflects the request mix per pass, not storage.
+  0.94%, warm 1.1% / 10.3%. The warm One Zone-IA figure is the host mix, not storage: its round 4 served 30 of 100
+  warm requests from `0xd0c` environments (median 1.14 s against 0.64 s on `0xd40`). Restricted to `0xd40`, the warm
+  CV is 2.2% / 2.0% (`host_variability.warm_round_cv`).
 - **Correctness.** 1,200 of 1,200 answers are bit-identical to P1's `reference/outputs.json` for the same request and
   CPU part, with 0 choice flips and a maximum delta of 0. The SHA-256 over each arm's canonical answers per (request,
   CPU part) is `0977393b…` on both arms. Both weight copies have S3 full-object SHA-256 `8dbb8872…`.
@@ -113,9 +116,48 @@ memfd. Only cold starts and snapshot inits pay (2 snapshot inits per published v
   Lambda duration $0.605, SnapStart restore $0.140, the One Zone-IA 30-day minimum $0.021, S3 requests $0.0027
   (the Standard arm's share $0.0008) and Lambda requests $0.0002.
 - One Zone-IA saves $0.027 per month in storage and pays $0.0208 more per download. It breaks even at 1.3 downloads
-  per month, and this function performs 2 snapshot inits per published version. One Zone-IA also keeps a single AZ
-  copy, which Standard does not.
+  per month, and this function performs 2 snapshot inits per published version (one on a `0xd0c` host and one on a
+  `0xd40` host for every version on both arms). One Zone-IA also keeps a single AZ copy, which Standard does not.
 - E1 measures Express One Zone in its own run. The column above is list price only.
+
+## Host variability
+
+Added for the initiative's host-variability rules (operator request item-mvhbiqd5-1degq-099). This is a re-analysis
+of the committed evidence of run `20261020T1125Z-e2`. It made no new invocations and used no AWS resources.
+`summarize.py` writes it to `results.json` → `host_variability`.
+
+**Observed.** Each invocation records `cpu_part`, the `CPU part` line of `/proc/cpuinfo` read by the handler in that
+execution environment. The saved CloudWatch logs record, per environment, which ggml CPU backend variants ggml's
+own feature probe loaded, the log stream, and the runtime version. Three CPU parts appeared: `0xd0c` (ggml loaded
+`armv8.2_2`), `0xd40` (`armv8.6_1`) and `0xd4f` (`armv8.6_2`). Each of the 200 environments reported a single CPU
+part. Every environment ran 6 threads (`os.cpu_count()` in the init that loaded the model), 10,240 MB, and runtime
+`…runtime:0fec05b8…`. The snapshot init for each published version ran twice, once on `0xd0c` and once on `0xd40`,
+on both arms (5 + 5 each).
+
+**Not observed, so unknown.** The `CPU implementer`, variant and revision lines, the `Features` flags and
+`AT_HWCAP`/`AT_HWCAP2`, cgroup CPU and memory limits, the kernel release, and the core count of a restored
+environment (its thread count comes from the snapshotting init). This README names CPU parts only. It makes no claim
+about which processor generation or product a part is. The earlier wording that named generations was an inference
+from the part number and timings, and was removed.
+
+**Is the conclusion exposed to host mix?** No, and no rerun was made:
+
+- The arms were interleaved by round, and both drew the same part mix within one or two cold starts per part (table
+  above). The snapshot inits that seeded every restore ran on the same parts on both arms.
+- The primary metric, cold `weight_download`, does not depend on the CPU part in this run. Pooled over both arms,
+  its median is 24.85 s on `0xd0c` (n=4), 24.97 s on `0xd40` (n=84) and 25.15 s on `0xd4f` (n=12). Those medians
+  span 1.2% end to end, against a ±2% band on the arm ratio.
+- Restricted to the dominant part `0xd40` (84 of 100 cold starts), the primary ratio is 0.9995, primary interval
+  [0.997, 1.0051], round-cluster [0.9973, 1.0072]. Both lie inside the band, so the outcome is **no-change** with
+  the host held fixed (`host_variability.primary_within_dominant_cpu_part`).
+- Correctness is compared per (request, CPU part) against P1's reference: 1,200 / 1,200 bit-identical with 0
+  missing references.
+- The phases where the part mix does show (probe forward, warm inference) are compute on weights already in memory.
+  They are reported per part above and are not storage-class effects. The `0xd0c` and `0xd4f` subsets are small
+  (n ≤ 6 per arm for cold), and their arms were drawn from different rounds, so they decide nothing.
+
+A fixed-host EC2 baseline (H1) isolates CPU and memory behavior. It cannot measure S3 storage-class effects inside
+Lambda, and this experiment does not need it.
 
 ## Files
 
