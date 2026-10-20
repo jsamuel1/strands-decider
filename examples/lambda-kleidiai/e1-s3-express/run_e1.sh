@@ -3,7 +3,7 @@
 #
 #   AWS_PROFILE=<profile> SOURCE=s3://<p1-bucket> examples/lambda-kleidiai/e1-s3-express/run_e1.sh [RUN_ID]
 #
-# deploy_e1.py up -> baseline/bench.py (4 arms) -> summarize_e1.py -> redaction -> P2 validation.
+# deploy_e1.py up -> bench_e1.py (baseline/bench.py, fresh client per wave; 4 arms) -> summarize_e1.py -> redaction -> P2 validation.
 # SOURCE is read only. Or FROM_BUILD=<baseline/build> to upload a local P1 build. Knobs (P1's pinned defaults):
 # REGION=us-east-2 AZ_ID=use2-az1 ROUNDS=5 CONCURRENCY=10 WARM=10 PREFIX=lkai-e1 TEARDOWN=versions|all|none.
 set -euo pipefail
@@ -29,7 +29,7 @@ cleanup() {
   esac
 }
 trap cleanup EXIT
-"$PY" "$BASE/bench.py" --build "$HERE/build" --arms gp,xz,gpv,xzv --region "$REGION" \
+"$PY" "$HERE/bench_e1.py" --build "$HERE/build" --arms gp,xz,gpv,xzv --region "$REGION" \
   --rounds "${ROUNDS:-5}" --concurrency "${CONCURRENCY:-10}" --warm "${WARM:-10}" --out "$RAW"
 cp "$HERE/build/deployment.json" "$RAW/deployment.json"
 "$PY" "$HERE/summarize_e1.py" "$RAW" --reference "$BASE/reference/outputs.json" --meta "$HERE/meta.json" \

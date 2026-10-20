@@ -419,3 +419,26 @@ def test_meta_and_result_validate_against_p2_schema_if_present(tmp_path):
     assert res["correctness"]["compared"] == res["correctness"]["bit_identical"] == 72
     problems = lr.validate(res)
     assert problems == [], "\n".join(problems)
+
+
+def test_bench_e1_makes_a_fresh_lambda_client_per_wave(monkeypatch):
+    import bench_e1
+
+    made = []
+    monkeypatch.setattr(
+        bench_e1, "lambda_client", lambda sess, c: made.append(c) or f"client-{len(made)}"
+    )
+    b = bench_e1.FreshClientBench.__new__(bench_e1.FreshClientBench)
+    b._sess, b.concurrency, b.clients_made, b.probe = object(), 3, 0, "r1"
+    seen = []
+    b.invoke = lambda arm, q, rid, rnd, wave, seq: seen.append(b.lam) or {}
+    b.wave("gp", "1", 0, "restore")
+    b.wave("xz", "1", 0, "restore")
+    assert made == [3, 3] and b.clients_made == 2
+    assert seen == ["client-1"] * 3 + ["client-2"] * 3
+
+
+def test_run_script_drives_bench_e1_with_all_four_arms():
+    script = open(os.path.join(E1, "run_e1.sh")).read()
+    assert '"$HERE/bench_e1.py"' in script and "--arms gp,xz,gpv,xzv" in script
+    assert script.index("trap cleanup EXIT") < script.index('"$PY" "$HERE/bench_e1.py"')
