@@ -12,7 +12,7 @@
  },
  "commits": {
   "experiment": "89c3a671315370cd0788c8749892e06606a3692f",
-  "baseline": "7f066aa03e99e0d3ef2efb5453ff6bf35db3f5dd",
+  "baseline": "aac59d45555ebded9357c23f6f8e4f939edf25d7",
   "repo_dirty_at_build": false
  },
  "deployment": {
@@ -4222,7 +4222,7 @@
   "AWS_PROFILE=<p> python examples/lambda-kleidiai/e3/e3bench.py --mode verify --out build/runs/verify-<id>",
   "AWS_PROFILE=<p> python examples/lambda-kleidiai/e3/e3bench.py --mode cold --rounds 5 --concurrency 10 --out build/runs/cold-<id>",
   "AWS_PROFILE=<p> python examples/lambda-kleidiai/e3/e3bench.py --mode restore --arms ctl,<best> --rounds 3 --out build/runs/restore-<id>",
-  "python examples/lambda-kleidiai/e3/summarize_e3.py --cold build/runs/cold-<id> --restore build/runs/restore-<id> --verify build/runs/verify-<id> --baseline-commit 7f066aa03e99e0d3ef2efb5453ff6bf35db3f5dd --run-id <id> --out build/runs/summary-<id>",
+  "python examples/lambda-kleidiai/e3/summarize_e3.py --cold build/runs/cold-<id> --restore build/runs/restore-<id> --verify build/runs/verify-<id> --baseline-commit aac59d45555ebded9357c23f6f8e4f939edf25d7 --run-id <id> --out build/runs/summary-<id>",
   "AWS_PROFILE=<p> python examples/lambda-kleidiai/e3/e3deploy.py teardown"
  ],
  "conclusion": "crt:16:25: cold weight_download p50 25.70 s (n=50) vs control 24.95 s (n=50), delta +0.74 s (+3.0%), 95% CI [+0.54, +1.48] s. Compute phases whose 95% interval excludes 0 (pooled delta; 6 phases x 9 settings are tested, so about 3 such flags are expected by chance): cold.model_load_mmap -0.336 s. Answers 96/96 bit-identical; weights hash matches; S3 GETs per download [124]; peak RSS after download p50 1875.2 MB; /tmp used p50 0.0 MB. Status regressed."

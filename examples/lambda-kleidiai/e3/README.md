@@ -147,7 +147,7 @@ python examples/lambda-kleidiai/e3/e3bench.py --mode verify --out build/runs/ver
 python examples/lambda-kleidiai/e3/e3bench.py --mode cold --rounds 5 --concurrency 10 --out build/runs/cold-<id>
 python examples/lambda-kleidiai/e3/e3bench.py --mode restore --arms ctl,t64x64 --rounds 3 --out build/runs/restore-<id>
 python examples/lambda-kleidiai/e3/summarize_e3.py --cold build/runs/cold-<id> --restore build/runs/restore-<id> \
-  --verify build/runs/verify-<id> --baseline-commit 7f066aa03e99e0d3ef2efb5453ff6bf35db3f5dd --run-id <id> --out build/runs/summary-<id>
+  --verify build/runs/verify-<id> --baseline-commit aac59d45555ebded9357c23f6f8e4f939edf25d7 --run-id <id> --out build/runs/summary-<id>
 python examples/lambda-kleidiai/e3/e3deploy.py teardown        # versions; --all removes functions, role and the E3 zip
 ```
 
