@@ -11302,7 +11302,7 @@
   "AWS_PROFILE=<profile> E4_ARMS=r2 examples/lambda-kleidiai/e4_stream/run.sh <run-id>",
   "examples/lambda-kleidiai/e4_stream/localtest.sh   # no AWS: each arm against a local 80 MiB/s S3 stand-in"
  ],
- "conclusion": "Run 2 of 2 (arms base / stream / basethr / streamdyn, 5 rounds x 10 per class, interleaved; 0 errors, 0 class mismatches; 2,400 of 2,400 answers bit-identical to P1's reference). stream vs base, within CPU part: cold first-request -4.54 s on Graviton3 0xd40 (35.92 -> 31.38 s p50, -13 %), -3.97 s on 0xd4f (-12 %), -9.26 s on Graviton2 0xd0c (48.49 -> 39.23 s, -19 %), -5.64 s pooled; download+load -5.64 s pooled (33.71 -> 29.16 s p50) with the download itself unchanged; restore first-request -0.02 s (3.93 -> 3.92 s p50; per-round medians overlap, i.e. no change); Max Memory Used -34 MB cold, -41 MB restore, -59 MB warm; steady-state inference -0.02 s (noise). The pin alone (basethr) changes cold by +0.19 s and memory by -35 to -58 MB, so the cold gain is the overlap's and the memory recovery is the pin's. streamdyn reproduces run 1: cold -5.50 s but restore +0.34 s and memory +476 to +495 MB, confirming the restore regression was memory, not the overlap. SnapStart: the download and load run inside publish_version's snapshot init, never in a restore, so SnapStart already hides E4's cold-path saving on restore; E4 improves on-demand cold starts (and shortens the snapshot init), and with the pin leaves restore unchanged.",
+ "conclusion": "Run 2 of 2 (arms base / stream / basethr / streamdyn, 5 rounds x 10 per class, interleaved; 0 errors, 0 class mismatches; 2,400 of 2,400 answers bit-identical to P1's reference). stream vs base, within CPU part: cold first-request -4.54 s on CPU part 0xd40 (35.92 -> 31.38 s p50, -13 %), -3.97 s on CPU part 0xd4f (-12 %, 4 samples), -9.26 s on CPU part 0xd0c (48.49 -> 39.23 s, -19 %), -5.64 s pooled; download+load -5.64 s pooled (33.71 -> 29.16 s p50) with the download itself unchanged; restore first-request -0.02 s (3.93 -> 3.92 s p50; per-round medians overlap, i.e. no change); Max Memory Used -34 MB cold, -41 MB restore, -59 MB warm; steady-state inference -0.02 s (noise). The pin alone (basethr) changes cold by +0.19 s and memory by -35 to -58 MB, so the cold gain is the overlap's and the memory recovery is the pin's. streamdyn reproduces run 1: cold -5.50 s but restore +0.34 s and memory +476 to +495 MB, confirming the restore regression was memory, not the overlap. SnapStart: the download and load run inside publish_version's snapshot init, never in a restore, so SnapStart already hides E4's cold-path saving on restore; E4 improves on-demand cold starts (and shortens the snapshot init), and with the pin leaves restore unchanged. Host variability: comparisons are within CPU part and every round agrees in sign (host_variability); no Graviton generation is claimed, and no rerun was needed.",
  "primary_arm": "stream",
  "stream_vs_base": {
   "cold": {
@@ -13144,5 +13144,480 @@
   "method": "median(streamdyn) - median(base) within each CPU part both arms drew (seconds; MB for report_max_memory_mb); pooled_delta_p50 weights the per-part deltas by the smaller sample count"
  },
  "snapstart_note": "Under SnapStart the download and load run inside publish_version's snapshot init, never in a restore. The streamed load can only change restore through what the snapshot holds (the same model in the same memory), so restore is the control class: any restore delta beyond run-to-run spread would be a defect or noise. The snapshot init itself (phases.<arm>.restore.snapshot_init) does show the overlap, and it bounds how long publish_version takes, not any request latency.",
- "run_label": "E4 run 2: overlap with glibc mmap threshold pinned (arms base/stream/basethr/streamdyn)"
+ "run_label": "E4 run 2: overlap with glibc mmap threshold pinned (arms base/stream/basethr/streamdyn)",
+ "host_variability": {
+  "observed": {
+   "cpu_part": "/proc/cpuinfo 'CPU part', read per request (rows' cpu_part)",
+   "cpu_parts_by_class_and_arm": {
+    "cold": {
+     "base": {
+      "0xd0c": 12,
+      "0xd40": 27,
+      "0xd4f": 11
+     },
+     "basethr": {
+      "0xd0c": 3,
+      "0xd40": 42,
+      "0xd4f": 5
+     },
+     "stream": {
+      "0xd0c": 10,
+      "0xd40": 36,
+      "0xd4f": 4
+     },
+     "streamdyn": {
+      "0xd0c": 12,
+      "0xd40": 29,
+      "0xd4f": 9
+     }
+    },
+    "restore": {
+     "base": {
+      "0xd0c": 5,
+      "0xd40": 45
+     },
+     "basethr": {
+      "0xd0c": 8,
+      "0xd40": 42
+     },
+     "stream": {
+      "0xd0c": 7,
+      "0xd40": 43
+     },
+     "streamdyn": {
+      "0xd0c": 3,
+      "0xd40": 47
+     }
+    },
+    "warm": {
+     "base": {
+      "0xd0c": 50,
+      "0xd40": 450
+     },
+     "basethr": {
+      "0xd0c": 80,
+      "0xd40": 420
+     },
+     "stream": {
+      "0xd0c": 70,
+      "0xd40": 430
+     },
+     "streamdyn": {
+      "0xd0c": 30,
+      "0xd40": 470
+     }
+    }
+   },
+   "ggml_cpu_variants_by_cpu_part": {
+    "0xd0c": {
+     "libggml-cpu-armv8.0_1.so,libggml-cpu-armv8.2_2.so": 37
+    },
+    "0xd40": {
+     "libggml-cpu-armv8.0_1.so,libggml-cpu-armv8.6_1.so": 134
+    },
+    "0xd4f": {
+     "libggml-cpu-armv8.0_1.so,libggml-cpu-armv8.6_2.so": 29
+    }
+   },
+   "os_cpu_count_by_cpu_part": {
+    "0xd0c": {
+     "6": 37
+    },
+    "0xd40": {
+     "6": 134
+    },
+    "0xd4f": {
+     "6": 29
+    }
+   },
+   "runtime_version_arn": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+   "init_start_runtime_versions": {
+    "python:3.12.mainlinev2.v43": 241
+   },
+   "environments": 400,
+   "log_streams": "logs/<function>.jsonl.gz, logStreamName per record",
+   "memory_mb": [
+    10240
+   ],
+   "architecture": [
+    "arm64"
+   ]
+  },
+  "unknown": [
+   "cpuinfo CPU implementer, variant and revision",
+   "cpuinfo Features flags",
+   "AT_HWCAP / AT_HWCAP2",
+   "cgroup cpu and memory limits",
+   "kernel release",
+   "availability zone and physical host"
+  ],
+  "generation": "not claimed: the runs recorded the CPU part number only (no implementer), so no Graviton generation is named; parts are referred to by number",
+  "method": "every arm vs base is compared only within one CPU part (<arm>_vs_base.<class>.<metric>.by_cpu_part); arms are interleaved within each round, and per_round_deltas show each round's within-part delta",
+  "per_round_deltas": {
+   "stream": {
+    "cold": {
+     "first_request_total": {
+      "0xd0c": {
+       "per_round": [
+        -8.737,
+        -9.524,
+        -7.503,
+        -8.305,
+        -8.919
+       ],
+       "min": -9.524,
+       "max": -7.503,
+       "sign": "negative"
+      },
+      "0xd40": {
+       "per_round": [
+        -4.35,
+        -4.752,
+        -4.745,
+        -4.546,
+        -4.305
+       ],
+       "min": -4.752,
+       "max": -4.305,
+       "sign": "negative"
+      },
+      "0xd4f": {
+       "per_round": [
+        -3.942
+       ],
+       "min": -3.942,
+       "max": -3.942,
+       "sign": "negative"
+      }
+     },
+     "report_max_memory_mb": {
+      "0xd0c": {
+       "per_round": [
+        -39.0,
+        -29.5,
+        -37.5,
+        -18.0,
+        -14.5
+       ],
+       "min": -39.0,
+       "max": -14.5,
+       "sign": "negative"
+      },
+      "0xd40": {
+       "per_round": [
+        -34.5,
+        -35.0,
+        -35.5,
+        -17.0,
+        -37.0
+       ],
+       "min": -37.0,
+       "max": -17.0,
+       "sign": "negative"
+      },
+      "0xd4f": {
+       "per_round": [
+        -37.0
+       ],
+       "min": -37.0,
+       "max": -37.0,
+       "sign": "negative"
+      }
+     }
+    },
+    "restore": {
+     "first_request_total": {
+      "0xd0c": {
+       "per_round": [
+        -0.097,
+        -0.006
+       ],
+       "min": -0.097,
+       "max": -0.006,
+       "sign": "negative"
+      },
+      "0xd40": {
+       "per_round": [
+        0.057,
+        0.016,
+        -0.05,
+        -0.008,
+        0.006
+       ],
+       "min": -0.05,
+       "max": 0.057,
+       "sign": "mixed"
+      }
+     },
+     "report_max_memory_mb": {
+      "0xd0c": {
+       "per_round": [
+        -36.0,
+        -38.0
+       ],
+       "min": -38.0,
+       "max": -36.0,
+       "sign": "negative"
+      },
+      "0xd40": {
+       "per_round": [
+        -41.0,
+        -38.0,
+        -41.0,
+        -44.0,
+        -38.0
+       ],
+       "min": -44.0,
+       "max": -38.0,
+       "sign": "negative"
+      }
+     }
+    }
+   },
+   "basethr": {
+    "cold": {
+     "first_request_total": {
+      "0xd0c": {
+       "per_round": [
+        0.325,
+        0.703,
+        0.151
+       ],
+       "min": 0.151,
+       "max": 0.703,
+       "sign": "positive"
+      },
+      "0xd40": {
+       "per_round": [
+        0.132,
+        0.052,
+        0.153,
+        0.131,
+        0.283
+       ],
+       "min": 0.052,
+       "max": 0.283,
+       "sign": "positive"
+      },
+      "0xd4f": {
+       "per_round": [
+        0.267,
+        0.364
+       ],
+       "min": 0.267,
+       "max": 0.364,
+       "sign": "positive"
+      }
+     },
+     "report_max_memory_mb": {
+      "0xd0c": {
+       "per_round": [
+        -29.5,
+        -24.0,
+        -16.0
+       ],
+       "min": -29.5,
+       "max": -16.0,
+       "sign": "negative"
+      },
+      "0xd40": {
+       "per_round": [
+        -36.5,
+        -37.0,
+        -36.0,
+        -17.0,
+        -37.0
+       ],
+       "min": -37.0,
+       "max": -17.0,
+       "sign": "negative"
+      },
+      "0xd4f": {
+       "per_round": [
+        -37.0,
+        -14.0
+       ],
+       "min": -37.0,
+       "max": -14.0,
+       "sign": "negative"
+      }
+     }
+    },
+    "restore": {
+     "first_request_total": {
+      "0xd0c": {
+       "per_round": [
+        -0.229,
+        -3.928,
+        -0.199
+       ],
+       "min": -3.928,
+       "max": -0.199,
+       "sign": "negative"
+      },
+      "0xd40": {
+       "per_round": [
+        -0.015,
+        -0.004,
+        -0.069,
+        -0.028,
+        -0.058
+       ],
+       "min": -0.069,
+       "max": -0.004,
+       "sign": "negative"
+      }
+     },
+     "report_max_memory_mb": {
+      "0xd0c": {
+       "per_round": [
+        -40.0,
+        -36.0,
+        -40.0
+       ],
+       "min": -40.0,
+       "max": -36.0,
+       "sign": "negative"
+      },
+      "0xd40": {
+       "per_round": [
+        -40.0,
+        -36.0,
+        -40.0,
+        -42.0,
+        -36.0
+       ],
+       "min": -42.0,
+       "max": -36.0,
+       "sign": "negative"
+      }
+     }
+    }
+   },
+   "streamdyn": {
+    "cold": {
+     "first_request_total": {
+      "0xd0c": {
+       "per_round": [
+        -8.753,
+        -9.773,
+        -8.394,
+        -7.872,
+        -8.648
+       ],
+       "min": -9.773,
+       "max": -7.872,
+       "sign": "negative"
+      },
+      "0xd40": {
+       "per_round": [
+        -4.558,
+        -4.729,
+        -4.284,
+        -4.517,
+        -4.727
+       ],
+       "min": -4.729,
+       "max": -4.284,
+       "sign": "negative"
+      },
+      "0xd4f": {
+       "per_round": [
+        -3.902,
+        -3.606,
+        -4.235
+       ],
+       "min": -4.235,
+       "max": -3.606,
+       "sign": "negative"
+      }
+     },
+     "report_max_memory_mb": {
+      "0xd0c": {
+       "per_round": [
+        471.0,
+        480.5,
+        473.0,
+        495.0,
+        494.0
+       ],
+       "min": 471.0,
+       "max": 495.0,
+       "sign": "positive"
+      },
+      "0xd40": {
+       "per_round": [
+        475.5,
+        474.0,
+        479.0,
+        492.0,
+        483.5
+       ],
+       "min": 474.0,
+       "max": 492.0,
+       "sign": "positive"
+      },
+      "0xd4f": {
+       "per_round": [
+        471.0,
+        466.0,
+        497.0
+       ],
+       "min": 466.0,
+       "max": 497.0,
+       "sign": "positive"
+      }
+     }
+    },
+    "restore": {
+     "first_request_total": {
+      "0xd0c": {
+       "per_round": [
+        0.052
+       ],
+       "min": 0.052,
+       "max": 0.052,
+       "sign": "positive"
+      },
+      "0xd40": {
+       "per_round": [
+        0.38,
+        0.421,
+        0.315,
+        0.387,
+        0.334
+       ],
+       "min": 0.315,
+       "max": 0.421,
+       "sign": "positive"
+      }
+     },
+     "report_max_memory_mb": {
+      "0xd0c": {
+       "per_round": [
+        492.0
+       ],
+       "min": 492.0,
+       "max": 492.0,
+       "sign": "positive"
+      },
+      "0xd40": {
+       "per_round": [
+        487.0,
+        499.0,
+        500.0,
+        489.0,
+        510.0
+       ],
+       "min": 487.0,
+       "max": 510.0,
+       "sign": "positive"
+      }
+     }
+    }
+   }
+  },
+  "summarized_at_commit": "250ce50a4c05fca78e4f1febfdb98c215726dbe8",
+  "assessment": "Comparable; no rerun. Observed per request: cpuinfo CPU part (0xd40, 0xd0c, 0xd4f drawn); per cold environment the ggml CPU variants loaded (0xd40 armv8.6_1, 0xd0c armv8.2_2, 0xd4f armv8.6_2, one variant set per part) and threads=6 (the handler's os.cpu_count(); THREADS unset); one runtime (python:3.12.mainlinev2.v43, same ARN) on all 241 INIT_START streams; 10,240 MB arm64. Not recorded by either run, so unknown: cpuinfo implementer/variant/revision, Features flags, AT_HWCAP/HWCAP2, cgroup limits, kernel release, AZ and physical host. No Graviton generation is claimed: the runs recorded only the CPU part number. Why the host mix cannot change the conclusions: every arm-vs-base delta is taken within one CPU part, arms are interleaved in each round, and every round's within-part delta has the same sign for each conclusion (host_variability.per_round_deltas). stream cold first-request: 0xd40 -4.31 to -4.75 s over 5 rounds, 0xd0c -7.50 to -9.52 s over 5 rounds, 0xd4f -3.94 s in the 1 round both arms drew it. stream restore on 0xd40: -0.05 to +0.06 s (mixed sign, i.e. no effect); memory -36 to -44 MB in every round and part. streamdyn restore +0.32 to +0.42 s and memory +466 to +510 MB in every round. Limits: the parts are drawn unevenly across arms (cold 0xd40: base 27, stream 36, basethr 42, streamdyn 29 of 50), so the unsplit per-arm distributions in phases mix parts and are not comparable across arms; use <arm>_vs_base.by_cpu_part. No restore landed on 0xd4f, so restore conclusions cover 0xd40 and 0xd0c only; 0xd4f cold for stream rests on 4 samples. A fixed-host EC2 run (H1) would add nothing E4 needs: the cold effect is 4-9 s against a within-part round-to-round base spread of 0.2 s (0xd40) to 0.6 s (0xd0c)."
+ }
 }
