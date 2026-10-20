@@ -125,6 +125,15 @@ for r in reqs["requests"]:
     answers[r["id"]] = out["answers"]
     lat[r["id"]] = out["latency_ms"]
 _stop.set()
+mem_after = _proc_mem()
+trim = None
+if (
+    os.environ.get("E4_DIAG_TRIM") == "1"
+):  # diagnosis only: is the extra memory free heap the allocator kept?
+    import ctypes
+
+    ctypes.CDLL("libc.so.6").malloc_trim(0)
+    trim = _proc_mem()
 
 rec = {
     "arm": {
@@ -134,7 +143,8 @@ rec = {
     },
     "fake_mib_s": MIB_S,
     "import_and_load_s": round(import_s, 3),
-    "mem_kb": _proc_mem(),
+    "mem_kb": mem_after,
+    "mem_after_malloc_trim_kb": trim,
     "mem_peak_kb": dict(_peak),
     "init": lkai_entry.REC.init,
     "counters": lkai_entry.REC.counters,
@@ -144,7 +154,16 @@ rec = {
 json.dump(rec, open(OUT, "w"), indent=1, default=str)
 print(
     json.dumps(
-        {k: rec[k] for k in ("arm", "import_and_load_s", "mem_kb", "mem_peak_kb")}
+        {
+            k: rec[k]
+            for k in (
+                "arm",
+                "import_and_load_s",
+                "mem_kb",
+                "mem_peak_kb",
+                "mem_after_malloc_trim_kb",
+            )
+        }
         | {"init": rec["init"]}
     ),
     flush=True,
