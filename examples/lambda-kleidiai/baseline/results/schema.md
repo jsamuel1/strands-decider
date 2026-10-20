@@ -10,10 +10,10 @@ Percentiles are nearest-rank, so with fewer than 100 samples `p99` equals `max`.
 | Key | Brief field | Contents |
 |---|---|---|
 | `experiment_id`, `run_id` | | `P1-baseline` for the baseline; the run directory name |
-| `status` | outcome | `baseline` for P1; experiments use P2's `improved`, `no-change`, `regressed`, `inconclusive` or `failed`. From `meta.json` |
+| `status` | outcome | `baseline` for P1; experiments use P2's `improved`, `no-change`, `regressed`, `inconclusive` or `failed`. From `meta.json`, except that a run `summarize.py` cannot certify as a baseline is written as `failed`, with the reasons in `baseline_invalid` and `conclusion` |
 | `hypothesis` | hypothesis | from `meta.json` |
 | `changed_variable` | the single changed variable | `null` for the baseline |
-| `commits.experiment`, `commits.baseline` | baseline and experiment SHAs | experiment harness/result commit from the run manifest (with `repo_dirty_at_build`), and `--baseline-commit`; `build.function_zip.source_commit` separately pins the commit that produced deployed zip bytes |
+| `commits.experiment`, `commits.baseline` | baseline and experiment SHAs | experiment harness/result commit from the run manifest (with `repo_dirty_at_build`), and `--baseline-commit`; `build.function_zip.source_commit` separately pins the commit that produced deployed zip bytes. `commits.provenance_check` names the dirty check the build ran (`lkai-build-manifest/2`: every executable input, tracked, untracked or deleted, against the commit; `/1`: tracked files only), `commits.dirty_inputs` its list, and `commits.harness` the harness commit and its dirty scripts |
 | `deployment` | deployment, runtime, architecture, region/AZ | functions, runtime and pinned runtime-version ARN, arch, memory, ephemeral storage, timeout, SnapStart, handler, code sha256, environment (no bucket name), and `cpu_parts_observed` per arm and class. Lambda does not expose the AZ to the function, and the record says so |
 | `model` | model identity and format | Hub id and revision, GGUF Q8_0, size and sha256, the transform (LoRA merge, H512 fold), llama.cpp commit, patches and flags |
 | `build` | | immutable container image digests, toolchain, sha256 of each asset, and `function_zip` bytes/hash/source commit/input key (the `zip` stage key from `buildcache.py`; runs built before it carry the earlier git-index key) |
@@ -29,6 +29,8 @@ Percentiles are nearest-rank, so with fewer than 100 samples `p99` equals `max`.
 | `artifacts` | | relative paths of the raw evidence: `invocations.jsonl`, `logs/`, `conditions.json` |
 | `reproduce` | exact reproducible commands | from `meta.json` |
 | `conclusion` | conclusion | from `meta.json`. A failed or null result is still a result: it keeps its errors and is published |
+| `request_coverage.<arm>` | | `answered` and `missing` fixed request ids: a baseline needs every id answered on both arms |
+| `arm_phases_env.<arm>` | | the `LKAI_PHASES` value each arm was deployed with (`inst`: `1`, `rep`: `0`) |
 
 `results/<run-id>/meta.json` is the meta that run was summarized with, so `summarize.py results/<run-id> --reference
 reference/outputs.json --meta results/<run-id>/meta.json --baseline-commit <sha>` regenerates its `results.json` from the

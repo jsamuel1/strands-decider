@@ -411,6 +411,22 @@ def teardown(sess, st: dict, everything: bool) -> list[str]:
     return failures
 
 
+def check_account(sess, st: dict, expect: str | None = None) -> str:
+    """The account `sess` resolves to, refused when it differs from `expect` (run.sh's pre-build preflight) or from
+    the account this deployment state was created in. Records it in the (git-ignored) state, never in results."""
+    acct = sess.client("sts").get_caller_identity()["Account"]
+    if expect and acct != expect:
+        sys.exit(
+            f"credentials resolve to a different account than the preflight ({acct[-4:]} vs {expect[-4:]})"
+        )
+    if st.get("account") and st["account"] != acct:
+        sys.exit(
+            f"{st.get('prefix')} was deployed in another account (…{st['account'][-4:]}); refusing"
+        )
+    st["account"] = acct
+    return acct
+
+
 def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("cmd", choices=["up", "upload", "functions", "show", "teardown"])
@@ -419,7 +435,9 @@ def main(argv: list[str] | None = None) -> None:
     )
     ap.add_argument("--prefix", default="lkai-p1")
     ap.add_argument("--region", default="us-east-2")
+    # No default credential chain: AWS calls go to the account of an explicitly named profile only.
     ap.add_argument("--profile", default=os.environ.get("AWS_PROFILE"))
+    ap.add_argument("--expect-account", help="refuse unless the profile resolves to this account")
     ap.add_argument(
         "--memory",
         type=memory_mb,
@@ -428,8 +446,11 @@ def main(argv: list[str] | None = None) -> None:
     )
     ap.add_argument("--all", action="store_true")
     a = ap.parse_args(argv)
+    if a.cmd != "show" and not a.profile:
+        ap.error("--profile or AWS_PROFILE is required: no implicit credentials")
     # Refuse before creating anything: summarize.py can price only the Regions in its table (bench.py checks too).
     if a.cmd in ("up", "upload", "functions"):
+        import buildcache
         import summarize
 
         if a.region not in summarize.PRICES_BY_REGION:
@@ -437,12 +458,30 @@ def main(argv: list[str] | None = None) -> None:
                 f"no pinned prices for {a.region} (have {sorted(summarize.PRICES_BY_REGION)}); "
                 "add a dated price table to summarize.PRICES_BY_REGION first"
             )
+        # A deployment is reproducible only from a clean build of a commit, deployed by clean scripts.
+        mpath = os.path.join(a.build, "manifest.json")
+        manifest = json.load(open(mpath)) if os.path.exists(mpath) else {}
+        if p := summarize.new_run_provenance_problem(manifest):
+            sys.exit(f"refusing to deploy: {p}")
+        harness = buildcache.harness_provenance()
+        if harness["dirty_inputs"]:
+            sys.exit(
+                f"refusing to deploy: deploy/harness files differ from {harness['commit']}: "
+                f"{harness['dirty_inputs']}"
+            )
+    if a.cmd == "show":
+        st = load_state(a.build)
+        print(
+            json.dumps({k: v for k, v in st.items() if k not in ("manifest", "account")}, indent=1)
+        )
+        return
     sess = boto3.Session(profile_name=a.profile, region_name=a.region)
     st = load_state(a.build)
     st.setdefault("prefix", a.prefix)
     st.setdefault("region", a.region)
     if st["region"] != a.region:
         sys.exit(f"{_state_path(a.build)} is for {st['region']}")
+    check_account(sess, st, a.expect_account)
     failures: list[str] = []
     try:
         if a.cmd in ("up", "upload"):
@@ -458,8 +497,6 @@ def main(argv: list[str] | None = None) -> None:
         save_state(a.build, st)
     if failures:
         sys.exit(f"teardown: {len(failures)} step(s) failed:\n  " + "\n  ".join(failures))
-    if a.cmd == "show":
-        print(json.dumps({k: v for k, v in st.items() if k != "manifest"}, indent=1))
 
 
 def b64_to_hex(b64: str) -> str:

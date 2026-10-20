@@ -48,6 +48,31 @@ def _aws_sdk_stand_ins(monkeypatch):
 
 ResourceNotFound = type("ResourceNotFoundException", (Exception,), {})
 NoSuchEntity = type("NoSuchEntityException", (Exception,), {})
+ACCOUNT = "210987654321"
+
+
+class Sts:
+    def __init__(self, account=ACCOUNT):
+        self.account = account
+
+    def get_caller_identity(self):
+        return {"Account": self.account}
+
+
+def _clean_manifest(build, **extra):
+    """A build/manifest.json of a clean build (lkai-build-manifest/2, no dirty inputs)."""
+    m = {"schema": "lkai-build-manifest/2", "repo_dirty": False, "dirty_inputs": []} | extra
+    Path(build).mkdir(parents=True, exist_ok=True)
+    (Path(build) / "manifest.json").write_text(json.dumps(m))
+    return m
+
+
+@pytest.fixture
+def clean_harness(monkeypatch):
+    """deploy/bench see a clean harness; the real check is tested on its own below."""
+    monkeypatch.setattr(
+        buildcache, "harness_provenance", lambda repo=None: {"commit": "abc", "dirty_inputs": []}
+    )
 
 
 # ------------------------------------------------------------------ 1. memory is an input
@@ -95,12 +120,12 @@ def _fake_functions_session(created):
 
     class Sess:
         def client(self, name):
-            return {"lambda": Lam(), "logs": Logs(), "iam": object()}[name]
+            return {"lambda": Lam(), "logs": Logs(), "iam": object(), "sts": Sts()}[name]
 
     return Sess()
 
 
-def test_deploy_up_sets_requested_memory_on_both_functions(tmp_path, monkeypatch):
+def test_deploy_up_sets_requested_memory_on_both_functions(tmp_path, monkeypatch, clean_harness):
     import deploy
 
     created: dict = {}
@@ -119,7 +144,8 @@ def test_deploy_up_sets_requested_memory_on_both_functions(tmp_path, monkeypatch
             "manifest": {"function_zip": {"sha256": "ab" * 32}},
         },
     )
-    deploy.main(["functions", "--build", str(tmp_path), "--memory", "4096"])
+    _clean_manifest(tmp_path)
+    deploy.main(["functions", "--build", str(tmp_path), "--memory", "4096", "--profile", "p"])
     assert {f["MemorySize"] for f in created.values()} == {4096}
     assert set(created) == {"p-inst", "p-rep"}
     st = deploy.load_state(str(tmp_path))
@@ -143,7 +169,7 @@ def _bench_main_fixture(tmp_path, monkeypatch, deployed_memory):
                 "Handler": "lkai_entry.handler",
                 "CodeSha256": "eg==",
                 "CodeSize": 1,
-                "Environment": {"Variables": {}},
+                "Environment": {"Variables": {"LKAI_PHASES": summarize.ARM_PHASES[FunctionName]}},
             }
 
         def get_runtime_management_config(self, FunctionName):
@@ -170,10 +196,19 @@ def _bench_main_fixture(tmp_path, monkeypatch, deployed_memory):
         "region": "us-east-2",
         "memory_mb": 10240,
         "functions": {a: {"name": a} for a in ("inst", "rep")},
-        "manifest": {"function_zip": {"sha256": "7a"}},
+        "manifest": {
+            "schema": "lkai-build-manifest/2",
+            "dirty_inputs": [],
+            "function_zip": {"sha256": "7a"},
+        },
     }
+    monkeypatch.setenv("AWS_PROFILE", "lkai-test")
     monkeypatch.setattr(bench.deploy, "load_state", lambda build: state)
     monkeypatch.setattr(bench.deploy, "b64_to_hex", lambda v: "7a")
+    monkeypatch.setattr(bench.deploy, "check_account", lambda sess, st, expect=None: "1")
+    monkeypatch.setattr(
+        bench.buildcache, "harness_provenance", lambda: {"commit": "abc", "dirty_inputs": []}
+    )
     monkeypatch.setattr(bench.boto3, "Session", lambda **kw: object())
     monkeypatch.setattr(bench, "Bench", FakeBench)
     monkeypatch.setattr(bench.time, "sleep", lambda s: None)
@@ -207,7 +242,7 @@ def test_bench_records_memory_condition(tmp_path, monkeypatch):
             "--rounds",
             "2",
             "--warm",
-            "1",
+            "5",
             "--log-lag",
             "0",
         ],
@@ -630,6 +665,7 @@ def _all_class_rows():
                 t._row(arm, rnd, "restore", report={"Restore Duration": 400.0, "Duration": 900.0})
             )
             rows.append(t._row(arm, rnd, "warm"))
+            rows.append(t._row(arm, rnd, "warm", rid="r2"))  # every fixed request is answered
     return rows
 
 
@@ -643,7 +679,7 @@ def test_baseline_missing_a_start_class_is_not_a_baseline(tmp_path):
     assert not ref.exists()
     res = json.loads((Path(run) / "results.json").read_text())
     assert res["correctness"]["complete"] is True  # every row compared, still not a baseline
-    assert summarize.incomplete(res) == ["arm rep has no warm samples"]
+    assert "arm rep has no warm samples" in summarize.incomplete(res)
 
 
 def test_baseline_with_one_round_is_not_a_baseline(tmp_path):
@@ -764,7 +800,7 @@ def test_deploy_refuses_unpriced_region_before_creating_anything(tmp_path, monke
         deploy.boto3, "Session", lambda **kw: pytest.fail("AWS session for an unpriced Region")
     )
     with pytest.raises(SystemExit, match="no pinned prices for us-east-1"):
-        deploy.main([cmd, "--build", str(tmp_path), "--region", "us-east-1"])
+        deploy.main([cmd, "--build", str(tmp_path), "--region", "us-east-1", "--profile", "p"])
 
 
 @pytest.mark.parametrize("latency", ["NaN", "Infinity", "-Infinity"])
@@ -822,7 +858,7 @@ def test_round_cleanup_deletes_every_version_after_first_failure(tmp_path, monke
     monkeypatch.setattr(
         sys,
         "argv",
-        ["bench.py", "--out", str(out), "--rounds", "2", "--warm", "1", "--log-lag", "0"],
+        ["bench.py", "--out", str(out), "--rounds", "2", "--warm", "5", "--log-lag", "0"],
     )
     with pytest.raises(bench.CleanupError, match="inst:7"):
         bench.main()
@@ -929,7 +965,7 @@ def _teardown_session(fail_on: set, deleted: list, versions: dict):
 
     class Sess:
         def client(self, name):
-            return {"lambda": Lam(), "logs": Logs(), "iam": Iam()}[name]
+            return {"lambda": Lam(), "logs": Logs(), "iam": Iam(), "sts": Sts()}[name]
 
         def resource(self, name):
             return types.SimpleNamespace(Bucket=lambda n: Bucket())
@@ -1003,14 +1039,23 @@ def test_teardown_cli_exits_nonzero_naming_failures(tmp_path, monkeypatch):
         },
     )
     with pytest.raises(SystemExit, match="1 step"):
-        deploy.main(["teardown", "--build", str(tmp_path)])
+        deploy.main(["teardown", "--build", str(tmp_path), "--profile", "p"])
     assert ("f-inst", "2") in deleted
 
 
 # ------------------------------------------------------------------ run.sh, end to end with stand-ins
 
 
-def _stub_run(tmp_path, bench_rc=0, teardown_rc=0, summarize_rc=0, memory=None):
+def _stub_run(
+    tmp_path,
+    bench_rc=0,
+    teardown_rc=0,
+    summarize_rc=0,
+    memory=None,
+    profile="lkai-test",
+    dirty="",
+    sts_rc=0,
+):
     """run.sh copied beside stand-in build/deploy/bench/summarize/redact scripts; returns (exit code, call log)."""
     d = tmp_path / "baseline"
     d.mkdir()
@@ -1024,6 +1069,8 @@ def _stub_run(tmp_path, bench_rc=0, teardown_rc=0, summarize_rc=0, memory=None):
         "bench.py": f"sys.exit({bench_rc})",
         "summarize.py": f"sys.exit({summarize_rc})",
         "redact.py": "import os; os.makedirs(sys.argv[2], exist_ok=True) if not sys.argv[1].endswith('.json') else None",
+        # `dirty --check` prints the dirty inputs and exits 1 when there are any.
+        "buildcache.py": f"print({dirty!r}, end='') if {dirty!r} else None; sys.exit(1 if {dirty!r} else 0)",
     }
     for name, body in files.items():
         (d / name).write_text(stub.format(log=str(log), name=name, body=body))
@@ -1043,10 +1090,15 @@ def _stub_run(tmp_path, bench_rc=0, teardown_rc=0, summarize_rc=0, memory=None):
         + ' "$@"\n'
     )
     aws = bindir / "aws"
-    aws.write_text("#!/bin/bash\necho 123456789012\n")
+    aws.write_text(
+        f'#!/bin/bash\necho "aws $*" >> {log}\n[ {sts_rc} -eq 0 ] || exit {sts_rc}\necho 123456789012\n'
+    )
     for f in (d / "run.sh", d / "build.sh", py, aws):
         f.chmod(f.stat().st_mode | stat.S_IEXEC)
     env = {**os.environ, "PYTHON": str(py), "PATH": f"{bindir}:{os.environ['PATH']}"}
+    env.pop("AWS_PROFILE", None)
+    if profile is not None:
+        env["AWS_PROFILE"] = profile
     if memory is not None:
         env["MEMORY"] = memory
     p = subprocess.run([str(d / "run.sh"), "rid"], env=env, capture_output=True, text=True)
@@ -1057,7 +1109,7 @@ def test_run_sh_passes_memory_to_deploy_and_bench(tmp_path):
     rc, calls, err = _stub_run(tmp_path, memory="4096")
     assert rc == 0, err
     assert "deploy.py up --region us-east-2 --prefix lkai-p1 --memory 4096" in calls
-    assert "bench.py --region us-east-2 --memory 4096 " in calls
+    assert "bench.py --region us-east-2 --profile lkai-test --memory 4096 " in calls
     assert calls.count("deploy.py teardown") == 1
 
 

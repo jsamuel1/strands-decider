@@ -48,6 +48,81 @@ class UnpricedRegion(ValueError):
     """The run's Region has no pinned price table, so its cost cannot be computed honestly."""
 
 
+# The two arms a baseline needs, and the LKAI_PHASES value each must be deployed with (deploy.ARMS). The instrumented
+# arm alone has no control, so its overhead cannot be measured: both are required, each exactly once.
+ARM_PHASES = {"inst": "1", "rep": "0"}
+
+
+def arms_problem(arms: object) -> str | None:
+    """Why `arms` is not the baseline's arm set (exactly inst and rep, once each, in either order), or None."""
+    if not isinstance(arms, list) or sorted(arms) != sorted(ARM_PHASES):
+        return f"arms must be exactly {sorted(ARM_PHASES)} (instrumented and REPORT-only), got {arms!r}"
+    return None
+
+
+def request_set_problem(reqs: object) -> str | None:
+    """Why `reqs` (requests.json) is not a usable fixed request set, or None: a non-empty list of requests with
+    unique string ids, each with a request body, and a probe that is one of them."""
+    if (
+        not isinstance(reqs, dict)
+        or not isinstance(reqs.get("requests"), list)
+        or not reqs["requests"]
+    ):
+        return "no requests"
+    ids = [r.get("id") if isinstance(r, dict) else None for r in reqs["requests"]]
+    if not all(isinstance(i, str) and i for i in ids):
+        return "every request needs a string id"
+    if len(set(ids)) != len(ids):
+        return f"duplicate request ids: {sorted({i for i in ids if ids.count(i) > 1})}"
+    if not all(isinstance(r.get("request"), dict) for r in reqs["requests"]):
+        return "every request needs a request body"
+    if reqs.get("probe") not in ids:
+        return f"probe {reqs.get('probe')!r} is not one of the request ids"
+    return None
+
+
+def request_ids(reqs: dict) -> list[str]:
+    return [r["id"] for r in reqs["requests"]]
+
+
+def warm_problem(warm: int, reqs: dict) -> str | None:
+    """Warm passes cycle through the request set one request per pass; fewer passes than requests leave some fixed
+    requests with no output at all (cold and restore send only the probe)."""
+    n = len(reqs["requests"])
+    if warm < n:
+        return f"--warm {warm} is fewer than the {n} fixed requests; every request needs a warm pass (--warm >= {n})"
+    return None
+
+
+def provenance_problem(manifest: dict) -> str | None:
+    """Why a build manifest cannot stand for its recorded commit, or None.
+
+    lkai-build-manifest/2 records `dirty_inputs`: every executable input (tracked, untracked or deleted, see
+    buildcache.dirty) whose bytes the recorded commit does not have. A non-empty list, or a /2 manifest without the
+    list, means checking out the commit would not rebuild the deployed artifacts. A /1 manifest predates that check
+    and recorded only tracked-file dirtiness (`repo_dirty`); deploy.py and bench.py refuse it for new runs, and its
+    results say which check it had (provenance_check)."""
+    if manifest.get("repo_dirty"):
+        return "build manifest: repo_dirty is true (tracked files differed from the commit)"
+    if manifest.get("schema") == "lkai-build-manifest/1":
+        return None
+    d = manifest.get("dirty_inputs")
+    if not isinstance(d, list):
+        return "build manifest records no dirty_inputs; rebuild with build.sh"
+    if d:
+        return f"build inputs differ from commit {manifest.get('repo_commit')}: {d[:5]}" + (
+            f" (+{len(d) - 5} more)" if len(d) > 5 else ""
+        )
+    return None
+
+
+def new_run_provenance_problem(manifest: dict) -> str | None:
+    """provenance_problem, and a new deployment or benchmark also needs the complete check (manifest /2)."""
+    if manifest.get("schema") != "lkai-build-manifest/2":
+        return f"build manifest {manifest.get('schema')!r} predates the dirty-input check; rerun build.sh"
+    return provenance_problem(manifest)
+
+
 INIT_PHASES = (
     "runtime_to_import",
     "imports",
@@ -155,9 +230,19 @@ def load_run(run: str) -> tuple[dict, list[dict]]:
         json.loads(line) for line in open(os.path.join(run, "invocations.jsonl")) if line.strip()
     ]
     qs = _questions(cond)
+    reqs = cond.get("requests")
+    declared = set(request_ids(reqs)) if request_set_problem(reqs) is None else set()
     for r in rows:
         if not r["error"]:
-            problem = answer_problem(r, qs.get(r["request_id"]))
+            # A row that does not name one of the run's fixed requests cannot be checked against that request or
+            # count towards covering it (rows from before request ids were recorded included).
+            rid = r.get("request_id")
+            if not isinstance(rid, str) or not rid:
+                problem = "no-request-id"
+            elif rid not in declared:
+                problem = "unknown-request-id"
+            else:
+                problem = answer_problem(r, qs.get(rid))
             if problem:
                 r["error"] = f"malformed:{problem}"
                 r["payload"] = {k: r.get(k) for k in ("answers", "latency_ms")}
@@ -565,6 +650,24 @@ def incomplete(res: dict) -> list[str]:
     """Why a result cannot stand as a baseline (and its answers as the reference): empty when it can."""
     why = []
     c = res.get("correctness") or {}
+    cond = res.get("conditions", {})
+    # The control arm: without exactly inst + rep, deployed with their LKAI_PHASES values, instrumentation overhead
+    # is not measured, however complete the instrumented arm is.
+    if p := arms_problem(cond.get("arms")):
+        why.append(p)
+    for arm, flag in sorted((res.get("arm_phases_env") or {}).items()):
+        if ARM_PHASES.get(arm) != flag:
+            why.append(
+                f"arm {arm} was deployed with LKAI_PHASES={flag!r}, needs {ARM_PHASES.get(arm)!r}"
+            )
+    oh = res.get("instrumentation_overhead") or {}
+    unmeasured = [k for k in ("cold", "restore", "warm") if k not in oh]
+    if unmeasured:
+        why.append(
+            f"instrumentation overhead not measured for {'/'.join(unmeasured)} (no CPU part both arms ran on)"
+        )
+    if p := res.get("provenance_problem"):
+        why.append(p)
     if res["errors"]["count"]:
         why.append(f"{res['errors']['count']} invocation(s) failed or returned no answer")
     if not c:
@@ -588,7 +691,30 @@ def incomplete(res: dict) -> list[str]:
     rounds = res.get("conditions", {}).get("rounds")
     if not isinstance(rounds, int) or rounds < 2:
         why.append(f"{rounds} round(s): at least 2 are needed for run-to-run variance")
+    # The fixed request set: cold and restore send only the probe, so only warm passes produce the other requests'
+    # outputs. Every declared request must have a compared answer on every arm, or the reference is partial.
+    ids = cond.get("request_ids")
+    if not ids:
+        why.append("conditions record no fixed request ids")
+    warm = cond.get("warm_per_arm_per_round")
+    if ids and (not isinstance(warm, int) or warm < len(ids)):
+        why.append(f"{warm} warm pass(es) per round cannot cover the {len(ids)} fixed requests")
+    for arm, cov in sorted((res.get("request_coverage") or {}).items()):
+        if cov["missing"]:
+            why.append(f"arm {arm} has no successful answer for request(s) {cov['missing']}")
     return why
+
+
+def request_coverage(rows: list[dict], arms: list[str], ids: list[str]) -> dict:
+    """Per arm, which declared request ids have at least one successful (answered) invocation, and which have none."""
+    out = {}
+    for arm in arms:
+        seen = {r["request_id"] for r in rows if r["arm"] == arm and not r["error"]}
+        out[arm] = {
+            "answered": sorted(i for i in ids if i in seen),
+            "missing": [i for i in ids if i not in seen],
+        }
+    return out
 
 
 def summarize(
@@ -638,6 +764,8 @@ def summarize(
         cpu[f"{r['arm']}:{r['expected_class']}:{r.get('cpu_part')}"] += 1
     m = cond["build_manifest"]
     f0 = cond["functions"][cond["arms"][0]]
+    reqs = cond.get("requests")
+    ids = request_ids(reqs) if request_set_problem(reqs) is None else []
     res = {
         "schema": "lkai-result/1",
         "experiment_id": meta.get("experiment_id", "P1-baseline"),
@@ -650,7 +778,14 @@ def summarize(
         "commits": {
             "experiment": m["repo_commit"],
             "baseline": baseline_commit or m["repo_commit"],
-            "repo_dirty_at_build": m["repo_dirty"],
+            "repo_dirty_at_build": bool(m["repo_dirty"] or m.get("dirty_inputs")),
+            # Which dirty check the build ran: /2 compares every executable input (tracked, untracked, deleted) with
+            # the commit; /1 manifests recorded only tracked-file changes.
+            "provenance_check": "all executable inputs vs commit (buildcache.dirty)"
+            if m.get("schema") == "lkai-build-manifest/2"
+            else "tracked files only (lkai-build-manifest/1)",
+            "dirty_inputs": m.get("dirty_inputs"),
+            **({"harness": cond["harness"]} if "harness" in cond else {}),
         },
         "deployment": {
             "region": cond["region"],
@@ -685,7 +820,7 @@ def summarize(
         | {
             "memory_mb": cond.get("memory_mb", f0["MemorySize"]),
             "finished": cond.get("finished"),
-            "request_ids": [r["id"] for r in cond["requests"]["requests"]],
+            "request_ids": ids,
             "client": cond["client"],
             "weight_fetch": "HEAD + parallel 64 MiB ranged GETs (32 threads) into a memfd "
             "(examples/lambda/app/loader.py); llama.cpp mmaps /proc/self/fd/N",
@@ -712,7 +847,22 @@ def summarize(
         },
         "reproduce": meta.get("reproduce", []),
         "conclusion": meta.get("conclusion"),
+        "request_coverage": request_coverage(rows, cond["arms"], ids),
+        "arm_phases_env": {
+            a: (f.get("environment") or {}).get("LKAI_PHASES") for a, f in cond["functions"].items()
+        },
     }
+    prov = provenance_problem(m)
+    if prov is None and m.get("schema") == "lkai-build-manifest/2":
+        h = cond.get("harness")
+        if not isinstance(h, dict) or not isinstance(h.get("dirty_inputs"), list):
+            prov = (
+                "conditions record no harness provenance (bench.py predates the dirty-input check)"
+            )
+        elif h["dirty_inputs"]:
+            prov = f"harness files differ from commit {h.get('commit')}: {h['dirty_inputs'][:5]}"
+    if prov:
+        res["provenance_problem"] = prov
     if ref_path or ref is not None:
         outputs = ref if ref is not None else json.load(open(ref_path))["outputs"]
         res["correctness"] = compare(rows, outputs) | {
@@ -751,11 +901,17 @@ def main(argv: list[str] | None = None) -> int:
     )
     if ref_doc and res["correctness"]:
         res["correctness"]["reference"] = os.path.relpath(a.write_reference, HERE)
+    # A failed run is still a result, but it is not a baseline and its answers are no reference. It is recorded as
+    # status `failed`, so a results store cannot take it for the pinned baseline.
+    why = incomplete(res) if res["status"] == "baseline" else []
+    if why:
+        res["status"] = "failed"
+        res["changed_variable"] = "none (baseline run)"
+        res["conclusion"] = "Not a valid baseline: " + "; ".join(why)
+        res["baseline_invalid"] = why
     path = os.path.join(a.run, "results.json")
     json.dump(res, open(path, "w"), indent=1, allow_nan=False)
     print("wrote", path)
-    # A failed run is still a result (results.json above), but it is not a baseline and its answers are no reference.
-    why = incomplete(res) if res["status"] == "baseline" else []
     if why:
         print("NOT A VALID BASELINE: " + "; ".join(why), file=sys.stderr)
         return 3

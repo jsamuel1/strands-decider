@@ -40,6 +40,7 @@ from botocore.config import Config
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+import buildcache  # noqa: E402
 import deploy  # noqa: E402
 import phases  # noqa: E402
 import summarize  # noqa: E402
@@ -312,17 +313,27 @@ def main() -> None:
         "--warm",
         type=positive_int,
         default=10,
-        help="warm passes per arm per round (each `concurrency` wide), at least 1",
+        help="warm passes per arm per round (each `concurrency` wide); at least the number of fixed requests, so "
+        "every request is answered",
     )
     ap.add_argument("--region", default="us-east-2")
-    ap.add_argument("--profile", default=os.environ.get("AWS_PROFILE"))
+    # No default: an implicit credential chain could benchmark (and bill) whatever account it resolves to.
+    ap.add_argument(
+        "--profile",
+        default=os.environ.get("AWS_PROFILE"),
+        help="AWS profile (default $AWS_PROFILE); required, and must be the account deploy.py recorded",
+    )
     ap.add_argument(
         "--memory",
         type=deploy.memory_mb,
         help="function memory in MB the deployment must have (default: what deploy.py recorded); "
         "the run refuses to start if either function differs",
     )
-    ap.add_argument("--arms", default="inst,rep")
+    ap.add_argument(
+        "--arms",
+        default="inst,rep",
+        help="run order of the two arms; must be exactly inst and rep (the REPORT-only control)",
+    )
     ap.add_argument("--out", required=True)
     ap.add_argument(
         "--log-lag",
@@ -331,6 +342,16 @@ def main() -> None:
         help="seconds to wait for CloudWatch before fetching",
     )
     a = ap.parse_args()
+    arms = a.arms.split(",")
+    if p := summarize.arms_problem(arms):
+        ap.error(p)
+    reqs = json.load(open(a.requests))
+    if p := summarize.request_set_problem(reqs):
+        ap.error(f"{a.requests}: {p}")
+    if p := summarize.warm_problem(a.warm, reqs):
+        ap.error(p)
+    if not a.profile:
+        ap.error("--profile or AWS_PROFILE is required: no implicit credentials")
 
     # Cost is part of the result; a Region without a pinned price table would spend money on a run whose cost
     # summarize.py cannot honestly compute.
@@ -342,14 +363,21 @@ def main() -> None:
     st = deploy.load_state(a.build)
     if st.get("region") != a.region or "functions" not in st:
         sys.exit(f"no deployment for {a.region} in {a.build}; run deploy.py up")
+    if p := summarize.new_run_provenance_problem(st.get("manifest") or {}):
+        sys.exit(f"refusing to benchmark: {p}")
+    # The harness (bench.py, summarize.py, requests.json, ...) is part of what reproduces the result.
+    harness = buildcache.harness_provenance()
+    if harness["dirty_inputs"]:
+        sys.exit(
+            f"refusing to benchmark: harness files differ from {harness['commit']}: {harness['dirty_inputs']}"
+        )
     memory = a.memory or st.get("memory_mb", deploy.MEMORY)
-    reqs = json.load(open(a.requests))
     os.makedirs(a.out, exist_ok=True)
     # invocations.jsonl and logs/ are appended to: a reused directory would mix two runs' evidence.
     if any(os.path.exists(os.path.join(a.out, f)) for f in ("invocations.jsonl", "logs")):
         sys.exit(f"{a.out} already holds a run; use a new --out")
     sess = boto3.Session(profile_name=a.profile, region_name=a.region)
-    arms = a.arms.split(",")
+    deploy.check_account(sess, st)
     b = Bench(sess, st, reqs, a.out, a.concurrency)
     lam = b.lam
     fns = {}
@@ -384,6 +412,12 @@ def main() -> None:
                 f"{arm}: deployed MemorySize {c.get('MemorySize')} MB, run wants {memory} MB; "
                 f"deploy.py up --memory {memory}"
             )
+        # An arm is what its LKAI_PHASES says: `rep` with phases on would measure no overhead at all.
+        flag = c["Environment"]["Variables"].get("LKAI_PHASES")
+        if flag != summarize.ARM_PHASES[arm]:
+            sys.exit(
+                f"{arm}: deployed LKAI_PHASES={flag!r}, the {arm} arm needs {summarize.ARM_PHASES[arm]!r}"
+            )
     cond = {
         "schema": "lkai-conditions/1",
         "region": a.region,
@@ -397,6 +431,7 @@ def main() -> None:
         "probe": reqs["probe"],
         "functions": fns,
         "build_manifest": st["manifest"],
+        "harness": harness,
         "runtime_version_arn": st.get("runtime_version_arn"),
         "client": {
             "python": platform.python_version(),

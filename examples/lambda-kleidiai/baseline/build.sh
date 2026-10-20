@@ -25,6 +25,19 @@ QUANT_TYPE=Q8_0
 [ "$(uname -m)" = aarch64 ] || { echo "build.sh needs an arm64 host (got $(uname -m))"; exit 1; }
 mkdir -p "$B"
 CACHE=(python3 "$HERE/buildcache.py")
+# The manifest names a commit; every executable input must be that commit's bytes, or a checkout of it would build
+# something else. buildcache.py dirty lists tracked edits, untracked (also .gitignore'd) and deleted inputs.
+# LKAI_ALLOW_DIRTY_BUILD=1 builds anyway for local iteration; the manifest then lists them and deploy.py, bench.py and
+# summarize.py refuse it as a baseline.
+if ! DIRTY=$("${CACHE[@]}" dirty --repo "$REPO" --check); then
+  if [ "${LKAI_ALLOW_DIRTY_BUILD:-}" != 1 ]; then
+    echo "build inputs differ from HEAD (commit them, or LKAI_ALLOW_DIRTY_BUILD=1 for a non-baseline build):" >&2
+    echo "$DIRTY" >&2
+    exit 2
+  fi
+  echo "WARNING: dirty build, not deployable as a baseline:" >&2
+  echo "$DIRTY" >&2
+fi
 
 # fresh STAGE KEY: 0 when STAGE's stamped key is KEY. Otherwise delete its stale outputs and those downstream of it
 # (through the build image: the containers write them as root), record KEY as begun, and return 1, so the caller runs
@@ -94,9 +107,11 @@ docker run --rm --platform linux/arm64 --entrypoint bash -v "$B:/out" "$LAMBDA_I
   "chmod -R a+rX /out/model /out/merge_report.json /out/function.zip /out/toolchain.txt"
 
 echo ">> manifest"
-python3 - "$B" "$REPO" <<EOF
+python3 - "$B" "$REPO" "$HERE" <<EOF
 import hashlib, json, os, subprocess, sys
-b, repo = sys.argv[1:3]
+b, repo, here = sys.argv[1:4]
+sys.path.insert(0, here)
+import buildcache
 def sha(p):
     h = hashlib.sha256()
     with open(p, "rb") as f:
@@ -109,10 +124,14 @@ def img(ref):
 git = lambda *a: subprocess.run(["git", "-C", repo, *a], capture_output=True, text=True).stdout.strip()
 g = os.path.join(b, "model", "s2b-h512-Q8_0.gguf")
 z = os.path.join(b, "function.zip")
+dirty_inputs = buildcache.dirty(repo)
 m = {
-    "schema": "lkai-build-manifest/1",
+    "schema": "lkai-build-manifest/2",
     "repo_commit": git("rev-parse", "HEAD"),
-    "repo_dirty": bool(git("status", "--porcelain", "--untracked-files=no")),
+    # Every executable input (tracked, untracked, deleted) that HEAD does not have, as buildcache.dirty reports it.
+    # Empty for a reproducible build; repo_dirty is true when it is not.
+    "dirty_inputs": dirty_inputs,
+    "repo_dirty": bool(dirty_inputs),
     "model": {"id": "$CKPT", "revision": "$CKPT_REV", "format": "GGUF Q8_0",
               "transform": "LoRA merged fp32 (weights/merge_export.py), H512 Hadamard fold (weights/fold_hadamard.py --block 512)",
               "merge_report": json.load(open(os.path.join(b, "merge_report.json"))),
