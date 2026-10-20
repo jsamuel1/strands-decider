@@ -176,6 +176,32 @@ def _count(rows: list[dict]) -> dict[str, int]:
     return c
 
 
+def end_to_end(rows: list[dict], ctl_rows: list[dict]) -> dict:
+    """Cold first request (REPORT Init Duration + Duration) and the in-function model_ready, arm minus ctl, CPU-matched:
+    the net of the download change and anything it moved downstream."""
+    a = [r for r in ok_rows(rows) if r["expected_class"] == "cold"]
+    b = [r for r in ok_rows(ctl_rows) if r["expected_class"] == "cold"]
+
+    def total(r: dict) -> float:
+        return (r["report"].get("Init Duration", 0) + r["report"].get("Duration", 0)) / 1000
+
+    def restore_total(r: dict) -> float:
+        return (r["report"].get("Restore Duration", 0) + r["report"].get("Duration", 0)) / 1000
+
+    ra = [r for r in ok_rows(rows) if r["expected_class"] == "restore"]
+    rb = [r for r in ok_rows(ctl_rows) if r["expected_class"] == "restore"]
+    return {
+        "cold.first_request_total": matched(a, b, total),
+        "cold.model_ready": matched(a, b, lambda r: init(r).get("model_ready")),
+        "restore.report_restore_duration": matched(
+            ra, rb, lambda r: r["report"].get("Restore Duration", 0) / 1000
+        )
+        if ra and rb
+        else None,
+        "restore.first_request_total": matched(ra, rb, restore_total) if ra and rb else None,
+    }
+
+
 def compute_block(rows: list[dict], ctl_rows: list[dict]) -> dict:
     out = {}
     a, b = ok_rows(rows), ok_rows(ctl_rows)
@@ -331,6 +357,7 @@ def summarize_arm(arm: str, a: argparse.Namespace, meta: dict) -> dict:
         "strategy": cold_cond["e3_dl"].get(arm) or P1_FETCH,
         "download": download_block(by_arm[arm], by_arm["ctl"]),
         "compute": compute_block(by_arm[arm], by_arm["ctl"]) if arm != "ctl" else None,
+        "end_to_end": end_to_end(by_arm[arm], by_arm["ctl"]) if arm != "ctl" else None,
         "hash": hash_block(verify_rows, arm, gguf)
         if arm != "ctl"
         else {

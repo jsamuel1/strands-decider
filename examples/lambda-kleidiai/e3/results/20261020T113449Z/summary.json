@@ -1,0 +1,312 @@
+{
+ "schema": "lkai-e3-summary/1",
+ "run_id": "20261020T113449Z",
+ "settings": {
+  "ldr": {
+   "status": "no-change",
+   "strategy": "loader",
+   "download": {
+    "vs_ctl": {
+     "delta_p50_s": 0.075138,
+     "ci95_s": [
+      -0.003513,
+      0.163513
+     ],
+     "delta_pct": 0.3,
+     "n": [
+      50,
+      50
+     ],
+     "method": "percentile bootstrap, 2000 resamples, seed 0"
+    },
+    "s3_get_requests_per_download": [
+     31
+    ],
+    "p50_s": 25.034084,
+    "ctl_p50_s": 24.954753,
+    "mib_s_p50": 79.1,
+    "peak_rss_mb_p50": 599.4
+   },
+   "hash_match": true,
+   "correctness": {
+    "compared": 96,
+    "bit_identical": 96,
+    "choice_flips": 0
+   },
+   "result": "ldr/results.json",
+   "conclusion": "loader: cold weight_download p50 25.03 s (n=50) vs control 24.95 s (n=50), delta +0.08 s (+0.3%), 95% CI [-0.00, +0.16] s. Compute phases after the download: no interval excludes 0. Answers 96/96 bit-identical; weights hash matches; S3 GETs per download [31]; peak RSS after download p50 599.4 MB; /tmp used p50 0.0 MB. Status no-change."
+  },
+  "aa": {
+   "status": "no-change",
+   "strategy": "threads:64:32",
+   "download": {
+    "vs_ctl": {
+     "delta_p50_s": 0.068252,
+     "ci95_s": [
+      -0.004203,
+      0.160871
+     ],
+     "delta_pct": 0.27,
+     "n": [
+      50,
+      50
+     ],
+     "method": "percentile bootstrap, 2000 resamples, seed 0"
+    },
+    "s3_get_requests_per_download": [
+     31
+    ],
+    "p50_s": 25.027233,
+    "ctl_p50_s": 24.954753,
+    "mib_s_p50": 79.1,
+    "peak_rss_mb_p50": 597.5
+   },
+   "hash_match": true,
+   "correctness": {
+    "compared": 96,
+    "bit_identical": 96,
+    "choice_flips": 0
+   },
+   "result": "aa/results.json",
+   "conclusion": "threads:64:32: cold weight_download p50 25.03 s (n=50) vs control 24.95 s (n=50), delta +0.07 s (+0.3%), 95% CI [-0.00, +0.16] s. Compute phases after the download: no interval excludes 0. Answers 96/96 bit-identical; weights hash matches; S3 GETs per download [31]; peak RSS after download p50 597.5 MB; /tmp used p50 0.0 MB. Status no-change."
+  },
+  "t16x64": {
+   "status": "regressed",
+   "strategy": "threads:16:64",
+   "download": {
+    "vs_ctl": {
+     "delta_p50_s": 0.557282,
+     "ci95_s": [
+      0.185225,
+      1.732594
+     ],
+     "delta_pct": 2.23,
+     "n": [
+      50,
+      50
+     ],
+     "method": "percentile bootstrap, 2000 resamples, seed 0"
+    },
+    "s3_get_requests_per_download": [
+     124
+    ],
+    "p50_s": 25.307577,
+    "ctl_p50_s": 24.954753,
+    "mib_s_p50": 77.0,
+    "peak_rss_mb_p50": 861.0
+   },
+   "hash_match": true,
+   "correctness": {
+    "compared": 98,
+    "bit_identical": 98,
+    "choice_flips": 0
+   },
+   "result": "t16x64/results.json",
+   "conclusion": "threads:16:64: cold weight_download p50 25.31 s (n=50) vs control 24.95 s (n=50), delta +0.56 s (+2.2%), 95% CI [+0.19, +1.73] s. Compute phases after the download: no interval excludes 0. Answers 98/98 bit-identical; weights hash matches; S3 GETs per download [124]; peak RSS after download p50 861.0 MB; /tmp used p50 0.0 MB. Status regressed."
+  },
+  "t8x128": {
+   "status": "regressed",
+   "strategy": "threads:8:128",
+   "download": {
+    "vs_ctl": {
+     "delta_p50_s": 11.400636,
+     "ci95_s": [
+      10.145413,
+      11.858836
+     ],
+     "delta_pct": 45.68,
+     "n": [
+      50,
+      50
+     ],
+     "method": "percentile bootstrap, 2000 resamples, seed 0"
+    },
+    "s3_get_requests_per_download": [
+     248
+    ],
+    "p50_s": 36.309606,
+    "ctl_p50_s": 24.954753,
+    "mib_s_p50": 54.4,
+    "peak_rss_mb_p50": 849.9
+   },
+   "hash_match": true,
+   "correctness": {
+    "compared": 98,
+    "bit_identical": 98,
+    "choice_flips": 0
+   },
+   "result": "t8x128/results.json",
+   "conclusion": "threads:8:128: cold weight_download p50 36.31 s (n=50) vs control 24.95 s (n=50), delta +11.40 s (+45.7%), 95% CI [+10.15, +11.86] s. Compute phases after the download: no interval excludes 0. Answers 98/98 bit-identical; weights hash matches; S3 GETs per download [248]; peak RSS after download p50 849.9 MB; /tmp used p50 0.0 MB. Status regressed."
+  },
+  "t32x64": {
+   "status": "regressed",
+   "strategy": "threads:32:64",
+   "download": {
+    "vs_ctl": {
+     "delta_p50_s": 0.17488,
+     "ci95_s": [
+      0.075758,
+      0.334369
+     ],
+     "delta_pct": 0.7,
+     "n": [
+      50,
+      50
+     ],
+     "method": "percentile bootstrap, 2000 resamples, seed 0"
+    },
+    "s3_get_requests_per_download": [
+     62
+    ],
+    "p50_s": 25.131996,
+    "ctl_p50_s": 24.954753,
+    "mib_s_p50": 78.8,
+    "peak_rss_mb_p50": 962.1
+   },
+   "hash_match": true,
+   "correctness": {
+    "compared": 98,
+    "bit_identical": 98,
+    "choice_flips": 0
+   },
+   "result": "t32x64/results.json",
+   "conclusion": "threads:32:64: cold weight_download p50 25.13 s (n=50) vs control 24.95 s (n=50), delta +0.17 s (+0.7%), 95% CI [+0.08, +0.33] s. Compute phases after the download: no interval excludes 0. Answers 98/98 bit-identical; weights hash matches; S3 GETs per download [62]; peak RSS after download p50 962.1 MB; /tmp used p50 0.0 MB. Status regressed."
+  },
+  "t64x64": {
+   "status": "no-change",
+   "strategy": "threads:64:64",
+   "download": {
+    "vs_ctl": {
+     "delta_p50_s": 0.028392,
+     "ci95_s": [
+      -0.065591,
+      0.110459
+     ],
+     "delta_pct": 0.11,
+     "n": [
+      50,
+      50
+     ],
+     "method": "percentile bootstrap, 2000 resamples, seed 0"
+    },
+    "s3_get_requests_per_download": [
+     31
+    ],
+    "p50_s": 24.987552,
+    "ctl_p50_s": 24.954753,
+    "mib_s_p50": 79.3,
+    "peak_rss_mb_p50": 597.4
+   },
+   "hash_match": true,
+   "correctness": {
+    "compared": 159,
+    "bit_identical": 159,
+    "choice_flips": 0
+   },
+   "result": "t64x64/results.json",
+   "conclusion": "threads:64:64: cold weight_download p50 24.99 s (n=50) vs control 24.95 s (n=50), delta +0.03 s (+0.1%), 95% CI [-0.07, +0.11] s. Compute phases after the download: no interval excludes 0. Answers 159/159 bit-identical; weights hash matches; S3 GETs per download [31]; peak RSS after download p50 597.4 MB; /tmp used p50 0.0 MB. Status no-change."
+  },
+  "crt8": {
+   "status": "regressed",
+   "strategy": "crt:8:25",
+   "download": {
+    "vs_ctl": {
+     "delta_p50_s": 2.26645,
+     "ci95_s": [
+      1.475137,
+      4.69522
+     ],
+     "delta_pct": 9.08,
+     "n": [
+      50,
+      50
+     ],
+     "method": "percentile bootstrap, 2000 resamples, seed 0"
+    },
+    "s3_get_requests_per_download": [
+     248
+    ],
+    "p50_s": 27.214432,
+    "ctl_p50_s": 24.954753,
+    "mib_s_p50": 72.7,
+    "peak_rss_mb_p50": 1475.0
+   },
+   "hash_match": true,
+   "correctness": {
+    "compared": 99,
+    "bit_identical": 99,
+    "choice_flips": 0
+   },
+   "result": "crt8/results.json",
+   "conclusion": "crt:8:25: cold weight_download p50 27.21 s (n=50) vs control 24.95 s (n=50), delta +2.27 s (+9.1%), 95% CI [+1.48, +4.70] s. Compute phases whose 95% interval excludes 0 (pooled delta; 6 phases x 9 settings are tested, so about 3 such flags are expected by chance): cold.model_load_mmap -0.245 s. Answers 99/99 bit-identical; weights hash matches; S3 GETs per download [248]; peak RSS after download p50 1475.0 MB; /tmp used p50 0.0 MB. Status regressed."
+  },
+  "crt16": {
+   "status": "regressed",
+   "strategy": "crt:16:25",
+   "download": {
+    "vs_ctl": {
+     "delta_p50_s": 0.744074,
+     "ci95_s": [
+      0.537147,
+      1.477985
+     ],
+     "delta_pct": 2.98,
+     "n": [
+      50,
+      50
+     ],
+     "method": "percentile bootstrap, 2000 resamples, seed 0"
+    },
+    "s3_get_requests_per_download": [
+     124
+    ],
+    "p50_s": 25.695393,
+    "ctl_p50_s": 24.954753,
+    "mib_s_p50": 77.0,
+    "peak_rss_mb_p50": 1875.2
+   },
+   "hash_match": true,
+   "correctness": {
+    "compared": 96,
+    "bit_identical": 96,
+    "choice_flips": 0
+   },
+   "result": "crt16/results.json",
+   "conclusion": "crt:16:25: cold weight_download p50 25.70 s (n=50) vs control 24.95 s (n=50), delta +0.74 s (+3.0%), 95% CI [+0.54, +1.48] s. Compute phases whose 95% interval excludes 0 (pooled delta; 6 phases x 9 settings are tested, so about 3 such flags are expected by chance): cold.model_load_mmap -0.336 s. Answers 96/96 bit-identical; weights hash matches; S3 GETs per download [124]; peak RSS after download p50 1875.2 MB; /tmp used p50 0.0 MB. Status regressed."
+  },
+  "crtf16": {
+   "status": "regressed",
+   "strategy": "crtfile:16:25",
+   "download": {
+    "vs_ctl": {
+     "delta_p50_s": 0.18345,
+     "ci95_s": [
+      0.067085,
+      0.693369
+     ],
+     "delta_pct": 0.73,
+     "n": [
+      50,
+      50
+     ],
+     "method": "percentile bootstrap, 2000 resamples, seed 0"
+    },
+    "s3_get_requests_per_download": [
+     124
+    ],
+    "p50_s": 25.140756,
+    "ctl_p50_s": 24.954753,
+    "mib_s_p50": 78.8,
+    "peak_rss_mb_p50": 1079.1
+   },
+   "hash_match": true,
+   "correctness": {
+    "compared": 97,
+    "bit_identical": 97,
+    "choice_flips": 0
+   },
+   "result": "crtf16/results.json",
+   "conclusion": "crtfile:16:25: cold weight_download p50 25.14 s (n=50) vs control 24.95 s (n=50), delta +0.18 s (+0.7%), 95% CI [+0.07, +0.69] s. Compute phases whose 95% interval excludes 0 (pooled delta; 6 phases x 9 settings are tested, so about 3 such flags are expected by chance): cold.model_load_mmap -0.194 s. Answers 97/97 bit-identical; weights hash matches; S3 GETs per download [124]; peak RSS after download p50 1079.1 MB; /tmp used p50 0.0 MB. Status regressed."
+  }
+ }
+}

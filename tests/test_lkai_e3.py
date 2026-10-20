@@ -29,6 +29,14 @@ import phases  # noqa: E402  isort: skip
 MIB = 1024 * 1024
 
 
+@pytest.fixture(autouse=True)
+def _no_live_recorder(monkeypatch):
+    """e3dl.counters() writes into lkai_entry.REC when lkai_entry is imported. An entry-point test (here or in
+    test_lkai_baseline) can leave one in sys.modules; the unit tests below read e3dl._SCRATCH, so drop it."""
+    monkeypatch.delitem(sys.modules, "lkai_entry", raising=False)
+    e3dl._SCRATCH.clear()
+
+
 def test_parse_specs():
     assert e3dl.parse("loader") == {"kind": "loader"}
     assert e3dl.parse("threads:64:32") == {"kind": "threads", "chunk": 64 * MIB, "workers": 32}
