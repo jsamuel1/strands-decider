@@ -25,7 +25,9 @@
  "function_zip": {
   "bytes": 51941898,
   "sha256": "26eb2651e8915f8ad09eae899feff583a448de6b8d2bc4943bccabb66cae189b",
-  "handler": "lkai_entry.handler"
+  "handler": "lkai_entry.handler",
+  "source_commit": "fd96d7f4fafe27fcaed793b34691aed1a30702d9",
+  "inputs_sha256": null
  },
  "assets_sha256": {
   "head.safetensors": "2492613e72eac53becb9ff855023261ac2722c5111b9f1e03be59a87328dd799",

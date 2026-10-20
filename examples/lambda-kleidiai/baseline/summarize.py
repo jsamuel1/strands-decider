@@ -544,7 +544,7 @@ def summarize(run: str, ref_path: str | None, baseline_commit: str | None, meta:
             "cpu_parts_observed": dict(sorted(cpu.items())),
         },
         "model": m["model"] | {"llama_cpp": m["llama_cpp"]},
-        "build": {k: m[k] for k in ("images", "toolchain", "assets_sha256")},
+        "build": {k: m[k] for k in ("images", "toolchain", "assets_sha256", "function_zip")},
         "conditions": {
             k: cond[k]
             for k in (

@@ -473,7 +473,11 @@ def _run_dir(tmp_path, rows):
             "repo_dirty": False,
             "model": {"id": "m", "gguf_bytes": 2 * 2**30, "gguf_sha256": "g"},
             "llama_cpp": {"commit": "f74e"},
-            "function_zip": {"sha256": "z"},
+            "function_zip": {
+                "sha256": "z",
+                "source_commit": "zip-source",
+                "inputs_sha256": "inputs-key",
+            },
             "images": {},
             "toolchain": [],
             "assets_sha256": {},
@@ -577,6 +581,11 @@ def test_summarize_end_to_end(tmp_path):
     assert "snapshot_inits_per_version" not in inst["restore"]  # counts, not distributions
     assert res["cost"]["snapshot_inits_per_version"] == {"inst": {"3": 1}}
     assert res["status"] == "baseline" and res["changed_variable"] is None
+    assert res["build"]["function_zip"] == {
+        "sha256": "z",
+        "source_commit": "zip-source",
+        "inputs_sha256": "inputs-key",
+    }
     assert res["cost"]["snapshot_inits"] == 2  # one observed on inst, the same assumed for rep
     assert set(inst["warm"]["steady_state_by_request"]) == {"r1", "r2"}
     assert (
@@ -592,6 +601,16 @@ def test_summarize_end_to_end(tmp_path):
     assert c["snapstart_cache_usd"] == round(
         2 * 3 * 3600 * 10 * summarize.PRICES["snapstart_cache_gb_s"], 4
     )
+
+
+def test_build_script_uses_immutable_images_and_records_zip_source():
+    script = (Path(BASE) / "build.sh").read_text()
+    assert "LAMBDA_IMAGE=public.ecr.aws/lambda/python@sha256:" in script
+    assert "PY_IMAGE=python@sha256:" in script
+    assert "LAMBDA_IMAGE=public.ecr.aws/lambda/python:3.12" not in script
+    assert "PY_IMAGE=python:3.12-bookworm" not in script
+    assert ".zip-repo-commit" in script
+    assert '"source_commit"' in script and '"inputs_sha256"' in script
 
 
 def test_overhead_matches_cpu_parts():

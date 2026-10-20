@@ -15,8 +15,10 @@ B=${LKAI_BUILD:-$HERE/build}
 CKPT=StrandsAgents/strands-decider-2B-qwen3.5-v1-2610
 CKPT_REV=216d1ccb46a9e9b036eb9187b248db98480f77d4
 LLAMA_REV=f74e2fa6a31cc33ab4ee4ae516641cfe62df3924
-LAMBDA_IMAGE=public.ecr.aws/lambda/python:3.12
-PY_IMAGE=python:3.12-bookworm
+# Immutable image digests from the published baseline build. Tags here would make a later one-command run
+# silently use a different compiler, runtime image or weight toolchain.
+LAMBDA_IMAGE=public.ecr.aws/lambda/python@sha256:37fe9ca4183c36ec57e4c5eabb8893cd9fbc9c0f3053b903d9a57eb2bd6bafcc
+PY_IMAGE=python@sha256:5560e9ab8709f459489e5b8aa696eda8a07ef821e14bb122be62d91234bfa98b
 [ "$(uname -m)" = aarch64 ] || { echo "build.sh needs an arm64 host (got $(uname -m))"; exit 1; }
 mkdir -p "$B/hf" "$B/model"
 
@@ -50,7 +52,8 @@ docker run --rm --platform linux/arm64 --entrypoint bash \
   -v "$B/llama.cpp:/llama:ro" -v "$RECIPE:/recipe:ro" -v "$REPO/examples/lambda:/lambda:ro" \
   -v "$REPO/src/strands_decider:/pkgsrc:ro" -v "$B/model/assets:/assets:ro" -v "$B:/out" \
   "$LAMBDA_IMAGE" /recipe/baseline/container_build.sh
-echo "$ZIP_KEY" > "$B/.zip-inputs"
+printf '%s\n' "$ZIP_KEY" > "$B/.zip-inputs"
+git -C "$REPO" rev-parse HEAD > "$B/.zip-repo-commit"
 fi
 
 G=$B/model/s2b-h512-Q8_0.gguf
@@ -89,7 +92,9 @@ m = {
               "gguf_bytes": os.path.getsize(g), "gguf_sha256": sha(g)},
     "llama_cpp": {"commit": "$LLAMA_REV", "patches": "llama/patch_llama.py (prefill,gdn,kskip,sme)",
                   "flags": "GGML_NATIVE=OFF GGML_BACKEND_DL=ON GGML_CPU_ALL_VARIANTS=ON GGML_CPU_KLEIDIAI=ON"},
-    "function_zip": {"bytes": os.path.getsize(z), "sha256": sha(z), "handler": "lkai_entry.handler"},
+    "function_zip": {"bytes": os.path.getsize(z), "sha256": sha(z), "handler": "lkai_entry.handler",
+                     "source_commit": open(os.path.join(b, ".zip-repo-commit")).read().strip(),
+                     "inputs_sha256": open(os.path.join(b, ".zip-inputs")).read().strip()},
     "assets_sha256": {f: sha(os.path.join(b, "model", "assets", f)) for f in sorted(os.listdir(os.path.join(b, "model", "assets")))},
     "images": {"lambda_build": img("$LAMBDA_IMAGE"), "weights": img("$PY_IMAGE")},
     "toolchain": open(os.path.join(b, "toolchain.txt")).read().split("\n")[:2],
