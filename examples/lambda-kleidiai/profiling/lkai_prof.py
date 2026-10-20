@@ -1,0 +1,262 @@
+"""Profiler arms for the lambda-kleidiai baseline: handler "lkai_prof.handler", wrapping baseline/lkai_entry.py.
+
+One function per arm, all from one zip, all identical to P1's functions except LKAI_PROF and the handler. LKAI_PROF
+picks the profiler; its cost is measured against the REPORT-only arm (P1's lkai-p1-rep configuration, LKAI_PHASES=0):
+
+  none      lkai_entry.handler with LKAI_PHASES as configured. With LKAI_PHASES=0 this is the overhead control.
+  cprofile  cProfile around the whole init (import of lkai_entry: weight download, load, warm-up) and around each
+            invocation's handler. Stats are written to /tmp and summarised to stdout (top 40 by cumulative time).
+  pyspy     py-spy (shipped in bin/) records this process from a child at 100 Hz, Python frames only
+            (--nonblocking; --native needs ptrace, which Lambda denies), from module import until the load is done,
+            then on every invocation for its duration. Lambda lets a child read its parent with process_vm_readv
+            (lkai_probe.py shows `py-spy dump` of the parent works), so non-blocking sampling works.
+  sampler   lkaisamp.so (setitimer SIGPROF, 1 kHz CPU time): native PC + LR samples tagged by phase, symbolised in
+            the function from /proc/self/maps and the ELF symbol tables of the mapped libraries.
+  xray      no in-function change: the function's TracingConfig is Active, so Lambda emits its own segments
+            (Initialization, Invocation, Overhead, and Restore). Nothing in the zip calls the X-Ray SDK.
+  telemetry the Lambda Telemetry API extension in extensions/ (an external extension, a separate process) subscribes to
+            platform events and logs them as `LKAI_TEL {json}` lines. Here LKAI_PROF only labels the arm; the
+            extension is what Lambda starts.
+
+Each profiler arm keeps LKAI_PHASES=1 so the phase records show where the profiler's time went; the overhead it adds
+is still read from Lambda's own REPORT numbers, against the REPORT-only arm, as P1 measured its instrumentation.
+Profiles are summarised as `LKAI_PROF {json}` stdout lines (CloudWatch keeps them), never as response fields beyond a
+small `lkai_prof` stub, so the answers stay byte-identical to the baseline's.
+"""
+
+from __future__ import annotations
+
+import os
+import time
+
+T0_NS = time.monotonic_ns()
+MODE = os.environ.get("LKAI_PROF", "none")
+HERE = os.path.dirname(os.path.abspath(__file__))
+
+import json  # noqa: E402
+import sys  # noqa: E402
+
+_state: dict = {"n": 0, "init_emitted": False}
+
+
+def _emit(kind: str, **fields) -> None:
+    rec = {"schema": "lkai-prof/1", "kind": kind, "mode": MODE, "wall_ns": time.time_ns(), **fields}
+    sys.stdout.write("LKAI_PROF " + json.dumps(rec, separators=(",", ":"), default=str) + "\n")
+    sys.stdout.flush()
+
+
+# ------------------------------------------------------------------------------------------------ cProfile
+if MODE == "cprofile":
+    import cProfile
+    import pstats
+
+    _PROF = cProfile.Profile()
+
+    def _cp_summary(prof: cProfile.Profile, top: int = 40) -> list[dict]:
+        st = pstats.Stats(prof)
+        rows = []
+        for (file, line, fn), (cc, nc, tt, ct, _callers) in st.stats.items():  # type: ignore[attr-defined]
+            rows.append({"fn": f"{os.path.basename(file)}:{line}:{fn}", "ncalls": nc, "tottime": round(tt, 6),
+                         "cumtime": round(ct, 6)})
+        rows.sort(key=lambda r: -r["cumtime"])
+        return rows[:top]
+
+    _PROF.enable()
+
+    # cProfile sees only the thread that enabled it. On demand, PR #77's handler submits _load to a one-thread pool
+    # at import; wrap that one submission so the load thread gets its own profile (the 32 download threads are not
+    # profiled: they wait on sockets). Restored at the end of the import.
+    import concurrent.futures as _cf
+
+    _LOAD_PROF = cProfile.Profile()
+    _orig_submit = _cf.ThreadPoolExecutor.submit
+
+    def _submit(self, fn, *a, **k):
+        if getattr(fn, "__name__", "") != "_load":
+            return _orig_submit(self, fn, *a, **k)
+
+        def run(*a2, **k2):
+            _LOAD_PROF.enable()
+            try:
+                return fn(*a2, **k2)
+            finally:
+                _LOAD_PROF.disable()
+
+        return _orig_submit(self, run, *a, **k)
+
+    _cf.ThreadPoolExecutor.submit = _submit
+
+# ------------------------------------------------------------------------------------------------ native sampler
+_SAMP = None
+if MODE == "sampler":
+    import ctypes
+
+    _SAMP = ctypes.CDLL(os.path.join(HERE, "lib", "liblkaisamp.so"))
+    _SAMP.samp_start(int(os.environ.get("LKAI_SAMP_US", "1000")), 1 << 21)
+    _SAMP.samp_phase(1)  # init
+
+# ------------------------------------------------------------------------------------------------ py-spy
+_SPY: dict = {}
+
+
+def _spy_start(tag: str, duration_s: int) -> None:
+    import select
+    import subprocess
+
+    out = f"/tmp/pyspy-{tag}.txt"
+    t = time.monotonic()
+    proc = subprocess.Popen(
+        [os.path.join(HERE, "bin", "py-spy"), "record", "--pid", str(os.getpid()), "--rate", "100",
+         "--threads", "--nonblocking", "--format", "raw", "--duration", str(duration_s), "-o", out],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    # py-spy prints "Sampling process ..." once it is attached and sampling: wait for that (at most 2 s) rather than a
+    # fixed sleep, so the profiled code starts under the sampler and the wait is only what attaching costs.
+    head = b""
+    while b"Sampling" not in head and time.monotonic() - t < 2 and proc.poll() is None:
+        r, _, _ = select.select([proc.stderr], [], [], 0.05)
+        if r:
+            head += os.read(proc.stderr.fileno(), 4096)
+    _SPY[tag] = (proc, out, t, head, time.monotonic() - t)
+
+
+def _spy_stop(tag: str, top: int = 40) -> dict:
+    import signal
+    import subprocess
+
+    proc, out, t, head, attach_s = _SPY.pop(tag)
+    proc.send_signal(signal.SIGINT)  # py-spy writes what it has on SIGINT
+    try:
+        _, err = proc.communicate(timeout=20)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        _, err = proc.communicate()
+    res: dict = {"rc": proc.returncode, "stderr": (head + err).decode(errors="replace")[-600:],
+                 "attach_s": round(attach_s, 4), "wall_s": round(time.monotonic() - t, 4)}
+    try:
+        res.update(_collapse(open(out).read(), top))
+    except OSError as e:
+        res["error"] = str(e)
+    return res
+
+
+def _collapse(raw: str, top: int) -> dict:
+    """py-spy raw (collapsed stacks 'a;b;c N'): total samples, top leaf frames and top inclusive frames."""
+    leaf: dict[str, int] = {}
+    incl: dict[str, int] = {}
+    total = 0
+    for line in raw.splitlines():
+        stack, _, n = line.rpartition(" ")
+        if not stack or not n.isdigit():
+            continue
+        c = int(n)
+        total += c
+        frames = stack.split(";")
+        leaf[frames[-1]] = leaf.get(frames[-1], 0) + c
+        for f in set(frames):
+            incl[f] = incl.get(f, 0) + c
+    srt = lambda d: [{"frame": k[:200], "samples": v} for k, v in sorted(d.items(), key=lambda kv: -kv[1])[:top]]  # noqa: E731
+    return {"samples": total, "top_leaf": srt(leaf), "top_inclusive": srt(incl)}
+
+
+if MODE == "pyspy":
+    # Not --native: native unwinding suspends the target with ptrace, which Lambda refuses (EPERM, lkai_probe.py).
+    _spy_start("init", 300)
+
+# ------------------------------------------------------------------------------------------------ the baseline
+_t_imp = time.monotonic_ns()
+import lkai_entry  # noqa: E402  (runs the whole baseline init: download, load, warm-up; or at publish for SnapStart)
+
+_init_s = (time.monotonic_ns() - _t_imp) / 1e9
+if MODE == "cprofile":
+    _cf.ThreadPoolExecutor.submit = _orig_submit
+
+
+def _init_profile() -> None:
+    """Emit the init profile once, at the first invocation (on-demand: the load finishes in a thread by then)."""
+    if _state["init_emitted"]:
+        return
+    _state["init_emitted"] = True
+    if MODE == "cprofile":
+        _PROF.disable()
+        st = {"import_thread": _cp_summary(_PROF)}
+        if _LOAD_PROF.getstats():
+            st["load_thread"] = _cp_summary(_LOAD_PROF)
+        _emit("init", import_s=_init_s, top=st)
+    elif MODE == "pyspy" and "init" in _SPY:
+        _emit("init", import_s=_init_s, pyspy=_spy_stop("init"))
+    elif MODE == "sampler":
+        import lkai_symbolise
+
+        _SAMP.samp_phase(0)
+        _emit("init", import_s=_init_s, sampler=lkai_symbolise.summary(_SAMP))
+        _SAMP.samp_reset()
+
+
+def _before_snapshot():
+    # SnapStart: the init profile is taken before the snapshot, and the (ITIMER_PROF) sampler is disarmed so a
+    # restored copy does not inherit a running timer pointed at a stale buffer state.
+    _init_profile()
+    if _SAMP is not None:
+        _SAMP.samp_stop()
+
+
+def _after_restore():
+    if _SAMP is not None:
+        _SAMP.samp_reset()
+        _SAMP.samp_start(int(os.environ.get("LKAI_SAMP_US", "1000")), 1 << 21)
+
+
+try:
+    from snapshot_restore_py import register_after_restore, register_before_snapshot
+
+    # Registered after lkai_entry's own hooks, so they run after its before_snapshot record (LIFO order is not
+    # documented for Python; the profile summary does not depend on it).
+    register_before_snapshot(_before_snapshot)
+    register_after_restore(_after_restore)
+except ImportError:
+    pass
+
+
+def handler(event, context):
+    _state["n"] += 1
+    n = _state["n"]
+    if isinstance(event, dict) and event.get("mode") == "lkai_probe":
+        import lkai_probe
+
+        return lkai_probe.handler(event, context)
+    if n == 1:
+        # On demand the load runs in PR #77's background thread. lkai_entry.handler waits for it anyway; waiting here
+        # first lets the init profile cover the whole load and keeps it out of the first invocation's profile.
+        import handler as _pr77
+
+        _pr77._ENGINE.result()
+    _init_profile()
+    if MODE == "cprofile":
+        prof = cProfile.Profile()
+        prof.enable()
+        try:
+            out = lkai_entry.handler(event, context)
+        finally:
+            prof.disable()
+        _emit("invoke", n=n, top=_cp_summary(prof, 25))
+    elif MODE == "pyspy":
+        _spy_start("inv", 60)
+        try:
+            out = lkai_entry.handler(event, context)
+        finally:
+            _emit("invoke", n=n, pyspy=_spy_stop("inv", 25))
+    elif MODE == "sampler":
+        import lkai_symbolise
+
+        _SAMP.samp_phase(7)
+        try:
+            out = lkai_entry.handler(event, context)
+        finally:
+            _SAMP.samp_phase(0)
+            _emit("invoke", n=n, sampler=lkai_symbolise.summary(_SAMP))
+            _SAMP.samp_reset()
+    else:
+        out = lkai_entry.handler(event, context)
+    if isinstance(out, dict) and "statusCode" not in out:
+        out["lkai_prof"] = {"mode": MODE, "n": n}
+    return out

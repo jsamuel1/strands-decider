@@ -234,15 +234,25 @@ def py_spy(binary: str | None) -> dict:
         child.kill()
         child.wait()
     out["dump_self"] = _spy(binary, os.getpid())
+    # --native unwinds C frames, which needs the target stopped (ptrace); without --nonblocking py-spy also pauses it.
+    child = subprocess.Popen([sys.executable, "-c", "import time\nwhile True: time.sleep(0.1)"])
+    try:
+        time.sleep(0.3)
+        out["dump_child_native"] = _spy(binary, child.pid, ["--native"])
+        out["dump_child_blocking"] = _spy(binary, child.pid, [])
+    finally:
+        child.kill()
+        child.wait()
     rc = _libc.prctl(PR_SET_PTRACER, PR_SET_PTRACER_ANY, 0, 0, 0)
     out["pr_set_ptracer_any"] = "ok" if rc == 0 else _err(ctypes.get_errno())
     out["dump_self_after_pr_set_ptracer"] = _spy(binary, os.getpid())
     return out
 
 
-def _spy(binary: str, pid: int) -> dict:
+def _spy(binary: str, pid: int, flags: list[str] | None = None) -> dict:
+    flags = ["--nonblocking"] if flags is None else flags
     try:
-        r = subprocess.run([binary, "dump", "--nonblocking", "--pid", str(pid)], capture_output=True, text=True,
+        r = subprocess.run([binary, "dump", *flags, "--pid", str(pid)], capture_output=True, text=True,
                            timeout=20)
     except subprocess.TimeoutExpired:
         return {"result": "timeout"}

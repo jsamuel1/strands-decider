@@ -242,16 +242,21 @@ def main() -> None:
                 "Handler",
                 "CodeSha256",
                 "CodeSize",
+                "TracingConfig",
             )
         }
+        fns[arm]["layers"] = [layer["Arn"].rsplit(":", 2)[-2:] for layer in c.get("Layers") or []]
         fns[arm]["environment"] = {
             k: v for k, v in c["Environment"]["Variables"].items() if k != "MODEL_BUCKET"
         }
         fns[arm]["runtime_management"] = {
             k: rm.get(k) for k in ("UpdateRuntimeOn", "RuntimeVersionArn")
         }
-        if deploy.b64_to_hex(c["CodeSha256"]) != st["manifest"]["function_zip"]["sha256"]:
-            sys.exit(f"{arm}: deployed code {c['CodeSha256']} is not build/function.zip")
+        # A function may record its own expected code (profiling/deploy_arms.py: arms on prof.zip); default P1's zip.
+        want = st["functions"][arm].get("code_sha256_hex") or st["manifest"]["function_zip"]["sha256"]
+        fns[arm]["expected_code_sha256"] = want
+        if deploy.b64_to_hex(c["CodeSha256"]) != want:
+            sys.exit(f"{arm}: deployed code {c['CodeSha256']} is not the expected zip {want[:12]}")
     cond = {
         "schema": "lkai-conditions/1",
         "region": a.region,

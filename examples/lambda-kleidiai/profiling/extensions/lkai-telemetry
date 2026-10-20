@@ -1,0 +1,88 @@
+#!/usr/bin/env python3
+"""lkai-telemetry: a Lambda Telemetry API extension (external extension, separate process). Standard library only.
+
+Lambda starts /opt/extensions/<name> before the function's init. This one:
+  1. registers for INVOKE and SHUTDOWN (Extensions API),
+  2. listens on sandbox.localdomain:4243 and subscribes that listener to the `platform` stream (Telemetry API,
+     2022-07-01), buffered at most 1,000 events / 256 KB / 25 ms, the Telemetry API's minimum timeout,
+  3. for each platform event writes one stdout line `LKAI_TEL {json}` with the event type, its time and its record.
+
+Its stdout goes to the function's own log group, so bench.py's log capture keeps it beside REPORT. The records of
+interest: platform.initStart / initRuntimeDone / initReport (phase=init, with spans), platform.restoreStart /
+restoreRuntimeDone / restoreReport, platform.start / runtimeDone (with spans responseLatency and responseDuration,
+and metrics producedBytes) / report. Those are Lambda's own phase timestamps, as REPORT but with the init/restore
+split by phase and with the runtime's response span.
+
+The function zip carries it as extensions/lkai-telemetry (Lambda runs zip-root extensions/ only from a layer, so
+profiling/build_prof_zip.py also builds a one-file layer with it at extensions/lkai-telemetry).
+"""
+
+import http.server
+import json
+import os
+import sys
+import threading
+import time
+import urllib.request
+
+NAME = "lkai-telemetry"
+API = os.environ["AWS_LAMBDA_RUNTIME_API"]
+PORT = 4243
+
+
+def _req(method, path, body=None, headers=None):
+    req = urllib.request.Request(f"http://{API}{path}", method=method, data=None if body is None else json.dumps(body)
+                                 .encode(), headers=headers or {})
+    with urllib.request.urlopen(req, timeout=None) as r:
+        return r.headers, r.read()
+
+
+class _H(http.server.BaseHTTPRequestHandler):
+    def do_POST(self):  # noqa: N802
+        n = int(self.headers.get("Content-Length", "0"))
+        try:
+            events = json.loads(self.rfile.read(n))
+        except ValueError:
+            events = []
+        out = []
+        for e in events:
+            t = e.get("type", "")
+            if not t.startswith("platform."):
+                continue
+            out.append("LKAI_TEL " + json.dumps({"schema": "lkai-tel/1", "type": t, "time": e.get("time"),
+                                                  "record": e.get("record")}, separators=(",", ":")) + "\n")
+        if out:
+            sys.stdout.write("".join(out))
+            sys.stdout.flush()
+        self.send_response(200)
+        self.end_headers()
+
+    def log_message(self, *a):  # quiet
+        pass
+
+
+def main():
+    t0 = time.monotonic()
+    h, _ = _req("POST", "/2020-01-01/extension/register", {"events": ["INVOKE", "SHUTDOWN"]},
+                {"Lambda-Extension-Name": NAME})
+    ext_id = h["Lambda-Extension-Identifier"]
+    srv = http.server.ThreadingHTTPServer(("sandbox.localdomain", PORT), _H)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    _req("PUT", "/2022-07-01/telemetry", {
+        "schemaVersion": "2022-12-13",
+        "types": ["platform"],
+        "buffering": {"maxItems": 1000, "maxBytes": 262144, "timeoutMs": 25},
+        "destination": {"protocol": "HTTP", "URI": f"http://sandbox.localdomain:{PORT}"},
+    }, {"Lambda-Extension-Identifier": ext_id, "Content-Type": "application/json"})
+    sys.stdout.write("LKAI_TEL " + json.dumps({"schema": "lkai-tel/1", "type": "lkai.subscribed",
+                                                "register_s": round(time.monotonic() - t0, 6)}) + "\n")
+    sys.stdout.flush()
+    while True:
+        _, body = _req("GET", "/2020-01-01/extension/event/next", headers={"Lambda-Extension-Identifier": ext_id})
+        if json.loads(body).get("eventType") == "SHUTDOWN":
+            time.sleep(0.05)  # let the last telemetry batch arrive
+            return
+
+
+if __name__ == "__main__":
+    main()

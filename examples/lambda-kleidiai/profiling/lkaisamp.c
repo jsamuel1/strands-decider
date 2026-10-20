@@ -64,10 +64,11 @@ static void on_prof(int sig, siginfo_t * si, void * uc_) {
 int samp_start(int period_us, long capacity) {
     if (!buf) {
         cap = capacity > 0 ? (uint64_t) capacity : (1u << 20);
-        buf = calloc(cap, sizeof(samp_t));  // touched now, so the handler never faults on a fresh page later
+        buf = calloc(cap, sizeof(samp_t));
         if (!buf) {
             return -1;
         }
+        memset(buf, 0, cap * sizeof(samp_t));  // fault every page in now, not inside the handler during a forward
     }
     struct sigaction sa;
     memset(&sa, 0, sizeof(sa));
