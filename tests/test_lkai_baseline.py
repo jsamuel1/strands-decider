@@ -150,7 +150,7 @@ def test_wait_updated_waits_for_snapstart_optimization(monkeypatch):
 def test_run_script_arms_cleanup_trap_before_benchmark():
     script = (Path(BASE) / "run.sh").read_text()
     deploy = script.index('"$PY" "$HERE/deploy.py" up')
-    trap = script.index("trap cleanup_versions EXIT")
+    trap = script.index("trap on_exit EXIT")
     bench = script.index('"$PY" "$HERE/bench.py"')
     assert deploy < trap < bench
     assert "TEARDOWN must be versions, all, or none" in script

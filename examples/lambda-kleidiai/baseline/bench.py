@@ -42,9 +42,32 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import deploy  # noqa: E402
 import phases  # noqa: E402
+import summarize  # noqa: E402
 
 _lock = threading.Lock()
 observed_class = phases.observed_class
+
+
+class CleanupError(RuntimeError):
+    """One or more published versions could not be deleted (they keep billing for SnapStart cache)."""
+
+
+def _gone(e: BaseException) -> bool:
+    return type(e).__name__ == "ResourceNotFoundException"
+
+
+def delete_versions(b, published: dict[str, dict]) -> list[str]:
+    """Delete every version in `published` ({arm: {"version": v}}), attempting each even if another fails. Returns
+    the failures; an already-deleted version is not one."""
+    failures = []
+    for arm, pub in published.items():
+        try:
+            b.delete_version(arm, pub["version"])
+        except Exception as e:  # the next version must still be deleted
+            if not _gone(e):
+                failures.append(f"{arm}:{pub['version']}: {type(e).__name__}: {e}")
+                print(f"FAILED to delete {arm} version {pub['version']}: {e}", file=sys.stderr)
+    return failures
 
 
 class Bench:
@@ -121,6 +144,11 @@ class Bench:
             p = {"raw": body[:2000].decode(errors="replace")}
         if err:
             rec["payload"] = p
+        elif problem := summarize.answer_problem(p, sorted(self.reqs[rid].get("questions", {}))):
+            # Lambda and the handler returned without error, but there is no answer to check: a failure, so it is
+            # counted as an error and kept out of the latency distributions instead of vanishing from correctness.
+            rec["error"] = f"malformed:{problem}"
+            rec["payload"] = p
         else:
             rec["answers"] = p.get("answers")
             rec["latency_ms"] = p.get("latency_ms")
@@ -156,11 +184,13 @@ class Bench:
         name = self.st["functions"][arm]["name"]
         t = time.time()
         v = self.lam.publish_version(FunctionName=name, Description=f"COLD_TAG {tag}")["Version"]
-        # wait_updated can sys.exit, and the caller never learns v, so delete the version here.
+        # wait_updated can sys.exit, and the caller never learns v, so delete the version here. A failed delete is
+        # reported, but the wait's failure is what propagates; run.sh's teardown is the second chance.
         try:
             c = deploy.wait_updated(self.lam, name, v)
         except BaseException:
-            self.delete_version(arm, v)
+            for f in delete_versions(self, {arm: {"version": v}}):
+                print("publish cleanup:", f, file=sys.stderr)
             raise
         return {
             "arm": arm,
@@ -209,6 +239,12 @@ def main() -> None:
     )
     ap.add_argument("--region", default="us-east-2")
     ap.add_argument("--profile", default=os.environ.get("AWS_PROFILE"))
+    ap.add_argument(
+        "--memory",
+        type=deploy.memory_mb,
+        help="function memory in MB the deployment must have (default: what deploy.py recorded); "
+        "the run refuses to start if either function differs",
+    )
     ap.add_argument("--arms", default="inst,rep")
     ap.add_argument("--out", required=True)
     ap.add_argument(
@@ -219,8 +255,12 @@ def main() -> None:
     st = deploy.load_state(a.build)
     if st.get("region") != a.region or "functions" not in st:
         sys.exit(f"no deployment for {a.region} in {a.build}; run deploy.py up")
+    memory = a.memory or st.get("memory_mb", deploy.MEMORY)
     reqs = json.load(open(a.requests))
     os.makedirs(a.out, exist_ok=True)
+    # invocations.jsonl and logs/ are appended to: a reused directory would mix two runs' evidence.
+    if any(os.path.exists(os.path.join(a.out, f)) for f in ("invocations.jsonl", "logs")):
+        sys.exit(f"{a.out} already holds a run; use a new --out")
     sess = boto3.Session(profile_name=a.profile, region_name=a.region)
     arms = a.arms.split(",")
     b = Bench(sess, st, reqs, a.out, a.concurrency)
@@ -252,9 +292,15 @@ def main() -> None:
         }
         if deploy.b64_to_hex(c["CodeSha256"]) != st["manifest"]["function_zip"]["sha256"]:
             sys.exit(f"{arm}: deployed code {c['CodeSha256']} is not build/function.zip")
+        if c.get("MemorySize") != memory:
+            sys.exit(
+                f"{arm}: deployed MemorySize {c.get('MemorySize')} MB, run wants {memory} MB; "
+                f"deploy.py up --memory {memory}"
+            )
     cond = {
         "schema": "lkai-conditions/1",
         "region": a.region,
+        "memory_mb": memory,
         "rounds": a.rounds,
         "concurrency": a.concurrency,
         "warm_per_arm_per_round": a.warm,
@@ -282,6 +328,7 @@ def main() -> None:
         t0 = time.time()
         meta = {"round": rnd, "order": order, "cold_tag": tag, "t0": t0}
         published: dict[str, dict] = {}
+        failed = True
         try:
             with ThreadPoolExecutor(len(order)) as ex:
                 list(ex.map(lambda arm, tag=tag: b.set_cold_tag(arm, tag), order))
@@ -320,11 +367,21 @@ def main() -> None:
                         seq0=i * a.concurrency,
                     )
             print(f"r{rnd} warm: {a.warm} passes x {a.concurrency} per arm", flush=True)
+            failed = False
         finally:
-            for arm, pub in published.items():
-                b.delete_version(arm, pub["version"])
+            # Every version is attempted; a failed delete must not leave the next one billing. If the round itself
+            # failed, that exception propagates and the cleanup failures are reported beside it.
+            cleanup_failures = delete_versions(b, published)
             if published:
                 meta["t_versions_deleted"] = time.time()
+            if cleanup_failures:
+                meta["cleanup_failures"] = cleanup_failures
+                cond["rounds_meta"].append(meta)
+                json.dump(cond, open(os.path.join(a.out, "conditions.json"), "w"), indent=1)
+                if not failed:
+                    raise CleanupError(
+                        f"round {rnd}: {len(cleanup_failures)} version(s) not deleted: {cleanup_failures}"
+                    )
         time.sleep(a.log_lag)
         # Each round's window starts where the last one ended, so no event is saved twice. The snapshot init runs
         # inside publish_version, after t0, so the round's own window holds it.

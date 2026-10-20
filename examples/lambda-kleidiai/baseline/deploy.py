@@ -1,6 +1,6 @@
 """Deploy the pinned lambda-kleidiai baseline: one bucket, one role, two functions with the same zip.
 
-  python deploy.py up        --build build/ [--prefix lkai-p1] [--region us-east-2]
+  python deploy.py up        --build build/ [--prefix lkai-p1] [--region us-east-2] [--memory 10240]
   python deploy.py upload    --build build/                 # weights + zip to the bucket (run where build/ is)
   python deploy.py functions --build build/                 # role, log group, both functions, runtime pin
   python deploy.py show
@@ -9,11 +9,15 @@
 Functions (identical code, config and environment except LKAI_PHASES):
   <prefix>-inst   LKAI_PHASES=1  phase records on stdout (baseline/phases.py)
   <prefix>-rep    LKAI_PHASES=0  Lambda's REPORT line only: the overhead control
-Both: python3.12, arm64, 10,240 MB, 512 MB ephemeral storage (SnapStart's limit), 900 s, SnapStart on published
+Both: python3.12, arm64, --memory MB (default 10,240; Lambda allows 128 to 10,240), 512 MB ephemeral storage
+(SnapStart's limit), 900 s, SnapStart on published
 versions, handler lkai_entry.handler, the runtime version pinned (RuntimeManagementConfig Manual) to the one the
 first invocation reports, env MODEL_BUCKET/MODEL_KEY/DEC_KV=f32/DEC_UBATCH=512/N_SEQ=17 as snapstart/deploy.py.
 The role reads only the GGUF object and writes only its own log groups. The bucket blocks public access, enforces
-TLS and SSE-S3. State (names, ARNs, sha256s) goes to build/deployment.json, which bench.py reads.
+TLS and SSE-S3. State (names, ARNs, sha256s, memory) goes to build/deployment.json, which bench.py reads.
+
+teardown tries every version (and with --all every function, the role and the bucket) even when one delete fails,
+then exits non-zero naming each failure, so one error cannot leave later versions billing.
 """
 
 from __future__ import annotations
@@ -33,7 +37,19 @@ from botocore.exceptions import ClientError
 ARMS = {"inst": "1", "rep": "0"}
 TAGS = {"Project": "strands-decider", "Experiment": "lambda-kleidiai-P1"}
 RUNTIME = "python3.12"
-MEMORY = 10240
+MEMORY = 10240  # the published baseline's
+MEMORY_MIN, MEMORY_MAX = 128, 10240  # Lambda's limits
+
+
+def memory_mb(value: str) -> int:
+    """argparse type: a Lambda memory size in MB."""
+    try:
+        mb = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"memory must be an integer MB, got {value!r}") from None
+    if not MEMORY_MIN <= mb <= MEMORY_MAX:
+        raise argparse.ArgumentTypeError(f"memory must be {MEMORY_MIN}..{MEMORY_MAX} MB, got {mb}")
+    return mb
 
 
 def _state_path(build: str) -> str:
@@ -123,11 +139,17 @@ def upload(sess, build: str, st: dict) -> None:
     m = json.load(open(os.path.join(build, "manifest.json")))
     bucket = ensure_bucket(s3, sess.region_name, st, st["prefix"])
     g, z = m["model"]["gguf_sha256"], m["function_zip"]["sha256"]
+    ms = file_sha256(os.path.join(build, "manifest.json"))
+    # Every key names the sha256 of its bytes, so an object that is present is the same object; the manifest too, since
+    # one zip can ship with different weights (different manifests).
     items = [
         (os.path.join(build, "model", "s2b-h512-Q8_0.gguf"), f"weights/{g}/s2b-h512-Q8_0.gguf"),
         (os.path.join(build, "function.zip"), f"code/{z}/function.zip"),
-        (os.path.join(build, "manifest.json"), f"code/{z}/manifest.json"),
+        (os.path.join(build, "manifest.json"), f"manifests/{ms}/manifest.json"),
     ]
+    for path, want in ((items[0][0], g), (items[1][0], z)):
+        if file_sha256(path) != want:
+            sys.exit(f"{path} does not match manifest.json ({want[:12]}); rerun build.sh")
     for path, key in items:
         try:
             s3.head_object(Bucket=bucket, Key=key)
@@ -220,12 +242,13 @@ def functions(sess, st: dict) -> None:
             Architectures=["arm64"],
             Handler="lkai_entry.handler",
             Role=role,
-            MemorySize=MEMORY,
+            MemorySize=st["memory_mb"],
             EphemeralStorage={"Size": 512},
             Timeout=900,
             SnapStart={"ApplyOn": "PublishedVersions"},
             Environment={"Variables": env},
-            Description=f"lambda-kleidiai P1 baseline ({arm}); zip {st['manifest']['function_zip']['sha256'][:12]}",
+            Description=f"lambda-kleidiai P1 baseline ({arm}); zip {st['manifest']['function_zip']['sha256'][:12]}; "
+            f"{st['memory_mb']} MB",
         )
         for attempt in range(6):
             try:
@@ -249,11 +272,14 @@ def functions(sess, st: dict) -> None:
                 print("retrying:", e)
                 time.sleep(10)
         c = wait_updated(lam, name)
+        if c["MemorySize"] != st["memory_mb"]:
+            sys.exit(f"{name}: MemorySize {c['MemorySize']} after update, wanted {st['memory_mb']}")
         st["functions"][arm] = {
             "name": name,
             "arn": c["FunctionArn"],
             "code_sha256_b64": c["CodeSha256"],
             "code_size": c["CodeSize"],
+            "memory_mb": c["MemorySize"],
         }
         print("function", name, c["CodeSha256"], c["CodeSize"])
     pin_runtime(lam, st, logs)
@@ -300,38 +326,77 @@ def pin_runtime(lam, st: dict, logs=None) -> None:
     print("runtime pinned", arn)
 
 
-def teardown(sess, st: dict, everything: bool) -> None:
-    lam = sess.client("lambda")
-    for f in st.get("functions", {}).values():
-        try:
-            for p in lam.get_paginator("list_versions_by_function").paginate(
-                FunctionName=f["name"]
-            ):
-                for v in p["Versions"]:
-                    if v["Version"] != "$LATEST":
-                        lam.delete_function(FunctionName=f["name"], Qualifier=v["Version"])
-                        print("deleted", f["name"], v["Version"])
-            if everything:
-                lam.delete_function(FunctionName=f["name"])
-                print("deleted", f["name"])
-        except lam.exceptions.ResourceNotFoundException:
-            pass
-    if not everything:
-        return
-    iam = sess.client("iam")
+def _attempt(failures: list[str], what: str, fn, *gone) -> bool:
+    """Run one cleanup step. An exception in `gone` means already deleted; any other is recorded, not raised."""
     try:
-        iam.delete_role_policy(RoleName=f"{st['prefix']}-fn", PolicyName="lkai-baseline")
-        iam.delete_role(RoleName=f"{st['prefix']}-fn")
-    except iam.exceptions.NoSuchEntityException:
-        pass
+        fn()
+        return True
+    except gone:
+        return True
+    except Exception as e:  # every later step must still run
+        failures.append(f"{what}: {type(e).__name__}: {e}")
+        print("FAILED", what, e, file=sys.stderr)
+        return False
+
+
+def teardown(sess, st: dict, everything: bool) -> list[str]:
+    """Delete every published version (with `everything`, also the functions, role and bucket). Every step is
+    attempted even if an earlier one fails; returns the failures (empty when all succeeded)."""
+    lam = sess.client("lambda")
+    gone = lam.exceptions.ResourceNotFoundException
+    failures: list[str] = []
+    for f in st.get("functions", {}).values():
+        name = f["name"]
+        versions: list[str] = []
+
+        def _list(name=name, versions=versions):
+            for p in lam.get_paginator("list_versions_by_function").paginate(FunctionName=name):
+                versions += [v["Version"] for v in p["Versions"] if v["Version"] != "$LATEST"]
+
+        # On a list failure, still delete whatever the pages before it listed; the failure is reported.
+        _attempt(failures, f"list versions {name}", _list, gone)
+        for v in versions:
+            if _attempt(
+                failures,
+                f"delete {name}:{v}",
+                lambda name=name, v=v: lam.delete_function(FunctionName=name, Qualifier=v),
+                gone,
+            ):
+                print("deleted", name, v)
+        if everything and _attempt(
+            failures,
+            f"delete {name}",
+            lambda name=name: lam.delete_function(FunctionName=name),
+            gone,
+        ):
+            print("deleted", name)
+    if not everything:
+        return failures
+    iam = sess.client("iam")
+    role, nope = f"{st['prefix']}-fn", iam.exceptions.NoSuchEntityException
+    _attempt(
+        failures,
+        f"delete role policy {role}",
+        lambda: iam.delete_role_policy(RoleName=role, PolicyName="lkai-baseline"),
+        nope,
+    )
+    _attempt(failures, f"delete role {role}", lambda: iam.delete_role(RoleName=role), nope)
     if st.get("bucket"):
         b = sess.resource("s3").Bucket(st["bucket"])
-        b.objects.all().delete()
-        b.delete()
-        print("deleted bucket", st["bucket"])
+
+        def _empty():
+            # A batch delete reports per-object failures in its response instead of raising.
+            errs = [e for r in b.objects.all().delete() for e in r.get("Errors", [])]
+            if errs:
+                raise RuntimeError(f"{len(errs)} object(s) not deleted, e.g. {errs[0]}")
+
+        if _attempt(failures, f"empty bucket {st['bucket']}", _empty):
+            if _attempt(failures, f"delete bucket {st['bucket']}", b.delete):
+                print("deleted bucket", st["bucket"])
+    return failures
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("cmd", choices=["up", "upload", "functions", "show", "teardown"])
     ap.add_argument(
@@ -340,25 +405,35 @@ def main() -> None:
     ap.add_argument("--prefix", default="lkai-p1")
     ap.add_argument("--region", default="us-east-2")
     ap.add_argument("--profile", default=os.environ.get("AWS_PROFILE"))
+    ap.add_argument(
+        "--memory",
+        type=memory_mb,
+        default=MEMORY,
+        help=f"function memory in MB, {MEMORY_MIN}..{MEMORY_MAX} (default {MEMORY})",
+    )
     ap.add_argument("--all", action="store_true")
-    a = ap.parse_args()
+    a = ap.parse_args(argv)
     sess = boto3.Session(profile_name=a.profile, region_name=a.region)
     st = load_state(a.build)
     st.setdefault("prefix", a.prefix)
     st.setdefault("region", a.region)
     if st["region"] != a.region:
         sys.exit(f"{_state_path(a.build)} is for {st['region']}")
+    failures: list[str] = []
     try:
         if a.cmd in ("up", "upload"):
             upload(sess, a.build, st)
         if a.cmd in ("up", "functions"):
             if "model_key" not in st:
                 sys.exit("run upload first")
+            st["memory_mb"] = a.memory
             functions(sess, st)
         if a.cmd == "teardown":
-            teardown(sess, st, a.all)
+            failures = teardown(sess, st, a.all)
     finally:
         save_state(a.build, st)
+    if failures:
+        sys.exit(f"teardown: {len(failures)} step(s) failed:\n  " + "\n  ".join(failures))
     if a.cmd == "show":
         print(json.dumps({k: v for k, v in st.items() if k != "manifest"}, indent=1))
 

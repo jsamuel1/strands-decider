@@ -11,8 +11,22 @@ AWS_PROFILE=<profile> examples/lambda-kleidiai/baseline/run.sh <run-id>
 `run.sh` needs an arm64 Linux host with Docker (a Graviton instance or an arm64 DevSpace) and about 60 GB of disk.
 It runs `build.sh`, `deploy.py up`, `bench.py` and `summarize.py`, then deletes the published versions so the
 SnapStart cache stops billing. The results are in `results/<run-id>/results.json`. Knobs: `REGION` (default
-`us-east-2`), `ROUNDS` (5), `CONCURRENCY` (10), `WARM` (10 passes), `PREFIX` (`lkai-p1`), `TEARDOWN`
-(`versions`, `all` or `none`).
+`us-east-2`), `MEMORY` (10240 MB; 128 to 10,240), `ROUNDS` (5), `CONCURRENCY` (10), `WARM` (10 passes), `PREFIX`
+(`lkai-p1`), `TEARDOWN` (`versions`, `all` or `none`). `MEMORY` is set on both functions, checked against the
+deployed functions before the benchmark starts, and recorded in `conditions.memory_mb` and `deployment.memory_mb`.
+
+`run.sh` exits non-zero when any invocation failed or returned no answer, when any invocation was not compared
+with the reference, or when cleanup could not delete a published version. The failed run's `results.json` is still
+written, but its answers never become the reference. Cleanup attempts every version even after one delete fails,
+and the benchmark's own failure is the exit status that is kept.
+
+`build.sh` reuses a stage only when its content-addressed key matches (`buildcache.py`). The `llama` stage is
+keyed on `LLAMA_REV` and the bytes of `llama/patch_llama.py`. The `weights` stage is keyed on the checkpoint and
+revision, the Python image digest, the `llama` key, `weights.sh`, `weights/`, `prepare_model.py`, the package
+sources and `pyproject.toml`. The `zip` stage is keyed on the Lambda image digest, the `llama` key and the bytes of
+every file the zip copies or compiles, assets included. The `quant` stage is keyed on the quant type, the `weights`
+key and the `zip` key. A changed key deletes that stage's outputs and every downstream stage's outputs, then rebuilds
+them. `manifest.json` records all four keys in `stage_keys`, and `function_zip.inputs_sha256` is the `zip` key.
 
 ## What the example is (read from `7147a30`)
 
@@ -20,7 +34,7 @@ SnapStart cache stops billing. The results are in `results/<run-id>/results.json
 |---|---|
 | Runtime | `python3.12` managed runtime, zip package. SnapStart supports Python 3.12 and later, so this runtime qualifies. The runtime version is pinned per function (`RuntimeManagementConfig` Manual, set by `deploy.py` from the first invocation's `Runtime Version ARN`) |
 | Architecture | `arm64`. Lambda places it on Graviton2, 3 or 4. The portable llama.cpp build loads the best `libggml-cpu-*` variant per host |
-| Memory | 10,240 MB (6 vCPUs), 512 MB ephemeral storage (SnapStart's maximum), 900 s timeout |
+| Memory | 10,240 MB (6 vCPUs) by default (`MEMORY`), 512 MB ephemeral storage (SnapStart's maximum), 900 s timeout |
 | SnapStart | `ApplyOn: PublishedVersions`. Loading and warm-up run at import (`examples/lambda/app/handler.py`), so the snapshot holds a loaded model |
 | Weight fetch | `examples/lambda/app/loader.py`: one `HeadObject`, then 64 MiB ranged `GetObject`s on 32 threads (a ~2 GiB object is 32 ranges), each resumed from the byte where it broke off. The bytes go into a `memfd`, not `/tmp`, and llama.cpp mmaps `/proc/self/fd/<n>` |
 | Model | `StrandsAgents/strands-decider-2B-qwen3.5-v1-2610` at Hub revision `216d1ccb`. The base is `Qwen/Qwen3.5-2B-Base` at the revision the checkpoint's `provenance.json` names. The LoRA is merged in fp32, every matmul weight is H512 Hadamard-folded, and the result is converted to GGUF f32 and quantized to Q8_0 (about 2 GB). The pointer head, tokenizer and temperatures ship in the zip (`assets/`) |
@@ -92,6 +106,11 @@ The harness checks each invocation's expected class against its REPORT line: `In
 `Restore Duration` means restore, and neither means warm. Mismatches are counted and excluded from the phase
 distributions; they are never relabelled. Cold and restore waves send `requests.json`'s probe request.
 
+A success that is not correctness evidence is an error (`malformed:<why>` in `errors.rows`). That covers an HTTP
+response shape, an absent or empty `answers` object, an answer that is not an object, answer ids that differ from
+the request's question ids, and a missing `latency_ms`. Such a row is excluded from the distributions and counted
+in `correctness.without_answers`.
+
 Lambda chooses the Graviton generation per environment, and a forward on Graviton2 takes about 1.7 times as long as
 on Graviton3. Every class therefore also reports `engine_by_cpu_part`, and the instrumentation overhead compares the
 two arms only within a CPU part both landed on (`instrumentation_overhead.<class>.<metric>.by_cpu_part`, pooled by
@@ -102,7 +121,8 @@ sample count). An unmatched comparison would mostly measure the CPU mix.
 The first run writes `reference/outputs.json`: one answer set per request and CPU part. Kernels differ by Graviton
 generation (README, "Notes and caveats"), and within one generation the outputs repeat exactly. Later runs, and
 every experiment, are compared against it on the same request and CPU part (`results.json` → `correctness`:
-`bit_identical`, `choice_flips`, `max_abs_delta`).
+`bit_identical`, `choice_flips`, `max_abs_delta`). `correctness.complete` is true only when every invocation was
+compared. `without_answers` and `no_reference_for_cpu_part` count the invocations that were not.
 
 ## Results format
 
