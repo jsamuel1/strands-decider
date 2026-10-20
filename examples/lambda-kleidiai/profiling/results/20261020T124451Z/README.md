@@ -117,10 +117,11 @@ Restore Duration, 30 ms on the first restored request and ±4.8% per warm reques
   on the first restored request. The cost is the sampler process reading the interpreter at 100 Hz while 6 threads
   compute.
 - **lkaisamp: about +0.9% per warm request (inside the noise), but +377 ms on the cold first request and +2.1 s on
-  the first request after a restore.** Both are in the function's `Duration` after the response is written
-  (`latency_ms` and the phase records are unchanged; the summary line is logged about 2 s after the handler
-  returns). They are the cost of dumping and symbolising the samples in the function. It has not been attributed
-  further: parsing the ELF tables takes 26 ms offline. Only measured costs are reported here; the mechanism is open.
+  the first request after a restore.** Both deltas appear in Lambda's `Duration`, while the handler's internal
+  `latency_ms` and phase records are unchanged. The sampler dumps and symbolises before `handler` returns, so the
+  measured delta is outside the baseline's internal timing but still before Lambda receives the response. The
+  summary record is logged about 2 s after the baseline handler returns. Attribution within that hook remains open:
+  parsing the ELF tables takes 26 ms offline, which does not explain the Lambda delta.
 
 The offline Graviton3 overheads below are not Lambda numbers, but they rank the same way for the warm forward.
 
