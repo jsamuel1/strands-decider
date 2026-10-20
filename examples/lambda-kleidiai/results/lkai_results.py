@@ -617,8 +617,6 @@ def regenerate(store, out_dir: str | None = None, include_fixtures: bool | None 
     for _ in range(5):
         keys = {run_key(r) for r in runs}
         site = render_site(runs, include_fixtures=include_fixtures)
-        for name, page in site.items():
-            store.put(f"site/{name}", page.encode(), "text/html; charset=utf-8")
         latest = load_runs(store)
         if {run_key(r) for r in latest} == keys:
             settled = True
@@ -628,6 +626,10 @@ def regenerate(store, out_dir: str | None = None, include_fixtures: bool | None 
         raise RegenerateDidNotSettle(
             "run set changed on each of 5 renders; rerun with --regenerate-only once publishers quiesce"
         )
+    # Publish only the render whose input set was observed stable. Failed stabilization must not leave known-stale
+    # shared pages behind.
+    for name, page in site.items():
+        store.put(f"site/{name}", page.encode(), "text/html; charset=utf-8")
     if out_dir:
         for name, page in site.items():
             p = os.path.join(out_dir, name)

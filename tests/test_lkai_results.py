@@ -795,6 +795,7 @@ def test_regenerate_raises_instead_of_writing_an_unsettled_page(tmp_path, monkey
     with pytest.raises(lr.RegenerateDidNotSettle):
         lr.regenerate(store, str(out))
     assert not out.exists()
+    assert store.list("site/") == []
 
 
 def test_racing_creates_of_one_run_id_cannot_both_win(tmp_path, monkeypatch):
