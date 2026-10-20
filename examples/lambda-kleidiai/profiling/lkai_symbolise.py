@@ -69,9 +69,10 @@ class _Elf:
 
 
 class Symbolizer:
-    def __init__(self, maps_text: str, remap: dict[str, str] | None = None):
+    def __init__(self, maps_text: str, remap: dict[str, str] | None = None, elf_cache: dict | None = None):
         """remap: path prefixes to rewrite before opening a mapped file (a dump taken in a container, read on its
-        host: {"/pkg/": "/tmp/x/pkg/"}). Library names in the output keep the original basename."""
+        host: {"/pkg/": "/tmp/x/pkg/"}). Library names in the output keep the original basename. elf_cache: parsed
+        ELF tables by path, shared with an earlier Symbolizer of the same process."""
         self.remap = remap or {}
         self.maps: list[tuple[int, int, int, str]] = []
         for line in maps_text.splitlines():
@@ -82,8 +83,12 @@ class Symbolizer:
             self.maps.append((lo, hi, int(parts[2], 16), parts[5].strip()))
         self.maps.sort()
         self._starts = [m[0] for m in self.maps]
-        self._elf: dict[str, _Elf] = {}
+        self._elf: dict[str, _Elf] = elf_cache if elf_cache is not None else {}
         self._cache: dict[int, str] = {}
+
+    def elf_tables(self) -> dict:
+        """The parsed ELF tables by path, to hand to a later Symbolizer of the same process."""
+        return self._elf
 
     def __call__(self, addr: int) -> str:
         if addr in self._cache:
@@ -169,7 +174,11 @@ def summary(lib, tag_names: dict[int, str] | None = None, top: int = 25) -> dict
     with open("/proc/self/maps") as f:
         maps = f.read()
     if _SYM.get("maps") != maps:
-        _SYM.update(maps=maps, sym=Symbolizer(maps))
+        # The maps change between invocations (the allocator maps and unmaps arenas), and after a SnapStart restore.
+        # Keep the parsed ELF tables, keyed by path: they are what costs (~2 s for the shipped libraries) and a
+        # file's symbols do not change with where it is mapped. Only the address ranges are re-read.
+        old = _SYM.get("sym")
+        _SYM.update(maps=maps, sym=Symbolizer(maps, elf_cache=old.elf_tables() if old else None))
     sym = _SYM["sym"]
     return hdr | {"phases": tables(recs, sym, tag_names, top)}
 

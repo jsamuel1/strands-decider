@@ -1,0 +1,150 @@
+# To display the perf.data header info, please use --header/--header-only options.
+#
+#
+# Total Lost Samples: 0
+#
+# Samples: 242K of event 'cycles'
+# Event count (approx.): 596590451105
+#
+# Overhead  Shared Object                                       Symbol                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
+# ........  ..................................................  .........................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+#
+    47.74%  libggml-cpu-armv8.6_1.so                            [.] kai_kernel_matmul_clamp_f32_qai8dxp4x8_qsi8cxp4x8_16x4_neon_i8mm
+            |
+            ---kai_kernel_matmul_clamp_f32_qai8dxp4x8_qsi8cxp4x8_16x4_neon_i8mm
+               kai_run_matmul_clamp_f32_qai8dxp4x8_qsi8cxp4x8_16x4_neon_i8mm
+               ggml::cpu::kleidiai::tensor_traits::compute_forward_qx
+               ggml_cpu_extra_compute_forward
+               ggml_graph_compute_thread.isra.0
+               |          
+               |--39.83%--0xffff815c6440
+               |          start_thread
+               |          thread_start
+               |          
+                --7.91%--GOMP_parallel
+                          ggml_graph_compute
+                          ggml_backend_cpu_graph_compute
+                          ggml_backend_sched_graph_compute_async
+                          llama_context::graph_compute
+                          llama_context::process_ubatch
+                          llama_context::decode
+                          llama_context::decode
+                          llama_decode
+                          |          
+                          |--7.33%--dec_eval_fork
+                          |          0xffff88048db0
+                          |          0xffff88045f0c
+                          |          _ctypes_callproc
+                          |          PyCFuncPtr_call
+                          |          _PyObject_MakeTpCall
+                          |          _PyEval_EvalFrameDefault
+                          |          PyEval_EvalCode
+                          |          run_eval_code_obj
+                          |          run_mod
+                          |          pyrun_file
+                          |          _PyRun_SimpleFileObject
+                          |          _PyRun_AnyFileObject
+                          |          Py_RunMain
+                          |          Py_BytesMain
+                          |          __libc_start_call_main
+                          |          __libc_start_main@@GLIBC_2.34
+                          |          _start
+                          |          
+                           --0.57%--dec_eval
+                                     0xffff88048db0
+                                     0xffff88045f0c
+                                     _ctypes_callproc
+                                     PyCFuncPtr_call
+                                     _PyObject_MakeTpCall
+                                     _PyEval_EvalFrameDefault
+                                     |          
+                                      --0.53%--PyEval_EvalCode
+                                                run_eval_code_obj
+                                                run_mod
+                                                pyrun_file
+                                                _PyRun_SimpleFileObject
+                                                _PyRun_AnyFileObject
+                                                Py_RunMain
+                                                Py_BytesMain
+                                                __libc_start_call_main
+                                                __libc_start_main@@GLIBC_2.34
+                                                _start
+
+     9.38%  libggml-cpu-armv8.6_1.so                            [.] ggml_vec_dot_f32
+            |
+            ---ggml_vec_dot_f32
+               |          
+                --9.35%--ggml_compute_forward_mul_mat
+                          ggml_graph_compute_thread.isra.0
+                          |          
+                          |--7.79%--0xffff815c6440
+                          |          start_thread
+                          |          thread_start
+                          |          
+                           --1.56%--GOMP_parallel
+                                     ggml_graph_compute
+                                     ggml_backend_cpu_graph_compute
+                                     ggml_backend_sched_graph_compute_async
+                                     llama_context::graph_compute
+                                     llama_context::process_ubatch
+                                     llama_context::decode
+                                     llama_context::decode
+                                     llama_decode
+                                     |          
+                                      --1.49%--dec_eval_fork
+                                                0xffff88048db0
+                                                0xffff88045f0c
+                                                _ctypes_callproc
+                                                PyCFuncPtr_call
+                                                _PyObject_MakeTpCall
+                                                _PyEval_EvalFrameDefault
+                                                PyEval_EvalCode
+                                                run_eval_code_obj
+                                                run_mod
+                                                pyrun_file
+                                                _PyRun_SimpleFileObject
+                                                _PyRun_AnyFileObject
+                                                Py_RunMain
+                                                Py_BytesMain
+                                                __libc_start_call_main
+                                                __libc_start_main@@GLIBC_2.34
+                                                _start
+
+     8.27%  libggml-cpu-armv8.6_1.so                            [.] ggml_compute_forward_gated_delta_net_one_chunk
+            |
+            ---ggml_compute_forward_gated_delta_net_one_chunk
+               ggml_compute_forward_gated_delta_net
+               ggml_graph_compute_thread.isra.0
+               |          
+               |--6.94%--0xffff815c6440
+               |          start_thread
+               |          thread_start
+               |          
+                --1.33%--GOMP_parallel
+                          ggml_graph_compute
+                          ggml_backend_cpu_graph_compute
+                          ggml_backend_sched_graph_compute_async
+                          llama_context::graph_compute
+                          llama_context::process_ubatch
+                          llama_context::decode
+                          llama_context::decode
+                          llama_decode
+                          |          
+                           --1.24%--dec_eval_fork
+                                     0xffff88048db0
+                                     0xffff88045f0c
+                                     _ctypes_callproc
+                                     PyCFuncPtr_call
+                                     _PyObject_MakeTpCall
+                                     _PyEval_EvalFrameDefault
+                                     PyEval_EvalCode
+                                     run_eval_code_obj
+                                     run_mod
+                                     pyrun_file
+                                     _PyRun_SimpleFileObject
+                                     _PyRun_AnyFileObject
+                                     Py_RunMain
+                                     Py_BytesMain
+                                     __libc_start_call_main
+                                     __libc_start_main@@GLIBC_2.34
+                                     _start

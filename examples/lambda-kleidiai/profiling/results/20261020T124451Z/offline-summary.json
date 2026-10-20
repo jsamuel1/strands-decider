@@ -1,0 +1,1364 @@
+{
+ "schema": "lkai-offline-summary/1",
+ "evidence": "OFFLINE, NOT LAMBDA",
+ "graviton": {
+  "evidence": "OFFLINE, NOT LAMBDA",
+  "host": [
+   "Linux c8c1f03a2367 6.1.188-233.386.amzn2023.aarch64 #1 SMP Fri Sep 25 01:46:44 UTC 2026 aarch64 aarch64 aarch64 GNU/Linux",
+   "CPU part\t: 0xd40",
+   "16",
+   "max 100000",
+   "perf version 6.1.186-228.374.amzn2023.aarch64",
+   "Python 3.12.15",
+   "2"
+  ],
+  "what": "P1's deployed function.zip and GGUF in P1's pinned Lambda python3.12 image, 6 threads pinned to 6 CPUs (taskset), GGUF read from local disk into a memfd (weight_read stands in for the S3 download and is not comparable to it)",
+  "runs": {
+   "plain": {
+    "phases_s": {
+     "imports": 0.472179,
+     "weight_read": 1.173454,
+     "model_load": 8.594476,
+     "ggml_backend_load": 0.005673,
+     "model_load_mmap": 7.898515,
+     "context_init": 0.170489,
+     "assets_load": 0.519799,
+     "warmup_inference": 0.230428,
+     "steady_state_total": 38.362181
+    },
+    "steady_state_p50_s": {
+     "agent-action-guard-2q": 0.854367,
+     "cracked-screen-2q": 0.436829,
+     "incident-review-4q": 1.739464,
+     "payouts-3q": 0.562199,
+     "ticket-route-1q": 0.24342
+    },
+    "passes": 10,
+    "ggml_cpu": [
+     "libggml-cpu-armv8.2_3.so",
+     "libggml-cpu-armv8.6_1.so"
+    ],
+    "threads": 6,
+    "ngl": 0,
+    "host": {
+     "label": "0xd40 ip-10-0-5-192 (offline, Lambda image, 6 CPUs)",
+     "machine": "aarch64",
+     "cpu": "0xd40",
+     "nproc": 16,
+     "kernel": "6.1.188-233.386.amzn2023.aarch64"
+    }
+   },
+   "plain-nomemfd": {
+    "phases_s": {
+     "imports": 0.467225,
+     "model_load": 8.524572,
+     "ggml_backend_load": 0.005655,
+     "model_load_mmap": 7.814597,
+     "context_init": 0.169793,
+     "assets_load": 0.534527,
+     "warmup_inference": 0.229822,
+     "steady_state_total": 11.538225
+    },
+    "steady_state_p50_s": {
+     "agent-action-guard-2q": 0.857569,
+     "cracked-screen-2q": 0.438505,
+     "incident-review-4q": 1.746959,
+     "payouts-3q": 0.563686,
+     "ticket-route-1q": 0.243343
+    },
+    "passes": 3,
+    "ggml_cpu": [
+     "libggml-cpu-armv8.2_3.so",
+     "libggml-cpu-armv8.6_1.so"
+    ],
+    "threads": 6,
+    "ngl": 0,
+    "host": {
+     "label": "0xd40 ip-10-0-5-192 (offline, Lambda image, 6 CPUs) no-memfd",
+     "machine": "aarch64",
+     "cpu": "0xd40",
+     "nproc": 16,
+     "kernel": "6.1.188-233.386.amzn2023.aarch64"
+    }
+   },
+   "perf-stat": {
+    "phases_s": {
+     "imports": 0.459445,
+     "weight_read": 1.173803,
+     "model_load": 8.579669,
+     "ggml_backend_load": 0.005431,
+     "model_load_mmap": 7.908455,
+     "context_init": 0.174775,
+     "assets_load": 0.491008,
+     "warmup_inference": 0.230204,
+     "steady_state_total": 38.496215
+    },
+    "steady_state_p50_s": {
+     "agent-action-guard-2q": 0.857242,
+     "cracked-screen-2q": 0.438426,
+     "incident-review-4q": 1.744479,
+     "payouts-3q": 0.564296,
+     "ticket-route-1q": 0.2442
+    },
+    "passes": 10,
+    "ggml_cpu": [
+     "libggml-cpu-armv8.2_3.so",
+     "libggml-cpu-armv8.6_1.so"
+    ],
+    "threads": 6,
+    "ngl": 0,
+    "host": {
+     "label": "0xd40 ip-10-0-5-192 (offline, Lambda image, 6 CPUs) perf-stat",
+     "machine": "aarch64",
+     "cpu": "0xd40",
+     "nproc": 16,
+     "kernel": "6.1.188-233.386.amzn2023.aarch64"
+    }
+   },
+   "perf-record": {
+    "phases_s": {
+     "imports": 0.502055,
+     "weight_read": 1.243518,
+     "model_load": 8.788473,
+     "ggml_backend_load": 0.005885,
+     "model_load_mmap": 8.0937,
+     "context_init": 0.172465,
+     "assets_load": 0.516423,
+     "warmup_inference": 0.243886,
+     "steady_state_total": 40.309389
+    },
+    "steady_state_p50_s": {
+     "agent-action-guard-2q": 0.897532,
+     "cracked-screen-2q": 0.461836,
+     "incident-review-4q": 1.817916,
+     "payouts-3q": 0.594542,
+     "ticket-route-1q": 0.256387
+    },
+    "passes": 10,
+    "ggml_cpu": [
+     "libggml-cpu-armv8.2_3.so",
+     "libggml-cpu-armv8.6_1.so"
+    ],
+    "threads": 6,
+    "ngl": 0,
+    "host": {
+     "label": "0xd40 ip-10-0-5-192 (offline, Lambda image, 6 CPUs) perf-record",
+     "machine": "aarch64",
+     "cpu": "0xd40",
+     "nproc": 16,
+     "kernel": "6.1.188-233.386.amzn2023.aarch64"
+    }
+   },
+   "sampler": {
+    "phases_s": {
+     "imports": 0.477592,
+     "weight_read": 1.201912,
+     "model_load": 8.718894,
+     "ggml_backend_load": 0.005663,
+     "model_load_mmap": 8.01722,
+     "context_init": 0.169784,
+     "assets_load": 0.526227,
+     "warmup_inference": 0.231358,
+     "steady_state_total": 38.647461
+    },
+    "steady_state_p50_s": {
+     "agent-action-guard-2q": 0.860184,
+     "cracked-screen-2q": 0.440932,
+     "incident-review-4q": 1.753604,
+     "payouts-3q": 0.568018,
+     "ticket-route-1q": 0.244678
+    },
+    "passes": 10,
+    "ggml_cpu": [
+     "libggml-cpu-armv8.2_3.so",
+     "libggml-cpu-armv8.6_1.so"
+    ],
+    "threads": 6,
+    "ngl": 0,
+    "host": {
+     "label": "0xd40 ip-10-0-5-192 (offline, Lambda image, 6 CPUs) sampler",
+     "machine": "aarch64",
+     "cpu": "0xd40",
+     "nproc": 16,
+     "kernel": "6.1.188-233.386.amzn2023.aarch64"
+    }
+   },
+   "cprofile": {
+    "phases_s": {
+     "imports": 0.558527,
+     "weight_read": 1.142554,
+     "model_load": 8.527379,
+     "ggml_backend_load": 0.005494,
+     "model_load_mmap": 7.860105,
+     "context_init": 0.159598,
+     "assets_load": 0.502182,
+     "warmup_inference": 0.229309,
+     "steady_state_total": 38.506135
+    },
+    "steady_state_p50_s": {
+     "agent-action-guard-2q": 0.857169,
+     "cracked-screen-2q": 0.438003,
+     "incident-review-4q": 1.744342,
+     "payouts-3q": 0.565289,
+     "ticket-route-1q": 0.244076
+    },
+    "passes": 10,
+    "ggml_cpu": [
+     "libggml-cpu-armv8.2_3.so",
+     "libggml-cpu-armv8.6_1.so"
+    ],
+    "threads": 6,
+    "ngl": 0,
+    "host": {
+     "label": "0xd40 ip-10-0-5-192 (offline, Lambda image, 6 CPUs) cprofile",
+     "machine": "aarch64",
+     "cpu": "0xd40",
+     "nproc": 16,
+     "kernel": "6.1.188-233.386.amzn2023.aarch64"
+    }
+   },
+   "pyspy": {
+    "phases_s": {
+     "imports": 0.863342,
+     "weight_read": 1.33246,
+     "model_load": 10.09092,
+     "ggml_backend_load": 0.01974,
+     "model_load_mmap": 9.118359,
+     "context_init": 0.182894,
+     "assets_load": 0.769926,
+     "warmup_inference": 0.284758,
+     "steady_state_total": 14.681968
+    },
+    "steady_state_p50_s": {
+     "agent-action-guard-2q": 1.085441,
+     "cracked-screen-2q": 0.579355,
+     "incident-review-4q": 2.187588,
+     "payouts-3q": 0.728899,
+     "ticket-route-1q": 0.314634
+    },
+    "passes": 3,
+    "ggml_cpu": [
+     "libggml-cpu-armv8.2_3.so",
+     "libggml-cpu-armv8.6_1.so"
+    ],
+    "threads": 6,
+    "ngl": 0,
+    "host": {
+     "label": "0xd40 ip-10-0-5-192 (offline, Lambda image, 6 CPUs) py-spy",
+     "machine": "aarch64",
+     "cpu": "0xd40",
+     "nproc": 16,
+     "kernel": "6.1.188-233.386.amzn2023.aarch64"
+    }
+   }
+  },
+  "overhead_vs_plain": {
+   "plain-nomemfd": {
+    "steady_state_pct_by_request": {
+     "agent-action-guard-2q": 0.37,
+     "cracked-screen-2q": 0.38,
+     "incident-review-4q": 0.43,
+     "payouts-3q": 0.26,
+     "ticket-route-1q": -0.03
+    },
+    "steady_state_pct_median": 0.37,
+    "model_load_mmap_pct": -1.06
+   },
+   "perf-stat": {
+    "steady_state_pct_by_request": {
+     "agent-action-guard-2q": 0.34,
+     "cracked-screen-2q": 0.37,
+     "incident-review-4q": 0.29,
+     "payouts-3q": 0.37,
+     "ticket-route-1q": 0.32
+    },
+    "steady_state_pct_median": 0.34,
+    "model_load_mmap_pct": 0.13
+   },
+   "perf-record": {
+    "steady_state_pct_by_request": {
+     "agent-action-guard-2q": 5.05,
+     "cracked-screen-2q": 5.72,
+     "incident-review-4q": 4.51,
+     "payouts-3q": 5.75,
+     "ticket-route-1q": 5.33
+    },
+    "steady_state_pct_median": 5.33,
+    "model_load_mmap_pct": 2.47
+   },
+   "sampler": {
+    "steady_state_pct_by_request": {
+     "agent-action-guard-2q": 0.68,
+     "cracked-screen-2q": 0.94,
+     "incident-review-4q": 0.81,
+     "payouts-3q": 1.04,
+     "ticket-route-1q": 0.52
+    },
+    "steady_state_pct_median": 0.81,
+    "model_load_mmap_pct": 1.5
+   },
+   "cprofile": {
+    "steady_state_pct_by_request": {
+     "agent-action-guard-2q": 0.33,
+     "cracked-screen-2q": 0.27,
+     "incident-review-4q": 0.28,
+     "payouts-3q": 0.55,
+     "ticket-route-1q": 0.27
+    },
+    "steady_state_pct_median": 0.28,
+    "model_load_mmap_pct": -0.49
+   },
+   "pyspy": {
+    "steady_state_pct_by_request": {
+     "agent-action-guard-2q": 27.05,
+     "cracked-screen-2q": 32.63,
+     "incident-review-4q": 25.76,
+     "payouts-3q": 29.65,
+     "ticket-route-1q": 29.26
+    },
+    "steady_state_pct_median": 29.26,
+    "model_load_mmap_pct": 15.44
+   }
+  },
+  "perf_stat": {
+   "task-clock": 227598.81,
+   "cycles": 588610886011.0,
+   "instructions": null,
+   "cache-misses": null,
+   "page-faults": 1390737.0,
+   "major-faults": 14.0,
+   "minor-faults": 1390723.0,
+   "context-switches": 15245.0
+  },
+  "native_hot_spots_perf_self": [
+   {
+    "pct": 47.74,
+    "dso": "libggml-cpu-armv8.6_1.so",
+    "symbol": "kai_kernel_matmul_clamp_f32_qai8dxp4x8_qsi8cxp4x8_16x4_neon_i8mm"
+   },
+   {
+    "pct": 9.38,
+    "dso": "libggml-cpu-armv8.6_1.so",
+    "symbol": "ggml_vec_dot_f32"
+   },
+   {
+    "pct": 8.27,
+    "dso": "libggml-cpu-armv8.6_1.so",
+    "symbol": "ggml_compute_forward_gated_delta_net_one_chunk"
+   },
+   {
+    "pct": 7.98,
+    "dso": "libggml-cpu-armv8.6_1.so",
+    "symbol": "label_17"
+   },
+   {
+    "pct": 3.96,
+    "dso": "libggml-cpu-armv8.6_1.so",
+    "symbol": "ggml_compute_forward_fwht"
+   },
+   {
+    "pct": 2.45,
+    "dso": "libggml-cpu-armv8.6_1.so",
+    "symbol": "ggml_compute_forward_ssm_conv"
+   },
+   {
+    "pct": 2.25,
+    "dso": "libgomp.so.1",
+    "symbol": "0x00000000000273b8"
+   },
+   {
+    "pct": 1.83,
+    "dso": "libgomp.so.1",
+    "symbol": "0x00000000000273c4"
+   },
+   {
+    "pct": 1.69,
+    "dso": "libggml-cpu-armv8.6_1.so",
+    "symbol": "ggml_backend_cpu_kleidiai_buffer_set_tensor"
+   },
+   {
+    "pct": 1.34,
+    "dso": "libggml-cpu-armv8.6_1.so",
+    "symbol": "kai_run_lhs_quant_pack_qai8dxp_f32"
+   },
+   {
+    "pct": 1.16,
+    "dso": "libggml-cpu-armv8.6_1.so",
+    "symbol": "ggml_compute_forward_concat"
+   },
+   {
+    "pct": 1.02,
+    "dso": "libggml-cpu-armv8.6_1.so",
+    "symbol": "ggml_vec_swiglu_f32"
+   },
+   {
+    "pct": 0.94,
+    "dso": "libggml-cpu-armv8.6_1.so",
+    "symbol": "ggml_compute_forward_rms_norm_mul_fused"
+   },
+   {
+    "pct": 0.91,
+    "dso": "libggml-cpu-armv8.6_1.so",
+    "symbol": "ggml_vec_silu_f32"
+   },
+   {
+    "pct": 0.74,
+    "dso": "libggml-cpu-armv8.6_1.so",
+    "symbol": "kai_run_rhs_pack_nxk_qsi8cxp_qsi8cx_neon"
+   },
+   {
+    "pct": 0.72,
+    "dso": "libgomp.so.1",
+    "symbol": "0x00000000000273c8"
+   },
+   {
+    "pct": 0.67,
+    "dso": "libgomp.so.1",
+    "symbol": "0x00000000000273bc"
+   },
+   {
+    "pct": 0.65,
+    "dso": "libggml-cpu-armv8.6_1.so",
+    "symbol": "ggml_compute_forward_rms_norm"
+   },
+   {
+    "pct": 0.58,
+    "dso": "libc.so.6",
+    "symbol": "__GI___memcpy_sve"
+   },
+   {
+    "pct": 0.56,
+    "dso": "libggml-cpu-armv8.6_1.so",
+    "symbol": "ggml_compute_forward_mul_mat"
+   },
+   {
+    "pct": 0.43,
+    "dso": "libggml-cpu-armv8.6_1.so",
+    "symbol": "ggml_compute_forward_mul"
+   },
+   {
+    "pct": 0.39,
+    "dso": "libggml-cpu-armv8.6_1.so",
+    "symbol": "ggml_cpu_get_sve_cnt"
+   }
+  ],
+  "native_by_library_perf": [
+   {
+    "pct": 91.24,
+    "dso": "libggml-cpu-armv8.6_1.so"
+   },
+   {
+    "pct": 5.57,
+    "dso": "libgomp.so.1"
+   },
+   {
+    "pct": 1.06,
+    "dso": "[unknown]"
+   },
+   {
+    "pct": 1.04,
+    "dso": "libc.so.6"
+   },
+   {
+    "pct": 0.42,
+    "dso": "libm.so.6"
+   },
+   {
+    "pct": 0.19,
+    "dso": "libpython3.12.so.1.0"
+   },
+   {
+    "pct": 0.14,
+    "dso": "tokenizers.abi3.so"
+   },
+   {
+    "pct": 0.12,
+    "dso": "libllama.so.0.7.0"
+   },
+   {
+    "pct": 0.08,
+    "dso": "libscipy_openblas64_-f552eb69.so"
+   },
+   {
+    "pct": 0.06,
+    "dso": "libggml-base.so.0.27.0"
+   }
+  ],
+  "native_hot_spots_by_phase_lkaisamp": {
+   "imports": {
+    "samples": 46,
+    "top_self": [
+     {
+      "symbol": "libpython3.12.so.1.0:+0x180000",
+      "samples": 3,
+      "pct": 6.52
+     },
+     {
+      "symbol": "libc.so.6:+0xe9000",
+      "samples": 2,
+      "pct": 4.35
+     },
+     {
+      "symbol": "libpython3.12.so.1.0:+0x15f000",
+      "samples": 2,
+      "pct": 4.35
+     },
+     {
+      "symbol": "libpython3.12.so.1.0:+0x164000",
+      "samples": 2,
+      "pct": 4.35
+     },
+     {
+      "symbol": "libpython3.12.so.1.0:+0x17c000",
+      "samples": 2,
+      "pct": 4.35
+     },
+     {
+      "symbol": "libpython3.12.so.1.0:+0x194000",
+      "samples": 2,
+      "pct": 4.35
+     },
+     {
+      "symbol": "libpython3.12.so.1.0:+0x161000",
+      "samples": 2,
+      "pct": 4.35
+     },
+     {
+      "symbol": "libpython3.12.so.1.0:+0x1c3000",
+      "samples": 1,
+      "pct": 2.17
+     },
+     {
+      "symbol": "libstdc++.so.6:_ZNSt6locale5facet18_S_create_c_localeERP15__locale_structPKcS2_",
+      "samples": 1,
+      "pct": 2.17
+     },
+     {
+      "symbol": "libpython3.12.so.1.0:+0x15b000",
+      "samples": 1,
+      "pct": 2.17
+     },
+     {
+      "symbol": "libpython3.12.so.1.0:+0x17e000",
+      "samples": 1,
+      "pct": 2.17
+     },
+     {
+      "symbol": "libpython3.12.so.1.0:+0x166000",
+      "samples": 1,
+      "pct": 2.17
+     }
+    ],
+    "by_library": [
+     {
+      "library": "libpython3.12.so.1.0",
+      "samples": 34,
+      "pct": 73.91
+     },
+     {
+      "library": "libc.so.6",
+      "samples": 9,
+      "pct": 19.57
+     },
+     {
+      "library": "ld-linux-aarch64.so.1",
+      "samples": 2,
+      "pct": 4.35
+     },
+     {
+      "library": "libstdc++.so.6",
+      "samples": 1,
+      "pct": 2.17
+     }
+    ]
+   },
+   "weight_read": {
+    "samples": 74,
+    "top_self": [
+     {
+      "symbol": "libc.so.6:faccessat",
+      "samples": 63,
+      "pct": 85.14
+     },
+     {
+      "symbol": "libc.so.6:fcvt_r",
+      "samples": 11,
+      "pct": 14.86
+     }
+    ],
+    "by_library": [
+     {
+      "library": "libc.so.6",
+      "samples": 74,
+      "pct": 100.0
+     }
+    ]
+   },
+   "model_load": {
+    "samples": 854,
+    "top_self": [
+     {
+      "symbol": "libggml-cpu-armv8.6_1.so:_ZL43ggml_backend_cpu_kleidiai_buffer_set_tensorP19ggml_backend_bufferP11ggml_tensorPKvmm",
+      "samples": 400,
+      "pct": 46.84
+     },
+     {
+      "symbol": "libggml-cpu-armv8.6_1.so:kai_run_rhs_pack_nxk_qsi8cxp_qsi8cx_neon",
+      "samples": 195,
+      "pct": 22.83
+     },
+     {
+      "symbol": "libggml-cpu-armv8.6_1.so:+0x32000",
+      "samples": 77,
+      "pct": 9.02
+     },
+     {
+      "symbol": "libc.so.6:__memset_kunpeng",
+      "samples": 30,
+      "pct": 3.51
+     },
+     {
+      "symbol": "libm.so.6:lroundf",
+      "samples": 23,
+      "pct": 2.69
+     },
+     {
+      "symbol": "libc.so.6:__memset_emag",
+      "samples": 22,
+      "pct": 2.58
+     },
+     {
+      "symbol": "libc.so.6:__libc_memset_ifunc",
+      "samples": 8,
+      "pct": 0.94
+     },
+     {
+      "symbol": "tokenizers.abi3.so:+0x246000",
+      "samples": 6,
+      "pct": 0.7
+     },
+     {
+      "symbol": "tokenizers.abi3.so:+0x2e2000",
+      "samples": 6,
+      "pct": 0.7
+     },
+     {
+      "symbol": "libc.so.6:__GI_memset",
+      "samples": 5,
+      "pct": 0.59
+     },
+     {
+      "symbol": "libllama.so.0.7.0:_ZN11llama_vocab4impl4loadER18llama_model_loaderRK6LLM_KV",
+      "samples": 5,
+      "pct": 0.59
+     },
+     {
+      "symbol": "libllama.so.0.7.0:_ZNSt10_HashtableINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEESt4pairIKS5_hESaIS8_ENSt8__detail10_Select1stESt8equal_toIS5_ESt4hashIS5_ENSA_18_Mod_range_hashingENSA_20_Defaul",
+      "samples": 5,
+      "pct": 0.59
+     }
+    ],
+    "by_library": [
+     {
+      "library": "libggml-cpu-armv8.6_1.so",
+      "samples": 672,
+      "pct": 78.69
+     },
+     {
+      "library": "libc.so.6",
+      "samples": 92,
+      "pct": 10.77
+     },
+     {
+      "library": "tokenizers.abi3.so",
+      "samples": 33,
+      "pct": 3.86
+     },
+     {
+      "library": "libm.so.6",
+      "samples": 23,
+      "pct": 2.69
+     },
+     {
+      "library": "libllama.so.0.7.0",
+      "samples": 21,
+      "pct": 2.46
+     },
+     {
+      "library": "libstdc++.so.6",
+      "samples": 10,
+      "pct": 1.17
+     }
+    ]
+   },
+   "warmup_inference": {
+    "samples": 40,
+    "top_self": [
+     {
+      "symbol": "libggml-cpu-armv8.6_1.so:kai_kernel_matmul_clamp_f32_qai8dxp4x8_qsi8cxp4x8_16x4_neon_i8mm",
+      "samples": 19,
+      "pct": 47.5
+     },
+     {
+      "symbol": "libggml-cpu-armv8.6_1.so:_ZL46ggml_compute_forward_gated_delta_net_one_chunkPK19ggml_compute_paramsP11ggml_tensorll",
+      "samples": 6,
+      "pct": 15.0
+     },
+     {
+      "symbol": "libggml-cpu-armv8.6_1.so:ggml_vec_dot_f32",
+      "samples": 5,
+      "pct": 12.5
+     },
+     {
+      "symbol": "libggml-cpu-armv8.6_1.so:kai_run_lhs_quant_pack_qai8dxp_f32",
+      "samples": 2,
+      "pct": 5.0
+     },
+     {
+      "symbol": "libgomp.so.1:+0x27000",
+      "samples": 2,
+      "pct": 5.0
+     },
+     {
+      "symbol": "libggml-cpu-armv8.6_1.so:ggml_compute_forward_ssm_conv",
+      "samples": 2,
+      "pct": 5.0
+     },
+     {
+      "symbol": "libc.so.6:__memset_kunpeng",
+      "samples": 1,
+      "pct": 2.5
+     },
+     {
+      "symbol": "libc.so.6:__memset_falkor",
+      "samples": 1,
+      "pct": 2.5
+     },
+     {
+      "symbol": "libggml-cpu-armv8.6_1.so:ggml_compute_forward_concat",
+      "samples": 1,
+      "pct": 2.5
+     },
+     {
+      "symbol": "libscipy_openblas64_-f552eb69.so:+0x69e000",
+      "samples": 1,
+      "pct": 2.5
+     }
+    ],
+    "by_library": [
+     {
+      "library": "libggml-cpu-armv8.6_1.so",
+      "samples": 35,
+      "pct": 87.5
+     },
+     {
+      "library": "libc.so.6",
+      "samples": 2,
+      "pct": 5.0
+     },
+     {
+      "library": "libgomp.so.1",
+      "samples": 2,
+      "pct": 5.0
+     },
+     {
+      "library": "libscipy_openblas64_-f552eb69.so",
+      "samples": 1,
+      "pct": 2.5
+     }
+    ]
+   },
+   "steady_state_inference": {
+    "samples": 6008,
+    "top_self": [
+     {
+      "symbol": "libggml-cpu-armv8.6_1.so:kai_kernel_matmul_clamp_f32_qai8dxp4x8_qsi8cxp4x8_16x4_neon_i8mm",
+      "samples": 3365,
+      "pct": 56.01
+     },
+     {
+      "symbol": "libggml-cpu-armv8.6_1.so:ggml_vec_dot_f32",
+      "samples": 618,
+      "pct": 10.29
+     },
+     {
+      "symbol": "libggml-cpu-armv8.6_1.so:_ZL46ggml_compute_forward_gated_delta_net_one_chunkPK19ggml_compute_paramsP11ggml_tensorll",
+      "samples": 551,
+      "pct": 9.17
+     },
+     {
+      "symbol": "libgomp.so.1:+0x27000",
+      "samples": 246,
+      "pct": 4.09
+     },
+     {
+      "symbol": "libggml-cpu-armv8.6_1.so:ggml_compute_forward_fwht",
+      "samples": 223,
+      "pct": 3.71
+     },
+     {
+      "symbol": "libggml-cpu-armv8.6_1.so:ggml_compute_forward_ssm_conv",
+      "samples": 199,
+      "pct": 3.31
+     },
+     {
+      "symbol": "libggml-cpu-armv8.6_1.so:ggml_compute_forward_concat",
+      "samples": 159,
+      "pct": 2.65
+     },
+     {
+      "symbol": "libggml-cpu-armv8.6_1.so:ggml_vec_silu_f32",
+      "samples": 72,
+      "pct": 1.2
+     },
+     {
+      "symbol": "libggml-cpu-armv8.6_1.so:ggml_vec_swiglu_f32",
+      "samples": 68,
+      "pct": 1.13
+     },
+     {
+      "symbol": "libggml-cpu-armv8.6_1.so:ggml_compute_forward_rms_norm_mul_fused",
+      "samples": 66,
+      "pct": 1.1
+     },
+     {
+      "symbol": "libggml-cpu-armv8.6_1.so:kai_run_lhs_quant_pack_qai8dxp_f32",
+      "samples": 63,
+      "pct": 1.05
+     },
+     {
+      "symbol": "libc.so.6:__memset_kunpeng",
+      "samples": 59,
+      "pct": 0.98
+     }
+    ],
+    "by_library": [
+     {
+      "library": "libggml-cpu-armv8.6_1.so",
+      "samples": 5579,
+      "pct": 92.86
+     },
+     {
+      "library": "libgomp.so.1",
+      "samples": 246,
+      "pct": 4.09
+     },
+     {
+      "library": "libc.so.6",
+      "samples": 135,
+      "pct": 2.25
+     },
+     {
+      "library": "libscipy_openblas64_-f552eb69.so",
+      "samples": 18,
+      "pct": 0.3
+     },
+     {
+      "library": "libm.so.6",
+      "samples": 12,
+      "pct": 0.2
+     },
+     {
+      "library": "libggml-base.so.0.27.0",
+      "samples": 9,
+      "pct": 0.15
+     }
+    ]
+   }
+  }
+ },
+ "x86_cpu": {
+  "evidence": "OFFLINE, NOT LAMBDA",
+  "host": [
+   "NVIDIA L4, 580.178.04, 23034 MiB, 8.9",
+   "Linux 25b79d47af63 6.8.0-1066-aws #69~22.04.1-Ubuntu SMP Mon Sep 21 16:20:15 UTC 2026 x86_64 x86_64 x86_64 GNU/Linux",
+   "model name\t: AMD EPYC 7R13 Processor",
+   "16"
+  ],
+  "runs": {
+   "x86-cpu": {
+    "phases_s": {
+     "imports": 0.149392,
+     "weight_read": 2.023627,
+     "model_load": 1.472075,
+     "ggml_backend_load": 0.081424,
+     "model_load_mmap": 0.525995,
+     "context_init": 0.3446,
+     "assets_load": 0.520055,
+     "warmup_inference": 0.616782,
+     "steady_state_total": 100.712332
+    },
+    "steady_state_p50_s": {
+     "agent-action-guard-2q": 2.272109,
+     "cracked-screen-2q": 1.133643,
+     "incident-review-4q": 4.487832,
+     "payouts-3q": 1.502315,
+     "ticket-route-1q": 0.670251
+    },
+    "passes": 10,
+    "ggml_cpu": [
+     "libggml-cpu-haswell.so"
+    ],
+    "threads": 6,
+    "ngl": 0,
+    "host": {
+     "label": "g6.4xlarge AMD EPYC 7R13 CPU",
+     "machine": "x86_64",
+     "cpu": "AMD EPYC 7R13 Processor",
+     "nproc": 16,
+     "kernel": "6.8.0-1066-aws"
+    }
+   },
+   "x86-cpu-sampled": {
+    "phases_s": {
+     "imports": 0.212937,
+     "weight_read": 2.027968,
+     "model_load": 1.49053,
+     "ggml_backend_load": 0.082128,
+     "model_load_mmap": 0.532343,
+     "context_init": 0.345107,
+     "assets_load": 0.530952,
+     "warmup_inference": 0.619946,
+     "steady_state_total": 100.626805
+    },
+    "steady_state_p50_s": {
+     "agent-action-guard-2q": 2.269077,
+     "cracked-screen-2q": 1.134291,
+     "incident-review-4q": 4.473148,
+     "payouts-3q": 1.502531,
+     "ticket-route-1q": 0.670519
+    },
+    "passes": 10,
+    "ggml_cpu": [
+     "libggml-cpu-haswell.so"
+    ],
+    "threads": 6,
+    "ngl": 0,
+    "host": {
+     "label": "g6.4xlarge AMD EPYC 7R13 CPU",
+     "machine": "x86_64",
+     "cpu": "AMD EPYC 7R13 Processor",
+     "nproc": 16,
+     "kernel": "6.8.0-1066-aws"
+    }
+   },
+   "x86-cpu-pyspy": {
+    "phases_s": {
+     "imports": 0.242113,
+     "weight_read": 2.078132,
+     "model_load": 1.846511,
+     "ggml_backend_load": 0.147253,
+     "model_load_mmap": 0.6524,
+     "context_init": 0.364621,
+     "assets_load": 0.682238,
+     "warmup_inference": 0.733553,
+     "steady_state_total": 34.454421
+    },
+    "steady_state_p50_s": {
+     "agent-action-guard-2q": 2.609875,
+     "cracked-screen-2q": 1.302769,
+     "incident-review-4q": 5.065845,
+     "payouts-3q": 1.71613,
+     "ticket-route-1q": 0.801233
+    },
+    "passes": 3,
+    "ggml_cpu": [
+     "libggml-cpu-haswell.so"
+    ],
+    "threads": 6,
+    "ngl": 0,
+    "host": {
+     "label": "g6.4xlarge CPU (py-spy)",
+     "machine": "x86_64",
+     "cpu": "AMD EPYC 7R13 Processor",
+     "nproc": 16,
+     "kernel": "6.8.0-1066-aws"
+    }
+   }
+  }
+ },
+ "gpu": {
+  "evidence": "OFFLINE, NOT LAMBDA (and not a GPU deployment of this example: the Lambda zip is CPU-only)",
+  "host": "GPU 0: NVIDIA L4 (UUID: GPU-2fb34b82-3cdf-7103-bea9-eb2801d138d1)",
+  "what": "llama.cpp f74e2fa6a + the same patches built with GGML_CUDA (sm_89), decshim with DEC_NGL=99 (every layer on the GPU), same GGUF, same request set",
+  "runs": {
+   "gpu": {
+    "phases_s": {
+     "imports": 0.144443,
+     "weight_read": 2.025224,
+     "model_load": 1.778853,
+     "ggml_backend_load": 0.178679,
+     "model_load_mmap": 1.017628,
+     "context_init": 0.053415,
+     "assets_load": 0.529132,
+     "warmup_inference": 0.094374,
+     "steady_state_total": 2.995253
+    },
+    "steady_state_p50_s": {
+     "agent-action-guard-2q": 0.057209,
+     "cracked-screen-2q": 0.048349,
+     "incident-review-4q": 0.105534,
+     "payouts-3q": 0.06276,
+     "ticket-route-1q": 0.023003
+    },
+    "passes": 10,
+    "ggml_cpu": [
+     "libggml-cpu-haswell.so"
+    ],
+    "threads": 6,
+    "ngl": 99,
+    "host": {
+     "label": "g6.4xlarge NVIDIA L4",
+     "machine": "x86_64",
+     "cpu": "AMD EPYC 7R13 Processor",
+     "nproc": 16,
+     "kernel": "6.8.0-1066-aws"
+    }
+   },
+   "gpu-nsys": {
+    "phases_s": {
+     "imports": 0.146489,
+     "weight_read": 2.033063,
+     "model_load": 2.147072,
+     "ggml_backend_load": 0.378157,
+     "model_load_mmap": 1.182623,
+     "context_init": 0.054993,
+     "assets_load": 0.5313,
+     "warmup_inference": 0.108944,
+     "steady_state_total": 0.94774
+    },
+    "steady_state_p50_s": {
+     "agent-action-guard-2q": 0.058753,
+     "cracked-screen-2q": 0.050172,
+     "incident-review-4q": 0.109706,
+     "payouts-3q": 0.064937,
+     "ticket-route-1q": 0.023199
+    },
+    "passes": 3,
+    "ggml_cpu": [
+     "libggml-cpu-haswell.so"
+    ],
+    "threads": 6,
+    "ngl": 99,
+    "host": {
+     "label": "g6.4xlarge NVIDIA L4 (nsys)",
+     "machine": "x86_64",
+     "cpu": "AMD EPYC 7R13 Processor",
+     "nproc": 16,
+     "kernel": "6.8.0-1066-aws"
+    }
+   },
+   "gpu-ncu": {
+    "phases_s": {
+     "imports": 0.142799,
+     "weight_read": 2.04224,
+     "model_load": 2.416967,
+     "ggml_backend_load": 0.799776,
+     "model_load_mmap": 1.025874,
+     "context_init": 0.054232,
+     "assets_load": 0.537084,
+     "warmup_inference": 16.188654,
+     "steady_state_total": 0.758058
+    },
+    "steady_state_p50_s": {
+     "agent-action-guard-2q": 0.138987,
+     "cracked-screen-2q": 0.143222,
+     "incident-review-4q": 0.217419,
+     "payouts-3q": 0.208997,
+     "ticket-route-1q": 0.049273
+    },
+    "passes": 1,
+    "ggml_cpu": [
+     "libggml-cpu-haswell.so"
+    ],
+    "threads": 6,
+    "ngl": 99,
+    "host": {
+     "label": "25b79d47af63",
+     "machine": "x86_64",
+     "cpu": "AMD EPYC 7R13 Processor",
+     "nproc": 16,
+     "kernel": "6.8.0-1066-aws"
+    }
+   }
+  },
+  "nvidia_smi_100ms": {
+   "samples_100ms": 76,
+   "gpu_util_pct_max": 91.0,
+   "gpu_util_pct_mean": 35.4,
+   "samples_util_gt0": 35,
+   "mem_used_mib_max": 3186.0,
+   "power_w_max": 74.82
+  },
+  "nsys_top_kernels": [
+   {
+    "Time (%)": "15.1",
+    "Total Time (ns)": "107786792",
+    "Instances": "1269",
+    "Avg (ns)": "84938.4",
+    "Med (ns)": "84351.0",
+    "Min (ns)": "10752",
+    "Max (ns)": "166079",
+    "StdDev (ns)": "44162.1",
+    "Name": "void mul_mat_q<(ggml_type)8, (int)96, (bool)0, (ggml_prec)30>(const char *, const int *, const int *, const int *, float"
+   },
+   {
+    "Time (%)": "10.7",
+    "Total Time (ns)": "76124607",
+    "Instances": "1029",
+    "Avg (ns)": "73979.2",
+    "Med (ns)": "93023.0",
+    "Min (ns)": "10304",
+    "Max (ns)": "122463",
+    "StdDev (ns)": "32811.9",
+    "Name": "void mul_mat_q<(ggml_type)8, (int)80, (bool)0, (ggml_prec)30>(const char *, const int *, const int *, const int *, float"
+   },
+   {
+    "Time (%)": "10.5",
+    "Total Time (ns)": "74835661",
+    "Instances": "828",
+    "Avg (ns)": "90381.2",
+    "Med (ns)": "79695.5",
+    "Min (ns)": "11616",
+    "Max (ns)": "171423",
+    "StdDev (ns)": "46250.6",
+    "Name": "void mul_mat_q<(ggml_type)8, (int)112, (bool)0, (ggml_prec)30>(const char *, const int *, const int *, const int *, floa"
+   },
+   {
+    "Time (%)": "6.6",
+    "Total Time (ns)": "46847132",
+    "Instances": "891",
+    "Avg (ns)": "52578.2",
+    "Med (ns)": "64896.0",
+    "Min (ns)": "7744",
+    "Max (ns)": "90911",
+    "StdDev (ns)": "24213.7",
+    "Name": "void mul_mat_q<(ggml_type)8, (int)16, (bool)0, (ggml_prec)30>(const char *, const int *, const int *, const int *, float"
+   },
+   {
+    "Time (%)": "6.2",
+    "Total Time (ns)": "44445523",
+    "Instances": "828",
+    "Avg (ns)": "53678.2",
+    "Med (ns)": "65760.0",
+    "Min (ns)": "8224",
+    "Max (ns)": "89183",
+    "StdDev (ns)": "24192.0",
+    "Name": "void mul_mat_q<(ggml_type)8, (int)32, (bool)0, (ggml_prec)30>(const char *, const int *, const int *, const int *, float"
+   },
+   {
+    "Time (%)": "5.4",
+    "Total Time (ns)": "38734169",
+    "Instances": "1152",
+    "Avg (ns)": "33623.4",
+    "Med (ns)": "24015.5",
+    "Min (ns)": "2368",
+    "Max (ns)": "65663",
+    "StdDev (ns)": "23162.7",
+    "Name": "void mul_mat_vec_q<(ggml_type)8, (int)2, (bool)0, (bool)0, (bool)0>(const void *, const void *, const int *, ggml_cuda_m"
+   },
+   {
+    "Time (%)": "5.3",
+    "Total Time (ns)": "37572902",
+    "Instances": "1053",
+    "Avg (ns)": "35681.8",
+    "Med (ns)": "54176.0",
+    "Min (ns)": "2688",
+    "Max (ns)": "75264",
+    "StdDev (ns)": "24520.7",
+    "Name": "void mul_mat_vec_q<(ggml_type)8, (int)4, (bool)0, (bool)0, (bool)0>(const void *, const void *, const int *, ggml_cuda_m"
+   },
+   {
+    "Time (%)": "3.2",
+    "Total Time (ns)": "22498599",
+    "Instances": "441",
+    "Avg (ns)": "51017.2",
+    "Med (ns)": "64992.0",
+    "Min (ns)": "7872",
+    "Max (ns)": "94527",
+    "StdDev (ns)": "23914.7",
+    "Name": "void mul_mat_q<(ggml_type)8, (int)24, (bool)0, (ggml_prec)30>(const char *, const int *, const int *, const int *, float"
+   },
+   {
+    "Time (%)": "2.7",
+    "Total Time (ns)": "19540009",
+    "Instances": "882",
+    "Avg (ns)": "22154.2",
+    "Med (ns)": "19024.0",
+    "Min (ns)": "9792",
+    "Max (ns)": "58304",
+    "StdDev (ns)": "12972.6",
+    "Name": "void concat_non_cont<unsigned int, (int)0>(const char *, const char *, char *, long, long, long, long, unsigned long, un"
+   },
+   {
+    "Time (%)": "2.5",
+    "Total Time (ns)": "18102128",
+    "Instances": "5562",
+    "Avg (ns)": "3254.6",
+    "Med (ns)": "2208.0",
+    "Min (ns)": "1440",
+    "Max (ns)": "19360",
+    "StdDev (ns)": "2738.0",
+    "Name": "void k_bin_bcast<&op_mul, float, float, float, const float *>(const T2 *, const T3 *, T4 *, unsigned int, unsigned int, "
+   },
+   {
+    "Time (%)": "2.4",
+    "Total Time (ns)": "17170996",
+    "Instances": "6726",
+    "Avg (ns)": "2552.9",
+    "Med (ns)": "2080.0",
+    "Min (ns)": "1440",
+    "Max (ns)": "9280",
+    "StdDev (ns)": "1356.7",
+    "Name": "void quantize_mmq_q8_1<(mmq_q8_1_ds_layout)0, (bool)0>(const float *, const int *, void *, long, long, long, long, long,"
+   },
+   {
+    "Time (%)": "2.1",
+    "Total Time (ns)": "14649434",
+    "Instances": "4680",
+    "Avg (ns)": "3130.2",
+    "Med (ns)": "2560.0",
+    "Min (ns)": "1824",
+    "Max (ns)": "13312",
+    "StdDev (ns)": "1810.3",
+    "Name": "void fwht_cuda<(int)512, float>(const T2 *, float *, long, float)"
+   }
+  ],
+  "nsys_cuda_api": [
+   {
+    "Time (%)": "40.6",
+    "Total Time (ns)": "523332307",
+    "Num Calls": "1567",
+    "Avg (ns)": "333970.8",
+    "Med (ns)": "4500.0",
+    "Min (ns)": "531",
+    "Max (ns)": "24051066",
+    "StdDev (ns)": "1898064.1",
+    "Name": "cudaStreamSynchronize"
+   },
+   {
+    "Time (%)": "19.7",
+    "Total Time (ns)": "253664957",
+    "Num Calls": "174",
+    "Avg (ns)": "1457844.6",
+    "Med (ns)": "1432024.5",
+    "Min (ns)": "1194081",
+    "Max (ns)": "2227129",
+    "StdDev (ns)": "168300.1",
+    "Name": "cudaGetDeviceProperties_v2_v12000"
+   },
+   {
+    "Time (%)": "14.9",
+    "Total Time (ns)": "192521882",
+    "Num Calls": "56997",
+    "Avg (ns)": "3377.8",
+    "Med (ns)": "2890.0",
+    "Min (ns)": "2500",
+    "Max (ns)": "4807003",
+    "StdDev (ns)": "37556.4",
+    "Name": "cudaLaunchKernel"
+   },
+   {
+    "Time (%)": "11.8",
+    "Total Time (ns)": "152006939",
+    "Num Calls": "1054",
+    "Avg (ns)": "144219.1",
+    "Med (ns)": "4389.5",
+    "Min (ns)": "2150",
+    "Max (ns)": "40988749",
+    "StdDev (ns)": "1289906.7",
+    "Name": "cudaMemcpyAsync"
+   },
+   {
+    "Time (%)": "7.7",
+    "Total Time (ns)": "99476612",
+    "Num Calls": "5",
+    "Avg (ns)": "19895322.4",
+    "Med (ns)": "26961.0",
+    "Min (ns)": "13400",
+    "Max (ns)": "99383850",
+    "StdDev (ns)": "44435439.0",
+    "Name": "cudaMemGetInfo"
+   },
+   {
+    "Time (%)": "3.1",
+    "Total Time (ns)": "39694237",
+    "Num Calls": "2",
+    "Avg (ns)": "19847118.5",
+    "Med (ns)": "19847118.5",
+    "Min (ns)": "9643577",
+    "Max (ns)": "30050660",
+    "StdDev (ns)": "14429986.8",
+    "Name": "cudaMallocHost"
+   },
+   {
+    "Time (%)": "1.2",
+    "Total Time (ns)": "16074957",
+    "Num Calls": "4",
+    "Avg (ns)": "4018739.3",
+    "Med (ns)": "5186229.5",
+    "Min (ns)": "185853",
+    "Max (ns)": "5516645",
+    "StdDev (ns)": "2560790.4",
+    "Name": "cuLibraryLoadData"
+   },
+   {
+    "Time (%)": "0.4",
+    "Total Time (ns)": "5570896",
+    "Num Calls": "372",
+    "Avg (ns)": "14975.5",
+    "Med (ns)": "480.0",
+    "Min (ns)": "240",
+    "Max (ns)": "5321832",
+    "StdDev (ns)": "275902.8",
+    "Name": "cuKernelGetFunction"
+   }
+  ],
+  "nsys_mem": [
+   {
+    "Time (%)": "76.6",
+    "Total Time (ns)": "161574779",
+    "Count": "801",
+    "Avg (ns)": "201716.3",
+    "Med (ns)": "3424.0",
+    "Min (ns)": "351",
+    "Max (ns)": "40979147",
+    "StdDev (ns)": "1478031.2",
+    "Operation": "[CUDA memcpy Host-to-Device]"
+   },
+   {
+    "Time (%)": "23.2",
+    "Total Time (ns)": "48955384",
+    "Count": "34",
+    "Avg (ns)": "1439864.2",
+    "Med (ns)": "1437974.0",
+    "Min (ns)": "1385046",
+    "Max (ns)": "1592981",
+    "StdDev (ns)": "55954.4",
+    "Operation": "[CUDA memset]"
+   },
+   {
+    "Time (%)": "0.2",
+    "Total Time (ns)": "408702",
+    "Count": "216",
+    "Avg (ns)": "1892.1",
+    "Med (ns)": "1808.0",
+    "Min (ns)": "1216",
+    "Max (ns)": "2624",
+    "StdDev (ns)": "477.3",
+    "Operation": "[CUDA memcpy Device-to-Device]"
+   },
+   {
+    "Time (%)": "0.1",
+    "Total Time (ns)": "124254",
+    "Count": "37",
+    "Avg (ns)": "3358.2",
+    "Med (ns)": "2944.0",
+    "Min (ns)": "1312",
+    "Max (ns)": "10016",
+    "StdDev (ns)": "2493.0",
+    "Operation": "[CUDA memcpy Device-to-Host]"
+   }
+  ]
+ }
+}

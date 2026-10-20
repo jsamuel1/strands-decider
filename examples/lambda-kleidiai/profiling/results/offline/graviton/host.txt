@@ -1,0 +1,7 @@
+Linux c8c1f03a2367 6.1.188-233.386.amzn2023.aarch64 #1 SMP Fri Sep 25 01:46:44 UTC 2026 aarch64 aarch64 aarch64 GNU/Linux
+CPU part	: 0xd40
+16
+max 100000
+perf version 6.1.186-228.374.amzn2023.aarch64
+Python 3.12.15
+2

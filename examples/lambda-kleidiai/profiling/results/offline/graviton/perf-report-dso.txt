@@ -1,0 +1,15 @@
+    91.24%  libggml-cpu-armv8.6_1.so                          
+     5.57%  libgomp.so.1                                      
+     1.06%  [unknown]                                         
+     1.04%  libc.so.6                                         
+     0.42%  libm.so.6                                         
+     0.19%  libpython3.12.so.1.0                              
+     0.14%  tokenizers.abi3.so                                
+     0.12%  libllama.so.0.7.0                                 
+     0.08%  libscipy_openblas64_-f552eb69.so                  
+     0.06%  libggml-base.so.0.27.0                            
+     0.05%  libstdc++.so.6                                    
+     0.01%  _multiarray_umath.cpython-312-aarch64-linux-gnu.so
+     0.01%  ld-linux-aarch64.so.1                             
+     0.00%  _pydantic_core.cpython-312-aarch64-linux-gnu.so   
+     0.00%  _ctypes.cpython-312-aarch64-linux-gnu.so          

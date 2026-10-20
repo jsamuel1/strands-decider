@@ -1,0 +1,660 @@
+{
+ "period_us": 1000,
+ "n": 7022,
+ "dropped": 0,
+ "phases": {
+  "imports": {
+   "samples": 46,
+   "threads": 1,
+   "top_self": [
+    {
+     "symbol": "libpython3.12.so.1.0:+0x180000",
+     "samples": 3,
+     "pct": 6.52
+    },
+    {
+     "symbol": "libc.so.6:+0xe9000",
+     "samples": 2,
+     "pct": 4.35
+    },
+    {
+     "symbol": "libpython3.12.so.1.0:+0x15f000",
+     "samples": 2,
+     "pct": 4.35
+    },
+    {
+     "symbol": "libpython3.12.so.1.0:+0x164000",
+     "samples": 2,
+     "pct": 4.35
+    },
+    {
+     "symbol": "libpython3.12.so.1.0:+0x17c000",
+     "samples": 2,
+     "pct": 4.35
+    },
+    {
+     "symbol": "libpython3.12.so.1.0:+0x194000",
+     "samples": 2,
+     "pct": 4.35
+    },
+    {
+     "symbol": "libpython3.12.so.1.0:+0x161000",
+     "samples": 2,
+     "pct": 4.35
+    },
+    {
+     "symbol": "libpython3.12.so.1.0:+0x1c3000",
+     "samples": 1,
+     "pct": 2.17
+    },
+    {
+     "symbol": "libstdc++.so.6:_ZNSt6locale5facet18_S_create_c_localeERP15__locale_structPKcS2_",
+     "samples": 1,
+     "pct": 2.17
+    },
+    {
+     "symbol": "libpython3.12.so.1.0:+0x15b000",
+     "samples": 1,
+     "pct": 2.17
+    },
+    {
+     "symbol": "libpython3.12.so.1.0:+0x17e000",
+     "samples": 1,
+     "pct": 2.17
+    },
+    {
+     "symbol": "libpython3.12.so.1.0:+0x166000",
+     "samples": 1,
+     "pct": 2.17
+    },
+    {
+     "symbol": "libpython3.12.so.1.0:+0x17b000",
+     "samples": 1,
+     "pct": 2.17
+    },
+    {
+     "symbol": "libc.so.6:strcspn",
+     "samples": 1,
+     "pct": 2.17
+    },
+    {
+     "symbol": "libpython3.12.so.1.0:+0x1d7000",
+     "samples": 1,
+     "pct": 2.17
+    }
+   ],
+   "by_library": [
+    {
+     "library": "libpython3.12.so.1.0",
+     "samples": 34,
+     "pct": 73.91
+    },
+    {
+     "library": "libc.so.6",
+     "samples": 9,
+     "pct": 19.57
+    },
+    {
+     "library": "ld-linux-aarch64.so.1",
+     "samples": 2,
+     "pct": 4.35
+    },
+    {
+     "library": "libstdc++.so.6",
+     "samples": 1,
+     "pct": 2.17
+    }
+   ],
+   "top_caller_edges": [
+    {
+     "edge": "libpython3.12.so.1.0:+0x284000 -> libc.so.6:+0xe9000",
+     "samples": 2
+    },
+    {
+     "edge": "libpython3.12.so.1.0:+0x15f000 -> libpython3.12.so.1.0:+0x15f000",
+     "samples": 2
+    },
+    {
+     "edge": "libpython3.12.so.1.0:+0x164000 -> libpython3.12.so.1.0:+0x164000",
+     "samples": 2
+    },
+    {
+     "edge": "libpython3.12.so.1.0:+0x1c3000 -> libpython3.12.so.1.0:+0x1c3000",
+     "samples": 1
+    },
+    {
+     "edge": "libc.so.6:pthread_mutexattr_setpshared -> libstdc++.so.6:_ZNSt6locale5facet18_S_create_c_localeERP15__locale_structPKcS2_",
+     "samples": 1
+    },
+    {
+     "edge": "? -> libpython3.12.so.1.0:+0x15b000",
+     "samples": 1
+    },
+    {
+     "edge": "libpython3.12.so.1.0:+0x17c000 -> libpython3.12.so.1.0:+0x17e000",
+     "samples": 1
+    },
+    {
+     "edge": "libpython3.12.so.1.0:+0x166000 -> libpython3.12.so.1.0:+0x166000",
+     "samples": 1
+    },
+    {
+     "edge": "libpython3.12.so.1.0:+0x1a9000 -> libpython3.12.so.1.0:+0x17b000",
+     "samples": 1
+    },
+    {
+     "edge": "libpython3.12.so.1.0:+0x1b8000 -> libc.so.6:strcspn",
+     "samples": 1
+    },
+    {
+     "edge": "? -> libpython3.12.so.1.0:+0x1d7000",
+     "samples": 1
+    },
+    {
+     "edge": "libpython3.12.so.1.0:+0x1ca000 -> libpython3.12.so.1.0:+0x1ca000",
+     "samples": 1
+    }
+   ]
+  },
+  "weight_read": {
+   "samples": 74,
+   "threads": 1,
+   "top_self": [
+    {
+     "symbol": "libc.so.6:faccessat",
+     "samples": 63,
+     "pct": 85.14
+    },
+    {
+     "symbol": "libc.so.6:fcvt_r",
+     "samples": 11,
+     "pct": 14.86
+    }
+   ],
+   "by_library": [
+    {
+     "library": "libc.so.6",
+     "samples": 74,
+     "pct": 100.0
+    }
+   ],
+   "top_caller_edges": [
+    {
+     "edge": "? -> libc.so.6:faccessat",
+     "samples": 63
+    },
+    {
+     "edge": "libc.so.6:realloc -> libc.so.6:fcvt_r",
+     "samples": 11
+    }
+   ]
+  },
+  "model_load": {
+   "samples": 854,
+   "threads": 1,
+   "top_self": [
+    {
+     "symbol": "libggml-cpu-armv8.6_1.so:_ZL43ggml_backend_cpu_kleidiai_buffer_set_tensorP19ggml_backend_bufferP11ggml_tensorPKvmm",
+     "samples": 400,
+     "pct": 46.84
+    },
+    {
+     "symbol": "libggml-cpu-armv8.6_1.so:kai_run_rhs_pack_nxk_qsi8cxp_qsi8cx_neon",
+     "samples": 195,
+     "pct": 22.83
+    },
+    {
+     "symbol": "libggml-cpu-armv8.6_1.so:+0x32000",
+     "samples": 77,
+     "pct": 9.02
+    },
+    {
+     "symbol": "libc.so.6:__memset_kunpeng",
+     "samples": 30,
+     "pct": 3.51
+    },
+    {
+     "symbol": "libm.so.6:lroundf",
+     "samples": 23,
+     "pct": 2.69
+    },
+    {
+     "symbol": "libc.so.6:__memset_emag",
+     "samples": 22,
+     "pct": 2.58
+    },
+    {
+     "symbol": "libc.so.6:__libc_memset_ifunc",
+     "samples": 8,
+     "pct": 0.94
+    },
+    {
+     "symbol": "tokenizers.abi3.so:+0x246000",
+     "samples": 6,
+     "pct": 0.7
+    },
+    {
+     "symbol": "tokenizers.abi3.so:+0x2e2000",
+     "samples": 6,
+     "pct": 0.7
+    },
+    {
+     "symbol": "libc.so.6:__GI_memset",
+     "samples": 5,
+     "pct": 0.59
+    },
+    {
+     "symbol": "libllama.so.0.7.0:_ZN11llama_vocab4impl4loadER18llama_model_loaderRK6LLM_KV",
+     "samples": 5,
+     "pct": 0.59
+    },
+    {
+     "symbol": "libllama.so.0.7.0:_ZNSt10_HashtableINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEESt4pairIKS5_hESaIS8_ENSt8__detail10_Select1stESt8equal_toIS5_ESt4hashIS5_ENSA_18_Mod_range_hashingENSA_20_Defaul",
+     "samples": 5,
+     "pct": 0.59
+    },
+    {
+     "symbol": "libc.so.6:tcache_init.part.0",
+     "samples": 4,
+     "pct": 0.47
+    },
+    {
+     "symbol": "libstdc++.so.6:_ZSt16__ostream_insertIcSt11char_traitsIcEERSt13basic_ostreamIT_T0_ES6_PKS3_l",
+     "samples": 3,
+     "pct": 0.35
+    },
+    {
+     "symbol": "libllama.so.0.7.0:_ZNSt10_HashtableISt4pairINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEES6_ES0_IKS7_iESaIS9_ENSt8__detail10_Select1stESt8equal_toIS7_EN11llama_vocab4impl9pair_hashENSB_18_Mod_r",
+     "samples": 3,
+     "pct": 0.35
+    }
+   ],
+   "by_library": [
+    {
+     "library": "libggml-cpu-armv8.6_1.so",
+     "samples": 672,
+     "pct": 78.69
+    },
+    {
+     "library": "libc.so.6",
+     "samples": 92,
+     "pct": 10.77
+    },
+    {
+     "library": "tokenizers.abi3.so",
+     "samples": 33,
+     "pct": 3.86
+    },
+    {
+     "library": "libm.so.6",
+     "samples": 23,
+     "pct": 2.69
+    },
+    {
+     "library": "libllama.so.0.7.0",
+     "samples": 21,
+     "pct": 2.46
+    },
+    {
+     "library": "libstdc++.so.6",
+     "samples": 10,
+     "pct": 1.17
+    },
+    {
+     "library": "libggml-base.so.0.27.0",
+     "samples": 2,
+     "pct": 0.23
+    },
+    {
+     "library": "_safetensors_rust.abi3.so",
+     "samples": 1,
+     "pct": 0.12
+    }
+   ],
+   "top_caller_edges": [
+    {
+     "edge": "libggml-cpu-armv8.6_1.so:_ZL43ggml_backend_cpu_kleidiai_buffer_set_tensorP19ggml_backend_bufferP11ggml_tensorPKvmm -> libggml-cpu-armv8.6_1.so:_ZL43ggml_backend_cpu_kleidiai_buffer_set_tensorP19ggml_backend_bufferP11ggml_tensorPKvmm",
+     "samples": 400
+    },
+    {
+     "edge": "libggml-cpu-armv8.6_1.so:kai_run_rhs_pack_nxk_qsi8cxp_qsi8cx_neon -> libggml-cpu-armv8.6_1.so:kai_run_rhs_pack_nxk_qsi8cxp_qsi8cx_neon",
+     "samples": 195
+    },
+    {
+     "edge": "libggml-cpu-armv8.6_1.so:_ZL43ggml_backend_cpu_kleidiai_buffer_set_tensorP19ggml_backend_bufferP11ggml_tensorPKvmm -> libggml-cpu-armv8.6_1.so:+0x32000",
+     "samples": 77
+    },
+    {
+     "edge": "libggml-cpu-armv8.6_1.so:_ZL43ggml_backend_cpu_kleidiai_buffer_set_tensorP19ggml_backend_bufferP11ggml_tensorPKvmm -> libm.so.6:lroundf",
+     "samples": 23
+    },
+    {
+     "edge": "libggml-cpu-armv8.6_1.so:kai_run_rhs_pack_nxk_qsi8cxp_qsi8cx_neon -> libc.so.6:__memset_emag",
+     "samples": 22
+    },
+    {
+     "edge": "libggml-cpu-armv8.6_1.so:_ZNSt6vectorIaSaIaEE14_M_fill_insertEN9__gnu_cxx17__normal_iteratorIPaS1_EEmRKa -> libc.so.6:__memset_kunpeng",
+     "samples": 13
+    },
+    {
+     "edge": "libllama.so.0.7.0:_ZN14llama_kv_cacheC1ERK11llama_modelRK13llama_hparams9ggml_typeS6_bbbjjjj14llama_swa_typeP14llama_memory_iRKSt8functionIFbiEERKSA_IFiiEESI_PKc -> libc.so.6:__memset_kunpeng",
+     "samples": 8
+    },
+    {
+     "edge": "libllama.so.0.7.0:_ZN22llama_memory_recurrentC2ERK11llama_model9ggml_typeS3_bjjjRKSt8functionIFbiEE -> libc.so.6:__memset_kunpeng",
+     "samples": 8
+    },
+    {
+     "edge": "tokenizers.abi3.so:+0x246000 -> tokenizers.abi3.so:+0x246000",
+     "samples": 6
+    },
+    {
+     "edge": "tokenizers.abi3.so:+0x2e2000 -> tokenizers.abi3.so:+0x2e2000",
+     "samples": 6
+    },
+    {
+     "edge": "libllama.so.0.7.0:_ZN11llama_vocab4impl4loadER18llama_model_loaderRK6LLM_KV -> libllama.so.0.7.0:_ZN11llama_vocab4impl4loadER18llama_model_loaderRK6LLM_KV",
+     "samples": 5
+    },
+    {
+     "edge": "libllama.so.0.7.0:_ZNSt10_HashtableINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEESt4pairIKS5_hESaIS8_ENSt8__detail10_Select1stESt8equal_toIS5_ESt4hashIS5_ENSA_18_Mod_range_hashingENSA_20_Default_ranged_hashENSA_20_Prime_rehash_policyENSA_17_Hashtable_traitsILb1ELb0ELb1EEEE4findERS7_ -> liblla",
+     "samples": 5
+    }
+   ]
+  },
+  "warmup_inference": {
+   "samples": 40,
+   "threads": 6,
+   "top_self": [
+    {
+     "symbol": "libggml-cpu-armv8.6_1.so:kai_kernel_matmul_clamp_f32_qai8dxp4x8_qsi8cxp4x8_16x4_neon_i8mm",
+     "samples": 19,
+     "pct": 47.5
+    },
+    {
+     "symbol": "libggml-cpu-armv8.6_1.so:_ZL46ggml_compute_forward_gated_delta_net_one_chunkPK19ggml_compute_paramsP11ggml_tensorll",
+     "samples": 6,
+     "pct": 15.0
+    },
+    {
+     "symbol": "libggml-cpu-armv8.6_1.so:ggml_vec_dot_f32",
+     "samples": 5,
+     "pct": 12.5
+    },
+    {
+     "symbol": "libggml-cpu-armv8.6_1.so:kai_run_lhs_quant_pack_qai8dxp_f32",
+     "samples": 2,
+     "pct": 5.0
+    },
+    {
+     "symbol": "libgomp.so.1:+0x27000",
+     "samples": 2,
+     "pct": 5.0
+    },
+    {
+     "symbol": "libggml-cpu-armv8.6_1.so:ggml_compute_forward_ssm_conv",
+     "samples": 2,
+     "pct": 5.0
+    },
+    {
+     "symbol": "libc.so.6:__memset_kunpeng",
+     "samples": 1,
+     "pct": 2.5
+    },
+    {
+     "symbol": "libc.so.6:__memset_falkor",
+     "samples": 1,
+     "pct": 2.5
+    },
+    {
+     "symbol": "libggml-cpu-armv8.6_1.so:ggml_compute_forward_concat",
+     "samples": 1,
+     "pct": 2.5
+    },
+    {
+     "symbol": "libscipy_openblas64_-f552eb69.so:+0x69e000",
+     "samples": 1,
+     "pct": 2.5
+    }
+   ],
+   "by_library": [
+    {
+     "library": "libggml-cpu-armv8.6_1.so",
+     "samples": 35,
+     "pct": 87.5
+    },
+    {
+     "library": "libc.so.6",
+     "samples": 2,
+     "pct": 5.0
+    },
+    {
+     "library": "libgomp.so.1",
+     "samples": 2,
+     "pct": 5.0
+    },
+    {
+     "library": "libscipy_openblas64_-f552eb69.so",
+     "samples": 1,
+     "pct": 2.5
+    }
+   ],
+   "top_caller_edges": [
+    {
+     "edge": "libggml-cpu-armv8.6_1.so:kai_run_matmul_clamp_f32_qai8dxp4x8_qsi8cxp4x8_16x4_neon_i8mm -> libggml-cpu-armv8.6_1.so:kai_kernel_matmul_clamp_f32_qai8dxp4x8_qsi8cxp4x8_16x4_neon_i8mm",
+     "samples": 19
+    },
+    {
+     "edge": "? -> libggml-cpu-armv8.6_1.so:_ZL46ggml_compute_forward_gated_delta_net_one_chunkPK19ggml_compute_paramsP11ggml_tensorll",
+     "samples": 6
+    },
+    {
+     "edge": "? -> libggml-cpu-armv8.6_1.so:ggml_vec_dot_f32",
+     "samples": 5
+    },
+    {
+     "edge": "? -> libggml-cpu-armv8.6_1.so:kai_run_lhs_quant_pack_qai8dxp_f32",
+     "samples": 2
+    },
+    {
+     "edge": "? -> libgomp.so.1:+0x27000",
+     "samples": 2
+    },
+    {
+     "edge": "? -> libggml-cpu-armv8.6_1.so:ggml_compute_forward_ssm_conv",
+     "samples": 2
+    },
+    {
+     "edge": "libllama.so.0.7.0:_ZN22llama_memory_recurrent5clearEb -> libc.so.6:__memset_kunpeng",
+     "samples": 1
+    },
+    {
+     "edge": "libggml-cpu-armv8.6_1.so:_ZL46ggml_compute_forward_gated_delta_net_one_chunkPK19ggml_compute_paramsP11ggml_tensorll -> libc.so.6:__memset_falkor",
+     "samples": 1
+    },
+    {
+     "edge": "? -> libscipy_openblas64_-f552eb69.so:+0x69e000",
+     "samples": 1
+    }
+   ]
+  },
+  "steady_state_inference": {
+   "samples": 6008,
+   "threads": 8,
+   "top_self": [
+    {
+     "symbol": "libggml-cpu-armv8.6_1.so:kai_kernel_matmul_clamp_f32_qai8dxp4x8_qsi8cxp4x8_16x4_neon_i8mm",
+     "samples": 3365,
+     "pct": 56.01
+    },
+    {
+     "symbol": "libggml-cpu-armv8.6_1.so:ggml_vec_dot_f32",
+     "samples": 618,
+     "pct": 10.29
+    },
+    {
+     "symbol": "libggml-cpu-armv8.6_1.so:_ZL46ggml_compute_forward_gated_delta_net_one_chunkPK19ggml_compute_paramsP11ggml_tensorll",
+     "samples": 551,
+     "pct": 9.17
+    },
+    {
+     "symbol": "libgomp.so.1:+0x27000",
+     "samples": 246,
+     "pct": 4.09
+    },
+    {
+     "symbol": "libggml-cpu-armv8.6_1.so:ggml_compute_forward_fwht",
+     "samples": 223,
+     "pct": 3.71
+    },
+    {
+     "symbol": "libggml-cpu-armv8.6_1.so:ggml_compute_forward_ssm_conv",
+     "samples": 199,
+     "pct": 3.31
+    },
+    {
+     "symbol": "libggml-cpu-armv8.6_1.so:ggml_compute_forward_concat",
+     "samples": 159,
+     "pct": 2.65
+    },
+    {
+     "symbol": "libggml-cpu-armv8.6_1.so:ggml_vec_silu_f32",
+     "samples": 72,
+     "pct": 1.2
+    },
+    {
+     "symbol": "libggml-cpu-armv8.6_1.so:ggml_vec_swiglu_f32",
+     "samples": 68,
+     "pct": 1.13
+    },
+    {
+     "symbol": "libggml-cpu-armv8.6_1.so:ggml_compute_forward_rms_norm_mul_fused",
+     "samples": 66,
+     "pct": 1.1
+    },
+    {
+     "symbol": "libggml-cpu-armv8.6_1.so:kai_run_lhs_quant_pack_qai8dxp_f32",
+     "samples": 63,
+     "pct": 1.05
+    },
+    {
+     "symbol": "libc.so.6:__memset_kunpeng",
+     "samples": 59,
+     "pct": 0.98
+    },
+    {
+     "symbol": "libggml-cpu-armv8.6_1.so:ggml_compute_forward_rms_norm",
+     "samples": 40,
+     "pct": 0.67
+    },
+    {
+     "symbol": "libggml-cpu-armv8.6_1.so:ggml_compute_forward_mul",
+     "samples": 31,
+     "pct": 0.52
+    },
+    {
+     "symbol": "libc.so.6:__memset_falkor",
+     "samples": 31,
+     "pct": 0.52
+    }
+   ],
+   "by_library": [
+    {
+     "library": "libggml-cpu-armv8.6_1.so",
+     "samples": 5579,
+     "pct": 92.86
+    },
+    {
+     "library": "libgomp.so.1",
+     "samples": 246,
+     "pct": 4.09
+    },
+    {
+     "library": "libc.so.6",
+     "samples": 135,
+     "pct": 2.25
+    },
+    {
+     "library": "libscipy_openblas64_-f552eb69.so",
+     "samples": 18,
+     "pct": 0.3
+    },
+    {
+     "library": "libm.so.6",
+     "samples": 12,
+     "pct": 0.2
+    },
+    {
+     "library": "libggml-base.so.0.27.0",
+     "samples": 9,
+     "pct": 0.15
+    },
+    {
+     "library": "libpython3.12.so.1.0",
+     "samples": 4,
+     "pct": 0.07
+    },
+    {
+     "library": "tokenizers.abi3.so",
+     "samples": 3,
+     "pct": 0.05
+    },
+    {
+     "library": "libllama.so.0.7.0",
+     "samples": 2,
+     "pct": 0.03
+    }
+   ],
+   "top_caller_edges": [
+    {
+     "edge": "libggml-cpu-armv8.6_1.so:kai_run_matmul_clamp_f32_qai8dxp4x8_qsi8cxp4x8_16x4_neon_i8mm -> libggml-cpu-armv8.6_1.so:kai_kernel_matmul_clamp_f32_qai8dxp4x8_qsi8cxp4x8_16x4_neon_i8mm",
+     "samples": 3365
+    },
+    {
+     "edge": "? -> libggml-cpu-armv8.6_1.so:ggml_vec_dot_f32",
+     "samples": 571
+    },
+    {
+     "edge": "? -> libggml-cpu-armv8.6_1.so:_ZL46ggml_compute_forward_gated_delta_net_one_chunkPK19ggml_compute_paramsP11ggml_tensorll",
+     "samples": 540
+    },
+    {
+     "edge": "? -> libgomp.so.1:+0x27000",
+     "samples": 243
+    },
+    {
+     "edge": "? -> libggml-cpu-armv8.6_1.so:ggml_compute_forward_fwht",
+     "samples": 223
+    },
+    {
+     "edge": "? -> libggml-cpu-armv8.6_1.so:ggml_compute_forward_ssm_conv",
+     "samples": 199
+    },
+    {
+     "edge": "libggml-cpu-armv8.6_1.so:ggml_compute_forward_unary -> libggml-cpu-armv8.6_1.so:ggml_vec_silu_f32",
+     "samples": 72
+    },
+    {
+     "edge": "libggml-cpu-armv8.6_1.so:ggml_compute_forward_glu -> libggml-cpu-armv8.6_1.so:ggml_vec_swiglu_f32",
+     "samples": 68
+    },
+    {
+     "edge": "? -> libggml-cpu-armv8.6_1.so:kai_run_lhs_quant_pack_qai8dxp_f32",
+     "samples": 63
+    },
+    {
+     "edge": "? -> libggml-cpu-armv8.6_1.so:ggml_compute_forward_rms_norm_mul_fused",
+     "samples": 62
+    },
+    {
+     "edge": "libggml-cpu-armv8.6_1.so:ggml_vec_dot_f32 -> libggml-cpu-armv8.6_1.so:ggml_vec_dot_f32",
+     "samples": 42
+    },
+    {
+     "edge": "libggml-cpu-armv8.6_1.so:ggml_compute_forward_rms_norm -> libggml-cpu-armv8.6_1.so:ggml_compute_forward_rms_norm",
+     "samples": 40
+    }
+   ]
+  }
+ }
+}

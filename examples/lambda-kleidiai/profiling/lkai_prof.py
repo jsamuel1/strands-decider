@@ -109,7 +109,8 @@ def _spy_stop(tag: str, top: int = 40) -> dict:
     res: dict = {"rc": proc.returncode, "stderr": (head + err).decode(errors="replace")[-600:],
                  "popen_s": round(attach_s, 4), "wall_s": round(time.monotonic() - t, 4)}
     try:
-        res.update(_collapse(open(out).read(), top))
+        with open(out, encoding="utf-8", errors="replace") as f:  # SIGINT can cut py-spy mid-character
+            res.update(_collapse(f.read(), top))
     except OSError as e:
         res["error"] = str(e)
     return res
@@ -146,10 +147,28 @@ _init_s = (time.monotonic_ns() - _t_imp) / 1e9
 
 
 def _init_profile() -> None:
-    """Emit the init profile once, at the first invocation (on-demand: the load finishes in a thread by then)."""
+    """Emit the init profile once, at the first invocation (on-demand: the load finishes in a thread by then). A
+    profiler fault is logged and swallowed: it must never fail the request it is profiling."""
     if _state["init_emitted"]:
         return
     _state["init_emitted"] = True
+    _safe(_init_profile_emit, "init")
+
+
+def _safe(fn, where: str = "invoke") -> None:
+    """Run a profiler hook; log its exception as an LKAI_PROF profiler_error record instead of raising it. A profiler
+    fault never fails, or replaces the outcome of, the invocation it profiles (in run 20261020T124451Z one cold pyspy
+    request failed on a py-spy output cut mid-character before this guard existed)."""
+    try:
+        fn()
+    except Exception as e:
+        try:
+            _emit("profiler_error", where=where, error=f"{type(e).__name__}: {e}"[:300])
+        except Exception:
+            pass
+
+
+def _init_profile_emit() -> None:
     if MODE == "cprofile":
         _PROF.disable()
         _emit("init", import_s=_init_s, top={"all_threads": _cp_summary(_PROF)})
@@ -165,7 +184,11 @@ def _init_profile() -> None:
 
 def _before_snapshot():
     # SnapStart: the init profile is taken before the snapshot, and the (ITIMER_PROF) sampler is disarmed so a
-    # restored copy does not inherit a running timer pointed at a stale buffer state.
+    # restored copy does not inherit a running timer pointed at a stale buffer state. Measured cost to know about
+    # (run 20261020T124451Z): the sampler arm's first invocation after a restore emits its summary ~2.0 s after the
+    # handler returns, so REPORT Duration grows by ~2.1 s while latency_ms does not. Not yet attributed; the candidate
+    # is symbolisation re-reading the libraries from /var/task straight after restore (lkai_symbolise now keeps parsed
+    # ELF tables across a maps change, which would remove it if so; that is not yet re-measured in Lambda).
     _init_profile()
     if _SAMP is not None:
         _SAMP.samp_stop()
@@ -209,13 +232,13 @@ def handler(event, context):
             out = lkai_entry.handler(event, context)
         finally:
             prof.disable()
-        _emit("invoke", n=n, top=_cp_summary(prof, 25))
+            _safe(lambda: _emit("invoke", n=n, top=_cp_summary(prof, 25)))
     elif MODE == "pyspy":
-        _spy_start("inv", 60)
+        _safe(lambda: _spy_start("inv", 60))
         try:
             out = lkai_entry.handler(event, context)
         finally:
-            _emit("invoke", n=n, pyspy=_spy_stop("inv", 25))
+            _safe(lambda: _emit("invoke", n=n, pyspy=_spy_stop("inv", 25)) if "inv" in _SPY else None)
     elif MODE == "sampler":
         import lkai_symbolise
 
@@ -227,7 +250,8 @@ def handler(event, context):
             _SAMP.samp_phase(0)
             # cpu_s (process CPU time, all threads) beside the sample count gives the effective sampling rate:
             # ITIMER_PROF signals coalesce, one pending per process, so 6 busy threads yield far fewer than 1 kHz each.
-            _emit("invoke", n=n, cpu_s=round(time.process_time() - c0, 4), sampler=lkai_symbolise.summary(_SAMP))
+            cpu_s = round(time.process_time() - c0, 4)
+            _safe(lambda: _emit("invoke", n=n, cpu_s=cpu_s, sampler=lkai_symbolise.summary(_SAMP)))
             _SAMP.samp_reset()
     else:
         out = lkai_entry.handler(event, context)

@@ -16,6 +16,7 @@ import subprocess
 import sys
 import threading
 import types
+from concurrent.futures import Future
 from pathlib import Path
 
 import pytest
@@ -319,3 +320,141 @@ def test_telemetry_extension_is_executable_and_stdlib_only():
     assert src.startswith("#!/usr/bin/env python3")
     imports = {ln.split()[1].split(".")[0] for ln in src.splitlines() if ln.startswith(("import ", "from "))}
     assert imports <= {"http", "json", "os", "sys", "threading", "time", "urllib"}
+
+
+# ------------------------------------------------------------------------------------------------ lkai_prof handler
+
+
+def _load_prof(monkeypatch, tmp_path, mode, entry_handler, pyspy_script=None):
+    """Import lkai_prof in `mode` against a stand-in lkai_entry; bin/py-spy is a fake under tmp_path."""
+    import importlib
+
+    entry = types.ModuleType("lkai_entry")
+    entry.handler = entry_handler
+    monkeypatch.setitem(sys.modules, "lkai_entry", entry)
+    pr77 = types.ModuleType("handler")  # PR #77's handler: its background load, already finished
+    done = Future()
+    done.set_result(None)
+    pr77._ENGINE = done
+    monkeypatch.setitem(sys.modules, "handler", pr77)
+    monkeypatch.setenv("LKAI_PROF", mode)
+    monkeypatch.delitem(sys.modules, "lkai_prof", raising=False)
+    if pyspy_script:
+        (tmp_path / "bin").mkdir()
+        spy = tmp_path / "bin" / "py-spy"
+        spy.write_text(pyspy_script)
+        spy.chmod(0o755)
+    real = os.path.abspath
+    monkeypatch.setattr(
+        os.path, "abspath", lambda p: str(tmp_path / "lkai_prof.py") if str(p).endswith("lkai_prof.py") else real(p)
+    )
+    mod = importlib.import_module("lkai_prof")
+    monkeypatch.setattr(os.path, "abspath", real)
+    return mod
+
+
+# Like py-spy cut by SIGINT mid-write: the raw output ends inside a UTF-8 sequence.
+_BAD_SPY = """#!/bin/sh
+while [ "$1" != "-o" ]; do shift; done
+printf 'a (x.py:1);b (y.py:2) 3\\n\\376\\375' > "$2"
+exec sleep 30
+"""
+
+
+def _records(capsys):
+    return [json.loads(ln.split(" ", 1)[1]) for ln in capsys.readouterr().out.splitlines()
+            if ln.startswith("LKAI_PROF ")]
+
+
+def test_truncated_pyspy_output_does_not_fail_the_request(monkeypatch, tmp_path, capsys):
+    import time
+
+    def entry(e, c):
+        time.sleep(0.3)  # let the fake py-spy write before it is interrupted, as a real forward would
+        return {"answers": {"q": 1}}
+
+    mod = _load_prof(monkeypatch, tmp_path, "pyspy", entry, _BAD_SPY)
+    time.sleep(0.3)
+    assert mod.handler({}, None)["answers"] == {"q": 1}
+    recs = _records(capsys)
+    assert "profiler_error" not in [r["kind"] for r in recs]  # undecodable bytes are replaced, the rest parses
+    assert next(r for r in recs if r["kind"] == "init")["pyspy"]["samples"] == 3
+    assert next(r for r in recs if r["kind"] == "invoke")["pyspy"]["samples"] == 3
+
+
+def test_profiler_exception_is_logged_and_the_handler_outcome_kept(monkeypatch, tmp_path, capsys):
+    def boom(e, c):
+        raise ValueError("engine failed")
+
+    mod = _load_prof(monkeypatch, tmp_path, "none", boom)
+
+    def bad_hook():
+        raise UnicodeDecodeError("utf-8", b"\xfe", 0, 1, "invalid start byte")
+
+    monkeypatch.setattr(mod, "_init_profile_emit", bad_hook)
+    with pytest.raises(ValueError, match="engine failed"):  # the handler's own error, not the profiler's
+        mod.handler({}, None)
+    errs = [r for r in _records(capsys) if r["kind"] == "profiler_error"]
+    assert len(errs) == 1 and errs[0]["where"] == "init" and errs[0]["error"].startswith("UnicodeDecodeError")
+
+
+# ------------------------------------------------------------------------------------------------ paired overhead
+
+
+def _prow(arm, rnd, cls, dur, *, rid="r1", cpu="0xd40", init=None, error=None, mismatch=False):
+    rep = {"Duration": dur}
+    if init is not None:
+        rep["Init Duration"] = init
+    return {"arm": arm, "round": rnd, "expected_class": cls, "error": error, "class_mismatch": mismatch,
+            "cpu_part": cpu, "request_id": rid, "report": rep}
+
+
+def test_paired_rounds_cancel_round_drift():
+    import summarize_prof as sp
+
+    rows = []
+    for rnd, drift in enumerate((0, 100, -50)):  # the whole round is slower or faster: both arms move together
+        rows += [_prow("rep", rnd, "warm", 700 + drift), _prow("rep", rnd, "warm", 710 + drift)]
+        rows += [_prow("x", rnd, "warm", 720 + drift), _prow("x", rnd, "warm", 730 + drift)]
+    rows += [_prow("x", 0, "warm", 9999, cpu="0xd0c"), _prow("x", 1, "warm", 9999, error="boom"),
+             _prow("x", 2, "warm", 9999, mismatch=True)]  # all excluded
+    p = sp.paired_rounds(rows, "x")["warm.Duration"]
+    assert p["rounds"] == 3 and p["delta_ms_by_round"] == [20.0, 20.0, 20.0]
+    assert p["mean_ms"] == 20.0 and p["min_ms"] == p["max_ms"] == 20.0
+    assert sp.noise_floor({"xray": {"warm.Duration": p, "warm.Duration.by_request": {"cells": 1}}}, "xray") == {
+        "warm.Duration": 20.0}
+
+
+def test_paired_warm_by_request_removes_request_mix():
+    import summarize_prof as sp
+
+    # The arm got more of the long request; pooled medians would call it 3x slower. Per request it is +10%.
+    rows = [_prow("rep", 0, "warm", 250, rid="short"), _prow("rep", 0, "warm", 1750, rid="long"),
+            _prow("x", 0, "warm", 275, rid="short"), *[_prow("x", 0, "warm", 1925, rid="long")] * 5]
+    w = sp.paired_warm_by_request(rows, "x")
+    assert w == {"cells": 2, "median_pct": 10.0, "min_pct": 10.0, "max_pct": 10.0}
+
+
+def test_profile_extracts_split_warm_sampler_tables_by_cpu_part(tmp_path):
+    import summarize_prof as sp
+
+    def phase(n, cls, cpu):
+        return "LKAI " + json.dumps({"schema": "lkai-phases/1", "kind": "invoke", "inv": {"n": n, "class": cls,
+                                                                                       "cpu_part": cpu}})
+
+    def samp(n, sym):
+        t = {"samples": 4, "top_self": [{"symbol": sym, "samples": 4}], "by_library": [], "top_caller_edges": []}
+        return "LKAI_PROF " + json.dumps({"kind": "invoke", "n": n, "cpu_s": 0.1,
+                                          "sampler": {"n": 4, "dropped": 0, "phases": {"invoke": t}}})
+
+    d = tmp_path / "logs"
+    d.mkdir()
+    ev = [("s1", phase(1, "cold", "0xd40")), ("s1", samp(1, "cold_sym")), ("s1", phase(2, "warm", "0xd40")),
+          ("s1", samp(2, "i8mm")), ("s2", phase(1, "warm", "0xd0c")), ("s2", samp(1, "dotprod"))]
+    with gzip.open(d / "lkai-p3-sampler.jsonl.gz", "wt") as f:
+        for i, (s, m) in enumerate(ev):
+            f.write(json.dumps({"timestamp": i, "logStreamName": s, "message": m}) + "\n")
+    out = sp.profile_extracts(str(tmp_path), {"functions": {"sampler": {"FunctionName": "lkai-p3-sampler"}}})["sampler"]
+    assert out["sampler_invoke"]["records"] == 3
+    top = {k: out[k]["phases"]["invoke"]["top_self"][0]["symbol"] for k in out if k.startswith("sampler_invoke_warm_")}
+    assert top == {"sampler_invoke_warm_0xd40": "i8mm", "sampler_invoke_warm_0xd0c": "dotprod"}
