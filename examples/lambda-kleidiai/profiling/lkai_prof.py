@@ -53,38 +53,20 @@ if MODE == "cprofile":
     _PROF = cProfile.Profile()
 
     def _cp_summary(prof: cProfile.Profile, top: int = 40) -> list[dict]:
+        """The top functions by cumulative time and the top by own time (tottime), deduplicated."""
         st = pstats.Stats(prof)
         rows = []
         for (file, line, fn), (cc, nc, tt, ct, _callers) in st.stats.items():  # type: ignore[attr-defined]
             rows.append({"fn": f"{os.path.basename(file)}:{line}:{fn}", "ncalls": nc, "tottime": round(tt, 6),
                          "cumtime": round(ct, 6)})
-        rows.sort(key=lambda r: -r["cumtime"])
-        return rows[:top]
+        keep = {id(r): r for r in sorted(rows, key=lambda r: -r["cumtime"])[:top]}
+        keep.update({id(r): r for r in sorted(rows, key=lambda r: -r["tottime"])[:top]})
+        return sorted(keep.values(), key=lambda r: -r["cumtime"])
 
     _PROF.enable()
-
-    # cProfile sees only the thread that enabled it. On demand, PR #77's handler submits _load to a one-thread pool
-    # at import; wrap that one submission so the load thread gets its own profile (the 32 download threads are not
-    # profiled: they wait on sockets). Restored at the end of the import.
-    import concurrent.futures as _cf
-
-    _LOAD_PROF = cProfile.Profile()
-    _orig_submit = _cf.ThreadPoolExecutor.submit
-
-    def _submit(self, fn, *a, **k):
-        if getattr(fn, "__name__", "") != "_load":
-            return _orig_submit(self, fn, *a, **k)
-
-        def run(*a2, **k2):
-            _LOAD_PROF.enable()
-            try:
-                return fn(*a2, **k2)
-            finally:
-                _LOAD_PROF.disable()
-
-        return _orig_submit(self, run, *a, **k)
-
-    _cf.ThreadPoolExecutor.submit = _submit
+    # Python 3.12's cProfile runs on sys.monitoring, which is process-wide: this one profile also sees PR #77's
+    # background load thread and the 32 download threads. Only one may be active at a time (a second enable raises
+    # "Another profiling tool is already active"), so the init profile is disabled before any invocation's starts.
 
 # ------------------------------------------------------------------------------------------------ native sampler
 _SAMP = None
@@ -100,23 +82,17 @@ _SPY: dict = {}
 
 
 def _spy_start(tag: str, duration_s: int) -> None:
-    import select
     import subprocess
 
     out = f"/tmp/pyspy-{tag}.txt"
     t = time.monotonic()
+    # Popen only: py-spy prints no "ready" line when stderr is not a terminal, so there is nothing to wait for. Its
+    # attach time (process_vm_readv of the interpreter state) is lost from the profile, not added to the invocation.
     proc = subprocess.Popen(
         [os.path.join(HERE, "bin", "py-spy"), "record", "--pid", str(os.getpid()), "--rate", "100",
          "--threads", "--nonblocking", "--format", "raw", "--duration", str(duration_s), "-o", out],
         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    # py-spy prints "Sampling process ..." once it is attached and sampling: wait for that (at most 2 s) rather than a
-    # fixed sleep, so the profiled code starts under the sampler and the wait is only what attaching costs.
-    head = b""
-    while b"Sampling" not in head and time.monotonic() - t < 2 and proc.poll() is None:
-        r, _, _ = select.select([proc.stderr], [], [], 0.05)
-        if r:
-            head += os.read(proc.stderr.fileno(), 4096)
-    _SPY[tag] = (proc, out, t, head, time.monotonic() - t)
+    _SPY[tag] = (proc, out, t, b"", time.monotonic() - t)
 
 
 def _spy_stop(tag: str, top: int = 40) -> dict:
@@ -131,7 +107,7 @@ def _spy_stop(tag: str, top: int = 40) -> dict:
         proc.kill()
         _, err = proc.communicate()
     res: dict = {"rc": proc.returncode, "stderr": (head + err).decode(errors="replace")[-600:],
-                 "attach_s": round(attach_s, 4), "wall_s": round(time.monotonic() - t, 4)}
+                 "popen_s": round(attach_s, 4), "wall_s": round(time.monotonic() - t, 4)}
     try:
         res.update(_collapse(open(out).read(), top))
     except OSError as e:
@@ -167,8 +143,6 @@ _t_imp = time.monotonic_ns()
 import lkai_entry  # noqa: E402  (runs the whole baseline init: download, load, warm-up; or at publish for SnapStart)
 
 _init_s = (time.monotonic_ns() - _t_imp) / 1e9
-if MODE == "cprofile":
-    _cf.ThreadPoolExecutor.submit = _orig_submit
 
 
 def _init_profile() -> None:
@@ -178,17 +152,14 @@ def _init_profile() -> None:
     _state["init_emitted"] = True
     if MODE == "cprofile":
         _PROF.disable()
-        st = {"import_thread": _cp_summary(_PROF)}
-        if _LOAD_PROF.getstats():
-            st["load_thread"] = _cp_summary(_LOAD_PROF)
-        _emit("init", import_s=_init_s, top=st)
+        _emit("init", import_s=_init_s, top={"all_threads": _cp_summary(_PROF)})
     elif MODE == "pyspy" and "init" in _SPY:
         _emit("init", import_s=_init_s, pyspy=_spy_stop("init"))
     elif MODE == "sampler":
         import lkai_symbolise
 
         _SAMP.samp_phase(0)
-        _emit("init", import_s=_init_s, sampler=lkai_symbolise.summary(_SAMP))
+        _emit("init", import_s=_init_s, cpu_s=round(time.process_time(), 4), sampler=lkai_symbolise.summary(_SAMP))
         _SAMP.samp_reset()
 
 
@@ -249,11 +220,14 @@ def handler(event, context):
         import lkai_symbolise
 
         _SAMP.samp_phase(7)
+        c0 = time.process_time()
         try:
             out = lkai_entry.handler(event, context)
         finally:
             _SAMP.samp_phase(0)
-            _emit("invoke", n=n, sampler=lkai_symbolise.summary(_SAMP))
+            # cpu_s (process CPU time, all threads) beside the sample count gives the effective sampling rate:
+            # ITIMER_PROF signals coalesce, one pending per process, so 6 busy threads yield far fewer than 1 kHz each.
+            _emit("invoke", n=n, cpu_s=round(time.process_time() - c0, 4), sampler=lkai_symbolise.summary(_SAMP))
             _SAMP.samp_reset()
     else:
         out = lkai_entry.handler(event, context)

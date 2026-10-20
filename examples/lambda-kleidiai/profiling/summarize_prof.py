@@ -79,10 +79,10 @@ def profile_extracts(run: str, cond: dict) -> dict:
         inits = [r for r in recs if r["kind"] == "init"]
         invs = [r for r in recs if r["kind"] == "invoke"]
         if any("top" in r for r in recs):  # cProfile
-            a["cprofile_init_import_thread_top_cumtime"] = _merge_top(
-                [r["top"].get("import_thread") for r in inits if isinstance(r.get("top"), dict)], "fn", "cumtime")
-            a["cprofile_init_load_thread_top_cumtime"] = _merge_top(
-                [r["top"].get("load_thread") for r in inits if isinstance(r.get("top"), dict)], "fn", "cumtime")
+            a["cprofile_init_top_cumtime"] = _merge_top(
+                [r["top"].get("all_threads") for r in inits if isinstance(r.get("top"), dict)], "fn", "cumtime")
+            a["cprofile_init_top_tottime"] = _merge_top(
+                [r["top"].get("all_threads") for r in inits if isinstance(r.get("top"), dict)], "fn", "tottime")
             a["cprofile_invoke_top_tottime"] = _merge_top([r.get("top") for r in invs], "fn", "tottime")
         if any("pyspy" in r for r in recs):
             for kind, rs in (("init", inits), ("invoke", invs)):
@@ -91,7 +91,7 @@ def profile_extracts(run: str, cond: dict) -> dict:
                     "records": len(ps),
                     "samples": sum(p.get("samples", 0) for p in ps),
                     "rc": dict(Counter(str(p.get("rc")) for p in ps)),
-                    "attach_s": s1.dist([p.get("attach_s") for p in ps]),
+                    "popen_s": s1.dist([p.get("popen_s") for p in ps]),
                     "stderr_examples": sorted({p.get("stderr", "")[-200:] for p in ps if p.get("rc") not in (0, None)})[:3],
                     "top_leaf": _merge_top([p.get("top_leaf") for p in ps], "frame", "samples"),
                     "top_inclusive": _merge_top([p.get("top_inclusive") for p in ps], "frame", "samples"),
@@ -107,6 +107,9 @@ def profile_extracts(run: str, cond: dict) -> dict:
                     "records": len(sm),
                     "samples": sum(x.get("n", 0) for x in sm),
                     "dropped": sum(x.get("dropped", 0) for x in sm),
+                    "cpu_s": round(sum(r.get("cpu_s") or 0 for r in rs), 3),
+                    "effective_hz_per_cpu_s": round(sum(x.get("n", 0) for x in sm)
+                                                    / max(1e-9, sum(r.get("cpu_s") or 0 for r in rs)), 1),
                     "phases": {name: {"samples": sum(t["samples"] for t in ts),
                                       "top_self": _merge_top([t["top_self"] for t in ts], "symbol", "samples"),
                                       "by_library": _merge_top([t["by_library"] for t in ts], "library", "samples", 12),
