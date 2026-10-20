@@ -582,9 +582,23 @@ def publish_run(
         old = store.get(key)
         if old is not None and _sha(old) == _sha(data):
             rep.unchanged.append(key)
-        else:
+        elif replace:
             store.put(key, data, _ctype(key))
             rep.uploaded.append(key)
+        else:
+            # Create-only, like result.json below: a publisher that loses a race on this run id must not overwrite
+            # the winner's artifacts, whose sha256 the winner's result.json already records.
+            try:
+                store.put(key, data, _ctype(key), if_absent=True)
+            except KeyExists:
+                if _sha(store.get(key) or b"") != _sha(data):
+                    raise PublishConflict(
+                        f"{store.uri(key)} already holds different bytes; "
+                        "use a new run_id, or --replace if you mean to correct this run"
+                    ) from None
+                rep.unchanged.append(key)
+            else:
+                rep.uploaded.append(key)
     if old_result is not None and _sha(old_result) == _sha(body):
         rep.unchanged.append(rep.run_key)
     elif old_result is None and not replace:
@@ -607,29 +621,42 @@ def publish_run(
     return rep
 
 
+def _fingerprint(runs: list[dict]) -> list[tuple[str, str]]:
+    """Run keys plus content hashes: a --replace correction changes the input even when the key set does not."""
+    return sorted((run_key(r), _sha(json.dumps(r, sort_keys=True).encode())) for r in runs)
+
+
 def regenerate(store, out_dir: str | None = None, include_fixtures: bool | None = None) -> dict:
     """Rebuild every page from every result.json in the store, upload site/, and write the combined single-file
-    dashboard to out_dir (for Artifactory). Repeats until the run set it rendered is still the run set in the
-    store, so a run published while we were rendering is not left out. Raises RegenerateDidNotSettle rather than
-    writing out_dir from a run set that was still moving."""
+    dashboard to out_dir (for Artifactory).
+
+    site/ is written only from a render whose input (run keys and content) was unchanged between loading it and
+    rendering it, so a render that never settles writes nothing. After writing, the run set is read once more: if a
+    run landed meanwhile, its publisher may already have written newer pages that ours replaced, so we render and
+    write again. RegenerateDidNotSettle is raised, and out_dir is not written, when 5 attempts never end on a
+    confirmed-current write; the caller then exits 4 and `--regenerate-only` repairs site/ once publishers quiesce."""
     runs = load_runs(store)
-    settled = False
     for _ in range(5):
-        keys = {run_key(r) for r in runs}
+        seen = _fingerprint(runs)
         site = render_site(runs, include_fixtures=include_fixtures)
         latest = load_runs(store)
-        if {run_key(r) for r in latest} == keys:
-            settled = True
+        if _fingerprint(latest) != seen:
+            runs = latest  # someone published meanwhile: render again so their run is on the page
+            continue
+        # Publish only a render whose input was observed stable: a refusal leaves site/ untouched.
+        for name, page in site.items():
+            store.put(f"site/{name}", page.encode(), "text/html; charset=utf-8")
+        latest = load_runs(store)
+        if _fingerprint(latest) == seen:
             break
-        runs = latest  # someone published meanwhile: render again so their run is on the page
-    if not settled:
+        # A run landed while we wrote. Its publisher may already have written newer pages that ours just replaced,
+        # so render again rather than leave stale pages as the last write to site/.
+        runs = latest
+    else:
         raise RegenerateDidNotSettle(
             "run set changed on each of 5 renders; rerun with --regenerate-only once publishers quiesce"
         )
-    # Publish only the render whose input set was observed stable. Failed stabilization must not leave known-stale
-    # shared pages behind.
-    for name, page in site.items():
-        store.put(f"site/{name}", page.encode(), "text/html; charset=utf-8")
+    keys = {run_key(r) for r in runs}
     if out_dir:
         for name, page in site.items():
             p = os.path.join(out_dir, name)

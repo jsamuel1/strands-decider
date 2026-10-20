@@ -14,6 +14,7 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import sys
 import threading
 
@@ -798,6 +799,58 @@ def test_regenerate_raises_instead_of_writing_an_unsettled_page(tmp_path, monkey
     assert store.list("site/") == []
 
 
+def test_regenerate_rewrites_when_a_run_lands_during_its_site_write(tmp_path, monkeypatch):
+    """A run landing between our render and our site/ write: its publisher may write first, then we overwrite with
+    pages missing it. The post-write re-read must catch that and leave current pages as the last write."""
+    store = lr.LocalStore(str(tmp_path / "s"))
+    a = real(load("fixture-improved"), "a")
+    b = copy.deepcopy(a)
+    b["run_id"] = "b"
+    lr.publish_run(a, fixture_dir("fixture-improved"), store)
+    real_put = store.put
+    injected = []
+
+    def put(key, data, *args, **kw):
+        real_put(key, data, *args, **kw)
+        if key.startswith("site/") and not injected:
+            injected.append(key)
+            lr.publish_run(
+                b, fixture_dir("fixture-improved"), store
+            )  # the other publisher, mid-write
+
+    monkeypatch.setattr(store, "put", put)
+    out = tmp_path / "out"
+    rep = lr.regenerate(store, str(out))
+    assert injected
+    assert rep["runs"] == sorted([lr.run_key(a), lr.run_key(b)])
+    page = store.get("site/dashboard.html").decode()
+    assert f"{a['experiment_id']}/b" in page
+    assert f"{a['experiment_id']}/b" in (out / "dashboard.html").read_text()
+
+
+def test_regenerate_rerenders_a_replaced_run_with_unchanged_keys(tmp_path, monkeypatch):
+    """--replace changes a run's content but not its key; a key-only settle check would publish the old content."""
+    store = lr.LocalStore(str(tmp_path / "s"))
+    r = real(load("fixture-improved"), "a")
+    lr.publish_run(r, fixture_dir("fixture-improved"), store)
+    fixed = copy.deepcopy(r)
+    fixed["conclusion"] = "corrected conclusion text"
+    real_render = lr.render_site
+    renders = []
+
+    def render(runs, include_fixtures=None):
+        renders.append([x["conclusion"] for x in runs])
+        page = real_render(runs, include_fixtures=include_fixtures)
+        if len(renders) == 1:
+            lr.publish_run(fixed, fixture_dir("fixture-improved"), store, replace=True)
+        return page
+
+    monkeypatch.setattr(lr, "render_site", render)
+    lr.regenerate(store)
+    assert len(renders) == 2 and renders[-1] == ["corrected conclusion text"]
+    assert "corrected conclusion text" in store.get("site/dashboard.html").decode()
+
+
 def test_racing_creates_of_one_run_id_cannot_both_win(tmp_path, monkeypatch):
     """Check-then-put on result.json: two publishers both see 'absent'; the create-only put lets one win."""
     store = lr.LocalStore(str(tmp_path / "s"))
@@ -817,6 +870,29 @@ def test_racing_creates_of_one_run_id_cannot_both_win(tmp_path, monkeypatch):
     monkeypatch.setattr(store, "get", real_get)
     assert json.loads(store.get(key))["conclusion"] == r1["conclusion"]
     lr.publish_run(r1, fixture_dir("fixture-improved"), store)  # same bytes after a lost race: fine
+
+
+def test_racing_publishers_cannot_overwrite_each_others_artifacts(tmp_path, monkeypatch):
+    """Artifacts are create-only too: a loser with different bytes is refused and the winner's artifact, whose sha256
+    its result.json records, is left intact."""
+    store = lr.LocalStore(str(tmp_path / "s"))
+    src = fixture_dir("fixture-improved")
+    other = tmp_path / "other"
+    shutil.copytree(src, other)
+    r = real(load("fixture-improved"), "same")
+    rel = sorted(lr._artifact_files(str(other), next(iter(r["artifacts"].values()))))[0]
+    (other / rel).write_bytes(b"the other publisher's log\n")
+    lr.publish_run(r, src, store)
+    key = f"runs/{r['experiment_id']}/same/artifacts/{rel}"
+    winner = store.get(key)
+    real_get = store.get
+    monkeypatch.setattr(store, "get", lambda k: None if k.startswith("runs/") else real_get(k))
+    with pytest.raises(lr.PublishConflict, match="different bytes"):
+        lr.publish_run(r, str(other), store)
+    monkeypatch.setattr(store, "get", real_get)
+    assert store.get(key) == winner
+    published = json.loads(store.get(f"runs/{r['experiment_id']}/same/result.json"))
+    assert published["published"]["artifacts"][rel]["sha256"] == hashlib.sha256(winner).hexdigest()
 
 
 def test_s3_store_puts_carry_checksum_and_create_only_condition():
