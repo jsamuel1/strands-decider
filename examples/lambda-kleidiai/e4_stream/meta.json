@@ -1,0 +1,15 @@
+{
+ "experiment_id": "E4-stream-load",
+ "status": "inconclusive",
+ "hypothesis": "On a cold start the baseline downloads the 1,981 MiB Q8_0 GGUF into a memfd (25.0 s p50) and only then lets llama.cpp load it (model_load_mmap 8.4 s p50, which includes KleidiAI repacking each Q8_0 matmul weight as it reads it). The loader reads the header first and then each tensor once, so the load can start as soon as the header is present and repack each tensor as its bytes land. Overlapping the two should cut cold download+load from ~33.4 s towards max(download, load) plus the tail of the last tensors, and change no output. It cannot change a SnapStart restore, which never downloads or loads.",
+ "changed_variable": {
+  "name": "download/load overlap",
+  "baseline": "download_to_memfd completes, then llama_model_load_from_file mmaps the memfd (P1)",
+  "experiment": "llama_model_load_from_file starts once the GGUF header is in the memfd; a dormant llama.cpp hook (e4_stream/patch_stream.py) blocks each tensor's read until its bytes have arrived and loads tensors in expected-arrival order (arm stream). Same file, same download (HEAD + 31 x 64 MiB ranges on 32 threads), same mmap path and kernels. Arm streamfile keeps llama.cpp's own tensor order as a control"
+ },
+ "conclusion": null,
+ "reproduce": [
+  "git fetch https://github.com/jsamuel1/strands-decider lkai/7cb8-stream-load && git checkout FETCH_HEAD",
+  "AWS_PROFILE=<profile> examples/lambda-kleidiai/e4_stream/run.sh <run-id>"
+ ]
+}

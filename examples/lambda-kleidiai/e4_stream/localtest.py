@@ -20,6 +20,11 @@ import sys
 import threading
 import time
 
+# Import the package's modules (PYTHONPATH=/task), never the source copies beside this script.
+sys.path[:] = [
+    p for p in sys.path if os.path.abspath(p or ".") != os.path.dirname(os.path.abspath(__file__))
+]
+
 GGUF, OUT = sys.argv[1], sys.argv[2]
 MIB_S = float(os.environ.get("E4_FAKE_MIB_S", "80"))
 REQS = os.environ.get("E4_REQUESTS", "/recipe/baseline/requests.json")

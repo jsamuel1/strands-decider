@@ -145,8 +145,11 @@ def _download_part(
 
 
 def _lib_dir() -> str:
+    # The package's lib/ (handler.py passes <package>/lib/libdecider_hidden.so; the shim sits beside it). Resolve it
+    # from PR #77's loader, which is always at the package root, not from this file, which a test may import
+    # from the source tree.
     return os.environ.get("DEC_GGML_DIR") or os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), "lib"
+        os.path.dirname(os.path.abspath(_pr77_loader.__file__)), "lib"
     )
 
 
