@@ -186,7 +186,7 @@ def test_bench_refuses_when_deployed_memory_differs(tmp_path, monkeypatch):
     monkeypatch.setattr(
         sys,
         "argv",
-        ["bench.py", "--out", str(tmp_path / "run"), "--memory", "2048", "--rounds", "1"],
+        ["bench.py", "--out", str(tmp_path / "run"), "--memory", "2048", "--rounds", "2"],
     )
     with pytest.raises(SystemExit, match="MemorySize 10240 MB, run wants 2048 MB"):
         bench.main()
@@ -205,9 +205,9 @@ def test_bench_records_memory_condition(tmp_path, monkeypatch):
             "--memory",
             "2048",
             "--rounds",
-            "1",
+            "2",
             "--warm",
-            "0",
+            "1",
             "--log-lag",
             "0",
         ],
@@ -448,6 +448,8 @@ def test_build_script_gates_every_stage_and_records_keys():
         ({"answers": {"q": {}}, "latency_ms": 5.0}, "answer-not-object"),
         ({"answers": {"q": {"noul": 1}}}, "no-latency"),
         ({"answers": {"q": {"noul": 1}}, "latency_ms": True}, "no-latency"),
+        ({"answers": {"q": {"noul": 1}}, "latency_ms": float("nan")}, "no-latency"),
+        ({"answers": {"q": {"noul": 1}}, "latency_ms": float("inf")}, "no-latency"),
         ({"statusCode": 422, "body": "{}"}, "http-422"),
         ({"raw": "not json"}, "no-answers"),
         ("text", "payload-not-object"),
@@ -480,6 +482,61 @@ def _bench_invoke(payload: dict, monkeypatch):
     b.reqs = {"r1": {"questions": {"q": {}}}}
     b.write = rows.append
     return b.invoke("inst", "$LATEST", "r1", 0, "warm", 0)
+
+
+@pytest.mark.parametrize("value", ["0", "-1", "abc", "1.5", ""])
+def test_positive_count_rejects_zero_negative_and_non_integer(value):
+    import bench
+
+    with pytest.raises(Exception, match=r"integer >= 1"):
+        bench.positive_int(value)
+
+
+@pytest.mark.parametrize("value", ["-1", "abc", "1.5", ""])
+def test_nonnegative_count_rejects_negative_and_non_integer(value):
+    import bench
+
+    with pytest.raises(Exception, match="non-negative integer"):
+        bench.nonnegative_int(value)
+
+
+@pytest.mark.parametrize("value", ["1", "17"])
+def test_positive_count_accepts_positive_integer(value):
+    import bench
+
+    assert bench.positive_int(value) == int(value)
+
+
+def test_wave_uses_fresh_lambda_client_per_wave():
+    import bench
+
+    seen = []
+
+    class Lam:
+        def __init__(self, name):
+            self.name = name
+
+        def invoke(self, **kw):
+            import io
+
+            seen.append(self.name)
+            return {
+                "Payload": io.BytesIO(b'{"answers":{"q":{"noul":0.5}},"latency_ms":1}'),
+                "StatusCode": 200,
+            }
+
+    b = bench.Bench.__new__(bench.Bench)
+    b.st = {"functions": {"inst": {"name": "fn"}}}
+    b.reqs = {"r1": {"questions": {"q": {}}}}
+    b.probe = "r1"
+    b.concurrency = 2
+    b.write = lambda row: None
+    clients = iter([Lam("cold"), Lam("restore")])
+    b.new_invoke_client = lambda: next(clients)
+
+    b.wave("inst", "$LATEST", 0, "cold")
+    b.wave("inst", "1", 0, "restore")
+    assert seen == ["cold", "cold", "restore", "restore"]
 
 
 def test_bench_marks_answerless_success_as_error(monkeypatch):
@@ -527,6 +584,80 @@ def _mk(p: Path) -> Path:
     return p
 
 
+def test_write_reference_refused_for_empty_baseline(tmp_path):
+    import test_lkai_baseline as t
+
+    run = t._run_dir(_mk(tmp_path / "run"), [])
+    ref = tmp_path / "ref.json"
+    assert summarize.main([run, "--write-reference", str(ref)]) == 3
+    assert not ref.exists()
+    res = json.loads((Path(run) / "results.json").read_text())
+    assert res["correctness"]["invocations"] == 0
+    assert "no invocations" in summarize.incomplete(res)
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        ["--rounds", "0"],
+        ["--rounds", "1"],
+        ["--concurrency", "0"],
+        ["--concurrency", "-3"],
+        ["--warm", "0"],
+        ["--log-lag", "-1"],
+    ],
+)
+def test_bench_refuses_degenerate_sample_inputs(tmp_path, monkeypatch, capsys, args):
+    bench = _bench_main_fixture(tmp_path, monkeypatch, deployed_memory=10240)
+    out = tmp_path / "run"
+    monkeypatch.setattr(sys, "argv", ["bench.py", "--out", str(out), *args])
+    with pytest.raises(SystemExit) as e:
+        bench.main()
+    assert e.value.code == 2 and "must be" in capsys.readouterr().err
+    assert not out.exists()  # refused before any directory or AWS call
+
+
+def _all_class_rows():
+    import test_lkai_baseline as t
+
+    rows = []
+    for rnd in range(2):
+        for arm in ("inst", "rep"):
+            rows.append(
+                t._row(arm, rnd, "cold", report={"Init Duration": 900.0, "Duration": 30000.0})
+            )
+            rows.append(
+                t._row(arm, rnd, "restore", report={"Restore Duration": 400.0, "Duration": 900.0})
+            )
+            rows.append(t._row(arm, rnd, "warm"))
+    return rows
+
+
+def test_baseline_missing_a_start_class_is_not_a_baseline(tmp_path):
+    import test_lkai_baseline as t
+
+    rows = [r for r in _all_class_rows() if not (r["arm"] == "rep" and r["wave"] == "warm")]
+    run = t._run_dir(_mk(tmp_path / "run"), rows)
+    ref = tmp_path / "ref.json"
+    assert summarize.main([run, "--write-reference", str(ref)]) == 3
+    assert not ref.exists()
+    res = json.loads((Path(run) / "results.json").read_text())
+    assert res["correctness"]["complete"] is True  # every row compared, still not a baseline
+    assert summarize.incomplete(res) == ["arm rep has no warm samples"]
+
+
+def test_baseline_with_one_round_is_not_a_baseline(tmp_path):
+    import test_lkai_baseline as t
+
+    run = t._run_dir(_mk(tmp_path / "run"), _all_class_rows())
+    cond = json.loads((Path(run) / "conditions.json").read_text())
+    cond["rounds"] = 1
+    (Path(run) / "conditions.json").write_text(json.dumps(cond))
+    ref = summarize.reference(_all_class_rows())
+    res = summarize.summarize(run, None, None, {}, ref=ref)
+    assert any("at least 2 are needed" in w for w in summarize.incomplete(res))
+
+
 def test_write_reference_refused_for_incomplete_baseline(tmp_path):
     import test_lkai_baseline as t
 
@@ -543,12 +674,13 @@ def test_write_reference_refused_for_incomplete_baseline(tmp_path):
 def test_complete_baseline_writes_reference(tmp_path):
     import test_lkai_baseline as t
 
-    rows = [t._row("inst", 0, "warm"), t._row("rep", 0, "warm")]
+    rows = _all_class_rows()
     run = t._run_dir(_mk(tmp_path / "run"), rows)
     ref = tmp_path / "ref.json"
     assert summarize.main([run, "--write-reference", str(ref)]) == 0
     res = json.loads((Path(run) / "results.json").read_text())
-    assert res["correctness"]["complete"] is True and res["correctness"]["compared"] == 2
+    assert res["correctness"]["complete"] is True
+    assert res["correctness"]["compared"] == len(rows)
     assert res["conditions"]["memory_mb"] == 10240
     assert json.loads(ref.read_text())["outputs"]["r1"]["0xd40"] == rows[0]["answers"]
 
@@ -561,6 +693,114 @@ def test_published_baseline_is_complete():
     c = res["correctness"]
     assert c["complete"] and c["compared"] == c["invocations"] == c["bit_identical"] == 1200
     assert summarize.incomplete(res) == []
+
+
+def test_bucket_creation_omits_location_constraint_in_us_east_1():
+    import deploy
+
+    calls = []
+
+    class S3:
+        def create_bucket(self, **kw):
+            calls.append(kw)
+
+        def __getattr__(self, name):
+            return lambda **kw: None
+
+    st = {}
+    deploy.ensure_bucket(S3(), "us-east-1", st, "p")
+    assert set(calls[0]) == {"Bucket"}
+
+
+def test_bucket_creation_sets_location_constraint_elsewhere():
+    import deploy
+
+    calls = []
+
+    class S3:
+        def create_bucket(self, **kw):
+            calls.append(kw)
+
+        def __getattr__(self, name):
+            return lambda **kw: None
+
+    deploy.ensure_bucket(S3(), "eu-west-1", {}, "p")
+    assert calls[0]["CreateBucketConfiguration"] == {"LocationConstraint": "eu-west-1"}
+
+
+def test_cost_refuses_region_without_pinned_prices(tmp_path):
+    import test_lkai_baseline as t
+
+    run = t._run_dir(_mk(tmp_path / "run"), [])
+    cond = json.loads((Path(run) / "conditions.json").read_text())
+    cond["region"] = "eu-west-1"
+    with pytest.raises(summarize.UnpricedRegion, match="no pinned prices for eu-west-1"):
+        summarize.costs(cond, [])
+    # The pinned table is the one applied to the pinned Region, and a caller can supply its own.
+    cond["region"] = "us-east-2"
+    assert summarize.costs(cond, [])["prices"] is summarize.PRICES_BY_REGION["us-east-2"]
+    cond["region"] = "eu-west-1"
+    mine = dict(summarize.PRICES, source="mine")
+    assert summarize.costs(cond, [], prices=mine)["prices"]["source"] == "mine"
+
+
+def test_bench_refuses_unpriced_region_before_any_aws_call(tmp_path, monkeypatch):
+    bench = _bench_main_fixture(tmp_path, monkeypatch, deployed_memory=10240)
+    monkeypatch.setattr(
+        bench.boto3, "Session", lambda **kw: pytest.fail("AWS session for an unpriced Region")
+    )
+    out = tmp_path / "run"
+    monkeypatch.setattr(sys, "argv", ["bench.py", "--out", str(out), "--region", "eu-west-1"])
+    with pytest.raises(SystemExit, match="no pinned prices for eu-west-1"):
+        bench.main()
+    assert not out.exists()
+
+
+@pytest.mark.parametrize("cmd", ["up", "upload", "functions"])
+def test_deploy_refuses_unpriced_region_before_creating_anything(tmp_path, monkeypatch, cmd):
+    import deploy
+
+    monkeypatch.setattr(
+        deploy.boto3, "Session", lambda **kw: pytest.fail("AWS session for an unpriced Region")
+    )
+    with pytest.raises(SystemExit, match="no pinned prices for us-east-1"):
+        deploy.main([cmd, "--build", str(tmp_path), "--region", "us-east-1"])
+
+
+@pytest.mark.parametrize("latency", ["NaN", "Infinity", "-Infinity"])
+def test_legacy_row_with_non_finite_latency_is_revalidated_as_error(tmp_path, latency):
+    """A row bench.py recorded as a success before it checked finiteness becomes an error on reload, stays out of
+    the distributions, and the result is still strict JSON."""
+    import test_lkai_baseline as t
+
+    rows = [t._row("inst", 0, "warm"), t._row("inst", 0, "warm", rid="r2")]
+    run = t._run_dir(_mk(tmp_path / "run"), rows)
+    lines = (Path(run) / "invocations.jsonl").read_text().splitlines()
+    lines[1] = lines[1].replace('"latency_ms": 500.0', f'"latency_ms": {latency}')
+    assert latency in lines[1]
+    (Path(run) / "invocations.jsonl").write_text("\n".join(lines) + "\n")
+    ref = tmp_path / "ref.json"
+    assert summarize.main([run, "--write-reference", str(ref)]) == 3
+    text = (Path(run) / "results.json").read_text()
+    res = json.loads(text, parse_constant=lambda c: pytest.fail(f"non-standard JSON {c}"))
+    assert [e["error"] for e in res["errors"]["rows"]] == ["malformed:no-latency"]
+    assert res["phases"]["inst"]["warm"]["n"] == 1
+    assert res["correctness"]["without_answers"] == 1
+
+
+def test_answer_with_non_finite_number_is_not_evidence():
+    for v in (float("nan"), float("inf")):
+        p = {"answers": {"q": {"noul": v}}, "latency_ms": 1.0}
+        assert summarize.answer_problem(p) == "answer-not-finite"
+        nested = {"answers": {"q": {"probabilities": {"a": v}}}, "latency_ms": 1.0}
+        assert summarize.answer_problem(nested) == "answer-not-finite"
+
+
+def test_dist_refuses_non_finite_samples():
+    with pytest.raises(ValueError, match="non-finite"):
+        summarize.dist([1.0, float("nan")])
+    with pytest.raises(ValueError, match="non-finite"):
+        summarize.dist([1.0, float("inf")])
 
 
 # ------------------------------------------------------------------ 4. cleanup attempts every version
@@ -582,7 +822,7 @@ def test_round_cleanup_deletes_every_version_after_first_failure(tmp_path, monke
     monkeypatch.setattr(
         sys,
         "argv",
-        ["bench.py", "--out", str(out), "--rounds", "1", "--warm", "0", "--log-lag", "0"],
+        ["bench.py", "--out", str(out), "--rounds", "2", "--warm", "1", "--log-lag", "0"],
     )
     with pytest.raises(bench.CleanupError, match="inst:7"):
         bench.main()
@@ -606,7 +846,7 @@ def test_round_failure_survives_cleanup_failure(tmp_path, monkeypatch):
 
     fake = bench.Bench
     fake.delete_version, fake.wave = delete_version, wave
-    monkeypatch.setattr(sys, "argv", ["bench.py", "--out", str(tmp_path / "run"), "--rounds", "1"])
+    monkeypatch.setattr(sys, "argv", ["bench.py", "--out", str(tmp_path / "run"), "--rounds", "2"])
     with pytest.raises(KeyError, match="benchmark failed"):
         bench.main()
     assert sorted(attempts) == ["inst", "rep"]
@@ -659,6 +899,15 @@ def _teardown_session(fail_on: set, deleted: list, versions: dict):
             if key in fail_on:
                 raise RuntimeError(f"delete {key} failed")
 
+    class Logs:
+        class exceptions:
+            ResourceNotFoundException = ResourceNotFound
+
+        def delete_log_group(self, logGroupName):
+            deleted.append(("log", logGroupName))
+            if ("log", logGroupName) in fail_on:
+                raise RuntimeError(f"delete {logGroupName} failed")
+
     class Iam:
         class exceptions:
             NoSuchEntityException = NoSuchEntity
@@ -680,7 +929,7 @@ def _teardown_session(fail_on: set, deleted: list, versions: dict):
 
     class Sess:
         def client(self, name):
-            return {"lambda": Lam(), "iam": Iam()}[name]
+            return {"lambda": Lam(), "logs": Logs(), "iam": Iam()}[name]
 
         def resource(self, name):
             return types.SimpleNamespace(Bucket=lambda n: Bucket())
@@ -705,6 +954,8 @@ def test_teardown_attempts_every_version_and_function_after_failures():
             assert (name, v) in deleted
         assert (name, None) in deleted
     assert ("role", "f-fn") in deleted and ("bucket", "b") in deleted
+    assert ("log", "/aws/lambda/f-inst") in deleted
+    assert ("log", "/aws/lambda/f-rep") in deleted
     assert len(failures) == 2 and any("f-inst:1" in f for f in failures)
 
 
@@ -718,6 +969,23 @@ def test_teardown_list_failure_does_not_stop_other_functions():
     assert ("f-rep", "4") in deleted and failures == [
         "list versions f-inst: RuntimeError: list failed"
     ]
+
+
+def test_teardown_log_failure_does_not_stop_role_and_bucket_cleanup():
+    import deploy
+
+    deleted: list = []
+    fail = {("log", "/aws/lambda/f-inst")}
+    sess = _teardown_session(fail, deleted, {"f-inst": [], "f-rep": []})
+    st = {
+        "prefix": "f",
+        "bucket": "b",
+        "functions": {a: {"name": f"f-{a}"} for a in ("inst", "rep")},
+    }
+    failures = deploy.teardown(sess, st, everything=True)
+    assert any("delete log group /aws/lambda/f-inst" in f for f in failures)
+    assert ("log", "/aws/lambda/f-rep") in deleted
+    assert ("role", "f-fn") in deleted and ("bucket", "b") in deleted
 
 
 def test_teardown_cli_exits_nonzero_naming_failures(tmp_path, monkeypatch):

@@ -11,14 +11,19 @@ AWS_PROFILE=<profile> examples/lambda-kleidiai/baseline/run.sh <run-id>
 `run.sh` needs an arm64 Linux host with Docker (a Graviton instance or an arm64 DevSpace) and about 60 GB of disk.
 It runs `build.sh`, `deploy.py up`, `bench.py` and `summarize.py`, then deletes the published versions so the
 SnapStart cache stops billing. The results are in `results/<run-id>/results.json`. Knobs: `REGION` (default
-`us-east-2`), `MEMORY` (10240 MB; 128 to 10,240), `ROUNDS` (5), `CONCURRENCY` (10), `WARM` (10 passes), `PREFIX`
+`us-east-2`, the only Region with a pinned price table; `deploy.py` and `bench.py` refuse any other before touching
+AWS, until a dated table is added to `summarize.PRICES_BY_REGION`), `MEMORY` (10240 MB; 128 to 10,240), `ROUNDS` (5;
+at least 2, for run-to-run variance), `CONCURRENCY` (10; at least 1), `WARM` (10 passes; at least 1), `PREFIX`
 (`lkai-p1`), `TEARDOWN` (`versions`, `all` or `none`). `MEMORY` is set on both functions, checked against the
 deployed functions before the benchmark starts, and recorded in `conditions.memory_mb` and `deployment.memory_mb`.
 
-`run.sh` exits non-zero when any invocation failed or returned no answer, when any invocation was not compared
-with the reference, or when cleanup could not delete a published version. The failed run's `results.json` is still
-written, but its answers never become the reference. Cleanup attempts every version even after one delete fails,
-and the benchmark's own failure is the exit status that is kept.
+`run.sh` exits non-zero when any invocation failed or returned no answer (including a non-finite latency or answer
+value), when any invocation was not compared with the reference, when the run has no invocations, when an arm is
+missing a cold, restore or warm sample, or when cleanup could not delete a published version. The failed run's
+`results.json` is still written, as strict JSON, but its answers never become the reference. Cleanup attempts every
+version even after one delete fails, and the benchmark's own failure is the exit status that is kept. Each wave
+invokes through a new Lambda client, so no measured invoke reuses a connection pooled across the publish/snapshot
+wait; that affects client round-trip timing only.
 
 `build.sh` reuses a stage only when its content-addressed key matches (`buildcache.py`). The `llama` stage is
 keyed on `LLAMA_REV` and the bytes of `llama/patch_llama.py`. The `weights` stage is keyed on the checkpoint and
@@ -185,4 +190,5 @@ distributions, histograms and the REPORT-only arm are in `results/20261020T08083
   (git-ignored with `build/`, as is `build/deployment.json`) and commits only the copy that `redact.py` makes.
 - At us-east-2 prices, one default run (5 rounds × 2 arms × (10 cold + 10 restore + 100 warm)) cost $2.38.
   Most of that is the 3-hour SnapStart cache minimum on 10 versions. `results.json` → `cost` gives the computed
-  figure for each run. `deploy.py teardown --all` removes everything.
+  figure for each run. `deploy.py teardown --all` removes functions, published versions, their CloudWatch log
+  groups, role and bucket; cleanup fans out through failures and reports every failed step.

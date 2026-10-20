@@ -48,6 +48,37 @@ _lock = threading.Lock()
 observed_class = phases.observed_class
 
 
+def at_least(minimum: int):
+    """argparse type for an integer count >= minimum."""
+
+    def parse(value: str) -> int:
+        try:
+            n = int(value)
+        except ValueError:
+            raise argparse.ArgumentTypeError(
+                f"must be an integer >= {minimum}, got {value!r}"
+            ) from None
+        if n < minimum:
+            raise argparse.ArgumentTypeError(f"must be an integer >= {minimum}, got {value!r}")
+        return n
+
+    return parse
+
+
+positive_int = at_least(1)
+
+
+def nonnegative_int(value: str) -> int:
+    """argparse type for a count that may be zero."""
+    try:
+        n = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"must be a non-negative integer, got {value!r}") from None
+    if n < 0:
+        raise argparse.ArgumentTypeError(f"must be a non-negative integer, got {value!r}")
+    return n
+
+
 class CleanupError(RuntimeError):
     """One or more published versions could not be deleted (they keep billing for SnapStart cache)."""
 
@@ -71,35 +102,68 @@ def delete_versions(b, published: dict[str, dict]) -> list[str]:
 
 
 class Bench:
+    """Two kinds of Lambda client.
+
+    `lam` makes the lifecycle calls (configuration, publish, readiness polls, deletes). They are idempotent, so it
+    has a short read timeout and standard retries: a pooled connection that died while idle costs one retry, not a
+    900 s hang. Every cold, restore and warm wave invokes through a NEW client (new_invoke_client), so no measured
+    invoke reuses a connection pooled before the publish/SnapStart-readiness wait or by an earlier wave. A silently
+    dead connection would otherwise time out with no Lambda START/REPORT and pollute client timing. This changes
+    client round-trip timing only; REPORT lines and phase records come from Lambda."""
+
     def __init__(self, sess, st: dict, reqs: dict, out: str, concurrency: int):
-        self.st, self.out = st, out
+        self.st, self.out, self.sess = st, out, sess
+        self.concurrency = concurrency
         self.lam = sess.client(
+            "lambda",
+            config=Config(
+                read_timeout=120,
+                connect_timeout=10,
+                retries={"max_attempts": 3, "mode": "standard"},
+            ),
+        )
+        self.logs = sess.client("logs")
+        self.invoke_clients = 0
+        self.reqs = {r["id"]: r["request"] for r in reqs["requests"]}
+        self.order = [r["id"] for r in reqs["requests"]]
+        self.probe = reqs["probe"]
+        self.fh = open(os.path.join(out, "invocations.jsonl"), "a")
+
+    def new_invoke_client(self):
+        """A fresh client for one wave: no retries (a retry would hide a failed start), the function's 900 s
+        timeout, and a pool as wide as the wave."""
+        self.invoke_clients += 1
+        return self.sess.client(
             "lambda",
             config=Config(
                 read_timeout=900,
                 connect_timeout=10,
                 retries={"max_attempts": 0},
-                max_pool_connections=max(16, concurrency * 2),
+                max_pool_connections=max(16, self.concurrency * 2),
             ),
         )
-        self.logs = sess.client("logs")
-        self.reqs = {r["id"]: r["request"] for r in reqs["requests"]}
-        self.order = [r["id"] for r in reqs["requests"]]
-        self.probe = reqs["probe"]
-        self.concurrency = concurrency
-        self.fh = open(os.path.join(out, "invocations.jsonl"), "a")
 
     def write(self, rec: dict) -> None:
         with _lock:
             self.fh.write(json.dumps(rec, separators=(",", ":")) + "\n")
             self.fh.flush()
 
-    def invoke(self, arm: str, qualifier: str, rid: str, rnd: int, wave: str, seq: int) -> dict:
+    def invoke(
+        self,
+        arm: str,
+        qualifier: str,
+        rid: str,
+        rnd: int,
+        wave: str,
+        seq: int,
+        lam=None,
+    ) -> dict:
         name = self.st["functions"][arm]["name"]
+        client = lam or self.lam
         t_wall = time.time()
         t = time.perf_counter()
         try:
-            r = self.lam.invoke(
+            r = client.invoke(
                 FunctionName=name,
                 Qualifier=qualifier,
                 LogType="Tail",
@@ -166,9 +230,20 @@ class Bench:
     def wave(
         self, arm: str, qualifier: str, rnd: int, wave: str, rid: str | None = None, seq0: int = 0
     ) -> list[dict]:
+        # One fresh pool per cold/restore/warm wave (see the class docstring).
+        lam = self.new_invoke_client()
         with ThreadPoolExecutor(self.concurrency) as ex:
             futs = [
-                ex.submit(self.invoke, arm, qualifier, rid or self.probe, rnd, wave, seq0 + i)
+                ex.submit(
+                    self.invoke,
+                    arm,
+                    qualifier,
+                    rid or self.probe,
+                    rnd,
+                    wave,
+                    seq0 + i,
+                    lam,
+                )
                 for i in range(self.concurrency)
             ]
             return [f.result() for f in futs]
@@ -229,13 +304,15 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--build", default=os.path.join(HERE, "build"))
     ap.add_argument("--requests", default=os.path.join(HERE, "requests.json"))
-    ap.add_argument("--rounds", type=int, default=5)
-    ap.add_argument("--concurrency", type=int, default=10)
+    # Two rounds is the least that gives run-to-run variance. Zero rounds, concurrency or warm passes would produce a
+    # run with no invocations, or with a whole start class missing, that could still look complete.
+    ap.add_argument("--rounds", type=at_least(2), default=5, help="at least 2")
+    ap.add_argument("--concurrency", type=positive_int, default=10)
     ap.add_argument(
         "--warm",
-        type=int,
+        type=positive_int,
         default=10,
-        help="warm passes per arm per round (each `concurrency` wide)",
+        help="warm passes per arm per round (each `concurrency` wide), at least 1",
     )
     ap.add_argument("--region", default="us-east-2")
     ap.add_argument("--profile", default=os.environ.get("AWS_PROFILE"))
@@ -248,10 +325,20 @@ def main() -> None:
     ap.add_argument("--arms", default="inst,rep")
     ap.add_argument("--out", required=True)
     ap.add_argument(
-        "--log-lag", type=int, default=20, help="seconds to wait for CloudWatch before fetching"
+        "--log-lag",
+        type=nonnegative_int,
+        default=20,
+        help="seconds to wait for CloudWatch before fetching",
     )
     a = ap.parse_args()
 
+    # Cost is part of the result; a Region without a pinned price table would spend money on a run whose cost
+    # summarize.py cannot honestly compute.
+    if a.region not in summarize.PRICES_BY_REGION:
+        sys.exit(
+            f"no pinned prices for {a.region} (have {sorted(summarize.PRICES_BY_REGION)}); "
+            "add a dated price table to summarize.PRICES_BY_REGION first"
+        )
     st = deploy.load_state(a.build)
     if st.get("region") != a.region or "functions" not in st:
         sys.exit(f"no deployment for {a.region} in {a.build}; run deploy.py up")

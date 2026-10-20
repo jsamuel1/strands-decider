@@ -211,7 +211,7 @@ def test_bench_deletes_published_versions_if_later_publish_fails(tmp_path, monke
     monkeypatch.setattr(
         sys,
         "argv",
-        ["bench.py", "--out", str(tmp_path), "--rounds", "1", "--concurrency", "1"],
+        ["bench.py", "--out", str(tmp_path), "--rounds", "2", "--concurrency", "1"],
     )
     with pytest.raises(RuntimeError, match="publish failed"):
         bench.main()

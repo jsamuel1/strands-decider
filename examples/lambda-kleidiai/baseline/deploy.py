@@ -93,7 +93,11 @@ def ensure_bucket(s3, region: str, st: dict, prefix: str) -> str:
     if st.get("bucket"):
         return st["bucket"]
     name = f"{prefix}-{region}-{os.urandom(4).hex()}"
-    s3.create_bucket(Bucket=name, CreateBucketConfiguration={"LocationConstraint": region})
+    create = {"Bucket": name}
+    # us-east-1 is the legacy exception: LocationConstraint must be omitted.
+    if region != "us-east-1":
+        create["CreateBucketConfiguration"] = {"LocationConstraint": region}
+    s3.create_bucket(**create)
     s3.put_public_access_block(
         Bucket=name,
         PublicAccessBlockConfiguration={
@@ -372,6 +376,17 @@ def teardown(sess, st: dict, everything: bool) -> list[str]:
             print("deleted", name)
     if not everything:
         return failures
+    logs = sess.client("logs")
+    log_gone = logs.exceptions.ResourceNotFoundException
+    for f in st.get("functions", {}).values():
+        group = f"/aws/lambda/{f['name']}"
+        if _attempt(
+            failures,
+            f"delete log group {group}",
+            lambda group=group: logs.delete_log_group(logGroupName=group),
+            log_gone,
+        ):
+            print("deleted log group", group)
     iam = sess.client("iam")
     role, nope = f"{st['prefix']}-fn", iam.exceptions.NoSuchEntityException
     _attempt(
@@ -413,6 +428,15 @@ def main(argv: list[str] | None = None) -> None:
     )
     ap.add_argument("--all", action="store_true")
     a = ap.parse_args(argv)
+    # Refuse before creating anything: summarize.py can price only the Regions in its table (bench.py checks too).
+    if a.cmd in ("up", "upload", "functions"):
+        import summarize
+
+        if a.region not in summarize.PRICES_BY_REGION:
+            sys.exit(
+                f"no pinned prices for {a.region} (have {sorted(summarize.PRICES_BY_REGION)}); "
+                "add a dated price table to summarize.PRICES_BY_REGION first"
+            )
     sess = boto3.Session(profile_name=a.profile, region_name=a.region)
     st = load_state(a.build)
     st.setdefault("prefix", a.prefix)

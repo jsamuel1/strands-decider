@@ -25,18 +25,29 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import phases  # noqa: E402
 
-# us-east-2 public prices (USD), 2026-10. arm64 duration per GB-s; SnapStart (Python) cache per GB-s and restore per GB;
-# requests per million; S3 Standard GET per 1,000. Data transfer S3 -> Lambda in-region is free.
-PRICES = {
-    "arm64_gb_s": 0.0000133334,
-    "request": 0.20 / 1e6,
-    "snapstart_cache_gb_s": 0.0000015046,
-    "snapstart_restore_gb": 0.0001397998,
-    "s3_get_per_1000": 0.0004,
-    "s3_head_per_1000": 0.0004,
-    "s3_standard_gb_month": 0.023,
-    "source": "aws.amazon.com/lambda/pricing, aws.amazon.com/s3/pricing (us-east-2)",
+# Public list prices (USD) per Region, each table dated (2026-10 for us-east-2) and sourced. arm64 duration per GB-s; SnapStart (Python) cache
+# per GB-s and restore per GB; requests per million; S3 Standard GET/HEAD per 1,000. S3 -> Lambda in-region transfer is
+# free. Only a Region listed here can be benchmarked: bench.py and deploy.py refuse any other, and costs() raises
+# UnpricedRegion rather than price a run at another Region's rates.
+PRICES_BY_REGION = {
+    "us-east-2": {
+        "arm64_gb_s": 0.0000133334,
+        "request": 0.20 / 1e6,
+        "snapstart_cache_gb_s": 0.0000015046,
+        "snapstart_restore_gb": 0.0001397998,
+        "s3_get_per_1000": 0.0004,
+        "s3_head_per_1000": 0.0004,
+        "s3_standard_gb_month": 0.023,
+        "source": "aws.amazon.com/lambda/pricing, aws.amazon.com/s3/pricing (us-east-2)",
+    },
 }
+PRICES = PRICES_BY_REGION["us-east-2"]  # the published baseline's
+
+
+class UnpricedRegion(ValueError):
+    """The run's Region has no pinned price table, so its cost cannot be computed honestly."""
+
+
 INIT_PHASES = (
     "runtime_to_import",
     "imports",
@@ -72,6 +83,10 @@ def dist(xs: list[float], unit: str = "s") -> dict | None:
     xs = [x for x in xs if x is not None]
     if not xs:
         return None
+    # NaN/Infinity (json.loads accepts both) would break the histogram and write non-standard JSON: fail loudly.
+    bad = [x for x in xs if not math.isfinite(x)]
+    if bad:
+        raise ValueError(f"{len(bad)} non-finite sample(s) in a distribution, e.g. {bad[0]!r}")
     r = lambda v: round(v, 6)  # noqa: E731
     return {
         "unit": unit,
@@ -87,12 +102,23 @@ def dist(xs: list[float], unit: str = "s") -> dict | None:
     }
 
 
+def _finite(v: object) -> bool:
+    """Every number in a JSON value is finite (json.loads turns NaN/Infinity tokens into floats)."""
+    if isinstance(v, float):
+        return math.isfinite(v)
+    if isinstance(v, dict):
+        return all(_finite(x) for x in v.values())
+    if isinstance(v, list):
+        return all(_finite(x) for x in v)
+    return True
+
+
 def answer_problem(payload: object, questions: list[str] | None = None) -> str | None:
     """Why a successful invocation's payload is not correctness evidence, or None when it is.
 
-    Evidence is a numeric latency_ms and a non-empty answers object of one object per question; with `questions`
-    (the request's question ids) the answer ids must be exactly those. A payload that fails this is an error: it
-    has neither an answer to compare nor a latency to time."""
+    Evidence is a finite numeric latency_ms and a non-empty answers object of one object per question, with every
+    number in it finite; with `questions` (the request's question ids) the answer ids must be exactly those. A
+    payload that fails this is an error: it has neither an answer to compare nor a latency to time."""
     if not isinstance(payload, dict):
         return "payload-not-object"
     if "statusCode" in payload:
@@ -102,10 +128,12 @@ def answer_problem(payload: object, questions: list[str] | None = None) -> str |
         return "no-answers"
     if not all(isinstance(a, dict) and a for a in ans.values()):
         return "answer-not-object"
+    if not _finite(ans):
+        return "answer-not-finite"
     if questions is not None and sorted(ans) != sorted(questions):
         return "answers-do-not-match-questions"
     lat = payload.get("latency_ms")
-    if isinstance(lat, bool) or not isinstance(lat, (int, float)):
+    if isinstance(lat, bool) or not isinstance(lat, (int, float)) or not math.isfinite(lat):
         return "no-latency"
     return None
 
@@ -385,7 +413,19 @@ def _snap_inits_estimate(cond: dict, snaps: dict[str, list[dict]]) -> int | None
     return len(snaps[inst]) * len(cond["arms"])
 
 
-def costs(cond: dict, rows: list[dict], snap_inits: int | None = None) -> dict:
+def costs(
+    cond: dict, rows: list[dict], snap_inits: int | None = None, prices: dict | None = None
+) -> dict:
+    """Resource counts and their cost. With no `prices`, the run's Region must have a pinned table in
+    PRICES_BY_REGION; otherwise UnpricedRegion is raised rather than pricing it at another Region's rates."""
+    region = cond["region"]
+    if prices is None:
+        if region not in PRICES_BY_REGION:
+            raise UnpricedRegion(
+                f"no pinned prices for {region} (have {sorted(PRICES_BY_REGION)}); add a dated price "
+                "table to PRICES_BY_REGION before publishing cost"
+            )
+        prices = PRICES_BY_REGION[region]
     mem_gb = cond["functions"][cond["arms"][0]]["MemorySize"] / 1024
     billed_s = sum(r["report"].get("Billed Duration", 0) for r in rows) / 1000
     billed_restore_s = sum(r["report"].get("Billed Restore Duration", 0) for r in rows) / 1000
@@ -404,7 +444,7 @@ def costs(cond: dict, rows: list[dict], snap_inits: int | None = None) -> dict:
     # REPORT-only arm emits none, so it is assumed to run as many per version as the instrumented arm.
     if snap_inits is None:
         snap_inits = versions
-    p = PRICES
+    p = prices
     c = {
         "invocations": len(rows),
         "cold_starts": colds,
@@ -529,6 +569,8 @@ def incomplete(res: dict) -> list[str]:
         why.append(f"{res['errors']['count']} invocation(s) failed or returned no answer")
     if not c:
         why.append("no correctness comparison")
+    elif not c.get("invocations"):
+        why.append("no invocations")
     elif not c.get("complete"):
         why.append(
             f"{c['invocations'] - c['compared']} of {c['invocations']} invocations not compared"
@@ -537,6 +579,15 @@ def incomplete(res: dict) -> list[str]:
         why.append(f"{c['compared'] - c['bit_identical']} answers differ from the reference")
     if res["classification"]["mismatches"]:
         why.append(f"{res['classification']['mismatches']} start-class mismatch(es)")
+    # A baseline needs every start class on every arm and run-to-run variance: a degenerate run (0 warm passes, one
+    # round) can otherwise be complete and bit-identical while missing whole parts of the evidence.
+    for arm in res.get("conditions", {}).get("arms", []):
+        missing = [c for c in ("cold", "restore", "warm") if c not in res["phases"].get(arm, {})]
+        if missing:
+            why.append(f"arm {arm} has no {'/'.join(missing)} samples")
+    rounds = res.get("conditions", {}).get("rounds")
+    if not isinstance(rounds, int) or rounds < 2:
+        why.append(f"{rounds} round(s): at least 2 are needed for run-to-run variance")
     return why
 
 
@@ -701,7 +752,7 @@ def main(argv: list[str] | None = None) -> int:
     if ref_doc and res["correctness"]:
         res["correctness"]["reference"] = os.path.relpath(a.write_reference, HERE)
     path = os.path.join(a.run, "results.json")
-    json.dump(res, open(path, "w"), indent=1)
+    json.dump(res, open(path, "w"), indent=1, allow_nan=False)
     print("wrote", path)
     # A failed run is still a result (results.json above), but it is not a baseline and its answers are no reference.
     why = incomplete(res) if res["status"] == "baseline" else []
@@ -709,7 +760,7 @@ def main(argv: list[str] | None = None) -> int:
         print("NOT A VALID BASELINE: " + "; ".join(why), file=sys.stderr)
         return 3
     if ref_doc:
-        json.dump(ref_doc, open(a.write_reference, "w"), indent=1, sort_keys=True)
+        json.dump(ref_doc, open(a.write_reference, "w"), indent=1, sort_keys=True, allow_nan=False)
         print("reference", a.write_reference)
     return 0
 

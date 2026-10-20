@@ -5,8 +5,10 @@
 #
 # build.sh (pinned weights + zip) -> deploy.py up -> bench.py -> summarize.py -> redact.py. Env knobs (defaults are the
 # published baseline's): REGION=us-east-2 MEMORY=10240 ROUNDS=5 CONCURRENCY=10 WARM=10 PREFIX=lkai-p1
-# TEARDOWN=versions|all|none. MEMORY (MB, 128..10240) sets both functions' memory, is checked on the deployed functions
-# before the benchmark starts, and is recorded in conditions.json and results.json.
+# TEARDOWN=versions|all|none. ROUNDS must be >= 2, CONCURRENCY and WARM >= 1 (bench.py rejects others). MEMORY (MB,
+# 128..10240) sets both functions' memory, is checked on the deployed functions before the benchmark starts, and is
+# recorded in conditions.json and results.json. REGION must have a pinned price table in summarize.PRICES_BY_REGION
+# (only us-east-2 today); deploy.py refuses any other before creating anything.
 # Raw output stays in the git-ignored build/runs/<RUN_ID>/; results/<RUN_ID>/ is the same with the bucket name and
 # account id replaced, which is what gets committed. The first run's answers become reference/outputs.json, but only
 # if every invocation succeeded with an answer and matched its expected start class (summarize.py exits 3 otherwise:
