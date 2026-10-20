@@ -1,0 +1,168 @@
+{
+ "schema": "lkai-probe/1",
+ "uname": {
+  "system": "Linux",
+  "release": "5.10.255-268-309.1092.amzn2.aarch64",
+  "version": "#1 SMP Thu Sep 10 11:05:46 UTC 2026",
+  "machine": "aarch64"
+ },
+ "python": "3.12.14",
+ "cpuinfo": {
+  "processors": 6,
+  "first": {
+   "processor": "0",
+   "BogoMIPS": "2100.00",
+   "Features": "fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm dcpodp svei8mm svebf16 i8mm bf16 dgh rng",
+   "CPU implementer": "0x41",
+   "CPU architecture": "8",
+   "CPU variant": "0x1",
+   "CPU part": "0xd40",
+   "CPU revision": "1"
+  }
+ },
+ "nproc": 6,
+ "meminfo_head": [
+  "MemTotal:       10972280 kB",
+  "MemFree:        10809292 kB",
+  "MemAvailable:   10749512 kB"
+ ],
+ "gpu": {
+  "dev_nvidia": [],
+  "dev_dri": [],
+  "pci_vendors": {},
+  "nvidia_vendor_0x10de_present": false,
+  "proc_driver_nvidia": false,
+  "libcuda": "not-loadable: libcuda.so.1: cannot open shared object file: No such file or directory",
+  "libnvidia_ml": "not-loadable: libnvidia-ml.so.1: cannot open shared object file: No such file or directory"
+ },
+ "kernel": {
+  "perf_event_paranoid": "2",
+  "yama_ptrace_scope": "<ENOENT>",
+  "kptr_restrict": "1",
+  "unprivileged_bpf_disabled": "1"
+ },
+ "pmu_devices": [],
+ "paths": {
+  "/sys/kernel/debug": false,
+  "/sys/kernel/tracing": false,
+  "/sys/fs/bpf": false,
+  "/proc/kallsyms": true,
+  "/opt/extensions": false
+ },
+ "process": {
+  "Uid": "993\t993\t993\t993",
+  "CapInh": "0000000000000000",
+  "CapPrm": "0000000000000000",
+  "CapEff": "0000000000000000",
+  "CapBnd": "0000000000000000",
+  "CapAmb": "0000000000000000",
+  "NoNewPrivs": "1",
+  "Seccomp": "2",
+  "Seccomp_filters": "6"
+ },
+ "tools_on_path": {
+  "perf": null,
+  "nvidia-smi": null,
+  "nsys": null,
+  "ncu": null,
+  "gdb": null,
+  "strace": null,
+  "ltrace": null
+ },
+ "env_present": {
+  "AWS_EXECUTION_ENV": true,
+  "AWS_LAMBDA_FUNCTION_MEMORY_SIZE": true,
+  "AWS_LAMBDA_INITIALIZATION_TYPE": true,
+  "AWS_REGION": true,
+  "AWS_LAMBDA_RUNTIME_API": true,
+  "_X_AMZN_TRACE_ID": true,
+  "LAMBDA_TASK_ROOT": true,
+  "LKAI_PROF": false
+ },
+ "env_values": {
+  "AWS_EXECUTION_ENV": "AWS_Lambda_python3.12",
+  "AWS_LAMBDA_FUNCTION_MEMORY_SIZE": "10240",
+  "AWS_LAMBDA_INITIALIZATION_TYPE": "on-demand",
+  "AWS_REGION": "us-east-2",
+  "LKAI_PROF": null
+ },
+ "clock": {
+  "monotonic": "namespace(implementation='clock_gettime(CLOCK_MONOTONIC)', monotonic=True, adjustable=False, resolution=1e-09)",
+  "perf_counter": "namespace(implementation='clock_gettime(CLOCK_MONOTONIC)', monotonic=True, adjustable=False, resolution=1e-09)",
+  "process_time": "namespace(implementation='clock_gettime(CLOCK_PROCESS_CPUTIME_ID)', monotonic=True, adjustable=False, resolution=1e-09)"
+ },
+ "syscalls": {
+  "perf_event_open": [
+   {
+    "event": "hw-cycles",
+    "result": "denied",
+    "errno": "EPERM"
+   },
+   {
+    "event": "sw-cpu-clock",
+    "result": "denied",
+    "errno": "EPERM"
+   },
+   {
+    "event": "sw-task-clock",
+    "result": "denied",
+    "errno": "EPERM"
+   }
+  ],
+  "bpf_map_create": {
+   "result": "denied",
+   "errno": "EPERM"
+  },
+  "process_vm_readv_self": {
+   "result": "allowed",
+   "bytes": 16
+  },
+  "process_vm_readv_parent": {
+   "result": "maps-unreadable",
+   "errno": "EACCES"
+  },
+  "ptrace_child": {
+   "child_vm_readv": {
+    "result": "allowed",
+    "bytes": 16
+   },
+   "seize": {
+    "result": "denied",
+    "errno": "EPERM"
+   },
+   "attach": {
+    "result": "denied",
+    "errno": "EPERM"
+   }
+  },
+  "itimer_prof_sigprof": {
+   "result": "delivered",
+   "signals_in_0.2s_cpu": 19
+  }
+ },
+ "py_spy": {
+  "binary": "/var/task/bin/py-spy",
+  "version": "py-spy 0.4.2",
+  "dump_child": {
+   "result": "works",
+   "rc": 0,
+   "stdout_head": "Process 7: /var/lang/bin/python3.12 -c import time\nwhile True: time.sleep(0.1)\nPython v3.12.14 (/var/lang/bin/python3.12)\n\nThread 7 (idle)\n    <module> (<string>:2)\n",
+   "stderr_head": ""
+  },
+  "dump_self": {
+   "result": "works",
+   "rc": 0,
+   "stdout_head": "Process 2: /var/lang/bin/python3.12 /var/runtime/bootstrap.py\nPython v3.12.14 (/var/lang/bin/python3.12)\n\nThread 2 (idle): \"MainThread\"\n    select (selectors.py:415)\n    _communicate (subprocess.py:2115)\n    communicate (subprocess.py:1209)\n    run (subprocess.py:550)\n    _spy (lkai_probe.py:245)\n  ",
+   "stderr_head": ""
+  },
+  "pr_set_ptracer_any": "EPERM",
+  "dump_self_after_pr_set_ptracer": {
+   "result": "works",
+   "rc": 0,
+   "stdout_head": "Process 2: /var/lang/bin/python3.12 /var/runtime/bootstrap.py\nPython v3.12.14 (/var/lang/bin/python3.12)\n\nThread 2 (idle): \"MainThread\"\n    select (selectors.py:415)\n    _communicate (subprocess.py:2115)\n    communicate (subprocess.py:1209)\n    run (subprocess.py:550)\n    _spy (lkai_probe.py:245)\n  ",
+   "stderr_head": ""
+  }
+ },
+ "probe_s": 0.975,
+ "request_id": "195f7b7b-7fa9-4450-ba7b-c653eac6bd10"
+}

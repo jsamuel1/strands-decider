@@ -1,0 +1,12 @@
+{
+ "experiment_id": "P3-profilers",
+ "status": "inconclusive",
+ "hypothesis": "Which profilers work inside the P1 Lambda (python3.12, arm64, 10,240 MB, SnapStart) and what each costs. Each profiler arm runs P1's code with one profiler on; its cost is the difference in Lambda's own REPORT numbers against a REPORT-only control, matched by Graviton generation. 'nvidia-spi' (the operator's word) is read as NVIDIA's tooling: nvidia-smi and Nsight Systems/Compute.",
+ "changed_variable": {
+  "name": "profiler",
+  "baseline": "none (REPORT-only: lkai_entry.handler, LKAI_PHASES=0)",
+  "experiment": "one of: P1 phase timers (lkai_prof none), cProfile, py-spy (non-native), lkaisamp native sampler, X-Ray active tracing, Telemetry API extension"
+ },
+ "conclusion": null,
+ "reproduce": []
+}

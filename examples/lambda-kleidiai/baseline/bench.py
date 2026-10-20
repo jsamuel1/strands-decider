@@ -48,12 +48,12 @@ observed_class = phases.observed_class
 
 
 class Bench:
-    def __init__(self, sess, st: dict, reqs: dict, out: str, concurrency: int):
+    def __init__(self, sess, st: dict, reqs: dict, out: str, concurrency: int, read_timeout: int = 900):
         self.st, self.out = st, out
         self.lam = sess.client(
             "lambda",
             config=Config(
-                read_timeout=900,
+                read_timeout=read_timeout,
                 connect_timeout=10,
                 retries={"max_attempts": 0},
                 max_pool_connections=max(16, concurrency * 2),
@@ -214,6 +214,13 @@ def main() -> None:
     ap.add_argument(
         "--log-lag", type=int, default=20, help="seconds to wait for CloudWatch before fetching"
     )
+    ap.add_argument(
+        "--read-timeout",
+        type=int,
+        default=900,
+        help="client seconds per invoke (default: the function timeout); a shorter one records an invocation "
+        "that never starts as a client:ReadTimeoutError row instead of waiting the full 900 s",
+    )
     a = ap.parse_args()
 
     st = deploy.load_state(a.build)
@@ -223,7 +230,7 @@ def main() -> None:
     os.makedirs(a.out, exist_ok=True)
     sess = boto3.Session(profile_name=a.profile, region_name=a.region)
     arms = a.arms.split(",")
-    b = Bench(sess, st, reqs, a.out, a.concurrency)
+    b = Bench(sess, st, reqs, a.out, a.concurrency, a.read_timeout)
     lam = b.lam
     fns = {}
     for arm in arms:
@@ -262,6 +269,7 @@ def main() -> None:
         "region": a.region,
         "rounds": a.rounds,
         "concurrency": a.concurrency,
+        "client_read_timeout_s": a.read_timeout,
         "warm_per_arm_per_round": a.warm,
         "arms": arms,
         "requests_file": os.path.relpath(a.requests, HERE),

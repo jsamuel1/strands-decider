@@ -303,7 +303,7 @@ def test_deploy_arms_teardown_never_touches_other_prefixes(monkeypatch):
         def delete_function(self, FunctionName, Qualifier=None):
             deleted.append((FunctionName, Qualifier))
 
-        class exceptions:  # noqa: N801
+        class exceptions:
             ResourceNotFoundException = KeyError
 
     sess = types.SimpleNamespace(client=lambda name: FakeLambda())
