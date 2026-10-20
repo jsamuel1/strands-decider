@@ -63,6 +63,9 @@ keys, writes `tokenizer.ggml.model = "none"` (llama.cpp's
 `LLAMA_VOCAB_TYPE_NONE`) and `qwen35.vocab_size = 248320` (the loader's `n_vocab` for the `token_embd` shape), and
 copies the tensor infos and tensor bytes unchanged at the same 32-byte alignment. `tensor_identity.py` proves the
 tensors are unchanged. The record is [`results/20261020T114406Z/e5-manifest.json`](results/20261020T114406Z/e5-manifest.json).
+Its `llama_cpp` commit, image digest and `gguf_py` version were filled in after run `20261020T114406Z` from the
+baseline pins; that run's record left them empty or imprecise (`provenance_correction` says how and why). The tensor
+bytes and digest were measured by the run itself.
 
 | | Baseline | E5 |
 |---|---|---|

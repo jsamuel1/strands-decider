@@ -127,7 +127,8 @@
    ],
    "added_keys": {
     "qwen35.vocab_size": 248320
-   }
+   },
+   "provenance_correction": "Corrected after the run (commit after d4365bc). As written by the run, tools.llama_cpp was \"\" because git in the root container refused the host-owned /b/llama.cpp mount as dubious ownership; pip_freeze split the 'gguf @ file://' row; container named the tag, not the digest. Back-filled from: llama_cpp = baseline/build.sh LLAMA_REV and P1 build-manifest llama_cpp.commit; container = baseline/build.sh PY_IMAGE at aac59d4; gguf_py = gguf-py/pyproject.toml at that commit. container_convert.sh now records all three itself."
   }
  },
  "build": {

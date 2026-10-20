@@ -20,8 +20,10 @@ import importlib.metadata
 import json, platform, subprocess, sys
 idj = json.load(open("/tmp/id.json"))
 free = subprocess.run(["pip", "freeze"], capture_output=True, text=True, check=True).stdout.splitlines()
+# /b is a host-owned read-only mount and this container runs as root, so git refuses it as "dubious
+# ownership" unless the directory is marked safe. That refusal is why the first run recorded "".
 llama = subprocess.run(
-    ["git", "-C", "/b/llama.cpp", "rev-parse", "HEAD"],
+    ["git", "-c", "safe.directory=/b/llama.cpp", "-C", "/b/llama.cpp", "rev-parse", "HEAD"],
     capture_output=True,
     text=True,
     check=True,
