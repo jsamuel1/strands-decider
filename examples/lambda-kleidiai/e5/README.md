@@ -54,9 +54,12 @@ omits `output.weight`, and the tensor is created as a duplicate by the loader.
 python examples/lambda-kleidiai/e5/convert_no_vocab.py s2b-h512-Q8_0.gguf s2b-h512-Q8_0-novocab.gguf
 ```
 
-`run.sh` runs it in `container_convert.sh`: the `python:3.12-bookworm` image pinned by digest in `baseline/build.sh`,
-llama.cpp `f74e2fa6a`'s `gguf-py` (0.19.0), numpy 2.5.4, pyyaml 6.0.3, tqdm 4.67.1, Python 3.12. The script copies
-every key except the `tokenizer.*` keys, writes `tokenizer.ggml.model = "none"` (llama.cpp's
+`run.sh` runs it in `container_convert.sh`: image
+`python@sha256:5560e9ab8709f459489e5b8aa696eda8a07ef821e14bb122be62d91234bfa98b`, llama.cpp
+`f74e2fa6a31cc33ab4ee4ae516641cfe62df3924`'s gguf-py 0.19.0, numpy 2.5.4, pyyaml 6.0.3,
+tqdm 4.67.1, and Python 3.12.15. The conversion record pins each value; `manifest_e5.py` rejects a converter
+checkout that differs from the published baseline manifest. The script copies every key except the `tokenizer.*`
+keys, writes `tokenizer.ggml.model = "none"` (llama.cpp's
 `LLAMA_VOCAB_TYPE_NONE`) and `qwen35.vocab_size = 248320` (the loader's `n_vocab` for the `token_embd` shape), and
 copies the tensor infos and tensor bytes unchanged at the same 32-byte alignment. `tensor_identity.py` proves the
 tensors are unchanged. The record is [`results/20261020T114406Z/e5-manifest.json`](results/20261020T114406Z/e5-manifest.json).
@@ -68,7 +71,7 @@ tensors are unchanged. The record is [`results/20261020T114406Z/e5-manifest.json
 | sha256 | `8dbb8872e6af…` | `29aa5abe0fe3…` |
 | Data section offset | 11,000,032 | 58,880 |
 | Tensors | 335: 195 Q8_0, 140 F32 | the same 335, same order, types, shapes and bytes |
-| Tensor digest (sha256 over each tensor's name and bytes) | `e3bbbac10e3e…` | `e3bbbac10e3e…` |
+| Tensor digest (sha256 over each tensor's name and bytes) | `8141645499ea…` | `8141645499ea…` |
 
 Same quantization and the same numerical content, so the only expected output difference is none.
 

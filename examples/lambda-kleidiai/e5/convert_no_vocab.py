@@ -10,7 +10,8 @@ which llama_model_load_from_file parses into hash maps before it maps a single t
 This writes tokenizer.ggml.model = "none" (llama.cpp's LLAMA_VOCAB_TYPE_NONE) and qwen35.vocab_size = 248320 (the
 loader's n_vocab for the token_embd shape), drops the other tokenizer.* keys, and copies the remaining metadata,
 the tensor infos (same names, shapes, types and order) and the tensor data byte for byte at the same alignment.
-Uses gguf-py from the pinned llama.cpp checkout (f74e2fa6a, gguf-py 0.19.0), the same as gguf_new_metadata.py.
+Uses gguf-py 0.19.0 from the pinned llama.cpp checkout (f74e2fa6a), the same implementation as
+gguf_new_metadata.py.
 """
 
 from __future__ import annotations

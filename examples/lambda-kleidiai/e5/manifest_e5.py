@@ -41,6 +41,16 @@ def main(b: str, local_manifest: str, published: str | None = None) -> None:
         os.remove(os.path.join(b, "manifest.json"))
     json.dump(m, open(os.path.join(b, "manifest.json"), "w"), indent=1)
     conv = json.load(open(os.path.join(b, "model", "convert.json")))
+    expected_llama = m["llama_cpp"]["commit"]
+    if conv["tools"].get("llama_cpp") != expected_llama:
+        sys.exit(
+            f"conversion used llama.cpp {conv['tools'].get('llama_cpp')!r}, expected {expected_llama}"
+        )
+    if not conv["tools"].get("gguf_py"):
+        sys.exit("conversion did not record the gguf-py package version")
+    expected_image = m["images"]["weights"]
+    if conv.get("image") != expected_image:
+        sys.exit(f"conversion used image {conv.get('image')!r}, expected {expected_image}")
     base = os.path.join(b, "model", "s2b-h512-Q8_0.gguf")
     new = os.path.join(b, "model", "s2b-h512-Q8_0-novocab.gguf")
     base_sha = sha(base)
@@ -48,6 +58,10 @@ def main(b: str, local_manifest: str, published: str | None = None) -> None:
         sys.exit(f"{base} is not the baseline build's GGUF")
     if not conv["tensors"]["identical"]:
         sys.exit("converted GGUF's tensors differ from the baseline's")
+    if conv["tensors"]["count"] != [335, 335]:
+        sys.exit(f"unexpected E5 tensor counts: {conv['tensors']['count']!r}")
+    if conv["tensors"]["digest"][0] != conv["tensors"]["digest"][1]:
+        sys.exit("converted GGUF's aggregate tensor digest differs from the baseline's")
     out = {
         "schema": "lkai-e5-manifest/1",
         "baseline": {

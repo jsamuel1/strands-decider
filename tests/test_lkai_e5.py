@@ -172,6 +172,48 @@ def test_deploy_e5_refuses_wrong_model_key(monkeypatch):
         deploy_e5.functions(FakeSess(), st)
 
 
+def test_manifest_refuses_converter_from_wrong_llama_checkout(tmp_path):
+    import manifest_e5
+
+    build = tmp_path / "build"
+    model = build / "model"
+    model.mkdir(parents=True)
+    (build / "function.zip").write_bytes(b"zip")
+    base = model / "s2b-h512-Q8_0.gguf"
+    converted = model / "s2b-h512-Q8_0-novocab.gguf"
+    base.write_bytes(b"base")
+    converted.write_bytes(b"converted")
+    manifest = {
+        "function_zip": {"sha256": manifest_e5.sha(str(build / "function.zip"))},
+        "model": {"gguf_sha256": manifest_e5.sha(str(base))},
+        "llama_cpp": {"commit": "expected"},
+        "images": {
+            "weights": "python@sha256:5560e9ab8709f459489e5b8aa696eda8a07ef821e14bb122be62d91234bfa98b"
+        },
+    }
+    manifest_path = tmp_path / "manifest.json"
+    manifest_path.write_text(json.dumps(manifest))
+    (model / "convert.json").write_text(
+        json.dumps(
+            {
+                "image": "python@sha256:5560e9ab8709f459489e5b8aa696eda8a07ef821e14bb122be62d91234bfa98b",
+                "tools": {"llama_cpp": "wrong", "gguf_py": "0.19.0"},
+                "tensors": {
+                    "identical": True,
+                    "count": [335, 335],
+                    "digest": ["same", "same"],
+                    "data_offset": [32, 32],
+                },
+            }
+        )
+    )
+
+    with pytest.raises(
+        SystemExit, match=r"conversion used llama\.cpp 'wrong', expected expected"
+    ):
+        manifest_e5.main(str(build), str(manifest_path))
+
+
 def test_convert_no_vocab_keeps_tensor_bytes(tmp_path):
     gguf = pytest.importorskip("gguf", reason="llama.cpp's gguf-py is not a repository dependency")
     import convert_no_vocab

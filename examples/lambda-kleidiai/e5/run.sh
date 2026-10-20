@@ -24,6 +24,11 @@ RAW=$B/runs/$RUN_ID
 PY=${PYTHON:-python3}
 "$PY" -c "import boto3" 2>/dev/null || { echo "needs boto3 for $PY (pip install boto3)"; exit 1; }
 PY_IMAGE=$(sed -n 's/^PY_IMAGE=//p' "$BASE/build.sh")
+EXPECTED_PY_IMAGE=python@sha256:5560e9ab8709f459489e5b8aa696eda8a07ef821e14bb122be62d91234bfa98b
+[ "$PY_IMAGE" = "$EXPECTED_PY_IMAGE" ] || {
+  echo "baseline/build.sh PY_IMAGE $PY_IMAGE is not E5's recorded converter image $EXPECTED_PY_IMAGE" >&2
+  exit 1
+}
 # P1's pushed baseline HEAD that this branch starts from (feat/lambda-kleidiai-baseline on the fork).
 BASELINE_COMMIT=${BASELINE_COMMIT:-aac59d45555ebded9357c23f6f8e4f939edf25d7}
 
@@ -47,7 +52,8 @@ mkdir -p "$B/model"
 ln -sf "$PB/function.zip" "$B/function.zip"
 ln -sf "$PB/model/s2b-h512-Q8_0.gguf" "$B/model/s2b-h512-Q8_0.gguf"
 if [ ! -f "$B/model/s2b-h512-Q8_0-novocab.gguf" ]; then
-  docker run --rm --platform linux/arm64 -v "$PB:/b:ro" -v "$HERE:/e5:ro" -v "$B/model:/o" "$PY_IMAGE" \
+  docker run --rm --platform linux/arm64 -e LKAI_E5_CONVERTER_IMAGE="$PY_IMAGE" -v "$PB:/b:ro" \
+    -v "$HERE:/e5:ro" -v "$B/model:/o" "$PY_IMAGE" \
     bash /e5/container_convert.sh /b/model/s2b-h512-Q8_0.gguf /o/s2b-h512-Q8_0-novocab.gguf /o/convert.json
 fi
 "$PY" "$HERE/manifest_e5.py" "$B" "$PB/manifest.json" "$BASE/results/20261020T080835Z/build-manifest.json"

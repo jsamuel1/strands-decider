@@ -7,7 +7,7 @@
  "changed_variable": {
   "name": "weight file format",
   "baseline": "GGUF v3 Q8_0 s2b-h512-Q8_0.gguf (sha256 8dbb8872...), tokenizer.ggml.model=gpt2 with the BPE vocabulary and merges embedded; 2,076,712,416 bytes",
-  "experiment": "GGUF v3 Q8_0 s2b-h512-Q8_0-novocab.gguf (sha256 29aa5abe...), the same 335 tensors byte for byte (tensor digest e3bbbac1...), tokenizer.ggml.model=none and qwen35.vocab_size=248320; 2,065,771,264 bytes (-10,941,152)"
+  "experiment": "GGUF v3 Q8_0 s2b-h512-Q8_0-novocab.gguf (sha256 29aa5abe...), the same 335 tensors byte for byte (tensor digest 81416454...), tokenizer.ggml.model=none and qwen35.vocab_size=248320; 2,065,771,264 bytes (-10,941,152)"
  },
  "commits": {
   "experiment": "16c452ed4e8294926811ed2512148cbf77833b49",
@@ -96,22 +96,21 @@
   },
   "conversion": {
    "command": "python examples/lambda-kleidiai/e5/convert_no_vocab.py s2b-h512-Q8_0.gguf s2b-h512-Q8_0-novocab.gguf",
-   "container": "python:3.12-bookworm (digest pinned in baseline/build.sh PY_IMAGE)",
+   "container": "python@sha256:5560e9ab8709f459489e5b8aa696eda8a07ef821e14bb122be62d91234bfa98b",
    "tools": {
     "python": "3.12.15",
-    "llama_cpp": "",
+    "llama_cpp": "f74e2fa6a31cc33ab4ee4ae516641cfe62df3924",
+    "gguf_py": "0.19.0",
     "pip_freeze": [
      "certifi==2026.10.19",
      "charset-normalizer==3.5.2",
-     "@",
-     "file:///b/llama.cpp/gguf-py",
+     "gguf @ file:///b/llama.cpp/gguf-py",
      "idna==3.20",
      "numpy==2.5.4",
      "PyYAML==6.0.3",
      "requests==2.34.2",
      "tqdm==4.67.1",
-     "urllib3==2.8.0",
-     "gguf (llama.cpp gguf-py)"
+     "urllib3==2.8.0"
     ]
    },
    "removed_keys": [
