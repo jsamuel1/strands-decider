@@ -1,0 +1,51 @@
+{
+ "prefix": "lkai-e1",
+ "region": "us-east-2",
+ "az_id": "use2-az1",
+ "zip_sha256": "26eb2651e8915f8ad09eae899feff583a448de6b8d2bc4943bccabb66cae189b",
+ "runtime_version_arn": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+ "model_key": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+ "staged_sha256": {
+  "gguf_gp": "8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e",
+  "gguf_xz": "8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e",
+  "function_zip": "26eb2651e8915f8ad09eae899feff583a448de6b8d2bc4943bccabb66cae189b"
+ },
+ "runtime_sdk": {
+  "boto3": "1.42.97",
+  "botocore": "1.42.97",
+  "python": "3.12.14"
+ },
+ "vpc": {
+  "subnet_cidr": "172.31.64.0/24",
+  "endpoints": [
+   "s3",
+   "s3express"
+  ]
+ },
+ "functions": {
+  "gp": {
+   "name": "lkai-e1-gp",
+   "code_sha256_b64": "JusmUeiRX4rQnq6Jn+/1g6RI3muNK8SUO8yrtmyuGJs=",
+   "bucket_kind": "gp",
+   "vpc": false
+  },
+  "xz": {
+   "name": "lkai-e1-xz",
+   "code_sha256_b64": "JusmUeiRX4rQnq6Jn+/1g6RI3muNK8SUO8yrtmyuGJs=",
+   "bucket_kind": "xz",
+   "vpc": false
+  },
+  "gpv": {
+   "name": "lkai-e1-gpv",
+   "code_sha256_b64": "JusmUeiRX4rQnq6Jn+/1g6RI3muNK8SUO8yrtmyuGJs=",
+   "bucket_kind": "gp",
+   "vpc": true
+  },
+  "xzv": {
+   "name": "lkai-e1-xzv",
+   "code_sha256_b64": "JusmUeiRX4rQnq6Jn+/1g6RI3muNK8SUO8yrtmyuGJs=",
+   "bucket_kind": "xz",
+   "vpc": true
+  }
+ }
+}

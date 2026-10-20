@@ -144,10 +144,11 @@ def ensure_network(ec2, st: dict) -> dict:
         if not vpcs:
             sys.exit("no default VPC; pass an existing VPC by editing deployment.json")
         v["vpc_id"] = vpcs[0]["VpcId"]
+    v.setdefault("subnet_cidr", st.get("subnet_cidr", SUBNET_CIDR))
     if "subnet_id" not in v:
         v["subnet_id"] = ec2.create_subnet(
             VpcId=v["vpc_id"],
-            CidrBlock=st.get("subnet_cidr", SUBNET_CIDR),
+            CidrBlock=v["subnet_cidr"],
             AvailabilityZoneId=st["az_id"],
             TagSpecifications=_tag_spec("subnet", f"{prefix}-private-{st['az_id']}"),
         )["Subnet"]["SubnetId"]

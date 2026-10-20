@@ -1,0 +1,678 @@
+{
+ "schema": "lkai-conditions/1",
+ "region": "us-east-2",
+ "rounds": 5,
+ "concurrency": 10,
+ "warm_per_arm_per_round": 10,
+ "arms": [
+  "gp",
+  "xz",
+  "gpv",
+  "xzv"
+ ],
+ "requests_file": "requests.json",
+ "requests": {
+  "schema": "lkai-requests/1",
+  "note": "Fixed request set for the lambda-kleidiai baseline. Every condition sends these exact bodies; 'probe' is the first request of every new execution environment (cold and restore), so first-inference latency is comparable across arms and rounds. Warm invocations cycle through all ids in order.",
+  "probe": "ticket-route-1q",
+  "requests": [
+   {
+    "id": "ticket-route-1q",
+    "request": {
+     "state": {
+      "ticket": "Refund issued but invoice still shows the old total."
+     },
+     "questions": {
+      "q": {
+       "type": "choice",
+       "instructions": "Route this ticket.",
+       "criteria": {
+        "billing": "payment or invoice",
+        "technical": "product defect",
+        "account": "login"
+       }
+      }
+     }
+    }
+   },
+   {
+    "id": "payouts-3q",
+    "request": {
+     "state": "Help! My payouts have been failing for 3 days!",
+     "questions": {
+      "is_urgent": {
+       "type": "noul",
+       "instructions": "Does this convey urgency?"
+      },
+      "team": {
+       "type": "choice",
+       "instructions": "Which team should handle this?",
+       "criteria": {
+        "billing": "",
+        "sales": "",
+        "retail": ""
+       }
+      },
+      "frustration": {
+       "type": "score",
+       "instructions": "How frustrated is the writer?",
+       "criteria": [
+        "calm",
+        "frustrated",
+        "depressed"
+       ]
+      }
+     }
+    }
+   },
+   {
+    "id": "cracked-screen-2q",
+    "request": {
+     "state": "Order 1182 arrived with a cracked screen. The customer wants a refund today.",
+     "questions": {
+      "q": {
+       "type": "choice",
+       "instructions": "Route the ticket.",
+       "criteria": {
+        "refunds": "money back",
+        "shipping": "delivery problems",
+        "tech": "device faults"
+       }
+      },
+      "u": {
+       "type": "noul",
+       "instructions": "Is the customer upset?"
+      }
+     }
+    }
+   },
+   {
+    "id": "agent-action-guard-2q",
+    "request": {
+     "state": {
+      "user_goal": "Clean up last quarter's test fixtures in the staging bucket.",
+      "proposed_tool_call": {
+       "name": "s3_delete_prefix",
+       "arguments": {
+        "bucket": "acme-prod-invoices",
+        "prefix": "2026/"
+       }
+      },
+      "recent_messages": [
+       "user: the staging bucket is acme-staging-fixtures, only touch that one",
+       "assistant: Understood, I will list acme-staging-fixtures first.",
+       "tool(s3_list): acme-staging-fixtures/2026/Q3/ has 412 objects"
+      ]
+     },
+     "questions": {
+      "safe": {
+       "type": "noul",
+       "instructions": "Is the proposed tool call consistent with the user's instructions?"
+      },
+      "action": {
+       "type": "choice",
+       "instructions": "What should the agent do next?",
+       "criteria": {
+        "proceed": "run the tool call as proposed",
+        "revise": "fix the arguments and retry",
+        "ask": "ask the user before doing anything"
+       }
+      }
+     }
+    }
+   },
+   {
+    "id": "incident-review-4q",
+    "request": {
+     "state": "Incident 4471 timeline. 09:02 deploy of checkout-api build 8812 starts in us-east-2. 09:06 p99 latency on /cart rises from 180 ms to 2.4 s; error rate 0.2% to 6%. 09:07 on-call paged by the latency alarm. 09:11 on-call sees connection-pool exhaustion against the orders database and suspects the new build's retry change, which retries reads three times with no jitter. 09:14 rollback to build 8807 started. 09:19 rollback complete in two of three cells; the third cell is still on 8812 because its deployment was paused by a separate change freeze. 09:23 p99 back to 210 ms in the rolled-back cells; the third cell keeps failing about 9% of requests. 09:31 the freeze owner approves the rollback for the third cell. 09:38 all cells healthy. Customer impact: about 36 minutes of degraded checkout in one region, an estimated 2,100 failed carts. The retry change had passed load tests, which ran against a database with three times the production connection limit. No runbook step covered a cell stuck behind a freeze.",
+     "questions": {
+      "root_cause": {
+       "type": "choice",
+       "instructions": "What is the most direct root cause?",
+       "criteria": {
+        "retries": "retry change without jitter exhausted the connection pool",
+        "freeze": "the change freeze",
+        "alarm": "slow alarming",
+        "capacity": "database undersized for normal load"
+       }
+      },
+      "severity": {
+       "type": "score",
+       "instructions": "How severe was the customer impact?",
+       "criteria": [
+        "negligible",
+        "minor",
+        "moderate",
+        "major",
+        "critical"
+       ]
+      },
+      "test_gap": {
+       "type": "noul",
+       "instructions": "Did a test environment difference hide the problem?"
+      },
+      "runbook": {
+       "type": "noul",
+       "instructions": "Should the runbook gain a step for cells blocked by a freeze?"
+      }
+     }
+    }
+   }
+  ]
+ },
+ "probe": "ticket-route-1q",
+ "functions": {
+  "gp": {
+   "FunctionName": "lkai-e1-gp",
+   "Runtime": "python3.12",
+   "Architectures": [
+    "arm64"
+   ],
+   "MemorySize": 10240,
+   "Timeout": 900,
+   "EphemeralStorage": {
+    "Size": 512
+   },
+   "SnapStart": {
+    "ApplyOn": "PublishedVersions",
+    "OptimizationStatus": "Off"
+   },
+   "Handler": "lkai_entry.handler",
+   "CodeSha256": "JusmUeiRX4rQnq6Jn+/1g6RI3muNK8SUO8yrtmyuGJs=",
+   "CodeSize": 51941898,
+   "environment": {
+    "LKAI_PHASES": "1",
+    "COLD_TAG": "0",
+    "N_SEQ": "17",
+    "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+    "DEC_KV": "f32",
+    "DEC_UBATCH": "512"
+   },
+   "runtime_management": {
+    "UpdateRuntimeOn": "Manual",
+    "RuntimeVersionArn": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07"
+   }
+  },
+  "xz": {
+   "FunctionName": "lkai-e1-xz",
+   "Runtime": "python3.12",
+   "Architectures": [
+    "arm64"
+   ],
+   "MemorySize": 10240,
+   "Timeout": 900,
+   "EphemeralStorage": {
+    "Size": 512
+   },
+   "SnapStart": {
+    "ApplyOn": "PublishedVersions",
+    "OptimizationStatus": "Off"
+   },
+   "Handler": "lkai_entry.handler",
+   "CodeSha256": "JusmUeiRX4rQnq6Jn+/1g6RI3muNK8SUO8yrtmyuGJs=",
+   "CodeSize": 51941898,
+   "environment": {
+    "LKAI_PHASES": "1",
+    "COLD_TAG": "0",
+    "N_SEQ": "17",
+    "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+    "DEC_KV": "f32",
+    "DEC_UBATCH": "512"
+   },
+   "runtime_management": {
+    "UpdateRuntimeOn": "Manual",
+    "RuntimeVersionArn": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07"
+   }
+  },
+  "gpv": {
+   "FunctionName": "lkai-e1-gpv",
+   "Runtime": "python3.12",
+   "Architectures": [
+    "arm64"
+   ],
+   "MemorySize": 10240,
+   "Timeout": 900,
+   "EphemeralStorage": {
+    "Size": 512
+   },
+   "SnapStart": {
+    "ApplyOn": "PublishedVersions",
+    "OptimizationStatus": "Off"
+   },
+   "Handler": "lkai_entry.handler",
+   "CodeSha256": "JusmUeiRX4rQnq6Jn+/1g6RI3muNK8SUO8yrtmyuGJs=",
+   "CodeSize": 51941898,
+   "environment": {
+    "LKAI_PHASES": "1",
+    "COLD_TAG": "0",
+    "N_SEQ": "17",
+    "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+    "DEC_KV": "f32",
+    "DEC_UBATCH": "512"
+   },
+   "runtime_management": {
+    "UpdateRuntimeOn": "Manual",
+    "RuntimeVersionArn": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07"
+   }
+  },
+  "xzv": {
+   "FunctionName": "lkai-e1-xzv",
+   "Runtime": "python3.12",
+   "Architectures": [
+    "arm64"
+   ],
+   "MemorySize": 10240,
+   "Timeout": 900,
+   "EphemeralStorage": {
+    "Size": 512
+   },
+   "SnapStart": {
+    "ApplyOn": "PublishedVersions",
+    "OptimizationStatus": "Off"
+   },
+   "Handler": "lkai_entry.handler",
+   "CodeSha256": "JusmUeiRX4rQnq6Jn+/1g6RI3muNK8SUO8yrtmyuGJs=",
+   "CodeSize": 51941898,
+   "environment": {
+    "LKAI_PHASES": "1",
+    "COLD_TAG": "0",
+    "N_SEQ": "17",
+    "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+    "DEC_KV": "f32",
+    "DEC_UBATCH": "512"
+   },
+   "runtime_management": {
+    "UpdateRuntimeOn": "Manual",
+    "RuntimeVersionArn": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07"
+   }
+  }
+ },
+ "build_manifest": {
+  "schema": "lkai-build-manifest/1",
+  "repo_commit": "4412b31988ba112dd27ad850830689f33c07e78a",
+  "repo_dirty": false,
+  "model": {
+   "id": "StrandsAgents/strands-decider-2B-qwen3.5-v1-2610",
+   "revision": "216d1ccb46a9e9b036eb9187b248db98480f77d4",
+   "format": "GGUF Q8_0",
+   "transform": "LoRA merged fp32 (weights/merge_export.py), H512 Hadamard fold (weights/fold_hadamard.py --block 512)",
+   "merge_report": {
+    "merged": 186,
+    "scale": 2.0,
+    "unpaired_adapter": [],
+    "base_revision": "b1485b2fa6dfa1287294f269f5fb618e03d52d7c",
+    "checkpoint": "/hf/hub/models--StrandsAgents--strands-decider-2B-qwen3.5-v1-2610/snapshots/216d1ccb46a9e9b036eb9187b248db98480f77d4"
+   },
+   "gguf_bytes": 2076712416,
+   "gguf_sha256": "8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e"
+  },
+  "llama_cpp": {
+   "commit": "f74e2fa6a31cc33ab4ee4ae516641cfe62df3924",
+   "patches": "llama/patch_llama.py (prefill,gdn,kskip,sme)",
+   "flags": "GGML_NATIVE=OFF GGML_BACKEND_DL=ON GGML_CPU_ALL_VARIANTS=ON GGML_CPU_KLEIDIAI=ON"
+  },
+  "function_zip": {
+   "bytes": 51941898,
+   "sha256": "26eb2651e8915f8ad09eae899feff583a448de6b8d2bc4943bccabb66cae189b",
+   "handler": "lkai_entry.handler"
+  },
+  "assets_sha256": {
+   "head.safetensors": "2492613e72eac53becb9ff855023261ac2722c5111b9f1e03be59a87328dd799",
+   "head_config.json": "3a6a6a3a135dcdbb29d6d9179d507d511fbba934d3682f354dd3d1130b9813dd",
+   "tokenizer.json": "a2cdd2e108566b09079afa8d266e9e65e7c280f27b771218237a06de5ba9cd86"
+  },
+  "images": {
+   "lambda_build": "public.ecr.aws/lambda/python@sha256:37fe9ca4183c36ec57e4c5eabb8893cd9fbc9c0f3053b903d9a57eb2bd6bafcc",
+   "weights": "python@sha256:5560e9ab8709f459489e5b8aa696eda8a07ef821e14bb122be62d91234bfa98b"
+  },
+  "toolchain": [
+   "gcc (GCC) 11.5.0 20240719 (Red Hat 11.5.0-5)",
+   "Python 3.12.15"
+  ]
+ },
+ "runtime_version_arn": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+ "client": {
+  "python": "3.14.6",
+  "boto3": "1.43.115",
+  "host": "x86_64"
+ },
+ "started": "2026-10-20T12:37:18Z",
+ "rounds_meta": [
+  {
+   "round": 0,
+   "order": [
+    "gp",
+    "xz",
+    "gpv",
+    "xzv"
+   ],
+   "cold_tag": "r0-1792499838.659",
+   "t0": 1792499838.6588793,
+   "published": {
+    "gp": {
+     "arm": "gp",
+     "version": "2",
+     "publish_s": 158.3,
+     "t_publish": 1792500015.875273,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "JusmUeiRX4rQnq6Jn+/1g6RI3muNK8SUO8yrtmyuGJs=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07"
+    },
+    "xz": {
+     "arm": "xz",
+     "version": "2",
+     "publish_s": 155.0,
+     "t_publish": 1792500174.208377,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "JusmUeiRX4rQnq6Jn+/1g6RI3muNK8SUO8yrtmyuGJs=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07"
+    },
+    "gpv": {
+     "arm": "gpv",
+     "version": "2",
+     "publish_s": 145.4,
+     "t_publish": 1792500329.1727746,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "JusmUeiRX4rQnq6Jn+/1g6RI3muNK8SUO8yrtmyuGJs=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07"
+    },
+    "xzv": {
+     "arm": "xzv",
+     "version": "2",
+     "publish_s": 165.0,
+     "t_publish": 1792500474.5290627,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "JusmUeiRX4rQnq6Jn+/1g6RI3muNK8SUO8yrtmyuGJs=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07"
+    }
+   },
+   "t_versions_deleted": 1792500741.744426,
+   "log_window": [
+    1792499838.6588793,
+    1792500761.7445178
+   ],
+   "log_events": 2768
+  },
+  {
+   "round": 1,
+   "order": [
+    "xzv",
+    "gpv",
+    "xz",
+    "gp"
+   ],
+   "cold_tag": "r1-1792500767.848",
+   "t0": 1792500767.8479135,
+   "published": {
+    "xzv": {
+     "arm": "xzv",
+     "version": "3",
+     "publish_s": 151.8,
+     "t_publish": 1792500944.957816,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "JusmUeiRX4rQnq6Jn+/1g6RI3muNK8SUO8yrtmyuGJs=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07"
+    },
+    "gpv": {
+     "arm": "gpv",
+     "version": "3",
+     "publish_s": 157.0,
+     "t_publish": 1792501096.7868075,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "JusmUeiRX4rQnq6Jn+/1g6RI3muNK8SUO8yrtmyuGJs=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07"
+    },
+    "xz": {
+     "arm": "xz",
+     "version": "3",
+     "publish_s": 156.9,
+     "t_publish": 1792501253.7406118,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "JusmUeiRX4rQnq6Jn+/1g6RI3muNK8SUO8yrtmyuGJs=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07"
+    },
+    "gp": {
+     "arm": "gp",
+     "version": "3",
+     "publish_s": 156.9,
+     "t_publish": 1792501410.6262496,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "JusmUeiRX4rQnq6Jn+/1g6RI3muNK8SUO8yrtmyuGJs=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07"
+    }
+   },
+   "t_versions_deleted": 1792501722.5080388,
+   "log_window": [
+    1792500767.8479135,
+    1792501742.508163
+   ],
+   "log_events": 2792
+  },
+  {
+   "round": 2,
+   "order": [
+    "gp",
+    "xz",
+    "gpv",
+    "xzv"
+   ],
+   "cold_tag": "r2-1792501748.362",
+   "t0": 1792501748.361516,
+   "published": {
+    "gp": {
+     "arm": "gp",
+     "version": "4",
+     "publish_s": 158.3,
+     "t_publish": 1792501901.1616676,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "JusmUeiRX4rQnq6Jn+/1g6RI3muNK8SUO8yrtmyuGJs=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07"
+    },
+    "xz": {
+     "arm": "xz",
+     "version": "4",
+     "publish_s": 158.3,
+     "t_publish": 1792502059.4924932,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "JusmUeiRX4rQnq6Jn+/1g6RI3muNK8SUO8yrtmyuGJs=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07"
+    },
+    "gpv": {
+     "arm": "gpv",
+     "version": "4",
+     "publish_s": 155.1,
+     "t_publish": 1792502217.8076785,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "JusmUeiRX4rQnq6Jn+/1g6RI3muNK8SUO8yrtmyuGJs=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07"
+    },
+    "xzv": {
+     "arm": "xzv",
+     "version": "4",
+     "publish_s": 155.2,
+     "t_publish": 1792502372.8876915,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "JusmUeiRX4rQnq6Jn+/1g6RI3muNK8SUO8yrtmyuGJs=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07"
+    }
+   },
+   "t_versions_deleted": 1792502627.9408703,
+   "log_window": [
+    1792501748.361516,
+    1792502647.9409637
+   ],
+   "log_events": 2795
+  },
+  {
+   "round": 3,
+   "order": [
+    "xzv",
+    "gpv",
+    "xz",
+    "gp"
+   ],
+   "cold_tag": "r3-1792502654.139",
+   "t0": 1792502654.1393588,
+   "published": {
+    "xzv": {
+     "arm": "xzv",
+     "version": "5",
+     "publish_s": 155.1,
+     "t_publish": 1792502832.4871955,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "JusmUeiRX4rQnq6Jn+/1g6RI3muNK8SUO8yrtmyuGJs=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07"
+    },
+    "gpv": {
+     "arm": "gpv",
+     "version": "5",
+     "publish_s": 155.1,
+     "t_publish": 1792502987.598743,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "JusmUeiRX4rQnq6Jn+/1g6RI3muNK8SUO8yrtmyuGJs=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07"
+    },
+    "xz": {
+     "arm": "xz",
+     "version": "5",
+     "publish_s": 155.0,
+     "t_publish": 1792503142.6753948,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "JusmUeiRX4rQnq6Jn+/1g6RI3muNK8SUO8yrtmyuGJs=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07"
+    },
+    "gp": {
+     "arm": "gp",
+     "version": "5",
+     "publish_s": 155.1,
+     "t_publish": 1792503297.7223394,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "JusmUeiRX4rQnq6Jn+/1g6RI3muNK8SUO8yrtmyuGJs=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07"
+    }
+   },
+   "t_versions_deleted": 1792503552.7408109,
+   "log_window": [
+    1792502654.1393588,
+    1792503572.7409062
+   ],
+   "log_events": 2795
+  },
+  {
+   "round": 4,
+   "order": [
+    "gp",
+    "xz",
+    "gpv",
+    "xzv"
+   ],
+   "cold_tag": "r4-1792503578.525",
+   "t0": 1792503578.5249817,
+   "published": {
+    "gp": {
+     "arm": "gp",
+     "version": "6",
+     "publish_s": 145.5,
+     "t_publish": 1792503763.2727244,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "JusmUeiRX4rQnq6Jn+/1g6RI3muNK8SUO8yrtmyuGJs=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07"
+    },
+    "xz": {
+     "arm": "xz",
+     "version": "6",
+     "publish_s": 155.3,
+     "t_publish": 1792503908.7714832,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "JusmUeiRX4rQnq6Jn+/1g6RI3muNK8SUO8yrtmyuGJs=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07"
+    },
+    "gpv": {
+     "arm": "gpv",
+     "version": "6",
+     "publish_s": 155.2,
+     "t_publish": 1792504064.0468857,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "JusmUeiRX4rQnq6Jn+/1g6RI3muNK8SUO8yrtmyuGJs=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07"
+    },
+    "xzv": {
+     "arm": "xzv",
+     "version": "6",
+     "publish_s": 148.8,
+     "t_publish": 1792504219.2454474,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "JusmUeiRX4rQnq6Jn+/1g6RI3muNK8SUO8yrtmyuGJs=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07"
+    }
+   },
+   "t_versions_deleted": 1792504465.130893,
+   "log_window": [
+    1792503578.5249817,
+    1792504485.1309824
+   ],
+   "log_events": 2792
+  }
+ ],
+ "finished": "2026-10-20T13:54:50Z"
+}
