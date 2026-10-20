@@ -257,7 +257,11 @@ def adopt_p1(sess, st: dict, p1_function: str) -> None:
     st["bucket"], st["model_key"] = env["MODEL_BUCKET"], env["MODEL_KEY"]
     st["p1_environment"] = {k: v for k, v in env.items() if k not in ("COLD_TAG", "LKAI_PHASES")}
     st["runtime_version_arn"] = rm["RuntimeVersionArn"]
-    st["p1_zip_sha256"] = p1.b64_to_hex(c["CodeSha256"])
+    # The control runs the P1 zip the E3 zip was built from (build/manifest.json), which is the zip P1's published
+    # baseline run used. It is not necessarily the code the P1 function holds now.
+    m = json.load(open(os.path.join(HERE, "build", "manifest.json")))
+    st["p1_zip_sha256"] = m["p1_manifest"]["function_zip"]["sha256"]
+    st["p1_function_code_sha256"] = p1.b64_to_hex(c["CodeSha256"])
     st["p1_zip_key"] = f"code/{st['p1_zip_sha256']}/function.zip"
     st["p1_function"] = p1_function
 
