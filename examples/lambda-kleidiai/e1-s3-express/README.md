@@ -71,11 +71,35 @@ Per 2 GB download: Standard costs 32 requests × $0.0004/1000 ≈ $0.0000128. Ex
 2.08 GB × $0.0006 ≈ $0.00125. At these sizes, Express's per-GB retrieval charge dominates S3 cost. Lambda duration
 (about $0.0045 per cold start of ~34 s at 10 GB) dominates both.
 
+## Host variability
+
+Lambda chooses the host for each execution environment, and E1 cannot control that. Each invocation records the
+`CPU part` from `/proc/cpuinfo` (read per request in P1's handler) and logs the ggml CPU variant it loaded.
+`summarize_e1.py` writes `e1.host_variability`:
+
+- `cpu_part_mix`: invocations per arm, class and CPU part.
+- `within_cpu_part`: every contrast recomputed inside each CPU part both arms ran on, with at least 3 samples per arm.
+- `headline_status_by_cpu_part` and `verdict`: the status rule applied within each part. The verdict is
+  `comparable` when every part agrees with the pooled status and `confounded` when any part disagrees.
+- `pooled_mix_confounded`: pooled measures that pass the status rule while no CPU part does, meaning the arms'
+  different CPU mixes produced the change.
+- `unknown`: what the run did not record. That covers CPU implementer, variant and revision, feature flags and
+  HWCAPs, core count, cgroup limits, kernel release, and the AZ of non-VPC environments.
+
+CPU part values are reported as recorded and are not mapped to a processor generation.
+
+Run 20261020T1235Z-e1 saw three CPU parts: 0xd40 on 171 of 200 cold starts, 0xd4f on 17 and 0xd0c on 12. The
+headline is `improved` within all three parts. Within 0xd40, xz − gp cold `weight_download` is −0.71 s, faster
+in 5/5 rounds. The same-AZ contrast stays null on 0xd40. `pooled_mix_confounded` is empty, so the CPU mix does
+not change any conclusion and the run was not repeated. H1's fixed-host EC2 baseline isolates CPU and memory
+effects, but E1's variable is the network path, so it does not apply.
+
 ## Files
 
 - `deploy_e1.py`: buckets, network, per-arm roles, the four functions, SDK probe, smoke test, teardown.
 - `run_e1.sh`: deploy → `../baseline/bench.py --arms gp,xz,gpv,xzv` → `summarize_e1.py` → redaction → P2 validation.
 - `summarize_e1.py`: P1's `summarize.py` output plus `e1.comparison`, `e1.weight_download_pcts` (cold and
-  snapshot-init p50/p95/p99 per arm), `e1.s3_costs_by_arm` (including cost per 1,000 cold starts) and the status.
+  snapshot-init p50/p95/p99 per arm), `e1.s3_costs_by_arm` (including cost per 1,000 cold starts),
+  `e1.host_variability` and the status.
 - `meta.json`: hypothesis, changed variable, AZ note, conclusion and reproduce commands.
 - `results/<run-id>/`: committed, redacted run output (bucket names and the account ID replaced).

@@ -348,7 +348,7 @@ ARMS = ("gp", "xz", "gpv", "xzv")
 DL = {"gp": 25.0, "xz": 15.0, "gpv": 26.0, "xzv": 14.0}
 
 
-def _row(arm, rnd, wave, rid="r1", dl=None, lat=200.0):
+def _row(arm, rnd, wave, rid="r1", dl=None, lat=200.0, cpu="0xd40"):
     if wave == "cold":
         rep = {
             "Duration": 9000.0,
@@ -388,7 +388,8 @@ def _row(arm, rnd, wave, rid="r1", dl=None, lat=200.0):
         "expected_class": wave,
         "observed_class": obs,
         "class_mismatch": obs != wave,
-        "cpu_part": "0xd40",
+        "cpu_part": cpu,
+        "log_tail": f"decider.engine init cpu_part={cpu} ggml_cpu=v{cpu} threads=6\n",
         "latency_ms": lat,
         "answers": {"q": {"type": "noul", "noul": 0.5}},
         "lkai": lk,
@@ -509,6 +510,77 @@ def test_summary_no_change_when_rounds_disagree(tmp_path):
 
     res = summarize_e1.summarize_e1(_run(tmp_path, {**DL, "xz": 25.0}), None, None, {})
     assert res["status"] == "no-change"
+
+
+def test_host_variability_one_cpu_part_is_comparable(tmp_path):
+    import summarize_e1
+
+    hv = summarize_e1.summarize_e1(_run(tmp_path), None, None, {})["e1"]["host_variability"]
+    assert hv["headline_status_by_cpu_part"] == {"0xd40": "improved"}
+    assert hv["verdict"].startswith("comparable")
+    assert hv["cpu_part_mix"]["xz"]["cold"] == {"0xd40": 6}
+    assert hv["observed"]["ggml_cpu_variant_by_cpu_part"] == {"0xd40": {"v0xd40 threads=6": 72}}
+    assert "cgroup cpu and memory limits" in hv["unknown"]
+    assert hv["pooled_mix_confounded"] == []
+    # no CPU part is mapped to a generation anywhere in the section
+    assert "raviton" not in json.dumps(hv)
+
+
+def _mixed_rows():
+    """xz lands on a slow part for every warm request, gp on a fast one; within a part both arms are equal."""
+    rows = []
+    for rnd in range(3):
+        for arm in ("gp", "xz"):
+            for i in range(3):
+                rows.append(_row(arm, rnd, "cold", dl=DL[arm] + 0.1 * i, cpu="0xaaa"))
+                rows.append(_row(arm, rnd, "cold", dl=DL[arm] + 0.1 * i, cpu="0xbbb"))
+            # per round: xz 4 on the slow part + 3 on the fast one, gp the reverse, so pooled medians differ
+            slow, fast = (4, 3) if arm == "xz" else (3, 4)
+            rows += [_row(arm, rnd, "warm", lat=600.0, cpu="0xaaa") for _ in range(slow)]
+            rows += [_row(arm, rnd, "warm", lat=300.0, cpu="0xbbb") for _ in range(fast)]
+    return rows
+
+
+def test_host_variability_flags_pooled_change_no_cpu_part_shows():
+    import summarize_e1
+
+    rows = _mixed_rows()
+    cmp = {n: summarize_e1.contrast(rows, a, b) for n, (a, b) in summarize_e1.CONTRASTS.items()}
+    hv = summarize_e1.host_variability(rows, "improved", cmp)
+    # cold download: xz faster within both parts, so the headline is comparable
+    assert hv["headline_status_by_cpu_part"] == {"0xaaa": "improved", "0xbbb": "improved"}
+    # warm: pooled xz - gp is +300 ms every round, but zero within each part -> a CPU-mix artifact
+    flagged = {(x["contrast"], x["measure"]): x for x in hv["pooled_mix_confounded"]}
+    w = flagged[("bucket_type_no_vpc", "warm.steady_state_inference")]
+    assert w["pooled_status"] == "regressed"
+    assert set(w["status_by_cpu_part"].values()) == {"no-change"}
+    assert all(d == 0 for d in w["delta_p50_s_by_cpu_part"].values())
+
+
+def test_host_variability_confounded_when_a_part_disagrees():
+    import summarize_e1
+
+    rows = [
+        _row(arm, rnd, "cold", dl=d + 0.1 * i, cpu=part)
+        for rnd in range(3)
+        for i in range(3)
+        for part, dls in (("0xaaa", DL), ("0xbbb", {**DL, "xz": 30.0}))
+        for arm, d in dls.items()
+    ]
+    cmp = {n: summarize_e1.contrast(rows, a, b) for n, (a, b) in summarize_e1.CONTRASTS.items()}
+    hv = summarize_e1.host_variability(rows, "improved", cmp)
+    assert hv["headline_status_by_cpu_part"] == {"0xaaa": "improved", "0xbbb": "regressed"}
+    assert hv["verdict"].startswith("confounded") and "0xbbb" in hv["verdict"]
+
+
+def test_host_variability_skips_parts_below_min_samples():
+    import summarize_e1
+
+    rows = [_row(a, r, "cold", dl=DL[a], cpu="0xaaa") for r in range(3) for a in ("gp", "xz")]
+    rows += [_row("xz", 0, "cold", dl=40.0, cpu="0xccc")]
+    hv = summarize_e1.host_variability(rows, "improved", {})
+    assert "0xccc" not in hv["within_cpu_part"]["bucket_type_no_vpc"]
+    assert hv["cpu_part_mix"]["xz"]["cold"] == {"0xaaa": 3, "0xccc": 1}
 
 
 def test_s3_costs_priced_by_bucket_type(tmp_path):
