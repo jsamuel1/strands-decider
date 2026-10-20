@@ -53,7 +53,8 @@ cp "$R/snapstart/engine.py" $P/
 (cd $P && unzip -q -o /w/in/function.zip 'assets/*')
 cp /w/sd/src/strands_decider/{__init__,schema,prompting,hidden_engine}.py $P/strands_decider/
 python3 -m venv /b/venv
-/b/venv/bin/pip install -q pydantic==2.14.0 numpy==2.5.3 tokenizers==0.23.2 safetensors==0.8.0 py-spy
+/b/venv/bin/pip install -q pydantic==2.14.0 numpy==2.5.3 tokenizers==0.23.2 safetensors==0.8.0 py-spy==0.4.2
+/b/venv/bin/pip list --format=freeze > "$O/pip-freeze.txt"
 PY=/b/venv/bin/python3
 { nvidia-smi --query-gpu=name,driver_version,memory.total,compute_cap --format=csv,noheader; uname -a;
   grep -m1 'model name' /proc/cpuinfo; nproc; $PY --version; ls $P/lib; echo "nsys=$NSYS ncu=$NCU"; } > "$O/host.txt"

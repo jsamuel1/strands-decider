@@ -25,6 +25,9 @@ trap 'rm -rf "$W"' EXIT
 (cd "$W" && unzip -q "$ZIP" -d pkg)
 python3 -m pip download -q --no-deps --only-binary=:all: --platform manylinux2014_aarch64 --python-version 3.12 \
   py-spy==0.4.2 -d "$W/whl"
+# the same pinned wheel as build_prof_zip.sh
+[ "$(sha256sum "$W"/whl/py_spy-0.4.2-*aarch64.whl | cut -d' ' -f1)" = 142887e984a4e541071c99a4401ff8c3770f255d329dbd0f64e8c1dd51882cce ] \
+  || { echo "py-spy wheel sha256 mismatch"; exit 1; }
 (cd "$W/whl" && python3 -m zipfile -e py_spy-*.whl x && cp x/py_spy-0.4.2.data/scripts/py-spy "$W/py-spy")
 chmod -R a+rX "$W" && chmod 755 "$W/py-spy"
 docker run --rm --platform linux/arm64 --cap-add SYS_PTRACE --cap-add PERFMON --security-opt seccomp=unconfined \

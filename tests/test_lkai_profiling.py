@@ -235,7 +235,8 @@ def test_profile_extracts_merge_records_per_profiler(tmp_path):
     out = sp.profile_extracts(str(tmp_path), cond)
     s = out["sampler"]["sampler_invoke"]
     assert s["samples"] == 20 and s["cpu_s"] == 1.0 and s["effective_hz_per_cpu_s"] == 20.0
-    assert s["phases"]["invoke"]["top_self"][0] == {"symbol": "libggml-cpu.so:kai_kernel", "samples": 14, "share": 1.0}
+    # 14 of the 20 recorded samples: the share is of all samples, not of the retained top rows (which hold 14)
+    assert s["phases"]["invoke"]["top_self"][0] == {"symbol": "libggml-cpu.so:kai_kernel", "samples": 14, "share": 0.7}
     assert out["pyspy"]["pyspy_init"]["samples"] == 5 and out["pyspy"]["pyspy_invoke"]["records"] == 1
     t = out["telemetry"]["telemetry"]
     assert t["durations_ms"]["platform.initReport.durationMs"]["p50"] == 800.0
@@ -414,14 +415,14 @@ def test_paired_rounds_cancel_round_drift():
 
     rows = []
     for rnd, drift in enumerate((0, 100, -50)):  # the whole round is slower or faster: both arms move together
-        rows += [_prow("rep", rnd, "warm", 700 + drift), _prow("rep", rnd, "warm", 710 + drift)]
-        rows += [_prow("x", rnd, "warm", 720 + drift), _prow("x", rnd, "warm", 730 + drift)]
+        rows += [_prow("rep", rnd, "warm", 700 + drift + i) for i in (0, 5, 10)]
+        rows += [_prow("x", rnd, "warm", 720 + drift + i) for i in (0, 5, 10)]
     rows += [_prow("x", 0, "warm", 9999, cpu="0xd0c"), _prow("x", 1, "warm", 9999, error="boom"),
              _prow("x", 2, "warm", 9999, mismatch=True)]  # all excluded
     p = sp.paired_rounds(rows, "x")["warm.Duration"]
-    assert p["rounds"] == 3 and p["delta_ms_by_round"] == [20.0, 20.0, 20.0]
+    assert p["rounds"] == 3 and p["delta_ms_by_round"] == [20.0, 20.0, 20.0] and p["skipped_rounds"] == []
     assert p["mean_ms"] == 20.0 and p["min_ms"] == p["max_ms"] == 20.0
-    assert sp.noise_floor({"xray": {"warm.Duration": p, "warm.Duration.by_request": {"cells": 1}}}, "xray") == {
+    assert sp.noise_floor({"rep2": {"warm.Duration": p, "warm.Duration.by_request": {"cells": 1}}}) == {
         "warm.Duration": 20.0}
 
 
@@ -432,7 +433,7 @@ def test_paired_warm_by_request_removes_request_mix():
     rows = [_prow("rep", 0, "warm", 250, rid="short"), _prow("rep", 0, "warm", 1750, rid="long"),
             _prow("x", 0, "warm", 275, rid="short"), *[_prow("x", 0, "warm", 1925, rid="long")] * 5]
     w = sp.paired_warm_by_request(rows, "x")
-    assert w == {"cells": 2, "median_pct": 10.0, "min_pct": 10.0, "max_pct": 10.0}
+    assert w == {"cells": 2, "median_pct": 10.0, "min_pct": 10.0, "max_pct": 10.0, "pct_by_cell": [10.0, 10.0]}
 
 
 def test_profile_extracts_split_warm_sampler_tables_by_cpu_part(tmp_path):
@@ -458,3 +459,167 @@ def test_profile_extracts_split_warm_sampler_tables_by_cpu_part(tmp_path):
     assert out["sampler_invoke"]["records"] == 3
     top = {k: out[k]["phases"]["invoke"]["top_self"][0]["symbol"] for k in out if k.startswith("sampler_invoke_warm_")}
     assert top == {"sampler_invoke_warm_0xd40": "i8mm", "sampler_invoke_warm_0xd0c": "dotprod"}
+
+
+# ------------------------------------------------------------------------------------------------ review-2 regressions
+
+
+def test_bench_makes_a_fresh_invoke_client_for_every_wave(monkeypatch):
+    """A pooled connection must not outlive a wave (it can die during the publish/SnapStart wait)."""
+    import bench
+
+    made = []
+    monkeypatch.setattr(bench, "invoke_client", lambda sess, c, t: made.append((c, t)) or f"client-{len(made)}")
+    b = bench.Bench.__new__(bench.Bench)
+    b.sess, b.concurrency, b.read_timeout, b.clients_made, b.probe = object(), 3, 120, 0, "r1"
+    b.lam = "lifecycle"
+    seen = []
+    b.invoke = lambda arm, q, rid, rnd, wave, seq, client: seen.append(client) or {}
+    b.wave("rep", "1", 0, "restore")
+    b.wave("rep", "1", 0, "warm")
+    assert made == [(3, 120), (3, 120)] and b.clients_made == 2
+    assert seen == ["client-1"] * 3 + ["client-2"] * 3  # one client per wave, never the lifecycle client
+
+
+def test_merge_top_shares_use_the_full_denominator_not_retained_rows():
+    """Run 20261020T124451Z: init kept 83,864 of 106,648 samples in its top-N; shares over the retained rows read
+    35.2% where the truth was 30.1%."""
+    import summarize_prof as sp
+
+    # Two records, each truncated to its top rows: 60 of 100 and 30 of 50 samples retained.
+    lists = [[{"s": "a", "n": 40}, {"s": "b", "n": 20}], [{"s": "a", "n": 20}, {"s": "c", "n": 10}]]
+    out = sp._merge_top(lists, "s", "n", [100, 50])
+    assert out[0] == {"s": "a", "n": 60, "share": 0.4}  # 60/150, not 60/90
+    assert [x["share"] for x in out] == [0.4, 0.1333, 0.0667]
+    assert all(x["share"] is None for x in sp._merge_top(lists, "s", "n", [100, None]))  # no guessed denominator
+    with pytest.raises(ValueError, match="exceed"):
+        sp._merge_top(lists, "s", "n", [10, 10])  # exclusive rows can never sum past their total
+    assert sp._merge_top(lists, "s", "n", [10, 10], inclusive=True)[0]["share"] == 3.0  # inclusive may
+
+
+def test_profile_extracts_cprofile_and_pyspy_shares_are_of_all_time(tmp_path):
+    import summarize_prof as sp
+
+    cp_init = {"kind": "init", "tottime_total": 10.0,
+               "top": {"all_threads": [{"fn": "ssl:read", "tottime": 4.0, "cumtime": 9.0}]}}
+    cp_inv = {"kind": "invoke", "n": 1, "tottime_total": 2.0, "top": [{"fn": "engine:_fork", "tottime": 1.5,
+                                                                         "cumtime": 1.9}]}
+    _logs(tmp_path, "lkai-p3-cprofile", ["LKAI_PROF " + json.dumps(cp_init), "LKAI_PROF " + json.dumps(cp_inv)])
+    spy = {"rc": 0, "popen_s": 0.0, "samples": 50, "top_leaf": [{"frame": "read", "samples": 20}],
+           "top_inclusive": [{"frame": "main", "samples": 50}, {"frame": "read", "samples": 20}]}
+    _logs(tmp_path, "lkai-p3-pyspy", ["LKAI_PROF " + json.dumps({"kind": "init", "pyspy": spy})])
+    cond = {"functions": {"cprofile": {"FunctionName": "lkai-p3-cprofile"}, "pyspy": {"FunctionName": "lkai-p3-pyspy"}}}
+    out = sp.profile_extracts(str(tmp_path), cond)
+    assert out["cprofile"]["cprofile_init_top_tottime"][0]["share"] == 0.4
+    assert out["cprofile"]["cprofile_init_tottime_total"] == 10.0
+    assert out["cprofile"]["cprofile_invoke_top_tottime"][0]["share"] == 0.75
+    assert out["pyspy"]["pyspy_init"]["top_leaf"][0]["share"] == 0.4
+    assert out["pyspy"]["pyspy_init"]["top_inclusive"][0]["share"] == 1.0
+
+
+def test_paired_rounds_skip_a_round_whose_control_is_one_sample():
+    """Run 20261020T124451Z: rep kept 1 valid restore sample in rounds 0/2/4 and was still compared."""
+    import summarize_prof as sp
+
+    rows = []
+    for rnd in range(3):
+        rows += [_prow("x", rnd, "restore", 3300 + i) for i in range(5)]
+        rows += [_prow("rep", rnd, "restore", 3000 + i) for i in range(1 if rnd == 1 else 5)]
+    rows += [_prow("rep", 1, "restore", 0, error="client:ReadTimeoutError") for _ in range(4)]
+    p = sp.paired_rounds(rows, "x")["restore.Duration"]
+    assert p["rounds"] == 2 and p["skipped_rounds"] == [{"round": 1, "n_arm": 5, "n_ctrl": 1}]
+    ev = sp.restore_evidence(rows, ["rep", "x"])
+    assert ev["usable"] is False and ev["sparse_cells"] == [{"arm": "rep", "round": 1}]
+    assert ev["by_arm_round"]["rep"]["1"] == {"sent": 5, "client_errors": 4, "valid_0xd40": 1}
+
+
+def test_permutation_p_is_exact_for_five_rounds():
+    import summarize_prof as sp
+
+    assert sp.permutation_p([10, 11, 12, 13, 14], [0, 1, 2, 3, 4]) == round(2 / 252, 4)  # only the two extreme splits
+    assert sp.permutation_p([1, 2], [1, 2]) == 1.0
+    assert sp.permutation_p([1], [1, 2]) is None
+
+
+def test_null_verdicts_judge_xray_and_timers_against_the_replicate_not_themselves():
+    """The X-Ray arm's own deltas used to define the noise floor that X-Ray was then judged by."""
+    import summarize_prof as sp
+
+    def cell(d):
+        return {"delta_ms_by_round": d, "min_ms": min(d), "max_ms": max(d)}
+
+    null = [-20.0, 15.0, -5.0, 10.0, 0.0]
+    paired = {"rep2": {"cold.Init Duration": cell(null)},
+              "xray": {"cold.Init Duration": cell([-10.0, 12.0, 3.0, -8.0, 5.0])},  # within the null
+              "cprofile": {"cold.Init Duration": cell([100.0, 110.0, 99.0, 117.0, 107.0])},  # far outside
+              "none": {"cold.Init Duration": cell([25.0, 30.0, 22.0, 28.0, 26.0])}}  # small but every round
+    v = sp.null_verdicts(paired)
+    assert "rep2" not in v  # the null is never judged against itself
+    assert v["xray"]["cold.Init Duration"]["verdict"] == "not measurable"
+    assert v["cprofile"]["cold.Init Duration"]["verdict"] == "measurable"
+    assert v["none"]["cold.Init Duration"]["verdict"] == "measurable"  # an xray-defined floor (|max| 12) would agree,
+    assert v["none"]["cold.Init Duration"]["null_max_abs"] == 20.0  # but the floor now comes from rep2 alone
+    assert sp.null_verdicts({"rep2": {}, "x": {"warm.Duration": cell([1.0])}})["x"]["warm.Duration"]["verdict"] == (
+        "insufficient")
+
+
+def _prov_repo(tmp_path):
+    """A git repo laid out like profiling/: the packaged sources and build_prof_zip.sh with its PYSPY_SHA256 pin."""
+    import hashlib
+
+    r = tmp_path / "repo"
+    (r / "extensions").mkdir(parents=True)
+    files = {"lkai_prof.py": b"p", "lkai_probe.py": b"q", "lkai_symbolise.py": b"s", "lkaisamp.c": b"int x;",
+             "extensions/lkai-telemetry": b"#!/usr/bin/env python3\n"}
+    for f, b in files.items():
+        (r / f).write_bytes(b)
+    (r / "build_prof_zip.sh").write_text("PYSPY_SHA256=" + "a" * 64 + "\n")
+    git = ["git", "-C", str(r), "-c", "user.email=t@t", "-c", "user.name=t"]
+    subprocess.run([*git[:3], "init", "-q"], check=True)
+    subprocess.run([*git, "add", "-A"], check=True)
+    subprocess.run([*git, "commit", "-qm", "x"], check=True)
+    commit = subprocess.run([*git[:3], "rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
+    sha = {f: hashlib.sha256(b).hexdigest() for f, b in files.items()}
+    pm = {"schema": "lkai-prof-build/2", "source_commit": commit, "pyspy_wheel_sha256": "a" * 64,
+          "prof_zip_sha256": "z", "base_zip_sha256": "b", "telemetry_layer_sha256": "t", "sources": sha,
+          "built_from": {"lkai_prof.py": "lkai_prof.py", "lkai_probe.py": "lkai_probe.py",
+                         "lkai_symbolise.py": "lkai_symbolise.py", "lib/liblkaisamp.so": "lkaisamp.c",
+                         "bin/py-spy": "pyspy_wheel", "telemetry-layer.zip": "extensions/lkai-telemetry"},
+          "added": {"lkai_prof.py": sha["lkai_prof.py"], "lkai_probe.py": sha["lkai_probe.py"],
+                    "lkai_symbolise.py": sha["lkai_symbolise.py"], "lib/liblkaisamp.so": "so", "bin/py-spy": "bin"}}
+    return r, commit, pm
+
+
+def test_provenance_binds_c_source_extension_and_wheel(tmp_path):
+    import copy
+
+    import summarize_prof as sp
+
+    r, commit, pm = _prov_repo(tmp_path)
+    assert sp.verify_prof_manifest(pm, commit, str(r))["result"] == "match"
+    for mutate, msg in (
+        (lambda m: m["sources"].__setitem__("lkaisamp.c", "0" * 64), "lkaisamp.c"),
+        (lambda m: m["sources"].__setitem__("extensions/lkai-telemetry", "0" * 64), "lkai-telemetry"),
+        (lambda m: m.__setitem__("pyspy_wheel_sha256", "b" * 64), "py-spy wheel"),
+        (lambda m: m["added"].__setitem__("lkai_prof.py", "0" * 64), "verbatim"),
+        (lambda m: m["added"].__setitem__("lib/extra.so", "x"), "no recorded source"),
+        (lambda m: m["built_from"].__setitem__("lib/liblkaisamp.so", "other.c"), "no source hash"),
+        (lambda m: m.pop("sources"), "non-Python"),  # an lkai-prof-build/1 manifest is refused
+    ):
+        bad = copy.deepcopy(pm)
+        mutate(bad)
+        with pytest.raises(SystemExit, match=msg):
+            sp.verify_prof_manifest(bad, commit, str(r))
+    with pytest.raises(SystemExit, match="not a commit"):
+        sp.verify_prof_manifest(pm, "0" * 40, str(r))
+
+
+def test_build_script_hashes_every_repository_file_it_packages_and_pins_the_wheel():
+    import re
+
+    src = (PROF / "build_prof_zip.sh").read_text()
+    sources = set(re.search(r'^SOURCES="([^"]+)"', src, re.M).group(1).split())
+    copied = set(re.findall(r'"\$HERE/([^"]+)"', src)) | set(re.findall(r"/p/(\S+\.c)\b", src))
+    assert copied <= sources, copied - sources  # nothing from the repo is packaged without a source hash
+    assert re.search(r"^PYSPY_SHA256=[0-9a-f]{64}$", src, re.M)  # pinned, not an optional override
+    assert "${PYSPY_SHA256" not in src

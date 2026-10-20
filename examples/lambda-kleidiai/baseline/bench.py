@@ -47,17 +47,36 @@ _lock = threading.Lock()
 observed_class = phases.observed_class
 
 
+def invoke_client(sess, concurrency: int, read_timeout: int):
+    """A Lambda client for one invocation wave: no retries (a failed invoke is a result), a pool wide enough for the
+    wave, and the run's read timeout."""
+    return sess.client(
+        "lambda",
+        config=Config(
+            read_timeout=read_timeout,
+            connect_timeout=10,
+            retries={"max_attempts": 0},
+            max_pool_connections=max(16, concurrency * 2),
+        ),
+    )
+
+
 class Bench:
+    """Two kinds of Lambda client. `lam` makes the lifecycle calls (configuration, publish, version deletion): they
+    are idempotent, so it uses short timeouts and standard retries. Every invocation wave gets a NEW client from
+    invoke_client(): a pooled HTTPS connection kept across the long publish_version and SnapStart wait can be dead
+    without the client knowing, and an invoke written into it never reaches Lambda (no START/REPORT) and waits for
+    the full read timeout. One client for a whole run let that contaminate restore waves (P3 run 20261020T124451Z:
+    45 such rows, E1's first attempt the same). A fresh client changes only the client round trip (one TLS
+    handshake per connection, the same on every arm), never Lambda's REPORT or the function's own timings."""
+
     def __init__(self, sess, st: dict, reqs: dict, out: str, concurrency: int, read_timeout: int = 900):
         self.st, self.out = st, out
+        self.sess, self.read_timeout = sess, read_timeout
+        self.clients_made = 0
         self.lam = sess.client(
             "lambda",
-            config=Config(
-                read_timeout=read_timeout,
-                connect_timeout=10,
-                retries={"max_attempts": 0},
-                max_pool_connections=max(16, concurrency * 2),
-            ),
+            config=Config(read_timeout=60, connect_timeout=10, retries={"max_attempts": 5, "mode": "standard"}),
         )
         self.logs = sess.client("logs")
         self.reqs = {r["id"]: r["request"] for r in reqs["requests"]}
@@ -71,12 +90,12 @@ class Bench:
             self.fh.write(json.dumps(rec, separators=(",", ":")) + "\n")
             self.fh.flush()
 
-    def invoke(self, arm: str, qualifier: str, rid: str, rnd: int, wave: str, seq: int) -> dict:
+    def invoke(self, arm: str, qualifier: str, rid: str, rnd: int, wave: str, seq: int, client=None) -> dict:
         name = self.st["functions"][arm]["name"]
         t_wall = time.time()
         t = time.perf_counter()
         try:
-            r = self.lam.invoke(
+            r = (client or self.lam).invoke(
                 FunctionName=name,
                 Qualifier=qualifier,
                 LogType="Tail",
@@ -138,9 +157,11 @@ class Bench:
     def wave(
         self, arm: str, qualifier: str, rnd: int, wave: str, rid: str | None = None, seq0: int = 0
     ) -> list[dict]:
+        client = invoke_client(self.sess, self.concurrency, self.read_timeout)  # never reused: see the class doc
+        self.clients_made += 1
         with ThreadPoolExecutor(self.concurrency) as ex:
             futs = [
-                ex.submit(self.invoke, arm, qualifier, rid or self.probe, rnd, wave, seq0 + i)
+                ex.submit(self.invoke, arm, qualifier, rid or self.probe, rnd, wave, seq0 + i, client)
                 for i in range(self.concurrency)
             ]
             return [f.result() for f in futs]
@@ -262,6 +283,8 @@ def main() -> None:
         # A function may record its own expected code (profiling/deploy_arms.py: arms on prof.zip); default P1's zip.
         want = st["functions"][arm].get("code_sha256_hex") or st["manifest"]["function_zip"]["sha256"]
         fns[arm]["expected_code_sha256"] = want
+        if st["functions"][arm].get("layer_sha256_hex"):  # deploy_arms.py checked the published layer's bytes
+            fns[arm]["expected_layer_sha256"] = st["functions"][arm]["layer_sha256_hex"]
         if deploy.b64_to_hex(c["CodeSha256"]) != want:
             sys.exit(f"{arm}: deployed code {c['CodeSha256']} is not the expected zip {want[:12]}")
     cond = {
@@ -270,6 +293,7 @@ def main() -> None:
         "rounds": a.rounds,
         "concurrency": a.concurrency,
         "client_read_timeout_s": a.read_timeout,
+        "invoke_client": "fresh per wave",  # bench.Bench: no pooled connection outlives a wave
         "warm_per_arm_per_round": a.warm,
         "arms": arms,
         "requests_file": os.path.relpath(a.requests, HERE),
@@ -348,6 +372,7 @@ def main() -> None:
         cond["rounds_meta"].append(meta)
         json.dump(cond, open(os.path.join(a.out, "conditions.json"), "w"), indent=1)
     cond["finished"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    cond["invoke_clients_made"] = getattr(b, "clients_made", None)
     json.dump(cond, open(os.path.join(a.out, "conditions.json"), "w"), indent=1)
     print("BENCH_DONE", a.out)
 

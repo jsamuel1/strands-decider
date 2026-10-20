@@ -18,6 +18,7 @@ import argparse
 import gzip
 import json
 import os
+import re
 import statistics
 import sys
 from collections import Counter, defaultdict
@@ -37,15 +38,18 @@ def overhead_vs(rows: list[dict], arm: str, ctrl: str = "rep") -> dict:
 
 PAIRED_METRICS = (("cold", "Init Duration"), ("cold", "Duration"), ("restore", "Restore Duration"),
                   ("restore", "Duration"), ("warm", "Duration"))
+NULL_ARM = "rep2"  # deploy_arms.py: a second function byte-identical to rep
+MIN_CELL_N = 3  # a per-round median from fewer valid samples than this is not compared
 
 
-def paired_rounds(rows: list[dict], arm: str, ctrl: str = "rep", cpu: str = "0xd40") -> dict:
+def paired_rounds(rows: list[dict], arm: str, ctrl: str = "rep", cpu: str = "0xd40", min_n: int = MIN_CELL_N) -> dict:
     """Per round, median(arm) - median(ctrl) of a REPORT field, on one CPU part; then mean/min/max over rounds.
 
     The arms of one round run back to back, so a per-round difference cancels drift between rounds (the warm control's
     own per-round median moved by 70 ms, about 10%, across the five rounds of run 20261020T124451Z). Each warm arm's
     passes also all land in one execution environment per round, so a round is one environment, and the spread over
-    rounds is the honest uncertainty."""
+    rounds is the honest uncertainty. A round is compared only when both medians rest on at least `min_n` valid
+    samples; skipped rounds are listed with their counts, so a sparse control can never stand in for a round."""
     ok = [r for r in rows if not r["error"] and not r["class_mismatch"] and r.get("cpu_part") == cpu]
     out = {}
     for cls, field in PAIRED_METRICS:
@@ -53,15 +57,20 @@ def paired_rounds(rows: list[dict], arm: str, ctrl: str = "rep", cpu: str = "0xd
         for r in ok:
             if r["arm"] in (arm, ctrl) and r["expected_class"] == cls and field in (r["report"] or {}):
                 per[(r["arm"], r["round"])].append(r["report"][field])
-        rounds = sorted({k[1] for k in per})
-        d = [statistics.median(per[(arm, k)]) - statistics.median(per[(ctrl, k)]) for k in rounds
-             if per.get((arm, k)) and per.get((ctrl, k))]
+        rounds = sorted({r["round"] for r in rows})
+        used, skipped = [], []
+        for k in rounds:
+            na, nc = len(per.get((arm, k), [])), len(per.get((ctrl, k), []))
+            (used if na >= min_n and nc >= min_n else skipped).append((k, na, nc))
+        d = [statistics.median(per[(arm, k)]) - statistics.median(per[(ctrl, k)]) for k, _, _ in used]
+        cell: dict = {"rounds": len(d), "min_n_per_round": min_n,
+                      "skipped_rounds": [{"round": k, "n_arm": na, "n_ctrl": nc} for k, na, nc in skipped]}
         if d:
-            base = statistics.median([v for k in rounds for v in per.get((ctrl, k), [])])
-            out[f"{cls}.{field}"] = {"rounds": len(d), "delta_ms_by_round": [round(x, 1) for x in d],
-                                     "mean_ms": round(statistics.fmean(d), 1), "min_ms": round(min(d), 1),
-                                     "max_ms": round(max(d), 1), "control_p50_ms": round(base, 1),
-                                     "mean_pct": round(100 * statistics.fmean(d) / base, 2) if base else None}
+            base = statistics.median([v for k, _, _ in used for v in per[(ctrl, k)]])
+            cell.update({"delta_ms_by_round": [round(x, 1) for x in d], "mean_ms": round(statistics.fmean(d), 1),
+                         "min_ms": round(min(d), 1), "max_ms": round(max(d), 1), "control_p50_ms": round(base, 1),
+                         "mean_pct": round(100 * statistics.fmean(d) / base, 2) if base else None})
+        out[f"{cls}.{field}"] = cell
     return out
 
 
@@ -80,12 +89,68 @@ def paired_warm_by_request(rows: list[dict], arm: str, ctrl: str = "rep", cpu: s
     if not pct:
         return {}
     return {"cells": len(pct), "median_pct": round(statistics.median(pct), 2), "min_pct": round(min(pct), 2),
-            "max_pct": round(max(pct), 2)}
+            "max_pct": round(max(pct), 2), "pct_by_cell": [round(x, 3) for x in pct]}
 
 
-def noise_floor(paired: dict, null_arm: str) -> dict:
-    """The largest |per-round delta| of an arm with no in-function code change against the control: a difference
-    smaller than this is not distinguishable from environment-to-environment noise."""
+def permutation_p(a: list[float], b: list[float], n_perm: int = 20000, seed: int = 0) -> float | None:
+    """Two-sided p-value of |mean(a) - mean(b)| under exchangeability of a and b. Exact over every split when there
+    are at most 50,000 of them (5 vs 5 rounds: 252), else `n_perm` seeded random splits."""
+    import itertools
+    import math
+    import random
+
+    if len(a) < 2 or len(b) < 2:
+        return None
+    pool, k = a + b, len(a)
+    obs = abs(statistics.fmean(a) - statistics.fmean(b)) - 1e-9
+    tot = sum(pool)
+
+    def stat(idx) -> float:
+        s = sum(pool[i] for i in idx)
+        return abs(s / k - (tot - s) / (len(pool) - k))
+
+    if math.comb(len(pool), k) <= 50000:
+        splits = list(itertools.combinations(range(len(pool)), k))
+        return round(sum(stat(c) >= obs for c in splits) / len(splits), 4)
+    rng = random.Random(seed)
+    hits = sum(stat(rng.sample(range(len(pool)), k)) >= obs for _ in range(n_perm))
+    return round((hits + 1) / (n_perm + 1), 4)
+
+
+def null_verdicts(paired: dict, null_arm: str = NULL_ARM, alpha: float = 0.05) -> dict:
+    """Judge every arm (X-Ray and the phase timers included) against the same-code null: `null_arm` is a second
+    function byte-identical to the control, so its per-round deltas against the control are what a zero-cost arm
+    looks like. Per metric, an arm's per-round deltas (warm: its per-(round, request) percentages) are tested against
+    the null's with an exact two-sided permutation test on the mean. `measurable` needs p < alpha AND |mean| beyond
+    the null's largest |delta|; `not measurable` otherwise; `insufficient` when either side has under 2 values. The
+    null arm itself is never judged against itself."""
+    nul = paired.get(null_arm) or {}
+    out: dict = {}
+    for arm, cells in paired.items():
+        if arm == null_arm:
+            continue
+        v: dict = {}
+        for key, cell in cells.items():
+            if key == "warm.Duration.by_request":
+                a, b, unit = cell.get("pct_by_cell") or [], (nul.get(key) or {}).get("pct_by_cell") or [], "pct"
+            else:
+                a, b, unit = cell.get("delta_ms_by_round") or [], (nul.get(key) or {}).get("delta_ms_by_round") or [], "ms"
+            p = permutation_p(a, b)
+            floor = max((abs(x) for x in b), default=None)
+            if p is None:
+                verdict = "insufficient"
+            else:
+                verdict = "measurable" if p < alpha and abs(statistics.fmean(a)) > floor else "not measurable"
+            v[key] = {"verdict": verdict, "p": p, "n_arm": len(a), "n_null": len(b), "unit": unit,
+                      "arm_mean": round(statistics.fmean(a), 2) if a else None,
+                      "null_mean": round(statistics.fmean(b), 2) if b else None,
+                      "null_max_abs": round(floor, 2) if floor is not None else None}
+        out[arm] = v
+    return out
+
+
+def noise_floor(paired: dict, null_arm: str = NULL_ARM) -> dict:
+    """The largest |per-round delta| of the null arm (identical code, a different function) against the control."""
     return {k: max(abs(v["min_ms"]), abs(v["max_ms"])) for k, v in paired.get(null_arm, {}).items() if "min_ms" in v}
 
 
@@ -112,13 +177,21 @@ def _records(events: list[dict], prefix: str) -> list[dict]:
     return recs
 
 
-def _merge_top(lists: list[list[dict]], key: str, val: str, top: int = 20) -> list[dict]:
+def _merge_top(lists: list[list[dict]], key: str, val: str, totals: list, top: int = 20,
+               inclusive: bool = False) -> list[dict]:
+    """Merge per-record top-N tables. `totals` holds each record's FULL denominator (all its samples, or all its
+    own-time), so `share` is a share of everything recorded, not of the rows that survived truncation. A record whose
+    total is missing makes every share None rather than renormalising over retained rows. `inclusive` tables (a
+    frame counted once per sample it appears in, or cProfile cumtime) may sum past the denominator; exclusive ones
+    may not."""
     c: Counter = Counter()
     for lst in lists:
         for x in lst or []:
             c[x[key]] += x[val]
-    tot = sum(c.values()) or 1
-    return [{key: k, val: round(v, 6), "share": round(v / tot, 4)} for k, v in c.most_common(top)]
+    tot = None if any(t is None for t in totals) else sum(totals)
+    if tot is not None and not inclusive and sum(c.values()) > tot * (1 + 1e-6):
+        raise ValueError(f"merged {key} rows exceed their denominator {tot}")
+    return [{key: k, val: round(v, 6), "share": round(v / tot, 4) if tot else None} for k, v in c.most_common(top)]
 
 
 def profile_extracts(run: str, cond: dict) -> dict:
@@ -143,23 +216,30 @@ def profile_extracts(run: str, cond: dict) -> dict:
         warm_invs = [r for r in invs if r["_class"] == "warm"]
         warm_by_cpu = {c: [r for r in warm_invs if r["_cpu"] == c] for c in sorted({r["_cpu"] for r in warm_invs}, key=str)}
         if any("top" in r for r in recs):  # cProfile
-            a["cprofile_init_top_cumtime"] = _merge_top(
-                [r["top"].get("all_threads") for r in inits if isinstance(r.get("top"), dict)], "fn", "cumtime")
-            a["cprofile_init_top_tottime"] = _merge_top(
-                [r["top"].get("all_threads") for r in inits if isinstance(r.get("top"), dict)], "fn", "tottime")
-            a["cprofile_invoke_top_tottime"] = _merge_top([r.get("top") for r in invs], "fn", "tottime")
-            a["cprofile_invoke_warm_top_tottime"] = _merge_top([r.get("top") for r in warm_invs], "fn", "tottime")
+            def cp(rs, sub=None):
+                rs = [r for r in rs if isinstance(r.get("top"), (dict, list))]
+                return [(r["top"].get(sub) if sub else r["top"]) for r in rs], [r.get("tottime_total") for r in rs]
+
+            li, ti = cp(inits, "all_threads")
+            a["cprofile_init_top_cumtime"] = _merge_top(li, "fn", "cumtime", ti, inclusive=True)
+            a["cprofile_init_top_tottime"] = _merge_top(li, "fn", "tottime", ti)
+            a["cprofile_init_tottime_total"] = None if None in ti else round(sum(ti), 3)
+            for name, rs in (("cprofile_invoke_top_tottime", invs), ("cprofile_invoke_warm_top_tottime", warm_invs)):
+                lv, tv = cp(rs)
+                a[name] = _merge_top(lv, "fn", "tottime", tv)
         if any("pyspy" in r for r in recs):
             for kind, rs in (("init", inits), ("invoke", invs), ("invoke_warm", warm_invs)):
                 ps = [r["pyspy"] for r in rs if isinstance(r.get("pyspy"), dict)]
+                tot = [p.get("samples") for p in ps]
                 a[f"pyspy_{kind}"] = {
                     "records": len(ps),
                     "samples": sum(p.get("samples", 0) for p in ps),
                     "rc": dict(Counter(str(p.get("rc")) for p in ps)),
                     "popen_s": s1.dist([p.get("popen_s") for p in ps]),
                     "stderr_examples": sorted({p.get("stderr", "")[-200:] for p in ps if p.get("rc") not in (0, None)})[:3],
-                    "top_leaf": _merge_top([p.get("top_leaf") for p in ps], "frame", "samples"),
-                    "top_inclusive": _merge_top([p.get("top_inclusive") for p in ps], "frame", "samples"),
+                    "top_leaf": _merge_top([p.get("top_leaf") for p in ps], "frame", "samples", tot),
+                    "top_inclusive": _merge_top([p.get("top_inclusive") for p in ps], "frame", "samples", tot,
+                                                inclusive=True),
                 }
         if any("sampler" in r for r in recs):
             groups = [("init", inits), ("invoke", invs)] + [(f"invoke_warm_{c}", rs) for c, rs in warm_by_cpu.items()]
@@ -177,10 +257,12 @@ def profile_extracts(run: str, cond: dict) -> dict:
                     "effective_hz_per_cpu_s": round(sum(x.get("n", 0) for x in sm)
                                                     / max(1e-9, sum(r.get("cpu_s") or 0 for r in rs)), 1),
                     "phases": {name: {"samples": sum(t["samples"] for t in ts),
-                                      "top_self": _merge_top([t["top_self"] for t in ts], "symbol", "samples"),
-                                      "by_library": _merge_top([t["by_library"] for t in ts], "library", "samples", 12),
+                                      "top_self": _merge_top([t["top_self"] for t in ts], "symbol", "samples",
+                                                             [t["samples"] for t in ts]),
+                                      "by_library": _merge_top([t["by_library"] for t in ts], "library", "samples",
+                                                               [t["samples"] for t in ts], 12),
                                       "top_caller_edges": _merge_top([t["top_caller_edges"] for t in ts], "edge",
-                                                                     "samples", 12)}
+                                                                     "samples", [t["samples"] for t in ts], 12)}
                                for name, ts in ph.items()},
                 }
         if tel:
@@ -231,6 +313,65 @@ def init_phase_shares(phases: dict) -> list[dict]:
     return sorted(rows, key=lambda x: (x["class"], -x["p50_s"]))
 
 
+def verify_prof_manifest(pm: dict, commit: str, repo: str = HERE) -> dict:
+    """Check that `commit` holds every repository input build_prof_zip.sh packaged, byte for byte: each `sources`
+    entry (the .py files, lkaisamp.c, the Telemetry extension) by sha256, and every added artifact traced to a
+    source or to the pinned py-spy wheel through `built_from`. The packaged .py files are copied verbatim, so their
+    `added` hash must also equal their source hash. Returns the check record; exits on any mismatch."""
+    import hashlib
+    import subprocess
+
+    def die(msg: str):
+        sys.exit(f"provenance: {msg}")
+
+    for k in ("sources", "built_from", "source_commit", "pyspy_wheel_sha256"):
+        if k not in pm:
+            die(f"prof-manifest has no {k!r} (lkai-prof-build/1 manifests do not bind non-Python inputs)")
+    full = subprocess.run(["git", "-C", repo, "rev-parse", f"{commit}^{{commit}}"], capture_output=True, text=True)
+    if full.returncode:
+        die(f"{commit} is not a commit here")
+    want_commit = subprocess.run(["git", "-C", repo, "rev-parse", f"{pm['source_commit']}^{{commit}}"],
+                                 capture_output=True, text=True).stdout.strip()
+    for f, want in pm["sources"].items():
+        blob = subprocess.run(["git", "-C", repo, "show", f"{commit}:./{f}"], capture_output=True)
+        if blob.returncode or hashlib.sha256(blob.stdout).hexdigest() != want:
+            die(f"{f} at {commit} is not the file the deployed package was built from")
+    for art in pm["added"]:
+        if art not in pm["built_from"]:
+            die(f"packaged {art} has no recorded source")
+    for art, srcname in pm["built_from"].items():
+        if srcname != "pyspy_wheel" and srcname not in pm["sources"]:
+            die(f"{art} is built from {srcname}, which has no source hash")
+        if art.endswith(".py") and pm["added"].get(art) != pm["sources"].get(srcname):
+            die(f"packaged {art} is not a verbatim copy of {srcname}")
+    pinned = re.search(r"^PYSPY_SHA256=([0-9a-f]{64})$", subprocess.run(
+        ["git", "-C", repo, "show", f"{commit}:./build_prof_zip.sh"], capture_output=True, text=True).stdout, re.M)
+    if not pinned or pinned.group(1) != pm["pyspy_wheel_sha256"]:
+        die("the py-spy wheel is not the one build_prof_zip.sh pins at that commit")
+    return {"commit": full.stdout.strip(), "source_commit": want_commit, "sources_checked": sorted(pm["sources"]),
+            "pyspy_wheel_pinned": True, "result": "match"}
+
+
+def restore_evidence(rows: list[dict], arms: list[str], cpu: str = "0xd40", min_n: int = MIN_CELL_N) -> dict:
+    """Restore-wave integrity: per arm and round, how many restore invokes were sent, how many failed client-side, and
+    how many valid Graviton3 samples remain. `usable` is False when any arm has a round below `min_n`; restore
+    conclusions then must not be drawn (paired_rounds skips those rounds either way)."""
+    rs = [r for r in rows if r["expected_class"] == "restore"]
+    by: dict = {}
+    for arm in arms:
+        per = {}
+        for k in sorted({r["round"] for r in rows}):
+            mine = [r for r in rs if r["arm"] == arm and r["round"] == k]
+            per[str(k)] = {"sent": len(mine), "client_errors": sum(str(r["error"] or "").startswith("client:") for r in mine),
+                           "valid_0xd40": sum(not r["error"] and not r["class_mismatch"] and r.get("cpu_part") == cpu
+                                              for r in mine)}
+        by[arm] = per
+    sparse = [(a, k) for a, per in by.items() for k, c in per.items() if c["valid_0xd40"] < min_n]
+    return {"min_n": min_n, "by_arm_round": by, "sparse_cells": [{"arm": a, "round": int(k)} for a, k in sparse],
+            "client_errors": sum(c["client_errors"] for per in by.values() for c in per.values()),
+            "usable": not sparse}
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("run")
@@ -254,28 +395,44 @@ def main() -> None:
         res["commits"]["p1_zip_built_from"] = cond["build_manifest"]["repo_commit"]
     if a.prof_manifest:
         pm = json.load(open(a.prof_manifest))
-        if a.experiment_commit:
-            import hashlib
-            import subprocess
-
-            for f, want in pm["added"].items():
-                if f.endswith(".py"):
-                    blob = subprocess.run(["git", "show", f"{a.experiment_commit}:examples/lambda-kleidiai/profiling/{f}"],
-                                          capture_output=True, check=True).stdout
-                    if hashlib.sha256(blob).hexdigest() != want:
-                        sys.exit(f"{f} at {a.experiment_commit} is not the deployed file")
+        if not a.experiment_commit:
+            sys.exit("--prof-manifest needs --experiment-commit to bind it")
         res["deployment"]["prof_zip"] = pm
+        res["deployment"]["prof_zip_provenance"] = verify_prof_manifest(pm, a.experiment_commit)
+        # Every deployed function must run the bytes the manifest names (bench.py checked CodeSha256 at run start).
+        for arm, f in cond["functions"].items():
+            ok = {pm["prof_zip_sha256"], pm["base_zip_sha256"]}
+            if f.get("expected_code_sha256") not in ok:
+                sys.exit(f"{arm}: deployed code {f.get('expected_code_sha256')} is neither prof.zip nor P1's zip")
+            if f.get("layers") and f.get("expected_layer_sha256") != pm["telemetry_layer_sha256"]:
+                sys.exit(f"{arm}: its layer is not the manifest's telemetry-layer.zip")
     res["primary_arm"] = "rep"
     res["profiler_overhead"] = {arm: overhead_vs(rows, arm) for arm in cond["arms"] if arm != "rep"}
     paired = {arm: paired_rounds(rows, arm) for arm in cond["arms"] if arm != "rep"}
     for arm in paired:
         paired[arm]["warm.Duration.by_request"] = paired_warm_by_request(rows, arm)
+    if NULL_ARM not in paired:
+        sys.exit(f"no {NULL_ARM} arm: overhead needs a same-code null (deploy_arms.py deploys it)")
+    rest = restore_evidence(rows, cond["arms"])
+    res["restore_evidence"] = rest
+    verdicts = null_verdicts(paired)
+    if not rest["usable"]:
+        for v in verdicts.values():
+            for k in list(v):
+                if k.startswith("restore."):
+                    v[k] = {**v[k], "verdict": "withheld", "reason": "restore cells below min_n"}
     res["profiler_overhead_paired"] = {
         "method": "per round: median(arm) - median(rep) of the REPORT field, Graviton3 (0xd40) rows only, no errors or "
-                  "class mismatches; then mean/min/max over the rounds. noise_floor_ms: the largest |per-round delta| of "
-                  "the xray arm, which runs P1's zip unchanged (Lambda's tracing is outside the function's Duration)",
+                  f"class mismatches, each median from >= {MIN_CELL_N} samples (else the round is skipped and listed); "
+                  "then mean/min/max over the rounds. Warm also per (round, request) as a percentage. Null: "
+                  f"{NULL_ARM}, a second function byte-identical to rep, so {NULL_ARM} - rep is what zero cost looks "
+                  "like. Each arm (xray and none included) is judged against that null by an exact two-sided "
+                  "permutation test on the mean of its per-round deltas (warm: per-cell %), alpha 0.05, and must "
+                  "also exceed the null's largest |delta| to be called measurable",
         "cpu_part": "0xd40",
-        "noise_floor_ms": noise_floor(paired, "xray"),
+        "null_arm": NULL_ARM,
+        "noise_floor_ms": noise_floor(paired),
+        "verdicts": verdicts,
         "arms": paired,
     }
     res.pop("instrumentation_overhead", None)

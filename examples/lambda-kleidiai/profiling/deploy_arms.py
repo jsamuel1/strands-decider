@@ -40,6 +40,9 @@ ARMS = {
     # arm: (handler, LKAI_PHASES, LKAI_PROF, tracing, telemetry layer, zip). `rep` is P1's REPORT-only control,
     # recreated here from P1's own zip (not P1's function, which P1's own runs change), so P3 shares nothing mutable.
     "rep": ("lkai_entry.handler", "0", None, False, False, "p1"),
+    # rep2: a second, byte-identical REPORT-only function. rep2 - rep is a same-code difference, so its per-round
+    # spread is the null distribution every other arm (xray and the phase timers included) is judged against.
+    "rep2": ("lkai_entry.handler", "0", None, False, False, "p1"),
     "none": ("lkai_prof.handler", "1", "none", False, False, "prof"),
     "cprofile": ("lkai_prof.handler", "1", "cprofile", False, False, "prof"),
     "pyspy": ("lkai_prof.handler", "1", "pyspy", False, False, "prof"),
@@ -85,10 +88,13 @@ def up(sess, p1: dict, build: str, arms: list[str]) -> dict:
     role = ensure_role(iam, p1, region)
     layer_arn = None
     if any(ARMS[a][4] for a in arms):
-        layer_arn = lam.publish_layer_version(
+        lv = lam.publish_layer_version(
             LayerName=f"{PREFIX}-telemetry", Description=f"lkai-telemetry {pm['telemetry_layer_sha256'][:12]}",
             Content={"ZipFile": open(os.path.join(build, "telemetry-layer.zip"), "rb").read()},
-            CompatibleArchitectures=["arm64"], CompatibleRuntimes=["python3.12"])["LayerVersionArn"]
+            CompatibleArchitectures=["arm64"], CompatibleRuntimes=["python3.12"])
+        layer_arn = lv["LayerVersionArn"]
+        if deploy.b64_to_hex(lv["Content"]["CodeSha256"]) != pm["telemetry_layer_sha256"]:
+            sys.exit("published telemetry layer is not the built telemetry-layer.zip")
     p1_rep = lam.get_function_configuration(FunctionName=p1["functions"]["rep"]["name"])
     env0 = {k: v for k, v in p1_rep["Environment"]["Variables"].items()}
     st = {k: p1[k] for k in ("region", "bucket", "model_key", "runtime_version_arn")}
@@ -138,6 +144,8 @@ def up(sess, p1: dict, build: str, arms: list[str]) -> dict:
         st["functions"][arm] = {"name": name, "arn": c["FunctionArn"], "code_sha256_b64": c["CodeSha256"],
                                 "code_sha256_hex": want_sha, "code_size": c["CodeSize"], "handler": handler,
                                 "lkai_prof": prof, "tracing": tracing, "telemetry_layer": bool(tel)}
+        if tel:
+            st["functions"][arm]["layer_sha256_hex"] = pm["telemetry_layer_sha256"]
         print("function", name, handler, prof or "", "tracing" if tracing else "", "telemetry" if tel else "")
     return st
 
@@ -175,7 +183,7 @@ def main() -> None:
     ap.add_argument("cmd", choices=["up", "teardown"])
     ap.add_argument("--p1-state")
     ap.add_argument("--build", required=True)
-    ap.add_argument("--arms", default="rep,none,cprofile,pyspy,sampler,xray,telemetry")
+    ap.add_argument("--arms", default="rep,rep2,none,cprofile,pyspy,sampler,xray,telemetry")
     ap.add_argument("--region", default="us-east-2")
     ap.add_argument("--profile", default=os.environ.get("AWS_PROFILE"))
     ap.add_argument("--all", action="store_true")

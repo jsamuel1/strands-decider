@@ -9,21 +9,33 @@
 #        <out-dir>/telemetry-layer.zip: extensions/lkai-telemetry (the Telemetry API extension), for the telemetry arm
 #        <out-dir>/prof-manifest.json:  sha256 of every input and output, and the list of added files
 # Every P1 file keeps its bytes, so each arm runs the baseline's code; only the added handler wraps it.
+#
+# Provenance: prof-manifest.json `sources` holds the sha256 of every repository file that becomes a packaged
+# artifact (the .py files, lkaisamp.c, the Telemetry extension) and `source_commit` the commit they were read at.
+# The build refuses to run when any of them differs from that commit (tracked edit, untracked, deleted), so the
+# manifest's commit always reproduces the bytes. summarize_prof.py re-checks every `sources` hash against
+# --experiment-commit. The py-spy wheel is a third-party input pinned by PYSPY_SHA256 below (no override).
 set -euo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd)
 SRC=$(cd "$(dirname "$1")" && pwd)/$(basename "$1")
 OUT=$(mkdir -p "$2" && cd "$2" && pwd)
 LAMBDA_IMAGE=public.ecr.aws/lambda/python@sha256:37fe9ca4183c36ec57e4c5eabb8893cd9fbc9c0f3053b903d9a57eb2bd6bafcc
 PYSPY_WHL=py_spy-0.4.2-py2.py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.whl
-PYSPY_SHA256=${PYSPY_SHA256:-}
+# sha256 of $PYSPY_WHL as PyPI serves it (checked 2026-10-20; also the wheel run 20261020T124451Z deployed)
+PYSPY_SHA256=142887e984a4e541071c99a4401ff8c3770f255d329dbd0f64e8c1dd51882cce
+# Repository files packaged into prof.zip / telemetry-layer.zip, relative to this directory
+SOURCES="lkai_prof.py lkai_probe.py lkai_symbolise.py lkaisamp.c extensions/lkai-telemetry"
 [ "$(uname -m)" = aarch64 ] || { echo "needs an arm64 host"; exit 1; }
+COMMIT=$(git -C "$HERE" rev-parse HEAD)
+for f in $SOURCES; do
+  [ -z "$(git -C "$HERE" status --porcelain -- "$f")" ] || { echo "$f differs from $COMMIT; commit it first"; exit 1; }
+done
 W=$(mktemp -d)
 trap 'rm -rf "$W"' EXIT
 mkdir -p "$W/add/lib" "$W/add/bin" "$W/layer/extensions"
 python3 -m pip download -q --no-deps --only-binary=:all: --platform manylinux2014_aarch64 --python-version 3.12 \
   py-spy==0.4.2 -d "$W/whl"
-[ -z "$PYSPY_SHA256" ] || [ "$(sha256sum "$W/whl/$PYSPY_WHL" | cut -d' ' -f1)" = "$PYSPY_SHA256" ] \
-  || { echo "py-spy wheel sha256 mismatch"; exit 1; }
+[ "$(sha256sum "$W/whl/$PYSPY_WHL" | cut -d' ' -f1)" = "$PYSPY_SHA256" ] || { echo "py-spy wheel sha256 mismatch"; exit 1; }
 (cd "$W/whl" && python3 -m zipfile -e "$PYSPY_WHL" x)
 cp "$W/whl/x/py_spy-0.4.2.data/scripts/py-spy" "$W/add/bin/py-spy"
 docker run --rm --platform linux/arm64 --entrypoint bash -v "$HERE:/p:ro" -v "$W/add/lib:/o" "$LAMBDA_IMAGE" -c \
@@ -37,13 +49,19 @@ cp "$SRC" "$OUT/prof.zip"
 (cd "$W/add" && find . -mindepth 1 -type f -printf '%P\n' | LC_ALL=C sort | zip -q -X -y "$OUT/prof.zip" -@)
 rm -f "$OUT/telemetry-layer.zip"
 (cd "$W/layer" && find . -mindepth 1 -printf '%P\n' | LC_ALL=C sort | zip -q -X -y "$OUT/telemetry-layer.zip" -@)
-python3 - "$SRC" "$OUT" "$W/add" "$W/whl/$PYSPY_WHL" <<'EOF'
+python3 - "$SRC" "$OUT" "$W/add" "$W/whl/$PYSPY_WHL" "$HERE" "$COMMIT" "$LAMBDA_IMAGE" $SOURCES <<'EOF'
 import hashlib, json, os, sys
-src, out, add, whl = sys.argv[1:]
+src, out, add, whl, here, commit, image, *sources = sys.argv[1:]
 sha = lambda p: hashlib.sha256(open(p, "rb").read()).hexdigest()
 added = sorted(os.path.relpath(os.path.join(r, f), add) for r, _, fs in os.walk(add) for f in fs)
-m = {"schema": "lkai-prof-build/1", "base_zip_sha256": sha(src), "prof_zip_sha256": sha(f"{out}/prof.zip"),
+m = {"schema": "lkai-prof-build/2", "base_zip_sha256": sha(src), "prof_zip_sha256": sha(f"{out}/prof.zip"),
      "telemetry_layer_sha256": sha(f"{out}/telemetry-layer.zip"), "pyspy_wheel_sha256": sha(whl),
+     "pyspy_wheel": os.path.basename(whl), "build_image": image, "source_commit": commit,
+     "sources": {f: sha(os.path.join(here, f)) for f in sources},
+     # which source each packaged artifact comes from (liblkaisamp.so is compiled from lkaisamp.c in build_image)
+     "built_from": {"lkai_prof.py": "lkai_prof.py", "lkai_probe.py": "lkai_probe.py",
+                    "lkai_symbolise.py": "lkai_symbolise.py", "lib/liblkaisamp.so": "lkaisamp.c",
+                    "bin/py-spy": "pyspy_wheel", "telemetry-layer.zip": "extensions/lkai-telemetry"},
      "added": {f: sha(os.path.join(add, f)) for f in added}}
 json.dump(m, open(f"{out}/prof-manifest.json", "w"), indent=1)
 print(json.dumps(m, indent=1))

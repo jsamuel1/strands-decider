@@ -63,6 +63,10 @@ if MODE == "cprofile":
         keep.update({id(r): r for r in sorted(rows, key=lambda r: -r["tottime"])[:top]})
         return sorted(keep.values(), key=lambda r: -r["cumtime"])
 
+    def _cp_total(prof: cProfile.Profile) -> float:
+        """Own time summed over EVERY profiled function (not just the top rows): the denominator of a tottime share."""
+        return round(sum(v[2] for v in pstats.Stats(prof).stats.values()), 6)  # type: ignore[attr-defined]
+
     _PROF.enable()
     # Python 3.12's cProfile runs on sys.monitoring, which is process-wide: this one profile also sees PR #77's
     # background load thread and the 32 download threads. Only one may be active at a time (a second enable raises
@@ -171,7 +175,7 @@ def _safe(fn, where: str = "invoke") -> None:
 def _init_profile_emit() -> None:
     if MODE == "cprofile":
         _PROF.disable()
-        _emit("init", import_s=_init_s, top={"all_threads": _cp_summary(_PROF)})
+        _emit("init", import_s=_init_s, top={"all_threads": _cp_summary(_PROF)}, tottime_total=_cp_total(_PROF))
     elif MODE == "pyspy" and "init" in _SPY:
         _emit("init", import_s=_init_s, pyspy=_spy_stop("init"))
     elif MODE == "sampler":
@@ -233,7 +237,7 @@ def handler(event, context):
             out = lkai_entry.handler(event, context)
         finally:
             prof.disable()
-            _safe(lambda: _emit("invoke", n=n, top=_cp_summary(prof, 25)))
+            _safe(lambda: _emit("invoke", n=n, top=_cp_summary(prof, 25), tottime_total=_cp_total(prof)))
     elif MODE == "pyspy":
         _safe(lambda: _spy_start("inv", 60))
         try:
