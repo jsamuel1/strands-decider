@@ -3,10 +3,12 @@
 #   /pkg  the deployed function.zip, unzipped (ro)    /w/model.gguf  the deployed GGUF (ro)
 #   /p    examples/lambda-kleidiai/profiling (ro)     /out           results (rw)
 set -euo pipefail
-dnf install -y perf gcc >/dev/null 2>&1 || dnf install -y perf gcc
+dnf install -y perf gcc util-linux >/dev/null 2>&1 || dnf install -y perf gcc util-linux
 gcc -O2 -g -shared -fPIC -o /tmp/lkaisamp.so /p/lkaisamp.c
 export PYTHONPATH=/pkg LD_LIBRARY_PATH=/pkg/lib OPENBLAS_NUM_THREADS=1
-DRIVE="python3.12 /p/offline_drive.py --pkg /pkg --gguf /w/model.gguf --threads 6 --requests /w/requests.json"
+# Lambda's 10,240 MB function has 6 vCPUs: pin the engine to CPUs 0-5 (docker --cpus needs a cgroup v2 domain the
+# DevSpace's docker cannot enter).
+DRIVE="taskset -c 0-5 python3.12 /p/offline_drive.py --pkg /pkg --gguf /w/model.gguf --threads 6 --requests /w/requests.json"
 L="$HOST_LABEL (offline, Lambda image, 6 CPUs)"
 { uname -a; grep -m1 'CPU part' /proc/cpuinfo; nproc; cat /sys/fs/cgroup/cpu.max 2>/dev/null; perf --version;
   python3.12 --version; cat /proc/sys/kernel/perf_event_paranoid; } > /out/host.txt 2>&1

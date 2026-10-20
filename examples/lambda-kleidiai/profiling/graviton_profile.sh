@@ -26,7 +26,7 @@ python3 -m pip download -q --no-deps --only-binary=:all: --platform manylinux201
   py-spy==0.4.2 -d "$W/whl"
 (cd "$W/whl" && python3 -m zipfile -e py_spy-*.whl x && cp x/py_spy-0.4.2.data/scripts/py-spy "$W/py-spy")
 chmod -R a+rX "$W" && chmod 755 "$W/py-spy"
-docker run --rm --platform linux/arm64 --cpus 6 --cap-add SYS_PTRACE --security-opt seccomp=unconfined \
+docker run --rm --platform linux/arm64 --cap-add SYS_PTRACE --cap-add PERFMON --security-opt seccomp=unconfined \
   --entrypoint bash -e HOST_LABEL="$(grep -m1 'CPU part' /proc/cpuinfo | awk '{print $NF}') $(hostname -s)" \
   -v "$HERE:/p:ro" -v "$HERE/../baseline/requests.json:/w/requests.json:ro" -v "$W/pkg:/pkg:ro" \
   -v "$GGUF:/w/model.gguf:ro" -v "$W/py-spy:/w/py-spy:ro" -v "$OUT:/out" \
