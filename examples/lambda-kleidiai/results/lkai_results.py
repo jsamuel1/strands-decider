@@ -15,6 +15,7 @@ The store is a local directory or s3://bucket/prefix (S3Store imports boto3 lazi
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import html
 import json
@@ -277,9 +278,7 @@ def validate(res: Any, schema: dict | None = None) -> list[str]:
                     errs.append(f"$.phases.{arm_name}: missing {cls!r} start class")
                     continue
                 for name in sorted(REQUIRED_PHASES_BY_CLASS[cls] - start_class.keys()):
-                    errs.append(
-                        f"$.phases.{arm_name}.{cls}: missing required phase {name!r}"
-                    )
+                    errs.append(f"$.phases.{arm_name}.{cls}: missing required phase {name!r}")
             cold = arm.get("cold") or {}
             max_memory = cold.get("report_max_memory_mb")
             if not (is_dist(max_memory) and max_memory.get("unit") == "MB"):
@@ -335,19 +334,36 @@ class LocalStore:
         except FileNotFoundError:
             return None
 
-    def put(self, key: str, data: bytes, content_type: str = "application/octet-stream") -> None:
+    def put(
+        self,
+        key: str,
+        data: bytes,
+        content_type: str = "application/octet-stream",
+        if_absent: bool = False,
+    ) -> None:
+        """Atomic replace, or with `if_absent` atomic create that raises KeyExists if the key is taken."""
         p = os.path.join(self.root, key)
         os.makedirs(os.path.dirname(p), exist_ok=True)
         tmp = f"{p}.tmp-{os.getpid()}-{threading.get_ident()}"
         with open(tmp, "wb") as f:
             f.write(data)
-        os.replace(tmp, p)
+        if not if_absent:
+            os.replace(tmp, p)
+            return
+        try:
+            os.link(tmp, p)  # fails if p exists: create-only, like S3 If-None-Match: *
+        except FileExistsError:
+            raise KeyExists(key) from None
+        finally:
+            os.unlink(tmp)
 
     def list(self, prefix: str) -> list[str]:
         base = os.path.join(self.root, prefix)
         out = []
         for d, _, files in os.walk(base):
             for f in files:
+                if ".tmp-" in f:
+                    continue  # an in-flight write, not an object
                 out.append(os.path.relpath(os.path.join(d, f), self.root).replace(os.sep, "/"))
         return sorted(out)
 
@@ -384,10 +400,33 @@ class S3Store:
         except self.s3.exceptions.NoSuchKey:
             return None
 
-    def put(self, key: str, data: bytes, content_type: str = "application/octet-stream") -> None:
-        self.s3.put_object(
-            Bucket=self.bucket, Key=self._k(key), Body=data, ContentType=content_type
-        )
+    def put(
+        self,
+        key: str,
+        data: bytes,
+        content_type: str = "application/octet-stream",
+        if_absent: bool = False,
+    ) -> None:
+        """PutObject with a SHA-256 checksum S3 verifies before storing, so the object is exactly `data`.
+        With `if_absent`, a conditional create (If-None-Match: *) that raises KeyExists if the key is taken."""
+        kw = {
+            "Bucket": self.bucket,
+            "Key": self._k(key),
+            "Body": data,
+            "ContentType": content_type,
+            "ChecksumSHA256": base64.b64encode(hashlib.sha256(data).digest()).decode(),
+        }
+        if if_absent:
+            kw["IfNoneMatch"] = "*"
+        try:
+            self.s3.put_object(**kw)
+        except (
+            Exception
+        ) as e:  # botocore ClientError; matched on its response so tests need no botocore
+            code = (getattr(e, "response", None) or {}).get("Error", {}).get("Code")
+            if if_absent and code in ("PreconditionFailed", "ConditionalRequestConflict"):
+                raise KeyExists(key) from None
+            raise
 
     def list(self, prefix: str) -> list[str]:
         out = []
@@ -426,6 +465,14 @@ def load_runs(store) -> list[dict]:
 
 class PublishConflict(RuntimeError):
     pass
+
+
+class KeyExists(PublishConflict):
+    """A create-only put found the key already taken (another publisher won the race)."""
+
+
+class RegenerateDidNotSettle(RuntimeError):
+    """The run set kept changing while rendering; the page may be missing a run, so it is not published."""
 
 
 def _sha(b: bytes) -> str:
@@ -508,9 +555,7 @@ def publish_run(
                 raise ValueError(f"{x} is outside the run directory {run_dir}")
             rels.extend(_artifact_files(run_dir, rel) or [rel])
     if rep.missing:
-        raise FileNotFoundError(
-            "required artifact(s) missing: " + ", ".join(sorted(rep.missing))
-        )
+        raise FileNotFoundError("required artifact(s) missing: " + ", ".join(sorted(rep.missing)))
     artifact_data = {}
     links = {}
     for rel in sorted(set(rels)):
@@ -542,6 +587,19 @@ def publish_run(
             rep.uploaded.append(key)
     if old_result is not None and _sha(old_result) == _sha(body):
         rep.unchanged.append(rep.run_key)
+    elif old_result is None and not replace:
+        # Create-only: two publishers racing on one run id cannot both win; the loser is refused, not overwritten.
+        try:
+            store.put(rep.run_key, body, "application/json", if_absent=True)
+        except KeyExists:
+            if _sha(store.get(rep.run_key) or b"") != _sha(body):
+                raise PublishConflict(
+                    f"{store.uri(rep.run_key)} was created by another publisher with different content; "
+                    "use a new run_id"
+                ) from None
+            rep.unchanged.append(rep.run_key)
+        else:
+            rep.uploaded.append(rep.run_key)
     else:
         store.put(rep.run_key, body, "application/json")
         rep.uploaded.append(rep.run_key)
@@ -552,8 +610,10 @@ def publish_run(
 def regenerate(store, out_dir: str | None = None, include_fixtures: bool | None = None) -> dict:
     """Rebuild every page from every result.json in the store, upload site/, and write the combined single-file
     dashboard to out_dir (for Artifactory). Repeats until the run set it rendered is still the run set in the
-    store, so a run published while we were rendering is not left out."""
+    store, so a run published while we were rendering is not left out. Raises RegenerateDidNotSettle rather than
+    writing out_dir from a run set that was still moving."""
     runs = load_runs(store)
+    settled = False
     for _ in range(5):
         keys = {run_key(r) for r in runs}
         site = render_site(runs, include_fixtures=include_fixtures)
@@ -561,8 +621,13 @@ def regenerate(store, out_dir: str | None = None, include_fixtures: bool | None 
             store.put(f"site/{name}", page.encode(), "text/html; charset=utf-8")
         latest = load_runs(store)
         if {run_key(r) for r in latest} == keys:
+            settled = True
             break
         runs = latest  # someone published meanwhile: render again so their run is on the page
+    if not settled:
+        raise RegenerateDidNotSettle(
+            "run set changed on each of 5 renders; rerun with --regenerate-only once publishers quiesce"
+        )
     if out_dir:
         for name, page in site.items():
             p = os.path.join(out_dir, name)

@@ -81,8 +81,6 @@ class FakeMcpProc:
         return self.returncode or 0
 
 
-
-
 def test_schema_file_is_json_and_names_every_brief_field():
     s = lr.load_schema()
     props = set(s["properties"])
@@ -175,8 +173,7 @@ def test_measurement_contract_is_required_per_arm_and_start_class():
         for p in problems
     )
     assert any(
-        "phases.other.cold: report_max_memory_mb MB distribution is required" in p
-        for p in problems
+        "phases.other.cold: report_max_memory_mb MB distribution is required" in p for p in problems
     )
 
 
@@ -350,9 +347,7 @@ def test_publish_rejects_artifact_symlink_escape(tmp_path):
 
 def test_publish_requires_run_dir_for_listed_artifacts(tmp_path):
     with pytest.raises(ValueError, match="run_dir is required"):
-        lr.publish_run(
-            real(load("fixture-improved")), None, lr.LocalStore(str(tmp_path / "store"))
-        )
+        lr.publish_run(real(load("fixture-improved")), None, lr.LocalStore(str(tmp_path / "store")))
 
 
 def test_concurrent_publishers_never_collide(tmp_path):
@@ -395,10 +390,7 @@ def test_publish_command_end_to_end(tmp_path, capsys):
     store, out = str(tmp_path / "store"), str(tmp_path / "out")
     for p in FIXTURES:
         assert (
-            publish_result.main(
-                [p, "--store", store, "--out", out, "--skip-dashboard-upload"]
-            )
-            == 0
+            publish_result.main([p, "--store", store, "--out", out, "--skip-dashboard-upload"]) == 0
         )
     assert (
         publish_result.main(
@@ -422,127 +414,274 @@ def test_publish_command_end_to_end(tmp_path, capsys):
     assert len(glob.glob(os.path.join(out, "*", "*.html"))) == len(FIXTURES)
 
 
-def test_publish_dashboard_uses_current_sha_and_verifies_ready(tmp_path, monkeypatch):
-    page = tmp_path / "dashboard.html"
-    page.write_text("<html>dashboard</html>")
-    page_sha = hashlib.sha256(page.read_bytes()).hexdigest()
+class FakeArtifactory:
+    """In-memory artifactory-mcp: answers get_artifact / upload_artifact_version / list_artifact_versions like the
+    real server (sha256 of stored bytes, version-pinned downloads into ARTIFACTORY_DOWNLOAD_DIR, CAS refusal).
+    `transform` mimics the server's HTML rewrite before upload; `tamper` corrupts stored bytes after it."""
 
-    def tool_result(request_id, payload):
-        return {
-            "jsonrpc": "2.0",
-            "id": request_id,
-            "result": {"content": [{"type": "text", "text": json.dumps(payload)}]},
+    def __init__(self, first: bytes = b"<html><head></head>v1</html>"):
+        self.versions: list[dict] = []
+        self.transform = lambda b: b
+        self.tamper = None
+        self.status_override: str | None = None
+        self.report_sha: str | None = None
+        self._add(first)
+        self.uploads: list[dict] = []
+
+    def _add(self, data: bytes) -> dict:
+        row = {
+            "versionNumber": len(self.versions) + 1,
+            "sha256": hashlib.sha256(data).hexdigest(),
+            "status": "READY",
+            "data": data,
         }
+        self.versions.append(row)
+        return row
 
-    proc = FakeMcpProc(
-        [
-            {"jsonrpc": "2.0", "id": 1, "result": {}},
-            tool_result(2, {"artifact": {"sha256": "before"}}),
-            tool_result(3, {"versionNumber": 7}),
-            tool_result(
-                4,
-                {
-                    "artifact": {
-                        "currentVersionNumber": 7,
-                        "sha256": page_sha,
-                        "status": "READY",
-                    },
-                    "artifactUrl": publish_result.DASHBOARD_URL,
+    @property
+    def current_sha(self) -> str:
+        return self.versions[-1]["sha256"]
+
+    def popen(self, *args, env=None, **kwargs):
+        return _FakeArtifactoryProc(self, (env or {}).get("ARTIFACTORY_DOWNLOAD_DIR"))
+
+    def handle(self, tool: str, a: dict, download_dir: str | None) -> dict:
+        if tool == "get_artifact":
+            row = self.versions[a["version"] - 1] if "version" in a else self.versions[-1]
+            path = None
+            if download_dir:
+                path = os.path.join(download_dir, a["artifactId"], f"v{row['versionNumber']}.html")
+                os.makedirs(os.path.dirname(path), exist_ok=True)
+                with open(path, "wb") as f:
+                    f.write(row["data"])
+            return {
+                "artifact": {
+                    "sha256": row["sha256"],
+                    "status": row["status"],
+                    "currentVersionNumber": len(self.versions),
                 },
-            ),
-        ]
-    )
-    monkeypatch.setattr(publish_result.shutil, "which", lambda _: "/bin/artifactory-mcp")
-    monkeypatch.setattr(publish_result.subprocess, "Popen", lambda *args, **kwargs: proc)
-    monkeypatch.setattr(publish_result.select, "select", lambda r, w, x, timeout: (r, w, x))
+                "localPath": path,
+                "artifactUrl": publish_result.DASHBOARD_URL,
+            }
+        if tool == "upload_artifact_version":
+            self.uploads.append(a)
+            if a["expectedCurrentSha256"] != self.current_sha:
+                raise _ToolError("Upload (new version) failed (ConflictException): sha moved")
+            with open(a["filePath"], "rb") as f:
+                data = self.transform(f.read())
+            row = self._add(data)
+            reported = self.report_sha or row["sha256"]
+            if self.tamper:
+                row["data"] = self.tamper(row["data"])
+                row["sha256"] = hashlib.sha256(row["data"]).hexdigest()
+            if self.status_override:
+                row["status"] = self.status_override
+            return {
+                "versionNumber": row["versionNumber"],
+                "versionStatus": row["status"],
+                "sha256": reported,
+                "artifactUrl": publish_result.DASHBOARD_URL,
+            }
+        if tool == "list_artifact_versions":
+            return {
+                "versions": [{k: v for k, v in row.items() if k != "data"} for row in self.versions]
+            }
+        raise AssertionError(f"unexpected tool {tool}")
 
-    receipt = publish_result.publish_dashboard(str(page), "artifact-id")
+
+class _ToolError(Exception):
+    pass
+
+
+class _FakeArtifactoryProc(FakeMcpProc):
+    def __init__(self, server: FakeArtifactory, download_dir: str | None):
+        super().__init__([])
+        self.server, self.download_dir = server, download_dir
+
+    def write(self, data: str) -> None:
+        for line in data.splitlines():
+            if not line:
+                continue
+            msg = json.loads(line)
+            self.writes.append(msg)
+            if "id" not in msg:
+                continue
+            if msg["method"] != "tools/call":
+                self.responses.append({"jsonrpc": "2.0", "id": msg["id"], "result": {}})
+                continue
+            p = msg["params"]
+            try:
+                out = self.server.handle(p["name"], p["arguments"], self.download_dir)
+                result = {"content": [{"type": "text", "text": json.dumps(out)}]}
+            except _ToolError as e:
+                result = {"content": [{"type": "text", "text": str(e)}], "isError": True}
+            self.responses.append({"jsonrpc": "2.0", "id": msg["id"], "result": result})
+
+
+# The bridge splice artifactory-mcp really performs (observed on the hosted v4): comments and scripts after <head>.
+SPLICE = (
+    b"\n<!-- __artifactory_data_bridge__ c7dcc82a -->\n<script>(function(){/*bridge*/})();</script>"
+    b'<script type="application/json" id="m">{}</script>'
+)
+
+
+def _splice(b: bytes) -> bytes:
+    at = b.index(b"<head>") + len(b"<head>")
+    return b[:at] + SPLICE + b[at:]
+
+
+@pytest.fixture
+def artifactory(monkeypatch):
+    server = FakeArtifactory()
+    monkeypatch.setattr(publish_result.shutil, "which", lambda _: "/bin/artifactory-mcp")
+    monkeypatch.setattr(publish_result.subprocess, "Popen", server.popen)
+    monkeypatch.setattr(publish_result.select, "select", lambda r, w, x, timeout: (r, w, x))
+    monkeypatch.setattr(publish_result, "READY_POLL_S", 0)
+    return server
+
+
+def _page(tmp_path, body: bytes = b"<p>dashboard</p>") -> tuple[str, bytes]:
+    data = (
+        b'<!doctype html><html><head><meta charset="utf-8"></head><body>'
+        + body
+        + b"</body></html>\n"
+    )
+    p = tmp_path / "dashboard.html"
+    p.write_bytes(data)
+    return str(p), data
+
+
+def test_publish_dashboard_cas_uses_preflight_sha_and_verifies_bytes(tmp_path, artifactory):
+    path, data = _page(tmp_path)
+    artifactory.transform = _splice
+    before = artifactory.current_sha
+    receipt = publish_result.publish_dashboard(path, "artifact-id", expected_current_sha256=before)
+    hosted = artifactory.versions[-1]["data"]
     assert receipt == {
         "artifactId": "artifact-id",
         "artifactUrl": publish_result.DASHBOARD_URL,
-        "versionNumber": 7,
-        "sha256": page_sha,
+        "versionNumber": 2,
+        "sha256": hashlib.sha256(hosted).hexdigest(),
+        "generatedSha256": hashlib.sha256(data).hexdigest(),
         "status": "READY",
     }
-    calls = [row for row in proc.writes if row.get("method") == "tools/call"]
-    assert [row["params"]["name"] for row in calls] == [
-        "get_artifact",
-        "upload_artifact_version",
-        "get_artifact",
-    ]
-    upload = calls[1]["params"]["arguments"]
-    assert upload["expectedCurrentSha256"] == "before"
-    assert upload["filePath"] == str(page)
+    (upload,) = artifactory.uploads
+    assert upload["expectedCurrentSha256"] == before
+    assert upload["filePath"] == path
     assert upload["waitForReady"] is True
 
 
-def test_publish_dashboard_rejects_preflight_drift_before_upload(tmp_path, monkeypatch):
-    page = tmp_path / "dashboard.html"
-    page.write_text("<html>dashboard</html>")
+def test_publish_dashboard_requires_preflight_sha(tmp_path, artifactory):
+    path, _ = _page(tmp_path)
+    with pytest.raises(TypeError):
+        publish_result.publish_dashboard(path, "artifact-id")  # no late-read fallback exists
+    with pytest.raises(publish_result.DashboardPublishError, match="required"):
+        publish_result.publish_dashboard(path, "artifact-id", expected_current_sha256="")
+    assert artifactory.uploads == []
 
-    def tool_result(request_id, payload):
-        return {
-            "jsonrpc": "2.0",
-            "id": request_id,
-            "result": {"content": [{"type": "text", "text": json.dumps(payload)}]},
-        }
 
-    proc = FakeMcpProc(
-        [
-            {"jsonrpc": "2.0", "id": 1, "result": {}},
-            tool_result(2, {"artifact": {"sha256": "newer"}}),
-        ]
-    )
-    monkeypatch.setattr(publish_result.shutil, "which", lambda _: "/bin/artifactory-mcp")
-    monkeypatch.setattr(publish_result.subprocess, "Popen", lambda *args, **kwargs: proc)
-    monkeypatch.setattr(publish_result.select, "select", lambda r, w, x, timeout: (r, w, x))
-
+def test_publish_dashboard_refuses_when_newer_version_appeared(tmp_path, artifactory):
+    """Reviewer's race: A reads S0, B publishes a newer complete page, A must not overwrite it."""
+    path, _ = _page(tmp_path, b"stale")
+    s0 = artifactory.current_sha
+    artifactory._add(b"<html><head></head>newer page from B</html>")
     with pytest.raises(publish_result.DashboardPublishError, match="changed while"):
-        publish_result.publish_dashboard(
-            str(page), "artifact-id", expected_current_sha256="older"
-        )
-    assert not any(
-        row.get("params", {}).get("name") == "upload_artifact_version" for row in proc.writes
-    )
+        publish_result.publish_dashboard(path, "artifact-id", expected_current_sha256=s0)
+    assert artifactory.uploads == []
+    assert artifactory.versions[-1]["data"].endswith(b"newer page from B</html>")
 
 
-def test_publish_dashboard_rejects_wrong_ready_bytes(tmp_path, monkeypatch):
-    page = tmp_path / "dashboard.html"
-    page.write_text("<html>dashboard</html>")
+def test_publish_dashboard_cas_conflict_at_upload_is_refused(tmp_path, artifactory):
+    """B wins between A's re-check and A's upload: the server-side CAS on the preflight SHA refuses A."""
+    path, _ = _page(tmp_path, b"stale")
+    s0 = artifactory.current_sha
+    real_handle = artifactory.handle
 
-    def tool_result(request_id, payload):
-        return {
-            "jsonrpc": "2.0",
-            "id": request_id,
-            "result": {"content": [{"type": "text", "text": json.dumps(payload)}]},
-        }
+    def racing(tool, a, d):
+        if tool == "upload_artifact_version" and len(artifactory.versions) == 1:
+            artifactory._add(b"<html><head></head>B</html>")
+        return real_handle(tool, a, d)
 
-    proc = FakeMcpProc(
-        [
-            {"jsonrpc": "2.0", "id": 1, "result": {}},
-            tool_result(2, {"artifact": {"sha256": "before"}}),
-            tool_result(3, {"versionNumber": 7}),
-            tool_result(
-                4,
-                {
-                    "artifact": {
-                        "currentVersionNumber": 7,
-                        "sha256": "wrong",
-                        "status": "READY",
-                    }
-                },
+    artifactory.handle = racing
+    with pytest.raises(publish_result.DashboardPublishError, match="ConflictException"):
+        publish_result.publish_dashboard(path, "artifact-id", expected_current_sha256=s0)
+    assert artifactory.versions[-1]["data"] == b"<html><head></head>B</html>"
+
+
+@pytest.mark.parametrize(
+    "setup, match",
+    [
+        (
+            lambda s: setattr(s, "tamper", lambda b: b.replace(b"dashboard", b"dashboarX")),
+            "!= uploaded",
+        ),
+        (
+            lambda s: setattr(s, "transform", lambda b: b.replace(b"dashboard", b"stale-run")),
+            "does not match",
+        ),
+        (
+            lambda s: setattr(
+                s, "transform", lambda b: _splice(b).replace(SPLICE, SPLICE + b"<p>x</p>")
             ),
-        ]
+            "does not match",
+        ),
+        (lambda s: setattr(s, "transform", lambda b: b[:-5]), "does not match"),
+        (lambda s: setattr(s, "report_sha", "0" * 64), "!= uploaded"),
+        (lambda s: setattr(s, "status_override", "MISMATCHED"), "MISMATCHED"),
+    ],
+    ids=[
+        "stored-bytes-differ",
+        "body-rewritten",
+        "non-platform-insert",
+        "truncated",
+        "wrong-sha",
+        "mismatched",
+    ],
+)
+def test_publish_dashboard_rejects_hosted_bytes_that_are_not_the_generated_page(
+    tmp_path, artifactory, setup, match
+):
+    path, _ = _page(tmp_path)
+    setup(artifactory)
+    with pytest.raises(publish_result.DashboardPublishError, match=match):
+        publish_result.publish_dashboard(
+            path, "artifact-id", expected_current_sha256=artifactory.current_sha
+        )
+
+
+def test_publish_dashboard_verifies_its_own_version_even_if_superseded(tmp_path, artifactory):
+    """A later publisher may be current by readback time; we verify OUR version number, not 'current'."""
+    path, data = _page(tmp_path)
+    real_handle = artifactory.handle
+
+    def later(tool, a, d):
+        out = real_handle(tool, a, d)
+        if tool == "upload_artifact_version":
+            artifactory._add(b"<html><head></head>C</html>")
+        return out
+
+    artifactory.handle = later
+    receipt = publish_result.publish_dashboard(
+        path, "artifact-id", expected_current_sha256=artifactory.current_sha
     )
-    monkeypatch.setattr(publish_result.shutil, "which", lambda _: "/bin/artifactory-mcp")
-    monkeypatch.setattr(publish_result.subprocess, "Popen", lambda *args, **kwargs: proc)
-    monkeypatch.setattr(publish_result.select, "select", lambda r, w, x, timeout: (r, w, x))
-
-    with pytest.raises(publish_result.DashboardPublishError, match="does not match"):
-        publish_result.publish_dashboard(str(page), "artifact-id")
+    assert receipt["versionNumber"] == 2
+    assert receipt["sha256"] == hashlib.sha256(data).hexdigest()
 
 
-def test_publish_command_uploads_dashboard_and_verifies_ready(tmp_path, monkeypatch, capsys):
+def test_platform_splice_only_matches_the_real_hosted_shape():
+    gen = (
+        b'<!doctype html><html lang="en"><head><meta charset="utf-8"></head><body>x</body></html>\n'
+    )
+    assert publish_result.platform_splice_only(gen, gen)
+    assert publish_result.platform_splice_only(gen, _splice(gen))
+    assert not publish_result.platform_splice_only(
+        gen, _splice(gen).replace(b"x</body>", b"y</body>")
+    )
+    assert not publish_result.platform_splice_only(gen, gen.replace(b"<head>", b"<head><p>ad</p>"))
+    assert not publish_result.platform_splice_only(b"no head", b"<script></script>no head")
+
+
+def test_publish_command_reads_dashboard_sha_before_any_store_write(tmp_path, monkeypatch, capsys):
     store, out = str(tmp_path / "store"), str(tmp_path / "out")
     observed = {}
 
@@ -550,7 +689,7 @@ def test_publish_command_uploads_dashboard_and_verifies_ready(tmp_path, monkeypa
         observed["preflight_store_exists"] = os.path.exists(store)
         return "before"
 
-    def publish(path, expected_current_sha256=None):
+    def publish(path, *, expected_current_sha256):
         observed["path"] = path
         observed["expected"] = expected_current_sha256
         return {
@@ -572,8 +711,48 @@ def test_publish_command_uploads_dashboard_and_verifies_ready(tmp_path, monkeypa
     assert receipt["status"] == "READY"
 
 
+def test_concurrent_publish_commands_never_regress_the_dashboard(tmp_path, artifactory, capsys):
+    """End to end, through main(): A preflights, B publishes a later run completely, then A finishes. A is refused
+    (exit 4) and the hosted page still lists B's run; a --regenerate-only retry then publishes both runs."""
+    artifactory.transform = _splice
+    store = str(tmp_path / "store")
+    a_run, b_run = FIXTURES[0], FIXTURES[1]
+    real_get = publish_result.get_dashboard_sha
+    state = {}
+
+    def a_preflight_then_b_runs():
+        sha = real_get(publish_result.DASHBOARD_ARTIFACT_ID)
+        if "b" not in state:
+            state["b"] = None  # B's own preflight goes straight through
+            state["b"] = publish_result.main(
+                [b_run, "--store", store, "--out", str(tmp_path / "b")]
+            )
+        return sha
+
+    publish_result.get_dashboard_sha = a_preflight_then_b_runs
+    try:
+        rc = publish_result.main([a_run, "--store", store, "--out", str(tmp_path / "a")])
+    finally:
+        publish_result.get_dashboard_sha = real_get
+    assert state["b"] == 0 and rc == 4
+    assert "changed while" in capsys.readouterr().err
+
+    def key(p):
+        with open(p, encoding="utf-8") as f:
+            r = json.load(f)
+        return f"{r['experiment_id']}/{r['run_id']}".encode()
+
+    a_key, b_key = key(a_run), key(b_run)
+    assert b_key in artifactory.versions[-1]["data"]
+    assert (
+        publish_result.main(["--regenerate-only", "--store", store, "--out", str(tmp_path / "r")])
+        == 0
+    )
+    assert a_key in artifactory.versions[-1]["data"] and b_key in artifactory.versions[-1]["data"]
+
+
 def test_publish_command_fails_when_dashboard_upload_fails(tmp_path, monkeypatch):
-    def refused(_path, expected_current_sha256=None):
+    def refused(_path, *, expected_current_sha256):
         raise publish_result.DashboardPublishError("stale SHA")
 
     monkeypatch.setattr(publish_result, "get_dashboard_sha", lambda: "before")
@@ -584,6 +763,88 @@ def test_publish_command_fails_when_dashboard_upload_fails(tmp_path, monkeypatch
         )
         == 4
     )
+
+
+def test_publish_command_refuses_when_regeneration_never_settles(tmp_path, monkeypatch):
+    def moving(*a, **k):
+        raise lr.RegenerateDidNotSettle("run set changed")
+
+    published = []
+    monkeypatch.setattr(publish_result, "get_dashboard_sha", lambda: "before")
+    monkeypatch.setattr(publish_result, "publish_dashboard", lambda *a, **k: published.append(a))
+    monkeypatch.setattr(publish_result.lr, "regenerate", moving)
+    assert (
+        publish_result.main(
+            [FIXTURES[0], "--store", str(tmp_path / "store"), "--out", str(tmp_path / "out")]
+        )
+        == 4
+    )
+    assert published == []
+
+
+def test_regenerate_raises_instead_of_writing_an_unsettled_page(tmp_path, monkeypatch):
+    store = lr.LocalStore(str(tmp_path / "s"))
+    calls = iter(range(100))
+    monkeypatch.setattr(
+        lr, "load_runs", lambda s: [{"experiment_id": "E", "run_id": str(next(calls))}]
+    )
+    monkeypatch.setattr(
+        lr, "render_site", lambda runs, include_fixtures=None: {"dashboard.html": "x"}
+    )
+    out = tmp_path / "out"
+    with pytest.raises(lr.RegenerateDidNotSettle):
+        lr.regenerate(store, str(out))
+    assert not out.exists()
+
+
+def test_racing_creates_of_one_run_id_cannot_both_win(tmp_path, monkeypatch):
+    """Check-then-put on result.json: two publishers both see 'absent'; the create-only put lets one win."""
+    store = lr.LocalStore(str(tmp_path / "s"))
+    r1 = real(load("fixture-improved"), "same")
+    r2 = copy.deepcopy(r1)
+    r2["conclusion"] = "other publisher's measurement"
+    real_get = store.get
+    key = "runs/E3-parallel-range-get/same/result.json"
+
+    def blind_get(k):
+        return None if k == key else real_get(k)  # both publishers read before either writes
+
+    monkeypatch.setattr(store, "get", blind_get)
+    lr.publish_run(r1, fixture_dir("fixture-improved"), store)
+    with pytest.raises(lr.PublishConflict, match="another publisher"):
+        lr.publish_run(r2, fixture_dir("fixture-improved"), store)
+    monkeypatch.setattr(store, "get", real_get)
+    assert json.loads(store.get(key))["conclusion"] == r1["conclusion"]
+    lr.publish_run(r1, fixture_dir("fixture-improved"), store)  # same bytes after a lost race: fine
+
+
+def test_s3_store_puts_carry_checksum_and_create_only_condition():
+    class ClientError(Exception):  # botocore's shape: .response["Error"]["Code"]
+        def __init__(self, response, op):
+            super().__init__(op)
+            self.response = response
+
+    class S3:
+        def __init__(self):
+            self.calls = []
+
+        def put_object(self, **kw):
+            self.calls.append(kw)
+            if kw.get("IfNoneMatch") == "*" and len(self.calls) > 1:
+                raise ClientError({"Error": {"Code": "PreconditionFailed"}}, "PutObject")
+
+    s = lr.S3Store.__new__(lr.S3Store)
+    s.bucket, s.prefix, s.s3 = "b", "p", S3()
+    s.put("k", b"abc", if_absent=True)
+    with pytest.raises(lr.KeyExists):
+        s.put("k", b"abc", if_absent=True)
+    s.put("site/x", b"abc")
+    first, _, plain = s.s3.calls
+    import base64
+
+    assert first["ChecksumSHA256"] == base64.b64encode(hashlib.sha256(b"abc").digest()).decode()
+    assert first["IfNoneMatch"] == "*" and first["Key"] == "p/k"
+    assert "IfNoneMatch" not in plain and plain["ChecksumSHA256"] == first["ChecksumSHA256"]
 
 
 def test_publish_command_exit_codes(tmp_path):

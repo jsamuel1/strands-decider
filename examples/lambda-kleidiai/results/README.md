@@ -30,16 +30,18 @@ The command:
    directory) and any extra paths, then `result.json`, all under `runs/<experiment_id>/<run_id>/`;
 3. regenerates `site/` from every `result.json` in the store, and writes the pages to `--out`
    (default `build/lkai-dashboard/`);
-4. uploads `dashboard.html` to the stable Artifactory artifact with a SHA captured before any result/store write,
-   refuses if another dashboard version appears during the run, and verifies the READY artifact SHA-256 equals the
-   generated file.
+4. reads the Artifactory dashboard's current SHA-256 before step 2 writes anything, then uploads `dashboard.html`
+   with compare-and-swap on that early SHA (never one read after rendering), re-reads the new version by number,
+   and checks its downloaded bytes against the generated file.
 
 The command completes store publication, dashboard regeneration, and Artifactory upload in one invocation. It
-starts the installed `artifactory-mcp` server directly, fetches the current artifact SHA before writing the run,
-uploads `dashboard.html` only if that generation is still current, waits for `READY`, and re-fetches the artifact to
-verify its SHA-256 equals the generated file. This keeps the single command idempotent and prevents stale publishers
-from overwriting a newer dashboard. A stale-SHA refusal means another experiment published first: rerun
-`publish_result.py --regenerate-only` to include that run and retry. Use
+starts the installed `artifactory-mcp` server directly. The upload is refused (exit 4) if the dashboard moved since
+the early read. On success the receipt names the version this command created; that version must be listed
+`READY` with the SHA-256 the upload reported, its downloaded bytes must hash to that SHA-256, and they must equal
+the generated page byte for byte apart from the viewer bridge `<script>`/comment blocks `artifactory-mcp` splices
+in after `<head>` (so the hosted SHA-256 differs from the local file's; the receipt prints both). Anything else
+(rewritten body, extra markup, wrong or MISMATCHED version) is exit 4. A stale-SHA refusal means another
+experiment published first: rerun `publish_result.py --regenerate-only` to put your run on the page. Use
 `--skip-dashboard-upload` only for local previews and tests.
 
 P1's `baseline/run.sh` writes `results.json` in this format already (`baseline/summarize.py`). An experiment that has
@@ -60,11 +62,16 @@ same layout.
 - A publisher writes only under its own `runs/<experiment_id>/<run_id>/` prefix. The IDs are restricted to
   `[A-Za-z0-9._-]`, so a run cannot write outside its prefix.
 - Republishing the same bytes is a no-op. Republishing different content under an existing run ID is refused
-  (exit 3) unless you pass `--replace`. A new measurement gets a new `run_id`.
+  (exit 3) unless you pass `--replace`. A new measurement gets a new `run_id`. A new `result.json` is written
+  create-only (S3 `If-None-Match: *`), so two publishers racing on one run ID cannot both win. Every S3 put carries
+  a SHA-256 checksum that S3 verifies before storing.
 - No experiment edits a shared file. The pages in `site/` and the Artifactory dashboard are derived: every
   regeneration rebuilds them from all the run files. If two publishers race, the later regeneration includes both
-  runs. After rendering, the publisher re-lists the store and renders again if a run appeared in the meantime.
-- Artifactory uploads are compare-and-swap (`expectedCurrentSha256`), so a stale page cannot replace a newer one.
+  runs. After rendering, the publisher re-lists the store and renders again if a run appeared in the meantime; if
+  the run set never settles it refuses (exit 4) rather than publish a page it knows is missing a run.
+- Artifactory uploads are compare-and-swap on a SHA read before the run set is loaded. Runs are append-only, and
+  the version that SHA names was rendered before it was uploaded, so a page that wins the CAS contains every run
+  the page it replaces did. A stale page loses the CAS instead.
 
 ## What a run file holds
 

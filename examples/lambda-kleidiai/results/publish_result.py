@@ -8,8 +8,13 @@ Steps, all idempotent:
   2. upload the artifacts it lists (artifacts{}, profiling_artifacts[].path) plus any extra paths, and then its
      result.json, under runs/<experiment_id>/<run_id>/ in the store. Nothing outside that prefix is written;
   3. regenerate site/ in the store from every result.json there, and write the single-file dashboard to --out;
-  4. upload --out/dashboard.html to Artifactory through its installed MCP server, using current-SHA compare-and-swap,
-     wait for READY, then re-fetch and verify the resulting version.
+  4. upload --out/dashboard.html to Artifactory through its installed MCP server. The compare-and-swap SHA is read
+     BEFORE step 2, so a page can only replace the version whose run set it already contains. The new version is
+     then re-read by number and its bytes are checked against the generated page.
+
+Ordering argument: runs are append-only, and a page is rendered from a run set loaded after its CAS SHA was read.
+The version that SHA names was rendered from a run set loaded before it was uploaded, so before we read it. A CAS
+win therefore never removes a run from the dashboard; a stale publisher loses the CAS (exit 4) instead.
 
 The store is --store or $LKAI_RESULTS_STORE: s3://bucket/prefix, or a local directory for a dry run.
 Exit codes: 0 published, 2 invalid run file, 3 run conflict/artifact refusal, 4 dashboard upload refusal.
@@ -21,10 +26,12 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import select
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -39,6 +46,10 @@ DASHBOARD_URL = os.environ.get(
     "LKAI_DASHBOARD_URL", "https://artifactory.amazon.dev/view/lambda-kleidiai-experiments-results"
 )
 ARTIFACTORY_MCP = os.environ.get("LKAI_ARTIFACTORY_MCP", "artifactory-mcp")
+READY_POLLS, READY_POLL_S = (
+    30,
+    2.0,
+)  # waitForReady gives up after 10 s; give the indexer a minute more
 
 
 class DashboardPublishError(RuntimeError):
@@ -95,13 +106,38 @@ def _tool_payload(result: dict, tool: str) -> dict:
     raise DashboardPublishError(f"Artifactory {tool} returned no JSON payload")
 
 
-def _start_mcp() -> subprocess.Popen:
+_HEAD_OPEN = re.compile(rb"<head\b[^>]*>", re.I)
+# What artifactory-mcp may add on upload: its viewer bridges, spliced in right after <head> (comments and <script>
+# blocks, including the JSON data-source map). Everything we generated must survive byte for byte.
+_PLATFORM_BLOCK = re.compile(rb"<script\b[^>]*>.*?</script\s*>|<!--.*?-->", re.I | re.S)
+
+
+def platform_splice_only(generated: bytes, hosted: bytes) -> bool:
+    """True when `hosted` is `generated` byte for byte, apart from platform blocks inserted after <head>."""
+    if hosted == generated:
+        return True
+    m = _HEAD_OPEN.search(generated)
+    if not m:
+        return False
+    at, tail = m.end(), generated[m.end() :]
+    if len(hosted) <= len(generated) or not (
+        hosted.startswith(generated[:at]) and hosted.endswith(tail)
+    ):
+        return False
+    inserted = hosted[at : len(hosted) - len(tail)]
+    return _PLATFORM_BLOCK.sub(b"", inserted).strip() == b""
+
+
+def _start_mcp(download_dir: str | None = None) -> subprocess.Popen:
     binary = shutil.which(ARTIFACTORY_MCP)
     if not binary:
         raise DashboardPublishError(
             f"{ARTIFACTORY_MCP!r} not found; install/configure Artifactory MCP or use "
             "--skip-dashboard-upload for a local-only preview"
         )
+    env = dict(os.environ)
+    if download_dir:
+        env["ARTIFACTORY_DOWNLOAD_DIR"] = download_dir  # fresh readback, not a shared cache
     proc = subprocess.Popen(
         [binary],
         stdin=subprocess.PIPE,
@@ -109,6 +145,7 @@ def _start_mcp() -> subprocess.Popen:
         stderr=None,
         text=True,
         bufsize=1,
+        env=env,
     )
     try:
         _rpc_send(
@@ -142,23 +179,26 @@ def _stop_mcp(proc: subprocess.Popen) -> None:
             proc.wait(timeout=5)
 
 
-def _get_artifact(proc: subprocess.Popen, artifact_id: str, request_id: int) -> dict:
+def _call(proc: subprocess.Popen, request_id: int, tool: str, arguments: dict) -> dict:
     return _tool_payload(
-        _rpc_send(
-            proc,
-            request_id,
-            "tools/call",
-            {"name": "get_artifact", "arguments": {"artifactId": artifact_id}},
-        ),
-        "get_artifact",
+        _rpc_send(proc, request_id, "tools/call", {"name": tool, "arguments": arguments}), tool
     )
+
+
+def _get_artifact(
+    proc: subprocess.Popen, artifact_id: str, request_id: int, version: int | None = None
+) -> dict:
+    args: dict = {"artifactId": artifact_id}
+    if version is not None:
+        args["version"] = version
+    return _call(proc, request_id, "get_artifact", args)
 
 
 def get_dashboard_sha(artifact_id: str = DASHBOARD_ARTIFACT_ID) -> str:
     """Read the dashboard generation before any run or derived-page writes begin."""
     proc = _start_mcp()
     try:
-        artifact = (_get_artifact(proc, artifact_id, 2).get("artifact") or {})
+        artifact = _get_artifact(proc, artifact_id, 2).get("artifact") or {}
         sha = artifact.get("sha256")
         if not sha:
             raise DashboardPublishError("Artifactory get_artifact returned no current sha256")
@@ -170,66 +210,99 @@ def get_dashboard_sha(artifact_id: str = DASHBOARD_ARTIFACT_ID) -> str:
 def publish_dashboard(
     file_path: str,
     artifact_id: str = DASHBOARD_ARTIFACT_ID,
-    expected_current_sha256: str | None = None,
+    *,
+    expected_current_sha256: str,
 ) -> dict:
-    """CAS-upload one dashboard and verify Artifactory stored the generated bytes."""
+    """CAS-upload one dashboard against the SHA read before the run set was loaded, then prove the version we
+    created holds the generated bytes.
+
+    `expected_current_sha256` is required: there is no fallback to a SHA read here, because a SHA read after
+    rendering would let a stale page replace a newer one. Verification is pinned to OUR version number (a later
+    publisher may legitimately be current by then): its version row must be READY with the SHA the upload
+    reported, and its downloaded bytes must hash to that SHA and equal the generated page apart from
+    artifactory-mcp's own <head> bridge splice (see platform_splice_only)."""
+    if not expected_current_sha256:
+        raise DashboardPublishError(
+            "expected_current_sha256 is required (read it before rendering)"
+        )
     with open(file_path, "rb") as f:
-        generated_sha = hashlib.sha256(f.read()).hexdigest()
-    proc = _start_mcp()
-    try:
-        before = _get_artifact(proc, artifact_id, 2)
-        current = before.get("artifact") or {}
-        current_sha = current.get("sha256")
-        if not current_sha:
-            raise DashboardPublishError("Artifactory get_artifact returned no current sha256")
-        if expected_current_sha256 is not None and current_sha != expected_current_sha256:
-            raise DashboardPublishError(
-                "Artifactory dashboard changed while this publication was running; "
-                "regenerate and retry"
-            )
-        uploaded = _tool_payload(
-            _rpc_send(
+        generated = f.read()
+    generated_sha = hashlib.sha256(generated).hexdigest()
+    with tempfile.TemporaryDirectory(prefix="lkai-dashboard-readback-") as download_dir:
+        proc = _start_mcp(download_dir)
+        try:
+            current = (_get_artifact(proc, artifact_id, 2).get("artifact") or {}).get("sha256")
+            if not current:
+                raise DashboardPublishError("Artifactory get_artifact returned no current sha256")
+            if current != expected_current_sha256:
+                raise DashboardPublishError(
+                    "Artifactory dashboard changed while this publication was running; "
+                    "rerun with --regenerate-only to include the newer runs"
+                )
+            uploaded = _call(
                 proc,
                 3,
-                "tools/call",
+                "upload_artifact_version",
                 {
-                    "name": "upload_artifact_version",
-                    "arguments": {
-                        "artifactId": artifact_id,
-                        "filePath": os.path.abspath(file_path),
-                        "expectedCurrentSha256": expected_current_sha256 or current_sha,
-                        "waitForReady": True,
-                    },
+                    "artifactId": artifact_id,
+                    "filePath": os.path.abspath(file_path),
+                    "expectedCurrentSha256": expected_current_sha256,
+                    "waitForReady": True,
                 },
-            ),
-            "upload_artifact_version",
+            )
+            version, upload_sha = uploaded.get("versionNumber"), uploaded.get("sha256")
+            if not isinstance(version, int) or not upload_sha:
+                raise DashboardPublishError(
+                    f"Artifactory upload returned no versionNumber/sha256: {uploaded}"
+                )
+            if uploaded.get("versionStatus") not in ("READY", "PENDING"):
+                raise DashboardPublishError(
+                    f"Artifactory version {version} is {uploaded.get('versionStatus')!r}, expected 'READY'"
+                )
+            ours: list = []
+            for attempt in range(READY_POLLS):
+                rows = _call(
+                    proc, 4 + attempt, "list_artifact_versions", {"artifactId": artifact_id}
+                )
+                ours = [v for v in rows.get("versions") or [] if v.get("versionNumber") == version]
+                if len(ours) == 1 and ours[0].get("status") != "PENDING":
+                    break
+                time.sleep(READY_POLL_S)
+            if len(ours) != 1 or ours[0].get("status") != "READY":
+                status = ours[0].get("status") if len(ours) == 1 else "missing"
+                raise DashboardPublishError(
+                    f"Artifactory version {version} is {status!r}, expected 'READY'"
+                )
+            if ours[0].get("sha256") != upload_sha:
+                raise DashboardPublishError(
+                    f"Artifactory version {version} sha256 {ours[0].get('sha256')} != uploaded {upload_sha}"
+                )
+            pinned = _get_artifact(proc, artifact_id, 4 + READY_POLLS, version=version)
+            if (pinned.get("artifact") or {}).get("sha256") != upload_sha or not pinned.get(
+                "localPath"
+            ):
+                raise DashboardPublishError(f"Artifactory readback of version {version} failed")
+            with open(pinned["localPath"], "rb") as f:
+                hosted = f.read()
+        finally:
+            _stop_mcp(proc)
+    hosted_sha = hashlib.sha256(hosted).hexdigest()
+    if hosted_sha != upload_sha:
+        raise DashboardPublishError(
+            f"downloaded version {version} hashes to {hosted_sha}, not {upload_sha}"
         )
-        after = _get_artifact(proc, artifact_id, 4)
-        artifact = after.get("artifact") or {}
-        if artifact.get("status") != "READY":
-            raise DashboardPublishError(
-                f"Artifactory version is {artifact.get('status')!r}, expected 'READY'"
-            )
-        uploaded_version = uploaded.get("versionNumber") or (uploaded.get("artifact") or {}).get(
-            "currentVersionNumber"
+    if not platform_splice_only(generated, hosted):
+        raise DashboardPublishError(
+            f"Artifactory version {version} content does not match the generated dashboard"
         )
-        if uploaded_version and artifact.get("currentVersionNumber") != uploaded_version:
-            raise DashboardPublishError(
-                "Artifactory current version moved after upload; regenerate and retry"
-            )
-        if artifact.get("sha256") != generated_sha:
-            raise DashboardPublishError(
-                "Artifactory READY version sha256 does not match generated dashboard"
-            )
-        return {
-            "artifactId": artifact_id,
-            "artifactUrl": after.get("artifactUrl") or artifact.get("artifactUrl"),
-            "versionNumber": artifact.get("currentVersionNumber"),
-            "sha256": artifact.get("sha256"),
-            "status": artifact.get("status"),
-        }
-    finally:
-        _stop_mcp(proc)
+    return {
+        "artifactId": artifact_id,
+        "artifactUrl": uploaded.get("artifactUrl") or pinned.get("artifactUrl"),
+        "versionNumber": version,
+        "sha256": hosted_sha,
+        "generatedSha256": generated_sha,
+        "status": "READY",
+    }
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -307,14 +380,16 @@ def main(argv: list[str] | None = None) -> int:
         print(f"uploaded {len(rep.uploaded)}, unchanged {len(rep.unchanged)}")
         for m in rep.missing:
             print(f"  missing artifact (listed, not found): {m}", file=sys.stderr)
-    site = lr.regenerate(store, a.out, include_fixtures=True if a.include_fixtures else None)
+    try:
+        site = lr.regenerate(store, a.out, include_fixtures=True if a.include_fixtures else None)
+    except lr.RegenerateDidNotSettle as e:
+        print(f"DASHBOARD REFUSED {e}", file=sys.stderr)
+        return 4
     print(f"dashboard rebuilt from {len(site['runs'])} run(s): {store.uri('site/index.html')}")
     if not a.skip_dashboard_upload:
         dash = os.path.abspath(os.path.join(a.out, "dashboard.html"))
         try:
-            published = publish_dashboard(
-                dash, expected_current_sha256=expected_dashboard_sha
-            )
+            published = publish_dashboard(dash, expected_current_sha256=expected_dashboard_sha)
         except DashboardPublishError as e:
             print(f"DASHBOARD REFUSED {e}", file=sys.stderr)
             return 4
