@@ -1,0 +1,16 @@
+{
+ "experiment_id": "E2-onezone-ia",
+ "status": "auto",
+ "hypothesis": "Storing the weights in S3 One Zone-IA instead of S3 Standard does not change weight-download time or init latency: One Zone-IA is a cheaper storage class with the same first-byte latency and throughput, not a performance tier. It adds a $0.01/GB retrieval fee on every cold start and snapshot init.",
+ "changed_variable": {
+  "name": "weight object storage class",
+  "baseline": "STANDARD",
+  "experiment": "ONEZONE_IA",
+  "held_fixed": "same general-purpose bucket, same GGUF bytes (S3 full-object SHA-256 = 8dbb8872...), same loader code path (HEAD + 32 x 64 MiB ranged GETs into a memfd), same function zip 26eb2651..., configuration and pinned runtime"
+ },
+ "conclusion": "No change (pre-registered rule). Cold weight_download p50: Standard 24.99 s, One Zone-IA 25.03 s; ratio 1.0016, bootstrap 95% CI [0.9978, 1.0054], inside the +/-2% band (n=50 each, 79 MiB/s both). On Graviton3 alone the ratio is 0.9995 [0.997, 1.005]. Snapshot-init download 0.9998 [0.995, 1.011]. Cold first request total 35.93 vs 35.95 s, Restore Duration 3.22 vs 3.21 s, warm inference 0.66 vs 0.66 s: every interval contains 1.0, apart from the cold probe forward on Graviton3, +1.9 ms (+0.8%), which runs on weights already in memory. 1,200 invocations, 0 errors, 0 class mismatches, 1,200/1,200 answers bit-identical to the P1 reference, and the same answer SHA-256 on both arms. Cost is the only effect. One Zone-IA charges $0.0208 per download ($20.80 per 1,000 cold starts or snapshot inits), against $0.000013 for Standard and $0.0012 at Express One Zone list prices. It saves $0.027 per month in storage on this 2.08 GB object, so it breaks even at 1.3 downloads per month and has a 30-day minimum. Restores read no S3 bytes. Recommendation: keep the weights in S3 Standard.",
+ "reproduce": [
+  "git fetch https://github.com/jsamuel1/strands-decider lkai/7a13-onezone-ia && git checkout 311ca2dbee8a6e4af77221ed7f1cacb0043aa933",
+  "AWS_PROFILE=<profile> SOURCE_BUCKET=<bucket from P1 deploy.py upload> examples/lambda-kleidiai/experiments/e2-onezone-ia/run.sh <run-id>"
+ ]
+}
