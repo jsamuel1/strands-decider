@@ -5,7 +5,8 @@
 #
 # 1. e4_stream/build.sh   P1's pinned weights and llama.cpp, plus patch_stream.py, built into one function.zip
 # 2. deploy_e4.py up      lkai-e4-base / -stream / -streamfile: same zip and config, different E4_STREAM/STREAM_ORDER
-# 3. baseline/bench.py    P1's interleaved cold / restore / warm harness, unchanged, over the three arms
+# 3. bench_e4.py         P1's interleaved cold / restore / warm harness (baseline/bench.py) over the three arms, with a
+#                         fresh Lambda client per wave (bench_e4.py says why)
 # 4. summarize_e4.py      lkai-result/1, correctness against P1's reference/outputs.json
 # 5. baseline/redact.py   results/<RUN_ID>/ is what gets committed
 # Env knobs as baseline/run.sh: REGION=us-east-2 ROUNDS=5 CONCURRENCY=10 WARM=10 PREFIX=lkai-e4
@@ -34,7 +35,7 @@ cleanup_versions() {
   esac
 }
 trap cleanup_versions EXIT
-"$PY" "$BASE/bench.py" --build "$B" --arms "${ARMS:-base,stream,streamfile}" --region "$REGION" \
+"$PY" "$HERE/bench_e4.py" --build "$B" --arms "${ARMS:-base,stream,streamfile}" --region "$REGION" \
   --rounds "${ROUNDS:-5}" --concurrency "${CONCURRENCY:-10}" --warm "${WARM:-10}" --out "$RAW"
 "$PY" "$HERE/summarize_e4.py" "$RAW" --reference "$BASE/reference/outputs.json" --meta "$HERE/meta.json" \
   --experiment-commit "$(git -C "$HERE" rev-parse HEAD)" --baseline-commit "$BASELINE_COMMIT"

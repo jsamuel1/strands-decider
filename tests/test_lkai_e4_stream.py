@@ -321,6 +321,51 @@ def test_patch_refuses_a_half_applied_tree(tmp_path):
         patch_stream.patch(tmp_path)
 
 
+def test_bench_e4_uses_a_fresh_lambda_client_per_wave(monkeypatch):
+    """bench_e4 changes only the client: each wave builds a new one with the same config, then runs bench's wave."""
+    import importlib.util
+
+    if not (importlib.util.find_spec("boto3") and importlib.util.find_spec("botocore")):
+        botocore = types.ModuleType("botocore")
+        cfg = types.ModuleType("botocore.config")
+        cfg.Config = lambda **kw: types.SimpleNamespace(**kw)
+        exc = types.ModuleType("botocore.exceptions")
+        exc.ClientError = type("ClientError", (Exception,), {})
+        boto3 = types.ModuleType("boto3")
+        boto3.Session = lambda **kw: None
+        for name, mod in {
+            "boto3": boto3,
+            "botocore": botocore,
+            "botocore.config": cfg,
+            "botocore.exceptions": exc,
+        }.items():
+            monkeypatch.setitem(sys.modules, name, mod)
+    for m in ("bench", "bench_e4", "deploy"):
+        monkeypatch.delitem(sys.modules, m, raising=False)
+    import bench_e4
+
+    made = []
+
+    class Sess:
+        def client(self, svc, config=None):
+            c = types.SimpleNamespace(svc=svc, meta=types.SimpleNamespace(config=config or "cfg"))
+            made.append(c)
+            return c
+
+    seen = []
+    monkeypatch.setattr(bench_e4, "_wave", lambda self, *a, **k: seen.append(self.lam) or [])
+    b = object.__new__(bench_e4.bench.Bench)
+    monkeypatch.setattr(
+        bench_e4, "_init", lambda self, sess, *a, **k: setattr(self, "lam", sess.client("lambda"))
+    )
+    bench_e4.bench.Bench.__init__(b, Sess())
+    first = b.lam
+    b.wave("base", "1", 0, "restore")
+    b.wave("stream", "1", 0, "restore")
+    assert seen[0] is not first and seen[1] is not seen[0]
+    assert all(c.svc == "lambda" and c.meta.config is first.meta.config for c in seen)
+
+
 def test_e4_arms_differ_only_in_stream_environment():
     sys.path.insert(0, os.path.abspath(E4))
     src = open(os.path.join(E4, "deploy_e4.py")).read()

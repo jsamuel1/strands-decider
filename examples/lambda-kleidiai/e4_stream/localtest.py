@@ -53,7 +53,9 @@ class _Body:
             f.seek(self.a)
             left = self.b - self.a + 1
             while left:
-                k = min(n, left, 1 << 20)
+                # botocore's StreamingBody.iter_chunks(n) returns n-byte reads (PR #77 asks for 8 MiB); the same
+                # allocation sizes matter for the process's memory peak
+                k = min(n, left)
                 self.bucket.take(k)
                 yield f.read(k)
                 left -= k
@@ -80,8 +82,36 @@ for k, v in {"DEC_KV": "f32", "DEC_UBATCH": "512", "N_SEQ": "17"}.items():
 
 import loader  # noqa: E402
 
-_s3 = LocalS3(MIB_S)
-loader._client = lambda: _s3  # noqa: SLF001  (the stand-in S3 client)
+if (
+    os.environ.get("E4_REAL_S3") != "1"
+):  # E4_REAL_S3=1: PR #77's own boto3 client, real S3 (MODEL_BUCKET/KEY)
+    _s3 = LocalS3(MIB_S)
+    loader._client = lambda: _s3  # noqa: SLF001  (the stand-in S3 client)
+
+_peak: dict = {}
+_stop = threading.Event()
+
+
+def _proc_mem() -> dict:
+    """Current memory of this process (kB), from /proc/self/status; memfd pages count as RssShmem once mapped."""
+    out = {}
+    for line in open("/proc/self/status"):
+        k, _, v = line.partition(":")
+        if k in ("VmHWM", "VmRSS", "RssAnon", "RssFile", "RssShmem"):
+            out[k] = int(v.split()[0])
+    return out
+
+
+def _sample() -> None:
+    """Peak of each /proc/self/status memory field, sampled every 50 ms."""
+    while not _stop.is_set():
+        m = _proc_mem()
+        for k, v in m.items():
+            _peak[k] = max(_peak.get(k, 0), v)
+        _stop.wait(0.05)
+
+
+threading.Thread(target=_sample, daemon=True).start()
 
 t0 = time.monotonic()
 import e4_entry  # noqa: E402  (loads the model)
@@ -94,13 +124,18 @@ for r in reqs["requests"]:
     out = e4_entry.handler(r["request"], None)
     answers[r["id"]] = out["answers"]
     lat[r["id"]] = out["latency_ms"]
+_stop.set()
+
 rec = {
     "arm": {
         "E4_STREAM": os.environ.get("E4_STREAM", "0"),
         "STREAM_ORDER": os.environ.get("STREAM_ORDER"),
+        "MALLOC_MMAP_THRESHOLD_": os.environ.get("MALLOC_MMAP_THRESHOLD_"),
     },
     "fake_mib_s": MIB_S,
     "import_and_load_s": round(import_s, 3),
+    "mem_kb": _proc_mem(),
+    "mem_peak_kb": dict(_peak),
     "init": lkai_entry.REC.init,
     "counters": lkai_entry.REC.counters,
     "latency_ms": lat,
@@ -108,7 +143,10 @@ rec = {
 }
 json.dump(rec, open(OUT, "w"), indent=1, default=str)
 print(
-    json.dumps({k: rec[k] for k in ("arm", "import_and_load_s")} | {"init": rec["init"]}),
+    json.dumps(
+        {k: rec[k] for k in ("arm", "import_and_load_s", "mem_kb", "mem_peak_kb")}
+        | {"init": rec["init"]}
+    ),
     flush=True,
 )
 print("LOCALTEST_DONE", flush=True)
