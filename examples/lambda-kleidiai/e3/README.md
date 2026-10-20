@@ -81,6 +81,11 @@ The ~663 Mbit/s per-environment ceiling is the number those experiments need to 
 
 ## Control identity
 
+The E3 zip `4a81582c…` was built at local commit `89c3a67` (its `build_manifest.repo_commit`). That commit was
+later rebased onto P1's pushed `aac59d4`, so it is not on the fork. Its zip inputs are unchanged on the pushed
+branch: `e3dl.py` sha256 `2fb5148f…`, `e3_entry.py` `104b5ff3…` (`build.e3_sources_sha256`), identical at the
+branch's commit `1a5c657` and at its head. The rest is P1's zip and the awscrt wheel.
+
 `ctl` runs P1 zip `d148d706…`, and the E3 zip is built from it. P1's published run `20261020T080835Z` deployed
 `26eb2651…` (its `conditions.json` and `build-manifest.json`), a rebuild of the same inputs. The two zips have the
 same 1,899 entries. They differ only in the 4-byte source-mtime field of the `.pyc` headers; every `.pyc` body and
