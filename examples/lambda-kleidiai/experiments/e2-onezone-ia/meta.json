@@ -1,0 +1,16 @@
+{
+ "experiment_id": "E2-onezone-ia",
+ "status": "auto",
+ "hypothesis": "Storing the weights in S3 One Zone-IA instead of S3 Standard does not change weight-download time or init latency: One Zone-IA is a cheaper storage class with the same first-byte latency and throughput, not a performance tier. It adds a $0.01/GB retrieval fee on every cold start and snapshot init.",
+ "changed_variable": {
+  "name": "weight object storage class",
+  "baseline": "STANDARD",
+  "experiment": "ONEZONE_IA",
+  "held_fixed": "same general-purpose bucket, same GGUF bytes (S3 full-object SHA-256 = 8dbb8872...), same loader code path (HEAD + 32 x 64 MiB ranged GETs into a memfd), same function zip 26eb2651..., configuration and pinned runtime"
+ },
+ "conclusion": null,
+ "reproduce": [
+  "git fetch https://github.com/jsamuel1/strands-decider lkai/7a13-onezone-ia && git checkout <commit>",
+  "AWS_PROFILE=<profile> SOURCE_BUCKET=<bucket from P1 deploy.py upload> examples/lambda-kleidiai/experiments/e2-onezone-ia/run.sh <run-id>"
+ ]
+}
