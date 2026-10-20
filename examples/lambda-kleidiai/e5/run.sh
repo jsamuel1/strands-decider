@@ -3,7 +3,8 @@
 #
 #   AWS_PROFILE=<profile> examples/lambda-kleidiai/e5/run.sh [RUN_ID]
 #
-# 1. baseline/build.sh                (P1's pinned weights + function.zip; reuses an existing build/)
+# 1. baseline/build.sh                (P1's pinned weights + function.zip; skipped when P1's build/ already holds
+#                                     the zip and GGUF P1's published run used, so the deployed code is that run's)
 # 2. convert_no_vocab.py              (the one variable: the GGUF without llama.cpp's text vocabulary)
 # 3. deploy_e5.py up                  (lkai-e5-base and lkai-e5-e5: same zip, same config, different MODEL_KEY)
 # 4. baseline/bench.py --arms base,e5 (P1's interleaved cold / restore / warm harness, unchanged)
@@ -26,16 +27,30 @@ PY_IMAGE=$(sed -n 's/^PY_IMAGE=//p' "$BASE/build.sh")
 # P1's pushed baseline HEAD that this branch starts from (feat/lambda-kleidiai-baseline on the fork).
 BASELINE_COMMIT=${BASELINE_COMMIT:-aac59d45555ebded9357c23f6f8e4f939edf25d7}
 
-LKAI_BUILD=$PB "$BASE/build.sh"
+PUB=$BASE/results/20261020T080835Z/build-manifest.json
+have() {  # P1's build/ holds the zip and GGUF of P1's published run
+  [ -f "$PB/function.zip" ] && [ -f "$PB/model/s2b-h512-Q8_0.gguf" ] && "$PY" - "$PUB" "$PB" <<'EOF'
+import hashlib, json, sys
+p, b = json.load(open(sys.argv[1])), sys.argv[2]
+def sha(f):
+    h = hashlib.sha256()
+    with open(f, "rb") as fh:
+        for c in iter(lambda: fh.read(1 << 24), b""):
+            h.update(c)
+    return h.hexdigest()
+ok = sha(b + "/function.zip") == p["function_zip"]["sha256"] and sha(b + "/model/s2b-h512-Q8_0.gguf") == p["model"]["gguf_sha256"]
+sys.exit(0 if ok else 1)
+EOF
+}
+have || LKAI_BUILD=$PB "$BASE/build.sh"
 mkdir -p "$B/model"
 ln -sf "$PB/function.zip" "$B/function.zip"
-ln -sf "$PB/manifest.json" "$B/manifest.json"
 ln -sf "$PB/model/s2b-h512-Q8_0.gguf" "$B/model/s2b-h512-Q8_0.gguf"
 if [ ! -f "$B/model/s2b-h512-Q8_0-novocab.gguf" ]; then
   docker run --rm --platform linux/arm64 -v "$PB:/b:ro" -v "$HERE:/e5:ro" -v "$B/model:/o" "$PY_IMAGE" \
     bash /e5/container_convert.sh /b/model/s2b-h512-Q8_0.gguf /o/s2b-h512-Q8_0-novocab.gguf /o/convert.json
 fi
-"$PY" "$HERE/manifest_e5.py" "$B"
+"$PY" "$HERE/manifest_e5.py" "$B" "$PB/manifest.json" "$BASE/results/20261020T080835Z/build-manifest.json"
 
 "$PY" "$HERE/deploy_e5.py" up --build "$B" --region "$REGION" --prefix "$PREFIX"
 cleanup_versions() {
