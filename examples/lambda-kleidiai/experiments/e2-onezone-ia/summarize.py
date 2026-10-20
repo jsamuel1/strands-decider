@@ -105,6 +105,35 @@ def boot_ratio(a: list[float], b: list[float], n: int = 10000, seed: int = 0) ->
     return [round(rs[int(0.025 * len(rs))], 4), round(rs[int(0.975 * len(rs)) - 1], 4)]
 
 
+def cluster_boot_ratio(
+    a: dict[object, list[float]], b: dict[object, list[float]], n: int = 10000, seed: int = 0
+) -> list[float] | None:
+    """Paired round-cluster bootstrap 95% interval of median(a) / median(b).
+
+    `a` and `b` map a round to that round's values. Each resample draws rounds with replacement and takes the SAME
+    rounds for both arms, pooling every value of each drawn round, so samples that share a wave (and the time window
+    that wave ran in) move together instead of being treated as independent.
+    """
+    rounds = sorted(set(a) & set(b), key=str)
+    if len(rounds) < 2:
+        return None
+    rng = random.Random(seed)
+    rs = []
+    for _ in range(n):
+        pick = rng.choices(rounds, k=len(rounds))
+        va = [v for r in pick for v in a[r]]
+        vb = [v for r in pick for v in b[r]]
+        if not va or not vb:
+            continue
+        mb = statistics.median(vb)
+        if mb:
+            rs.append(statistics.median(va) / mb)
+    if not rs:
+        return None
+    rs.sort()
+    return [round(rs[int(0.025 * len(rs))], 4), round(rs[int(0.975 * len(rs)) - 1], 4)]
+
+
 def decide(ci: list[float] | None) -> str:
     lo, hi = DECISION["equivalence_band"]
     if ci is None:
@@ -162,6 +191,25 @@ def _cmp(a: list[float], b: list[float]) -> dict | None:
     }
 
 
+def _by_round(rows: list[dict], cls: str, phase: str) -> dict[object, list[float]]:
+    out: dict[object, list[float]] = {}
+    for rnd in sorted({r["round"] for r in rows}, key=str):
+        v = _values([r for r in rows if r["round"] == rnd], cls, phase)
+        if v:
+            out[rnd] = v
+    return out
+
+
+SENSITIVITY = {
+    "name": "paired round-cluster bootstrap",
+    "why": "each round's cold starts run as one concurrent wave in a shared time window, and arm order alternates "
+    "by round, so the samples within a round are not independent; the primary bootstrap treats them as if they were",
+    "method": "resample rounds with replacement (10,000 resamples, seed 0), the same rounds for both arms, pool "
+    "each drawn round's values, ratio of medians ozia/std",
+    "role": "sensitivity only: the pre-registered decision rule above sets status",
+}
+
+
 def comparison(rows: list[dict], snaps: dict[str, list[dict]]) -> dict:
     by_arm = {a: [r for r in rows if r["arm"] == a] for a in ARMS}
     out: dict = {"decision": DECISION}
@@ -169,6 +217,10 @@ def comparison(rows: list[dict], snaps: dict[str, list[dict]]) -> dict:
         c: dict = {}
         for ph in names:
             c[ph] = _cmp(_values(by_arm["ozia"], cls, ph), _values(by_arm["std"], cls, ph))
+            if c[ph] is not None:
+                c[ph]["ratio_ci95_round_cluster"] = cluster_boot_ratio(
+                    _by_round(by_arm["ozia"], cls, ph), _by_round(by_arm["std"], cls, ph)
+                )
         # Engine-bound phases depend on the Graviton generation; compare those within a CPU part as well.
         per_cpu: dict = {}
         cpus = sorted(
@@ -178,10 +230,14 @@ def comparison(rows: list[dict], snaps: dict[str, list[dict]]) -> dict:
         )
         for cpu in cpus:
             sel = {a: [r for r in by_arm[a] if r.get("cpu_part") == cpu] for a in ARMS}
-            per_cpu[str(cpu)] = {
-                ph: _cmp(_values(sel["ozia"], cls, ph), _values(sel["std"], cls, ph))
-                for ph in names
-            }
+            per_cpu[str(cpu)] = {}
+            for ph in names:
+                d = _cmp(_values(sel["ozia"], cls, ph), _values(sel["std"], cls, ph))
+                if d is not None:
+                    d["ratio_ci95_round_cluster"] = cluster_boot_ratio(
+                        _by_round(sel["ozia"], cls, ph), _by_round(sel["std"], cls, ph)
+                    )
+                per_cpu[str(cpu)][ph] = d
         c["by_cpu_part"] = per_cpu
         out[cls] = c
     # The snapshot init (inside publish_version) also downloads the weights, from the same object.
@@ -191,9 +247,30 @@ def comparison(rows: list[dict], snaps: dict[str, list[dict]]) -> dict:
         b = [s["init"][ph] for s in snaps.get("std", []) if ph in s.get("init", {})]
         snap[ph] = _cmp(a, b)
     out["snapshot_init"] = snap
-    ci = (out["cold"].get("weight_download") or {}).get("ratio_ci95")
-    out["outcome"] = decide(ci)
+    primary = out["cold"].get("weight_download") or {}
+    out["outcome"] = decide(primary.get("ratio_ci95"))
+    cl = primary.get("ratio_ci95_round_cluster")
+    out["sensitivity"] = SENSITIVITY | {
+        "rounds": len({r["round"] for r in rows}),
+        "ci95": cl,
+        "outcome_under_same_band": decide(cl),
+        "agrees_with_primary": decide(cl) == out["outcome"],
+    }
     return out
+
+
+# Every one-off charge of this run, by key in `cost()`'s dict. total_usd is the sum of exactly these. Monthly storage
+# rates (`*_usd_month`) and P1's own total_usd (which base.costs() already put in the dict) are not charges to add.
+CHARGE_KEYS = (
+    "lambda_duration_usd",
+    "lambda_requests_usd",
+    "snapstart_restore_usd",
+    "snapstart_cache_usd",
+    "s3_request_usd",
+    "s3_transfer_usd",
+    "s3_retrieval_usd",
+    "s3_onezone_ia_30_day_minimum_usd",
+)
 
 
 def download_cost(storage_class: str, size: int, gets: int, heads: int = 1) -> float:
@@ -266,9 +343,13 @@ def cost(res: dict, cond: dict, rows: list[dict], snaps: dict[str, list[dict]], 
     c["s3_onezone_ia_30_day_minimum_usd"] = round(oz_store, 4)
     c.pop("s3_get_requests_per_download", None)
     c.pop("s3_head_requests_per_download", None)
-    c["total_usd"] = round(
-        sum(v for k, v in c.items() if k.endswith("_usd") and k != "s3_storage_usd_month"), 4
-    )
+    # base.costs()'s total (P1's components plus a month of storage) is recomputed below.
+    c.pop("total_usd", None)
+    unknown = sorted(k for k in c if k.endswith("_usd") and k not in CHARGE_KEYS)
+    if unknown:
+        raise ValueError(f"cost keys not classified as charge or rate: {unknown}")
+    c["total_components"] = list(CHARGE_KEYS)
+    c["total_usd"] = round(sum(c[k] for k in CHARGE_KEYS), 6)
     return c
 
 

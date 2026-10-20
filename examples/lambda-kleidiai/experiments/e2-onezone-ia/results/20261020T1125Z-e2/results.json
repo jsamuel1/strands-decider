@@ -5308,7 +5308,6 @@
    "s3_standard_gb_month": 0.023,
    "source": "aws.amazon.com/lambda/pricing, aws.amazon.com/s3/pricing (us-east-2)"
   },
-  "total_usd": 6.0109,
   "s3_retrieval_usd": 1.246,
   "by_arm": {
    "std": {
@@ -5390,6 +5389,17 @@
    "source": "AWS Price List API, AmazonS3, regionCode us-east-2, read 2026-10-20"
   },
   "s3_onezone_ia_30_day_minimum_usd": 0.0208,
+  "total_components": [
+   "lambda_duration_usd",
+   "lambda_requests_usd",
+   "snapstart_restore_usd",
+   "snapstart_cache_usd",
+   "s3_request_usd",
+   "s3_transfer_usd",
+   "s3_retrieval_usd",
+   "s3_onezone_ia_30_day_minimum_usd"
+  ],
+  "total_usd": 3.639428,
   "snapshot_inits_per_version": {
    "std": {
     "1": 2,
@@ -5475,7 +5485,7 @@
   "git fetch https://github.com/jsamuel1/strands-decider lkai/7a13-onezone-ia && git checkout 311ca2dbee8a6e4af77221ed7f1cacb0043aa933",
   "AWS_PROFILE=<profile> SOURCE_BUCKET=<bucket from P1 deploy.py upload> examples/lambda-kleidiai/experiments/e2-onezone-ia/run.sh <run-id>"
  ],
- "conclusion": "No change (pre-registered rule). Cold weight_download p50: Standard 24.99 s, One Zone-IA 25.03 s; ratio 1.0016, bootstrap 95% CI [0.9978, 1.0054], inside the +/-2% band (n=50 each, 79 MiB/s both). On Graviton3 alone the ratio is 0.9995 [0.997, 1.005]. Snapshot-init download 0.9998 [0.995, 1.011]. Cold first request total 35.93 vs 35.95 s, Restore Duration 3.22 vs 3.21 s, warm inference 0.66 vs 0.66 s: every interval contains 1.0, apart from the cold probe forward on Graviton3, +1.9 ms (+0.8%), which runs on weights already in memory. 1,200 invocations, 0 errors, 0 class mismatches, 1,200/1,200 answers bit-identical to the P1 reference, and the same answer SHA-256 on both arms. Cost is the only effect. One Zone-IA charges $0.0208 per download ($20.80 per 1,000 cold starts or snapshot inits), against $0.000013 for Standard and $0.0012 at Express One Zone list prices. It saves $0.027 per month in storage on this 2.08 GB object, so it breaks even at 1.3 downloads per month and has a 30-day minimum. Restores read no S3 bytes. Recommendation: keep the weights in S3 Standard.",
+ "conclusion": "No change (pre-registered rule). Cold weight_download p50: Standard 24.99 s, One Zone-IA 25.03 s; ratio 1.0016, bootstrap 95% CI [0.9978, 1.0054], inside the +/-2% band (n=50 each, 79 MiB/s both). The primary bootstrap treats the 50 concurrent cold starts per arm as independent; a paired round-cluster bootstrap over the 5 rounds (sensitivity only) gives [0.9972, 1.0067], also inside the band. On Graviton3 alone the ratio is 0.9995 [0.997, 1.005]. Snapshot-init download 0.9998 [0.995, 1.011]. Cold first request total 35.93 vs 35.95 s, Restore Duration 3.22 vs 3.21 s, warm inference 0.66 vs 0.66 s. Intervals that exclude 1.0: cold probe forward (aggregate 1.0109 [1.0012, 1.0136]; Graviton3 1.008 [1.0019, 1.0131], +1.9 ms on weights already in memory, plus a CPU-mix effect in the aggregate), and Graviton4 cold weight_download 1.0049 [1.0017, 1.009] / throughput 0.9949 [0.9912, 0.9987] on n=6 per arm drawn from different rounds, a +0.5% low-n signal inside the band that this run cannot separate from round timing. 1,200 invocations, 0 errors, 0 class mismatches, 1,200/1,200 answers bit-identical to the P1 reference, and the same answer SHA-256 on both arms. Cost is the only material effect. One Zone-IA charges $0.0208 per download ($20.80 per 1,000 cold starts or snapshot inits), against $0.000013 for Standard and $0.0012 at Express One Zone list prices. It saves $0.027 per month in storage on this 2.08 GB object, so it breaks even at 1.3 downloads per month and has a 30-day minimum. Restores read no S3 bytes. This run cost $3.64 at list prices. Recommendation: keep the weights in S3 Standard.",
  "primary_arm": "ozia",
  "comparison": {
   "decision": {
@@ -5500,6 +5510,10 @@
     "n": [
      50,
      50
+    ],
+    "ratio_ci95_round_cluster": [
+     0.9972,
+     1.0067
     ]
    },
    "weight_download_mib_s": {
@@ -5514,6 +5528,10 @@
     "n": [
      50,
      50
+    ],
+    "ratio_ci95_round_cluster": [
+     0.9937,
+     1.0025
     ]
    },
    "model_load_mmap": {
@@ -5528,6 +5546,10 @@
     "n": [
      50,
      50
+    ],
+    "ratio_ci95_round_cluster": [
+     0.9981,
+     1.0039
     ]
    },
    "model_ready": {
@@ -5542,6 +5564,10 @@
     "n": [
      50,
      50
+    ],
+    "ratio_ci95_round_cluster": [
+     0.9993,
+     1.0027
     ]
    },
    "report_init_duration": {
@@ -5556,6 +5582,10 @@
     "n": [
      50,
      50
+    ],
+    "ratio_ci95_round_cluster": [
+     0.9839,
+     1.0074
     ]
    },
    "first_request_total": {
@@ -5570,6 +5600,10 @@
     "n": [
      50,
      50
+    ],
+    "ratio_ci95_round_cluster": [
+     0.9993,
+     1.0032
     ]
    },
    "first_request_inference": {
@@ -5584,6 +5618,10 @@
     "n": [
      50,
      50
+    ],
+    "ratio_ci95_round_cluster": [
+     1.0066,
+     1.012
     ]
    },
    "by_cpu_part": {
@@ -5597,7 +5635,8 @@
       "n": [
        1,
        3
-      ]
+      ],
+      "ratio_ci95_round_cluster": null
      },
      "weight_download_mib_s": {
       "std_p50": 80.1,
@@ -5608,7 +5647,8 @@
       "n": [
        1,
        3
-      ]
+      ],
+      "ratio_ci95_round_cluster": null
      },
      "model_load_mmap": {
       "std_p50": 19.743328,
@@ -5619,7 +5659,8 @@
       "n": [
        1,
        3
-      ]
+      ],
+      "ratio_ci95_round_cluster": null
      },
      "model_ready": {
       "std_p50": 46.77,
@@ -5630,7 +5671,8 @@
       "n": [
        1,
        3
-      ]
+      ],
+      "ratio_ci95_round_cluster": null
      },
      "report_init_duration": {
       "std_p50": 1.01574,
@@ -5641,7 +5683,8 @@
       "n": [
        1,
        3
-      ]
+      ],
+      "ratio_ci95_round_cluster": null
      },
      "first_request_total": {
       "std_p50": 48.20729,
@@ -5652,7 +5695,8 @@
       "n": [
        1,
        3
-      ]
+      ],
+      "ratio_ci95_round_cluster": null
      },
      "first_request_inference": {
       "std_p50": 0.42861,
@@ -5663,7 +5707,8 @@
       "n": [
        1,
        3
-      ]
+      ],
+      "ratio_ci95_round_cluster": null
      }
     },
     "0xd40": {
@@ -5679,6 +5724,10 @@
       "n": [
        43,
        41
+      ],
+      "ratio_ci95_round_cluster": [
+       0.9973,
+       1.0072
       ]
      },
      "weight_download_mib_s": {
@@ -5693,6 +5742,10 @@
       "n": [
        43,
        41
+      ],
+      "ratio_ci95_round_cluster": [
+       0.9931,
+       1.0025
       ]
      },
      "model_load_mmap": {
@@ -5707,6 +5760,10 @@
       "n": [
        43,
        41
+      ],
+      "ratio_ci95_round_cluster": [
+       1.0001,
+       1.0033
       ]
      },
      "model_ready": {
@@ -5721,6 +5778,10 @@
       "n": [
        43,
        41
+      ],
+      "ratio_ci95_round_cluster": [
+       0.9986,
+       1.0026
       ]
      },
      "report_init_duration": {
@@ -5735,6 +5796,10 @@
       "n": [
        43,
        41
+      ],
+      "ratio_ci95_round_cluster": [
+       0.9855,
+       1.0074
       ]
      },
      "first_request_total": {
@@ -5749,6 +5814,10 @@
       "n": [
        43,
        41
+      ],
+      "ratio_ci95_round_cluster": [
+       0.9985,
+       1.0025
       ]
      },
      "first_request_inference": {
@@ -5763,6 +5832,10 @@
       "n": [
        43,
        41
+      ],
+      "ratio_ci95_round_cluster": [
+       1.0057,
+       1.0118
       ]
      }
     },
@@ -5779,6 +5852,10 @@
       "n": [
        6,
        6
+      ],
+      "ratio_ci95_round_cluster": [
+       1.0032,
+       1.0071
       ]
      },
      "weight_download_mib_s": {
@@ -5793,6 +5870,10 @@
       "n": [
        6,
        6
+      ],
+      "ratio_ci95_round_cluster": [
+       0.9924,
+       0.9962
       ]
      },
      "model_load_mmap": {
@@ -5807,6 +5888,10 @@
       "n": [
        6,
        6
+      ],
+      "ratio_ci95_round_cluster": [
+       0.9646,
+       1.0464
       ]
      },
      "model_ready": {
@@ -5821,6 +5906,10 @@
       "n": [
        6,
        6
+      ],
+      "ratio_ci95_round_cluster": [
+       0.9929,
+       1.0173
       ]
      },
      "report_init_duration": {
@@ -5835,6 +5924,10 @@
       "n": [
        6,
        6
+      ],
+      "ratio_ci95_round_cluster": [
+       0.9757,
+       1.0057
       ]
      },
      "first_request_total": {
@@ -5849,6 +5942,10 @@
       "n": [
        6,
        6
+      ],
+      "ratio_ci95_round_cluster": [
+       0.9929,
+       1.0161
       ]
      },
      "first_request_inference": {
@@ -5863,6 +5960,10 @@
       "n": [
        6,
        6
+      ],
+      "ratio_ci95_round_cluster": [
+       0.9461,
+       0.983
       ]
      }
     }
@@ -5881,6 +5982,10 @@
     "n": [
      50,
      50
+    ],
+    "ratio_ci95_round_cluster": [
+     0.982,
+     1.0152
     ]
    },
    "restore_to_invoke": {
@@ -5895,6 +6000,10 @@
     "n": [
      50,
      50
+    ],
+    "ratio_ci95_round_cluster": [
+     0.8303,
+     1.0285
     ]
    },
    "first_request_inference": {
@@ -5909,6 +6018,10 @@
     "n": [
      50,
      50
+    ],
+    "ratio_ci95_round_cluster": [
+     0.9915,
+     1.0228
     ]
    },
    "first_request_total": {
@@ -5923,6 +6036,10 @@
     "n": [
      50,
      50
+    ],
+    "ratio_ci95_round_cluster": [
+     0.9842,
+     1.0133
     ]
    },
    "by_cpu_part": {
@@ -5936,7 +6053,8 @@
       "n": [
        1,
        4
-      ]
+      ],
+      "ratio_ci95_round_cluster": null
      },
      "restore_to_invoke": {
       "std_p50": 0.011606,
@@ -5947,7 +6065,8 @@
       "n": [
        1,
        4
-      ]
+      ],
+      "ratio_ci95_round_cluster": null
      },
      "first_request_inference": {
       "std_p50": 1.0381,
@@ -5958,7 +6077,8 @@
       "n": [
        1,
        4
-      ]
+      ],
+      "ratio_ci95_round_cluster": null
      },
      "first_request_total": {
       "std_p50": 5.09221,
@@ -5969,7 +6089,8 @@
       "n": [
        1,
        4
-      ]
+      ],
+      "ratio_ci95_round_cluster": null
      }
     },
     "0xd40": {
@@ -5985,6 +6106,10 @@
       "n": [
        49,
        46
+      ],
+      "ratio_ci95_round_cluster": [
+       0.9817,
+       1.0107
       ]
      },
      "restore_to_invoke": {
@@ -5999,6 +6124,10 @@
       "n": [
        49,
        46
+      ],
+      "ratio_ci95_round_cluster": [
+       0.8233,
+       1.0022
       ]
      },
      "first_request_inference": {
@@ -6013,6 +6142,10 @@
       "n": [
        49,
        46
+      ],
+      "ratio_ci95_round_cluster": [
+       0.9902,
+       1.0088
       ]
      },
      "first_request_total": {
@@ -6027,6 +6160,10 @@
       "n": [
        49,
        46
+      ],
+      "ratio_ci95_round_cluster": [
+       0.984,
+       1.0109
       ]
      }
     }
@@ -6045,6 +6182,10 @@
     "n": [
      500,
      500
+    ],
+    "ratio_ci95_round_cluster": [
+     0.9739,
+     1.0926
     ]
    },
    "report_duration": {
@@ -6059,6 +6200,10 @@
     "n": [
      500,
      500
+    ],
+    "ratio_ci95_round_cluster": [
+     0.9742,
+     1.0924
     ]
    },
    "by_cpu_part": {
@@ -6075,7 +6220,8 @@
       "n": [
        10,
        40
-      ]
+      ],
+      "ratio_ci95_round_cluster": null
      },
      "report_duration": {
       "std_p50": 1.235065,
@@ -6089,7 +6235,8 @@
       "n": [
        10,
        40
-      ]
+      ],
+      "ratio_ci95_round_cluster": null
      }
     },
     "0xd40": {
@@ -6105,6 +6252,10 @@
       "n": [
        490,
        460
+      ],
+      "ratio_ci95_round_cluster": [
+       0.9645,
+       1.0175
       ]
      },
      "report_duration": {
@@ -6119,6 +6270,10 @@
       "n": [
        490,
        460
+      ],
+      "ratio_ci95_round_cluster": [
+       0.9645,
+       1.0176
       ]
      }
     }
@@ -6154,6 +6309,19 @@
     ]
    }
   },
-  "outcome": "no-change"
+  "outcome": "no-change",
+  "sensitivity": {
+   "name": "paired round-cluster bootstrap",
+   "why": "each round's cold starts run as one concurrent wave in a shared time window, and arm order alternates by round, so the samples within a round are not independent; the primary bootstrap treats them as if they were",
+   "method": "resample rounds with replacement (10,000 resamples, seed 0), the same rounds for both arms, pool each drawn round's values, ratio of medians ozia/std",
+   "role": "sensitivity only: the pre-registered decision rule above sets status",
+   "rounds": 5,
+   "ci95": [
+    0.9972,
+    1.0067
+   ],
+   "outcome_under_same_band": "no-change",
+   "agrees_with_primary": true
+  }
  }
 }

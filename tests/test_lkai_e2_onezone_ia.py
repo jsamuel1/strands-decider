@@ -374,3 +374,71 @@ def test_answer_hash_detects_a_changed_answer(tmp_path):
         _row("ozia", 0, "warm", answers={"q": {"type": "noul", "noul": 0.51}}),
     ]
     assert s.answer_hash(rows, "std")["sha256"] != s.answer_hash(rows, "ozia")["sha256"]
+
+
+def test_cluster_boot_ratio_is_paired_seeded_and_wider_than_iid_under_round_shifts():
+    s = _load("summarize")
+    # Every round shifts both arms by the same amount: the shared-wave dependence the cluster bootstrap must keep.
+    shift = {0: 0.0, 1: 0.5, 2: -0.4, 3: 0.3, 4: -0.2}
+    a = {r: [25.0 + d + 0.01 * i for i in range(10)] for r, d in shift.items()}
+    b = {r: [25.0 + d + 0.01 * i for i in range(10)] for r, d in shift.items()}
+    ci = s.cluster_boot_ratio(a, b)
+    assert ci == s.cluster_boot_ratio(a, b)  # seeded
+    # Identical arms, paired by round: every resample has ratio exactly 1.
+    assert ci == [1.0, 1.0]
+    iid = s.boot_ratio([v for r in a for v in a[r]], [v for r in b for v in b[r]])
+    assert iid[0] < 1.0 < iid[1]
+    # An arm that is 1% slower in every round stays 1% slower in every paired resample.
+    slow = {r: [v * 1.01 for v in vs] for r, vs in a.items()}
+    lo, hi = s.cluster_boot_ratio(slow, b)
+    assert lo == pytest.approx(1.01, abs=1e-3) and hi == pytest.approx(1.01, abs=1e-3)
+    # Only shared rounds count; fewer than 2 shared rounds gives no interval.
+    assert s.cluster_boot_ratio({0: [1.0], 9: [1.0]}, {0: [1.0], 8: [1.0]}) is None
+
+
+def test_comparison_reports_round_cluster_sensitivity_without_changing_status(tmp_path):
+    s = _load("summarize")
+    run = _run(tmp_path, 25.0)
+    meta = json.load(open(os.path.join(E2, "meta.json")))
+    res = s.summarize(run, str(tmp_path / "ref.json"), str(tmp_path / "dep.json"), "aac59d4", meta)
+    cmp_ = res["comparison"]
+    sens = cmp_["sensitivity"]
+    assert sens["rounds"] == 2
+    assert sens["ci95"] == cmp_["cold"]["weight_download"]["ratio_ci95_round_cluster"]
+    assert sens["outcome_under_same_band"] == s.decide(sens["ci95"])
+    assert sens["agrees_with_primary"] is (sens["outcome_under_same_band"] == cmp_["outcome"])
+    assert (
+        res["status"] == cmp_["outcome"] == s.decide(cmp_["cold"]["weight_download"]["ratio_ci95"])
+    )
+    assert "ratio_ci95_round_cluster" in cmp_["cold"]["by_cpu_part"]["0xd40"]["weight_download"]
+
+
+def test_total_usd_is_exactly_the_sum_of_named_charges(tmp_path):
+    s = _load("summarize")
+    run = _run(tmp_path, 25.0)
+    meta = json.load(open(os.path.join(E2, "meta.json")))
+    c = s.summarize(run, str(tmp_path / "ref.json"), str(tmp_path / "dep.json"), "aac59d4", meta)[
+        "cost"
+    ]
+    assert c["total_components"] == list(s.CHARGE_KEYS)
+    assert c["total_usd"] == pytest.approx(sum(c[k] for k in s.CHARGE_KEYS), abs=1e-9)
+    # Every *_usd key is either a named charge or excluded on purpose (a monthly rate, or the total itself).
+    rest = {k for k in c if k.endswith("_usd")} - set(s.CHARGE_KEYS)
+    assert rest == {"total_usd"}
+
+
+def test_cost_refuses_an_unclassified_usd_key(tmp_path, monkeypatch):
+    s = _load("summarize")
+    run = _run(tmp_path, 25.0)
+    meta = json.load(open(os.path.join(E2, "meta.json")))
+    real = s.base.costs
+    monkeypatch.setattr(s.base, "costs", lambda *a: real(*a) | {"new_fee_usd": 1.0})
+    with pytest.raises(ValueError, match="new_fee_usd"):
+        s.summarize(run, str(tmp_path / "ref.json"), str(tmp_path / "dep.json"), "aac59d4", meta)
+
+
+def test_committed_result_total_matches_its_components():
+    p = os.path.join(E2, "results", "20261020T1125Z-e2", "results.json")
+    c = json.load(open(p))["cost"]
+    assert c["total_usd"] == pytest.approx(sum(c[k] for k in c["total_components"]), abs=1e-9)
+    assert c["total_usd"] == pytest.approx(3.639428, abs=1e-6)

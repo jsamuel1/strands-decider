@@ -12,8 +12,8 @@ AWS_PROFILE=<profile> SOURCE_BUCKET=<bucket P1's deploy.py upload wrote> \
 
 `run.sh` needs no arm64 host or Docker, because it builds nothing. It runs `deploy.py up`, then P1's `bench.py`
 unchanged with `--arms std,ozia`, then `summarize.py` and P1's `redact.py`. The default run (5 rounds × 2 arms × (10
-cold + 10 restore + 10 warm passes of 10)) cost $6.01 at list prices, plus the $0.02 30-day minimum on the One Zone-IA
-copy.
+cold + 10 restore + 10 warm passes of 10)) cost $3.64 at list prices (`cost.total_usd`, the sum of the keys in
+`cost.total_components`), including the $0.02 30-day minimum on the One Zone-IA copy.
 
 ## What is held fixed and what changes
 
@@ -37,32 +37,55 @@ comes from a bootstrap of 10,000 resamples with seed 0. The result is **no chang
 0.98–1.02, **improved** if it lies below 0.98, **regressed** if it lies above 1.02, and **inconclusive** otherwise.
 `summarize.py` sets `status` from this rule.
 
+That bootstrap treats the 50 cold starts per arm as independent samples. They are not: each round's 10 cold starts
+run as one concurrent wave in a shared time window, and the arm order alternates by round. `summarize.py` therefore
+also reports a sensitivity analysis, a paired round-cluster bootstrap (`comparison.sensitivity` and
+`ratio_ci95_round_cluster` on every comparison). It resamples whole rounds with replacement, takes the same rounds
+for both arms, and pools each drawn round's values. It is reported beside the primary interval and does not set
+`status`. With only 5 rounds, it is coarse.
+
 ## Results: run `20261020T1125Z-e2`
 
 The run used commit `311ca2d`. There were 1,200 invocations, 0 errors and 0 class mismatches (100 cold, 100 restore,
 1,000 warm). The table gives p50 values in seconds. Ratios are One Zone-IA over Standard, with bootstrap 95% intervals.
 Full distributions are in `results/20261020T1125Z-e2/results.json` (`phases.<arm>`, `comparison`).
 
-| Class | Phase | Standard | One Zone-IA | ratio [95% CI] | n |
-|---|---|---|---|---|---|
-| cold | weight download | 24.99 | 25.03 | 1.0016 [0.9978, 1.0054] | 50 / 50 |
-| cold | download throughput (MiB/s) | 79.3 | 79.1 | 0.9975 [0.995, 1.0025] | 50 / 50 |
-| cold | model load / mmap | 8.34 | 8.36 | 1.0024 [0.9964, 1.0065] | 50 / 50 |
-| cold | model ready (PR #77 `_load`) | 34.91 | 34.94 | 1.0009 [0.9981, 1.0034] | 50 / 50 |
-| cold | first request (Init + Duration) | 35.93 | 35.95 | 1.0007 [0.9985, 1.0034] | 50 / 50 |
-| snapshot init | weight download | 24.85 | 24.85 | 0.9998 [0.9954, 1.0106] | 10 / 10 |
-| restore | Restore Duration | 3.22 | 3.21 | 0.9966 [0.9852, 1.0085] | 50 / 50 |
-| restore | first request (Restore + Duration) | 3.90 | 3.91 | 1.0029 [0.9889, 1.0115] | 50 / 50 |
-| warm | steady-state inference | 0.660 | 0.665 | 1.0063 [0.9206, 1.1393] | 500 / 500 |
+| Class | Phase | Standard | One Zone-IA | ratio [95% CI] | round-cluster CI | n |
+|---|---|---|---|---|---|---|
+| cold | weight download | 24.99 | 25.03 | 1.0016 [0.9978, 1.0054] | [0.9972, 1.0067] | 50 / 50 |
+| cold | download throughput (MiB/s) | 79.3 | 79.1 | 0.9975 [0.995, 1.0025] | [0.9937, 1.0025] | 50 / 50 |
+| cold | model load / mmap | 8.34 | 8.36 | 1.0024 [0.9964, 1.0065] | [0.9981, 1.0039] | 50 / 50 |
+| cold | model ready (PR #77 `_load`) | 34.91 | 34.94 | 1.0009 [0.9981, 1.0034] | [0.9993, 1.0027] | 50 / 50 |
+| cold | first request (Init + Duration) | 35.93 | 35.95 | 1.0007 [0.9985, 1.0034] | [0.9993, 1.0032] | 50 / 50 |
+| cold | probe forward (first request inference) | 0.2366 | 0.2392 | 1.0109 [1.0012, 1.0136] | [1.0066, 1.012] | 50 / 50 |
+| snapshot init | weight download | 24.85 | 24.85 | 0.9998 [0.9954, 1.0106] | n/a | 10 / 10 |
+| restore | Restore Duration | 3.22 | 3.21 | 0.9966 [0.9852, 1.0085] | [0.982, 1.0152] | 50 / 50 |
+| restore | first request (Restore + Duration) | 3.90 | 3.91 | 1.0029 [0.9889, 1.0115] | [0.9842, 1.0133] | 50 / 50 |
+| warm | steady-state inference | 0.660 | 0.665 | 1.0063 [0.9206, 1.1393] | [0.9739, 1.0926] | 500 / 500 |
+
+The round-cluster interval for the primary metric is [0.9972, 1.0067]. It also lies inside 0.98–1.02, so the
+outcome does not depend on treating concurrent cold starts as independent.
 
 - **Download.** The two storage classes give the same download time. The p99 is 28.7 s for Standard and 25.2 s for
   One Zone-IA, a single slow Standard sample that is not a class effect. Both arms match P1's 25.04 s and 79 MiB/s.
 - **CPU mix.** Lambda chose Graviton generations independently per arm (cold: Standard 43/1/6 and One Zone-IA 41/3/6
   for Graviton3/2/4). Within Graviton3 alone, the cold download ratio is 0.9995 [0.997, 1.005] and Restore Duration is
   0.9961 [0.985, 1.005].
-- **Only interval outside 1.0.** The cold probe forward on Graviton3 is 0.2374 s against 0.2393 s (+0.8%, CI
-  [1.002, 1.013]). That forward runs on weights already in memory and never touches S3, so it is not a storage-class
-  effect. Read it as the noise floor of a 2 ms quantity.
+- **Intervals that exclude 1.0.** Every interval in the table above contains 1.0 except the cold probe forward.
+  In `comparison.<class>.by_cpu_part`, these primary intervals also exclude 1.0:
+  - Cold probe forward on Graviton3 (`0xd40`): 0.2374 s against 0.2393 s, ratio 1.008 [1.0019, 1.0131], n=43/41.
+    The aggregate probe-forward interval [1.0012, 1.0136] is this effect plus the CPU mix (One Zone-IA drew 3
+    Graviton2 cold starts at about 0.43 s, Standard drew 1). The forward runs on weights already in memory and never
+    touches S3, so a storage-class cause is not plausible. Read it as run-to-run drift in a 2 ms quantity.
+  - Cold weight download on Graviton4 (`0xd4f`): 25.06 s against 25.18 s, ratio 1.0049 [1.0017, 1.009], and
+    throughput 79.05 against 78.65 MiB/s, 0.9949 [0.9912, 0.9987]. This is n=6 per arm, drawn from different rounds
+    (Standard rounds 0, 1, 2, 4; One Zone-IA rounds 1, 2, 3, 4). The paired round-cluster interval uses only the
+    3 shared rounds. The point estimate is +0.5%, inside the ±2% band, and the Graviton3 subset (n=43/41) shows no
+    difference. This is a small, low-n signal that the run cannot separate from round timing. It is not a
+    performance effect of the storage class at the scale the decision rule tests.
+  - Under the round-cluster sensitivity, cold model load on Graviton3 also excludes 1.0 by a hair, [1.0001,
+    1.0033] (+0.16%), and Graviton4 probe forward is lower for One Zone-IA, [0.9461, 0.983] (n=6). Neither is a
+    download phase.
 - **Run-to-run variance** (CV of per-round medians, Standard / One Zone-IA): cold 0.09% / 0.15%, restore 0.73% /
   0.94%, warm 1.1% / 10.3%. The warm figure reflects the request mix per pass, not storage.
 - **Correctness.** 1,200 of 1,200 answers are bit-identical to P1's `reference/outputs.json` for the same request and
@@ -86,7 +109,9 @@ memfd. Only cold starts and snapshot inits pay (2 snapshot inits per published v
 | **S3 $ per 1,000 cold starts or snapshot inits** | 0.013 | **20.80** | 1.25 |
 | Storage $/month for this object | 0.048 | 0.021 | 0.228 |
 
-- This run: One Zone-IA retrieval was $1.246 (60 downloads, 124.6 GB). The Standard arm's S3 requests cost $0.0008.
+- This run: $3.639 total. One Zone-IA retrieval was $1.246 (60 downloads, 124.6 GB), the SnapStart cache $1.625,
+  Lambda duration $0.605, SnapStart restore $0.140, the One Zone-IA 30-day minimum $0.021, S3 requests $0.0027
+  (the Standard arm's share $0.0008) and Lambda requests $0.0002.
 - One Zone-IA saves $0.027 per month in storage and pays $0.0208 more per download. It breaks even at 1.3 downloads
   per month, and this function performs 2 snapshot inits per published version. One Zone-IA also keeps a single AZ
   copy, which Standard does not.
