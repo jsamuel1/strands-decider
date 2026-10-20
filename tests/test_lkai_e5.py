@@ -70,7 +70,7 @@ def test_compare_arms_matches_cpu_parts_and_pools():
     import summarize_e5
 
     rows = []
-    # Graviton3: e5 loads 0.5 s faster. Graviton2: only e5 drew it, so it must not enter the comparison.
+    # CPU part 0xd40: e5 loads 0.5 s faster. Part 0xd0c: only e5 drew it, so it must not enter the comparison.
     for arm, mmap in (("base", 8.0), ("e5", 7.5)):
         for _ in range(3):
             rows.append(
@@ -212,6 +212,58 @@ def test_manifest_refuses_converter_from_wrong_llama_checkout(tmp_path):
         SystemExit, match=r"conversion used llama\.cpp 'wrong', expected expected"
     ):
         manifest_e5.main(str(build), str(manifest_path))
+
+
+def test_host_variability_splits_by_cpu_part_and_flags_mixed_signs():
+    import host_variability as H
+
+    def cold(arm, part, mmap, rd, env):
+        r = _row(
+            arm,
+            "cold",
+            part,
+            init={"model_load_mmap": mmap},
+            report={"Init Duration": 500.0, "Duration": 1000.0 * mmap, "Max Memory Used": 5000},
+        )
+        r["round"], r["lkai"]["env_id"] = rd, env
+        return r
+
+    rows = []
+    for rd in range(2):
+        for i in range(3):
+            # part A: e5 faster; part B: e5 slower -> signs disagree
+            rows.append(cold("base", "0xaaa", 8.0, rd, f"a-b-{rd}-{i}"))
+            rows.append(cold("e5", "0xaaa", 7.5, rd, f"a-e-{rd}-{i}"))
+            rows.append(cold("base", "0xbbb", 7.0, rd, f"b-b-{rd}-{i}"))
+            rows.append(cold("e5", "0xbbb", 7.2, rd, f"b-e-{rd}-{i}"))
+    rows.append(cold("e5", "0xccc", 1.0, 0, "c"))  # only one arm drew it: not compared
+    by = H.compare(rows)
+    m = by["cold"]["model_load_mmap"]["by_cpu_part"]
+    assert set(m) == {"0xaaa", "0xbbb"}
+    assert m["0xaaa"]["delta_p50"] == pytest.approx(-0.5)
+    assert m["0xaaa"]["rounds_e5_below_base"] == [2, 2]
+    assert m["0xbbb"]["rounds_e5_below_base"] == [0, 2]
+    v = H.verdict(by)["cold.model_load_mmap"]
+    assert v["same_sign_in_every_part"] is False
+    assert v["parts_with_n_ge_min"] == ["0xaaa", "0xbbb"]
+    mx = H.mix(rows)
+    assert mx["environments_with_more_than_one_cpu_part"] == 0
+    assert mx["invocations"]["cold:e5:0xccc"] == 1
+
+
+def test_host_variability_labels_unrecorded_fields_unknown_and_infers_no_generation():
+    import host_variability as H
+
+    for field in (
+        "cpu_implementer",
+        "cpu_feature_flags",
+        "hwcap_hwcap2",
+        "online_core_count",
+        "kernel",
+    ):
+        assert H.METADATA[field].startswith("unknown")
+    assert H.METADATA["graviton_generation"].startswith("unknown")
+    assert H.METADATA["cpu_part"].startswith("observed")
 
 
 def test_convert_no_vocab_keeps_tensor_bytes(tmp_path):

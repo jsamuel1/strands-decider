@@ -7,7 +7,9 @@ On top of summarize.summarize (phases per arm, variance, classification, errors,
   - e5_vs_base: median(e5) - median(base) within each CPU part both arms drew, for every REPORT metric and init
     phase, pooled by sample count (summarize.overhead's method, which P1 uses for inst vs rep);
   - snapshot inits counted on both arms (both are instrumented, so neither needs P1's estimate);
-  - the weight files of both arms and the conversion record (e5-manifest.json).
+  - the weight files of both arms and the conversion record (e5-manifest.json);
+  - host_variability: host_variability.assess (observed CPU/environment metadata, per-CPU-part comparison and
+    verdict), also written to host-variability.json.
 """
 
 from __future__ import annotations
@@ -21,6 +23,7 @@ from collections import defaultdict
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(HERE), "baseline"))
+import host_variability  # noqa: E402
 import summarize as S  # noqa: E402
 
 INIT_KEYS = (
@@ -161,6 +164,10 @@ def main() -> None:
         "snapshot_inits_note": "counted on both arms (both instrumented)",
     }
     res["artifacts"]["e5_manifest"] = "e5-manifest.json"
+    hv = host_variability.assess(a.run)
+    res["host_variability"] = hv
+    json.dump(hv, open(os.path.join(a.run, "host-variability.json"), "w"), indent=1)
+    res["artifacts"]["host_variability"] = "host-variability.json"
     path = os.path.join(a.run, "results.json")
     json.dump(res, open(path, "w"), indent=1)
     print("wrote", path)

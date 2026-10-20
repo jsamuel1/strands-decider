@@ -5451,13 +5451,15 @@
   "invocations": "invocations.jsonl",
   "logs": "logs/",
   "conditions": "conditions.json",
-  "e5_manifest": "e5-manifest.json"
+  "e5_manifest": "e5-manifest.json",
+  "host_variability": "host-variability.json"
  },
  "reproduce": [
   "git fetch https://github.com/jsamuel1/strands-decider lkai/3259-mmap-format && git checkout FETCH_HEAD",
-  "AWS_PROFILE=<profile> examples/lambda-kleidiai/e5/run.sh <run-id>"
+  "AWS_PROFILE=<profile> examples/lambda-kleidiai/e5/run.sh <run-id>",
+  "python examples/lambda-kleidiai/e5/host_variability.py examples/lambda-kleidiai/e5/results/<run-id>"
  ],
- "conclusion": "Small, consistent improvement, no output change. Matched by Graviton generation and pooled, cold model_load_mmap (deserialize) fell 0.66 s (Graviton3 8.39 -> 7.72 s, -7.9%; Graviton4 7.13 -> 6.53 s), and the cold first request (Init + Duration) fell 0.87 s (Graviton3 36.03 -> 35.17 s, -2.4%), about 3x the cold run-to-run range of the per-round medians (0.30 s). Restore (-0.02 s) and warm inference (+0.02 s, Graviton3 +4.5% but -3.5% on Graviton2) are unchanged within their run-to-run spread, as expected: the snapshot already holds the loaded model. Peak memory (REPORT Max Memory Used) fell 76-94 MB in every class. 1,200 invocations, 0 errors, 0 class mismatches, 600/600 answers per arm bit-identical to P1's reference. The other ~6 s of model_load_mmap is KleidiAI's runtime repack, which no GGUF layout this loader reads can avoid; removing it needs a loader change (a pre-packed tensor type or a cached packed buffer), not a format change, and is out of E5's scope. Weight download is unchanged by design (same path, 0.5% fewer bytes).",
+ "conclusion": "Small, consistent improvement, no output change. Matched by CPU part (/proc/cpuinfo 'CPU part'; no Graviton generation was observed) and pooled, cold model_load_mmap (deserialize) fell 0.66 s (part 0xd40 8.39 -> 7.72 s, -7.9%; part 0xd4f 7.13 -> 6.53 s), and the cold first request (Init + Duration) fell 0.87 s (part 0xd40 36.03 -> 35.17 s, -2.4%), about 3x the cold run-to-run range of the per-round medians (0.30 s). Restore (-0.02 s) and warm inference (+0.02 s, part 0xd40 +4.5% but -3.5% on part 0xd0c) are unchanged within their run-to-run spread, as expected: the snapshot already holds the loaded model. Peak memory (REPORT Max Memory Used) fell 76-94 MB in every class. 1,200 invocations, 0 errors, 0 class mismatches, 600/600 answers per arm bit-identical to P1's reference. Host variability (host_variability): 200 environments on three CPU parts (0xd40, 0xd4f, 0xd0c), none reporting two; the cold improvement has the same sign on every part and in every round that drew it, and the unmatched comparison (-0.83 s) is smaller than the matched one, so the CPU mix cannot explain it; restore and warm have no consistent sign. No rerun needed; CPU implementer/variant/features, HWCAPs, core count, cgroup limits, kernel and AZ were not recorded and are unknown. The other ~6 s of model_load_mmap is KleidiAI's runtime repack, which no GGUF layout this loader reads can avoid; removing it needs a loader change (a pre-packed tensor type or a cached packed buffer), not a format change, and is out of E5's scope. Weight download is unchanged by design (same path, 0.5% fewer bytes).",
  "primary_arm": "e5",
  "e5_vs_base": {
   "cold": {
@@ -6143,5 +6145,766 @@
    }
   },
   "method": "median(e5) - median(base) within each CPU part both arms drew (seconds; MB for report_max_memory_mb); pooled_delta_p50 weights the per-part deltas by the smaller sample count"
+ },
+ "host_variability": {
+  "schema": "lkai-host-variability/1",
+  "method": "post-run, from this run's own records; no new invocations. Comparisons are within one observed CPU part; a part counts toward the verdict when both arms have >= 3 samples in it. Arms alternate order every round (conditions.rounds_meta[].order).",
+  "metadata": {
+   "cpu_part": "observed: /proc/cpuinfo 'CPU part', read by the handler in every environment (row cpu_part)",
+   "ggml_cpu_variant": "observed: the libggml-cpu variants mapped in /proc/self/maps after init (engine init log line). ggml picks the variant from the CPU features it detects; the record names the library only, not the features",
+   "threads": "configured, not observed: 6 llama.cpp threads (row timing.threads)",
+   "memory_size_mb": "observed: REPORT Memory Size",
+   "runtime_version": "observed: INIT_START Runtime Version ARN, pinned (conditions.runtime_version_arn)",
+   "architecture": "configured: arm64 (conditions.functions.*.Architectures)",
+   "region": "configured: conditions.region",
+   "execution_environment": "observed: row lkai.env_id and the CloudWatch log stream name (logs/*.jsonl.gz)",
+   "cpu_implementer": "unknown (not recorded)",
+   "cpu_variant": "unknown (not recorded)",
+   "cpu_revision": "unknown (not recorded)",
+   "midr": "unknown (not recorded)",
+   "cpu_feature_flags": "unknown (not recorded; /proc/cpuinfo Features was not read)",
+   "hwcap_hwcap2": "unknown (not recorded)",
+   "online_core_count": "unknown (not recorded)",
+   "cgroup_cpu_memory_limits": "unknown (not recorded)",
+   "kernel": "unknown (not recorded)",
+   "availability_zone": "unknown (not recorded)",
+   "graviton_generation": "unknown: this run recorded nothing that names a generation; never inferred from a part id or from timings"
+  },
+  "ggml_cpu_variant_by_cpu_part": {
+   "0xd0c": [
+    "libggml-cpu-armv8.0_1.so,libggml-cpu-armv8.2_2.so"
+   ],
+   "0xd40": [
+    "libggml-cpu-armv8.0_1.so,libggml-cpu-armv8.6_1.so"
+   ],
+   "0xd4f": [
+    "libggml-cpu-armv8.0_1.so,libggml-cpu-armv8.6_2.so"
+   ]
+  },
+  "log_streams_per_function": {
+   "lkai-e5-base": 111,
+   "lkai-e5-e5": 110
+  },
+  "mix": {
+   "invocations": {
+    "cold:base:0xd0c": 2,
+    "cold:base:0xd40": 41,
+    "cold:base:0xd4f": 7,
+    "cold:e5:0xd0c": 3,
+    "cold:e5:0xd40": 43,
+    "cold:e5:0xd4f": 4,
+    "restore:base:0xd0c": 3,
+    "restore:base:0xd40": 47,
+    "restore:e5:0xd0c": 5,
+    "restore:e5:0xd40": 45,
+    "warm:base:0xd0c": 30,
+    "warm:base:0xd40": 470,
+    "warm:e5:0xd0c": 50,
+    "warm:e5:0xd40": 450
+   },
+   "environments": {
+    "cold:base:0xd0c": 2,
+    "cold:base:0xd40": 41,
+    "cold:base:0xd4f": 7,
+    "cold:e5:0xd0c": 3,
+    "cold:e5:0xd40": 43,
+    "cold:e5:0xd4f": 4,
+    "restore:base:0xd0c": 3,
+    "restore:base:0xd40": 47,
+    "restore:e5:0xd0c": 5,
+    "restore:e5:0xd40": 45,
+    "warm:base:0xd0c": 3,
+    "warm:base:0xd40": 47,
+    "warm:e5:0xd0c": 5,
+    "warm:e5:0xd40": 45
+   },
+   "environments_total": 200,
+   "environments_with_more_than_one_cpu_part": 0
+  },
+  "by_class": {
+   "cold": {
+    "first_request_total": {
+     "by_cpu_part": {
+      "0xd0c": {
+       "e5": {
+        "n": 3,
+        "p50": 47.12445,
+        "min": 46.92589,
+        "max": 47.66467
+       },
+       "base": {
+        "n": 2,
+        "p50": 48.629655,
+        "min": 48.45289,
+        "max": 48.80642
+       },
+       "delta_p50": -1.505205,
+       "per_round_p50": {
+        "0": {
+         "e5": 47.12445,
+         "base": 48.45289
+        },
+        "3": {
+         "e5": 46.92589,
+         "base": 48.80642
+        }
+       },
+       "rounds_e5_below_base": [
+        2,
+        2
+       ]
+      },
+      "0xd40": {
+       "e5": {
+        "n": 43,
+        "p50": 35.17014,
+        "min": 34.91406,
+        "max": 35.70652
+       },
+       "base": {
+        "n": 41,
+        "p50": 36.03021,
+        "min": 35.6073,
+        "max": 36.39177
+       },
+       "delta_p50": -0.86007,
+       "per_round_p50": {
+        "0": {
+         "e5": 35.30283,
+         "base": 36.131325
+        },
+        "1": {
+         "e5": 35.14083,
+         "base": 35.98021
+        },
+        "2": {
+         "e5": 35.11442,
+         "base": 36.16748
+        },
+        "3": {
+         "e5": 35.17245,
+         "base": 35.9798
+        },
+        "4": {
+         "e5": 35.15298,
+         "base": 35.95482
+        }
+       },
+       "rounds_e5_below_base": [
+        5,
+        5
+       ]
+      },
+      "0xd4f": {
+       "e5": {
+        "n": 4,
+        "p50": 33.73904,
+        "min": 33.63731,
+        "max": 33.91201
+       },
+       "base": {
+        "n": 7,
+        "p50": 34.43907,
+        "min": 34.30561,
+        "max": 34.67582
+       },
+       "delta_p50": -0.70003,
+       "per_round_p50": {
+        "0": {
+         "e5": 33.63731,
+         "base": 34.43907
+        },
+        "2": {
+         "e5": 33.75085,
+         "base": 34.379735
+        }
+       },
+       "rounds_e5_below_base": [
+        2,
+        2
+       ]
+      }
+     },
+     "unmatched_delta_p50": -0.8271
+    },
+    "model_load_mmap": {
+     "by_cpu_part": {
+      "0xd0c": {
+       "e5": {
+        "n": 3,
+        "p50": 18.84092,
+        "min": 18.667675,
+        "max": 19.035843
+       },
+       "base": {
+        "n": 2,
+        "p50": 19.586399,
+        "min": 19.567492,
+        "max": 19.605307
+       },
+       "delta_p50": -0.745479,
+       "per_round_p50": {
+        "0": {
+         "e5": 18.84092,
+         "base": 19.605307
+        },
+        "3": {
+         "e5": 18.667675,
+         "base": 19.567492
+        }
+       },
+       "rounds_e5_below_base": [
+        2,
+        2
+       ]
+      },
+      "0xd40": {
+       "e5": {
+        "n": 43,
+        "p50": 7.722469,
+        "min": 7.628447,
+        "max": 8.11037
+       },
+       "base": {
+        "n": 41,
+        "p50": 8.386403,
+        "min": 8.229396,
+        "max": 8.619857
+       },
+       "delta_p50": -0.663934,
+       "per_round_p50": {
+        "0": {
+         "e5": 7.741998,
+         "base": 8.44891
+        },
+        "1": {
+         "e5": 7.69273,
+         "base": 8.361936
+        },
+        "2": {
+         "e5": 7.698291,
+         "base": 8.463119
+        },
+        "3": {
+         "e5": 7.764944,
+         "base": 8.368412
+        },
+        "4": {
+         "e5": 7.718498,
+         "base": 8.329939
+        }
+       },
+       "rounds_e5_below_base": [
+        5,
+        5
+       ]
+      },
+      "0xd4f": {
+       "e5": {
+        "n": 4,
+        "p50": 6.532718,
+        "min": 6.488629,
+        "max": 6.581174
+       },
+       "base": {
+        "n": 7,
+        "p50": 7.132691,
+        "min": 7.031909,
+        "max": 7.325846
+       },
+       "delta_p50": -0.599973,
+       "per_round_p50": {
+        "0": {
+         "e5": 6.488629,
+         "base": 7.213063
+        },
+        "2": {
+         "e5": 6.539045,
+         "base": 7.042395
+        }
+       },
+       "rounds_e5_below_base": [
+        2,
+        2
+       ]
+      }
+     },
+     "unmatched_delta_p50": -0.647917
+    },
+    "max_memory_mb": {
+     "by_cpu_part": {
+      "0xd0c": {
+       "e5": {
+        "n": 3,
+        "p50": 5082.0,
+        "min": 5056.0,
+        "max": 5083.0
+       },
+       "base": {
+        "n": 2,
+        "p50": 5149.0,
+        "min": 5136.0,
+        "max": 5162.0
+       },
+       "delta_p50": -67.0,
+       "per_round_p50": {
+        "0": {
+         "e5": 5056.0,
+         "base": 5136.0
+        },
+        "3": {
+         "e5": 5082.0,
+         "base": 5162.0
+        }
+       },
+       "rounds_e5_below_base": [
+        2,
+        2
+       ]
+      },
+      "0xd40": {
+       "e5": {
+        "n": 43,
+        "p50": 5060.0,
+        "min": 5056.0,
+        "max": 5083.0
+       },
+       "base": {
+        "n": 41,
+        "p50": 5158.0,
+        "min": 5135.0,
+        "max": 5162.0
+       },
+       "delta_p50": -98.0,
+       "per_round_p50": {
+        "0": {
+         "e5": 5078.0,
+         "base": 5139.0
+        },
+        "1": {
+         "e5": 5059.0,
+         "base": 5158.0
+        },
+        "2": {
+         "e5": 5058.0,
+         "base": 5159.0
+        },
+        "3": {
+         "e5": 5061.0,
+         "base": 5140.0
+        },
+        "4": {
+         "e5": 5059.5,
+         "base": 5160.0
+        }
+       },
+       "rounds_e5_below_base": [
+        5,
+        5
+       ]
+      },
+      "0xd4f": {
+       "e5": {
+        "n": 4,
+        "p50": 5068.0,
+        "min": 5060.0,
+        "max": 5097.0
+       },
+       "base": {
+        "n": 7,
+        "p50": 5139.0,
+        "min": 5136.0,
+        "max": 5162.0
+       },
+       "delta_p50": -71.0,
+       "per_round_p50": {
+        "0": {
+         "e5": 5097.0,
+         "base": 5158.0
+        },
+        "2": {
+         "e5": 5060.0,
+         "base": 5150.5
+        }
+       },
+       "rounds_e5_below_base": [
+        2,
+        2
+       ]
+      }
+     },
+     "unmatched_delta_p50": -98.0
+    }
+   },
+   "restore": {
+    "first_request_total": {
+     "by_cpu_part": {
+      "0xd0c": {
+       "e5": {
+        "n": 5,
+        "p50": 4.96012,
+        "min": 4.87341,
+        "max": 5.32558
+       },
+       "base": {
+        "n": 3,
+        "p50": 5.18802,
+        "min": 5.07773,
+        "max": 5.34286
+       },
+       "delta_p50": -0.2279,
+       "per_round_p50": {
+        "0": {
+         "e5": 5.14285,
+         "base": 5.18802
+        },
+        "2": {
+         "e5": 4.87341,
+         "base": 5.34286
+        }
+       },
+       "rounds_e5_below_base": [
+        2,
+        2
+       ]
+      },
+      "0xd40": {
+       "e5": {
+        "n": 45,
+        "p50": 3.90866,
+        "min": 3.77342,
+        "max": 8.02375
+       },
+       "base": {
+        "n": 47,
+        "p50": 3.91311,
+        "min": 3.75446,
+        "max": 7.43336
+       },
+       "delta_p50": -0.00445,
+       "per_round_p50": {
+        "0": {
+         "e5": 3.892065,
+         "base": 3.96406
+        },
+        "1": {
+         "e5": 3.96995,
+         "base": 3.881195
+        },
+        "2": {
+         "e5": 3.9421,
+         "base": 3.96474
+        },
+        "3": {
+         "e5": 3.86781,
+         "base": 3.871145
+        },
+        "4": {
+         "e5": 4.11321,
+         "base": 3.92111
+        }
+       },
+       "rounds_e5_below_base": [
+        3,
+        5
+       ]
+      }
+     },
+     "unmatched_delta_p50": 0.01317
+    },
+    "max_memory_mb": {
+     "by_cpu_part": {
+      "0xd0c": {
+       "e5": {
+        "n": 5,
+        "p50": 5071.0,
+        "min": 5067.0,
+        "max": 5077.0
+       },
+       "base": {
+        "n": 3,
+        "p50": 5154.0,
+        "min": 5152.0,
+        "max": 5154.0
+       },
+       "delta_p50": -83.0,
+       "per_round_p50": {
+        "0": {
+         "e5": 5071.0,
+         "base": 5154.0
+        },
+        "2": {
+         "e5": 5067.0,
+         "base": 5154.0
+        }
+       },
+       "rounds_e5_below_base": [
+        2,
+        2
+       ]
+      },
+      "0xd40": {
+       "e5": {
+        "n": 45,
+        "p50": 5070.0,
+        "min": 5067.0,
+        "max": 5073.0
+       },
+       "base": {
+        "n": 47,
+        "p50": 5150.0,
+        "min": 5129.0,
+        "max": 5152.0
+       },
+       "delta_p50": -80.0,
+       "per_round_p50": {
+        "0": {
+         "e5": 5067.0,
+         "base": 5129.0
+        },
+        "1": {
+         "e5": 5069.0,
+         "base": 5150.0
+        },
+        "2": {
+         "e5": 5073.0,
+         "base": 5152.0
+        },
+        "3": {
+         "e5": 5072.0,
+         "base": 5148.0
+        },
+        "4": {
+         "e5": 5070.0,
+         "base": 5150.0
+        }
+       },
+       "rounds_e5_below_base": [
+        5,
+        5
+       ]
+      }
+     },
+     "unmatched_delta_p50": -80.0
+    }
+   },
+   "warm": {
+    "steady_state_inference": {
+     "by_cpu_part": {
+      "0xd0c": {
+       "e5": {
+        "n": 50,
+        "p50": 1.120475,
+        "min": 0.42485,
+        "max": 3.48612
+       },
+       "base": {
+        "n": 30,
+        "p50": 1.161115,
+        "min": 0.42626,
+        "max": 3.45859
+       },
+       "delta_p50": -0.04064,
+       "per_round_p50": {
+        "0": {
+         "e5": 1.12714,
+         "base": 1.15082
+        },
+        "2": {
+         "e5": 1.090635,
+         "base": 1.1683
+        }
+       },
+       "rounds_e5_below_base": [
+        2,
+        2
+       ]
+      },
+      "0xd40": {
+       "e5": {
+        "n": 450,
+        "p50": 0.65618,
+        "min": 0.22991,
+        "max": 1.89413
+       },
+       "base": {
+        "n": 470,
+        "p50": 0.627775,
+        "min": 0.22986,
+        "max": 1.92096
+       },
+       "delta_p50": 0.028405,
+       "per_round_p50": {
+        "0": {
+         "e5": 0.64551,
+         "base": 0.634925
+        },
+        "1": {
+         "e5": 0.65594,
+         "base": 0.623495
+        },
+        "2": {
+         "e5": 0.65514,
+         "base": 0.6771
+        },
+        "3": {
+         "e5": 0.650645,
+         "base": 0.643905
+        },
+        "4": {
+         "e5": 0.657835,
+         "base": 0.65987
+        }
+       },
+       "rounds_e5_below_base": [
+        2,
+        5
+       ]
+      }
+     },
+     "unmatched_delta_p50": 0.0067
+    },
+    "max_memory_mb": {
+     "by_cpu_part": {
+      "0xd0c": {
+       "e5": {
+        "n": 50,
+        "p50": 5092.0,
+        "min": 5067.0,
+        "max": 5102.0
+       },
+       "base": {
+        "n": 30,
+        "p50": 5176.0,
+        "min": 5152.0,
+        "max": 5180.0
+       },
+       "delta_p50": -84.0,
+       "per_round_p50": {
+        "0": {
+         "e5": 5095.0,
+         "base": 5178.0
+        },
+        "2": {
+         "e5": 5092.0,
+         "base": 5180.0
+        }
+       },
+       "rounds_e5_below_base": [
+        2,
+        2
+       ]
+      },
+      "0xd40": {
+       "e5": {
+        "n": 450,
+        "p50": 5091.0,
+        "min": 5067.0,
+        "max": 5097.0
+       },
+       "base": {
+        "n": 470,
+        "p50": 5167.0,
+        "min": 5129.0,
+        "max": 5176.0
+       },
+       "delta_p50": -76.0,
+       "per_round_p50": {
+        "0": {
+         "e5": 5089.0,
+         "base": 5155.0
+        },
+        "1": {
+         "e5": 5091.0,
+         "base": 5176.0
+        },
+        "2": {
+         "e5": 5095.0,
+         "base": 5176.0
+        },
+        "3": {
+         "e5": 5096.0,
+         "base": 5172.0
+        },
+        "4": {
+         "e5": 5093.0,
+         "base": 5174.0
+        }
+       },
+       "rounds_e5_below_base": [
+        5,
+        5
+       ]
+      }
+     },
+     "unmatched_delta_p50": -78.0
+    }
+   }
+  },
+  "verdict": {
+   "cold.first_request_total": {
+    "parts_with_n_ge_min": [
+     "0xd40",
+     "0xd4f"
+    ],
+    "parts_below_min_n": [
+     "0xd0c"
+    ],
+    "same_sign_in_every_part": true
+   },
+   "cold.model_load_mmap": {
+    "parts_with_n_ge_min": [
+     "0xd40",
+     "0xd4f"
+    ],
+    "parts_below_min_n": [
+     "0xd0c"
+    ],
+    "same_sign_in_every_part": true
+   },
+   "cold.max_memory_mb": {
+    "parts_with_n_ge_min": [
+     "0xd40",
+     "0xd4f"
+    ],
+    "parts_below_min_n": [
+     "0xd0c"
+    ],
+    "same_sign_in_every_part": true
+   },
+   "restore.first_request_total": {
+    "parts_with_n_ge_min": [
+     "0xd0c",
+     "0xd40"
+    ],
+    "parts_below_min_n": [],
+    "same_sign_in_every_part": true
+   },
+   "restore.max_memory_mb": {
+    "parts_with_n_ge_min": [
+     "0xd0c",
+     "0xd40"
+    ],
+    "parts_below_min_n": [],
+    "same_sign_in_every_part": true
+   },
+   "warm.steady_state_inference": {
+    "parts_with_n_ge_min": [
+     "0xd0c",
+     "0xd40"
+    ],
+    "parts_below_min_n": [],
+    "same_sign_in_every_part": false
+   },
+   "warm.max_memory_mb": {
+    "parts_with_n_ge_min": [
+     "0xd0c",
+     "0xd40"
+    ],
+    "parts_below_min_n": [],
+    "same_sign_in_every_part": true
+   }
+  },
+  "added_after_run": "Computed on 2026-10-21 from this run's committed invocations.jsonl and logs by host_variability.py (HOST VARIABILITY rework, operator request item-mvhbk9tt-1degq-09b); no measured value in this file changed. Regenerating results.json with summarize_e5.py from the committed records gives the same value for every other field."
  }
 }

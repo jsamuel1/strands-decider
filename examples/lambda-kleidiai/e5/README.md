@@ -34,7 +34,7 @@ The loader is llama.cpp `f74e2fa6a` with `llama/patch_llama.py`, called through 
   `token_type` (0.99 MB). llama.cpp builds hash maps of the tokens and merges. The engine never uses them: it
   tokenizes in Python with `assets/tokenizer.json` and passes token ids to `decshim`.
 
-Diagnostics on the arm64 DevSpace (Graviton3, 6 threads, `public.ecr.aws/lambda/python:3.12`, the deployed zip;
+Diagnostics on the arm64 DevSpace (CPU part `0xd40` as read by the probe, 6 threads, `public.ecr.aws/lambda/python:3.12`, the deployed zip;
 `.agents` scratch, not committed) split the ~8 s of `model_load_mmap`:
 
 | Variant (diagnostic only) | `model_load_mmap` | Outputs |
@@ -86,8 +86,8 @@ environment except `MODEL_KEY`, which names each arm's GGUF in the one bucket. B
 (`LKAI_PHASES=1`); P1 measured that overhead as within run-to-run spread. `baseline/bench.py --arms base,e5` runs
 unchanged: 5 rounds, arm order alternating, per round 10 cold, 10 restore and 10 warm passes of 10 per arm, with every
 expected start class checked against the REPORT line. `summarize_e5.py` adds per-arm correctness and `e5_vs_base`: the
-median difference within each Graviton generation both arms drew, pooled by sample count (P1's method for its
-overhead comparison).
+median difference within each CPU part (`/proc/cpuinfo` "CPU part") both arms drew, pooled by sample count (P1's method for its
+overhead comparison). `host_variability.py` adds the host-variability assessment below.
 
 ## Results: run `20261020T114406Z`
 
@@ -95,10 +95,11 @@ us-east-2, branch commit `16c452e`, baseline commit `aac59d4`. 1,200 invocations
 Every answer of both arms (600 per arm) was bit-identical to P1's `reference/outputs.json` for its request and CPU
 part: 0 choice flips, maximum absolute delta 0.0.
 
-E5 minus baseline, p50, matched by CPU part (Graviton3 `0xd40` carries most samples; pooled = weighted over the
-parts both arms drew):
+E5 minus baseline, p50, matched by CPU part (part `0xd40` carries most samples; pooled = weighted over the
+parts both arms drew). CPU parts are the `/proc/cpuinfo` ids the handler read; this run recorded nothing that names a
+Graviton generation (see [Host variability](#host-variability)).
 
-| Class | Phase | Baseline p50 (G3) | E5 p50 (G3) | Δ G3 | Δ pooled |
+| Class | Phase | Baseline p50 (`0xd40`) | E5 p50 (`0xd40`) | Δ `0xd40` | Δ pooled |
 |---|---|---|---|---|---|
 | cold | first request (Init Duration + Duration) | 36.03 s | 35.17 s | −0.86 s (−2.4%) | −0.87 s |
 | cold | weight download | 25.01 s | 24.84 s | −0.17 s | −0.18 s |
@@ -115,15 +116,15 @@ parts both arms drew):
 | warm | steady-state inference | 0.628 s | 0.656 s | +0.028 s | +0.024 s |
 | warm | max memory used | 5,167 MB | 5,091 MB | −76 MB | −77 MB |
 
-- **Deserialize/mmap** fell on every generation: Graviton3 −7.9%, Graviton4 (`0xd4f`, n = 7 baseline / 4 E5) 7.13 → 6.53 s,
-  Graviton2 (`0xd0c`, n = 2 / 3) 19.59 → 18.84 s. The snapshot inits inside `publish_version` show the same change
+- **Deserialize/mmap** fell on every CPU part: `0xd40` −7.9%, `0xd4f` (n = 7 baseline / 4 E5) 7.13 → 6.53 s,
+  `0xd0c` (n = 2 / 3) 19.59 → 18.84 s. The snapshot inits inside `publish_version` show the same change
   (`model_load_mmap` p50 8.10 → 7.59 s, n = 10 each).
 - **Run-to-run variance** (CV of the per-round medians of the cold first request): baseline 0.36%, E5 0.30%; the
   range of the per-round medians is 0.30 s and 0.29 s. The 0.87 s cold improvement is about three times that range,
   and every one of E5's five per-round medians (35.01–35.30 s) is below every one of the baseline's (35.83–36.13 s).
 - **Restore and warm are unchanged** within their spread (restore CV 1.3% / 2.3%, warm 6.0% / 3.1%). This is expected:
-  the snapshot already holds the loaded model, so a restore never parses the file. The warm Graviton3 +4.5% is not
-  consistent across generations (Graviton2 −3.5%) and is inside the warm per-round range (0.09 s baseline).
+  the snapshot already holds the loaded model, so a restore never parses the file. The warm `0xd40` +4.5% is not
+  consistent across CPU parts (`0xd0c` −3.5%) and is inside the warm per-round range (0.09 s baseline).
 - **Peak memory** fell 76–98 MB in every class, about ten times the 11 MB of metadata removed. A likely cause is the
   vocabulary's hash maps and strings that llama.cpp keeps for the model's lifetime; this run did not profile it.
 - **Weight download** is unchanged by design (same loader, same 64 MiB ranges); the 0.17 s is the 0.5% fewer bytes
@@ -131,10 +132,59 @@ parts both arms drew):
 - **Cost** of the run: $2.37 (SnapStart cache $1.63 for 10 versions at the 3-hour minimum). 120 weight downloads,
   249 GB from S3 within the region. All published versions were deleted; the two functions and the bucket remain.
 
+## Host variability
+
+Assessed after the run under the initiative's HOST VARIABILITY rules, from this run's own records, with no new
+invocations: `python host_variability.py results/20261020T114406Z` (also written by `summarize_e5.py` as
+`results/<run-id>/host-variability.json` and `results.json` `host_variability`).
+
+**What the run observed.** Per execution environment: `/proc/cpuinfo` "CPU part", the `libggml-cpu` variants
+ggml selected at init, REPORT Memory Size, the pinned runtime version ARN, and the environment id and log stream.
+Not recorded, so unknown: CPU implementer, variant and revision, MIDR, feature flags, HWCAP/HWCAP2, online core
+count, cgroup limits, kernel, and AZ. Thread count (6) is configured, not observed. No Graviton generation was
+observed; this README names parts by id only and infers nothing from timings.
+
+**What it drew.** 200 execution environments, each on one CPU part (no environment reported two). Three parts
+appeared, each with one ggml variant set on both arms:
+
+| CPU part | ggml CPU variants | Environments base / E5 (cold, restore, warm) |
+|---|---|---|
+| `0xd40` | `armv8.0_1`, `armv8.6_1` | 41 / 43, 47 / 45, 47 / 45 |
+| `0xd4f` | `armv8.0_1`, `armv8.6_2` | 7 / 4, 0 / 0, 0 / 0 |
+| `0xd0c` | `armv8.0_1`, `armv8.2_2` | 2 / 3, 3 / 5, 3 / 5 |
+
+The parts differ in speed (cold `model_load_mmap` p50 7.1 s on `0xd4f`, 8.4 s on `0xd40`, 19.6 s on `0xd0c`), so the
+mix matters, and the arms' mixes are not equal.
+
+**Could the mix change a conclusion?** No. Every comparison above is within one part, arms alternate order every
+round, and per part:
+
+| Class, metric | Δ p50 per part (E5 − base) | Rounds E5 below base | Unmatched Δ (all parts pooled) |
+|---|---|---|---|
+| cold first request | `0xd40` −0.86 s, `0xd4f` −0.70 s, `0xd0c` −1.51 s | 5/5, 2/2, 2/2 | −0.83 s |
+| cold `model_load_mmap` | −0.66 s, −0.60 s, −0.75 s | 5/5, 2/2, 2/2 | −0.65 s |
+| cold max memory | −98, −71, −67 MB | 5/5, 2/2, 2/2 | −98 MB |
+| restore first request | `0xd40` −0.004 s, `0xd0c` −0.23 s | 3/5, 2/2 | +0.013 s |
+| warm steady-state inference | `0xd40` +0.028 s, `0xd0c` −0.041 s | 2/5, 2/2 | +0.007 s |
+
+- **Cold** improves on every part and in every round that drew the part. The base arm drew more of the fastest part
+  (`0xd4f` 7 vs 4) and E5 more of the slowest (`0xd0c` 3 vs 2), which biases an unmatched comparison against E5; the
+  matched −0.87 s is larger than the unmatched −0.83 s. The local diagnostics, on one fixed `0xd40` host, show the
+  same direction and size (`model_load_mmap` 7.90–8.05 s → 7.38–7.74 s).
+- **Restore and warm** have no consistent sign across parts or rounds, which is the "unchanged" conclusion.
+  `0xd0c` has 3–5 environments per arm, too few to read its restore −0.23 s as an effect.
+- Only `0xd40` has enough samples for a tight per-part interval; `0xd4f` (cold only) and `0xd0c` are small.
+
+**Rerun: none.** No conclusion depends on the CPU mix, so the HOST VARIABILITY rules do not call for one, and no new
+spend was approved. The unrecorded fields above stay unknown for this run; recording them is a harness change that
+H1 owns, and E5 does not need the fixed-host EC2 baseline because the cold effect is already measured within each
+part.
+
 ## Conclusion
 
 Drop the text vocabulary from the deployed GGUF. It takes 0.66 s off cold deserialization and about 0.87 s off the
-cold first request (−2.4%), lowers peak memory by ~80–95 MB, and changes no output. It does nothing for SnapStart
+cold first request (−2.4%), lowers peak memory by ~80–95 MB, and changes no output. The cold improvement holds within
+every CPU part the run drew. It does nothing for SnapStart
 restores or warm requests. The larger load cost, KleidiAI's ~6 s runtime repack (including ~1.7 s for the tied output
 head that is never used), cannot be removed by any file format this loader reads.
 
@@ -153,6 +203,7 @@ head that is never used), cannot be removed by any file format this loader reads
 | `container_convert.sh` | runs both in the pinned image and records tool versions |
 | `manifest_e5.py` | `build/manifest.json` (P1's published one when hashes match) and `e5-manifest.json` |
 | `deploy_e5.py` | two functions, one variable (`MODEL_KEY`) |
-| `summarize_e5.py` | `lkai-result/1` with per-arm correctness and `e5_vs_base` |
+| `summarize_e5.py` | `lkai-result/1` with per-arm correctness, `e5_vs_base` and `host_variability` |
+| `host_variability.py` | observed host metadata, per-CPU-part comparison and verdict, from a run's own records |
 | `run.sh` | the whole experiment in one command |
 | `results/<run-id>/` | redacted run artifacts and `results.json` |
