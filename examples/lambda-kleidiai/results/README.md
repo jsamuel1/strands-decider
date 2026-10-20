@@ -30,14 +30,16 @@ The command:
    directory) and any extra paths, then `result.json`, all under `runs/<experiment_id>/<run_id>/`;
 3. regenerates `site/` from every `result.json` in the store, and writes the pages to `--out`
    (default `build/lkai-dashboard/`);
-4. uploads `dashboard.html` to the stable Artifactory artifact with current-SHA compare-and-swap and verifies the
-   new version is `READY`.
+4. uploads `dashboard.html` to the stable Artifactory artifact with a SHA captured before any result/store write,
+   refuses if another dashboard version appears during the run, and verifies the READY artifact SHA-256 equals the
+   generated file.
 
 The command completes store publication, dashboard regeneration, and Artifactory upload in one invocation. It
-starts the installed `artifactory-mcp` server directly, fetches the current artifact SHA, uploads `dashboard.html`
-with compare-and-swap, waits for `READY`, and re-fetches the artifact to verify the resulting version. This keeps the
-single command idempotent and prevents stale publishers from overwriting a newer dashboard. A stale-SHA refusal means
-another experiment published first: rerun `publish_result.py --regenerate-only` to include that run and retry. Use
+starts the installed `artifactory-mcp` server directly, fetches the current artifact SHA before writing the run,
+uploads `dashboard.html` only if that generation is still current, waits for `READY`, and re-fetches the artifact to
+verify its SHA-256 equals the generated file. This keeps the single command idempotent and prevents stale publishers
+from overwriting a newer dashboard. A stale-SHA refusal means another experiment published first: rerun
+`publish_result.py --regenerate-only` to include that run and retry. Use
 `--skip-dashboard-upload` only for local previews and tests.
 
 P1's `baseline/run.sh` writes `results.json` in this format already (`baseline/summarize.py`). An experiment that has

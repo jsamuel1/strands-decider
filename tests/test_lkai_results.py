@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import copy
 import glob
+import hashlib
 import json
 import os
 import re
@@ -424,6 +425,7 @@ def test_publish_command_end_to_end(tmp_path, capsys):
 def test_publish_dashboard_uses_current_sha_and_verifies_ready(tmp_path, monkeypatch):
     page = tmp_path / "dashboard.html"
     page.write_text("<html>dashboard</html>")
+    page_sha = hashlib.sha256(page.read_bytes()).hexdigest()
 
     def tool_result(request_id, payload):
         return {
@@ -442,7 +444,7 @@ def test_publish_dashboard_uses_current_sha_and_verifies_ready(tmp_path, monkeyp
                 {
                     "artifact": {
                         "currentVersionNumber": 7,
-                        "sha256": "after",
+                        "sha256": page_sha,
                         "status": "READY",
                     },
                     "artifactUrl": publish_result.DASHBOARD_URL,
@@ -459,7 +461,7 @@ def test_publish_dashboard_uses_current_sha_and_verifies_ready(tmp_path, monkeyp
         "artifactId": "artifact-id",
         "artifactUrl": publish_result.DASHBOARD_URL,
         "versionNumber": 7,
-        "sha256": "after",
+        "sha256": page_sha,
         "status": "READY",
     }
     calls = [row for row in proc.writes if row.get("method") == "tools/call"]
@@ -474,12 +476,83 @@ def test_publish_dashboard_uses_current_sha_and_verifies_ready(tmp_path, monkeyp
     assert upload["waitForReady"] is True
 
 
+def test_publish_dashboard_rejects_preflight_drift_before_upload(tmp_path, monkeypatch):
+    page = tmp_path / "dashboard.html"
+    page.write_text("<html>dashboard</html>")
+
+    def tool_result(request_id, payload):
+        return {
+            "jsonrpc": "2.0",
+            "id": request_id,
+            "result": {"content": [{"type": "text", "text": json.dumps(payload)}]},
+        }
+
+    proc = FakeMcpProc(
+        [
+            {"jsonrpc": "2.0", "id": 1, "result": {}},
+            tool_result(2, {"artifact": {"sha256": "newer"}}),
+        ]
+    )
+    monkeypatch.setattr(publish_result.shutil, "which", lambda _: "/bin/artifactory-mcp")
+    monkeypatch.setattr(publish_result.subprocess, "Popen", lambda *args, **kwargs: proc)
+    monkeypatch.setattr(publish_result.select, "select", lambda r, w, x, timeout: (r, w, x))
+
+    with pytest.raises(publish_result.DashboardPublishError, match="changed while"):
+        publish_result.publish_dashboard(
+            str(page), "artifact-id", expected_current_sha256="older"
+        )
+    assert not any(
+        row.get("params", {}).get("name") == "upload_artifact_version" for row in proc.writes
+    )
+
+
+def test_publish_dashboard_rejects_wrong_ready_bytes(tmp_path, monkeypatch):
+    page = tmp_path / "dashboard.html"
+    page.write_text("<html>dashboard</html>")
+
+    def tool_result(request_id, payload):
+        return {
+            "jsonrpc": "2.0",
+            "id": request_id,
+            "result": {"content": [{"type": "text", "text": json.dumps(payload)}]},
+        }
+
+    proc = FakeMcpProc(
+        [
+            {"jsonrpc": "2.0", "id": 1, "result": {}},
+            tool_result(2, {"artifact": {"sha256": "before"}}),
+            tool_result(3, {"versionNumber": 7}),
+            tool_result(
+                4,
+                {
+                    "artifact": {
+                        "currentVersionNumber": 7,
+                        "sha256": "wrong",
+                        "status": "READY",
+                    }
+                },
+            ),
+        ]
+    )
+    monkeypatch.setattr(publish_result.shutil, "which", lambda _: "/bin/artifactory-mcp")
+    monkeypatch.setattr(publish_result.subprocess, "Popen", lambda *args, **kwargs: proc)
+    monkeypatch.setattr(publish_result.select, "select", lambda r, w, x, timeout: (r, w, x))
+
+    with pytest.raises(publish_result.DashboardPublishError, match="does not match"):
+        publish_result.publish_dashboard(str(page), "artifact-id")
+
+
 def test_publish_command_uploads_dashboard_and_verifies_ready(tmp_path, monkeypatch, capsys):
     store, out = str(tmp_path / "store"), str(tmp_path / "out")
     observed = {}
 
-    def publish(path):
+    def preflight():
+        observed["preflight_store_exists"] = os.path.exists(store)
+        return "before"
+
+    def publish(path, expected_current_sha256=None):
         observed["path"] = path
+        observed["expected"] = expected_current_sha256
         return {
             "artifactId": publish_result.DASHBOARD_ARTIFACT_ID,
             "artifactUrl": publish_result.DASHBOARD_URL,
@@ -488,18 +561,22 @@ def test_publish_command_uploads_dashboard_and_verifies_ready(tmp_path, monkeypa
             "status": "READY",
         }
 
+    monkeypatch.setattr(publish_result, "get_dashboard_sha", preflight)
     monkeypatch.setattr(publish_result, "publish_dashboard", publish)
     assert publish_result.main([FIXTURES[0], "--store", store, "--out", out]) == 0
     assert observed["path"] == os.path.abspath(os.path.join(out, "dashboard.html"))
+    assert observed["expected"] == "before"
+    assert observed["preflight_store_exists"] is False
     receipt = json.loads(capsys.readouterr().out.rsplit("ARTIFACTORY ", 1)[1])
     assert receipt["versionNumber"] == 9
     assert receipt["status"] == "READY"
 
 
 def test_publish_command_fails_when_dashboard_upload_fails(tmp_path, monkeypatch):
-    def refused(_path):
+    def refused(_path, expected_current_sha256=None):
         raise publish_result.DashboardPublishError("stale SHA")
 
+    monkeypatch.setattr(publish_result, "get_dashboard_sha", lambda: "before")
     monkeypatch.setattr(publish_result, "publish_dashboard", refused)
     assert (
         publish_result.main(
