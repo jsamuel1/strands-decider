@@ -51,6 +51,9 @@ def functions(sess, st: dict) -> None:
             real_pin(lam_, view, logs)
             st_["runtime_version_arn"] = view["runtime_version_arn"]
         for f in st_["functions"].values():
+            deploy.wait_updated(
+                lam_, f["name"]
+            )  # a runtime-config update in flight refuses another
             lam_.put_runtime_management_config(
                 FunctionName=f["name"],
                 UpdateRuntimeOn="Manual",
