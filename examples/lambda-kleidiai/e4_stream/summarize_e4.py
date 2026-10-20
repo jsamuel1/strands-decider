@@ -9,17 +9,27 @@ On top of summarize.summarize (phases per arm, variance, classification, errors,
   - <arm>_vs_base for every arm but base: median(arm) - median(base) within each CPU part both drew, for the
     REPORT metrics and init phases, pooled by sample count (summarize.overhead's method);
   - snapshot inits counted on every arm (all are instrumented, so none needs P1's estimate);
-  - snapstart_note: what the restore class can and cannot show for this variable.
+  - snapstart_note: what the restore class can and cannot show for this variable;
+  - host_variability: the CPU and environment metadata the run observed, what it did not record ("unknown"), and
+    every arm's per-round delta against base within each CPU part, so a reader can see whether the host mix could
+    change a conclusion.
+
+  python summarize_e4.py <run-dir> --host-only --meta meta.json --summarized-at <sha>
+
+adds or refreshes only host_variability (and the meta's conclusion) in an existing results.json, for runs that were
+summarized before the block existed.
 """
 
 from __future__ import annotations
 
 import argparse
+import gzip
 import json
 import os
+import re
 import statistics
 import sys
-from collections import defaultdict
+from collections import Counter, defaultdict
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(HERE), "baseline"))
@@ -121,6 +131,126 @@ def compare_arms(rows: list[dict], a: str, b: str = "base") -> dict:
     return out
 
 
+# What /proc/cpuinfo, the auxiliary vector and the cgroup could have told us but no E4 run recorded. The harness logs
+# only cpuinfo's "CPU part" line (P1's engine), the ggml CPU variants it loaded and its thread count.
+HOST_UNRECORDED = (
+    "cpuinfo CPU implementer, variant and revision",
+    "cpuinfo Features flags",
+    "AT_HWCAP / AT_HWCAP2",
+    "cgroup cpu and memory limits",
+    "kernel release",
+    "availability zone and physical host",
+)
+
+
+def _log_fields(rows: list[dict], pattern: str) -> dict[str, Counter]:
+    """{cpu_part: Counter(value)} for the last `pattern` match in each row's log tail (cold rows carry the init line)."""
+    out: dict[str, Counter] = defaultdict(Counter)
+    for r in rows:
+        m = re.findall(pattern, r.get("log_tail") or "")
+        if m:
+            out[str(r.get("cpu_part"))][m[-1]] += 1
+    return {k: dict(sorted(v.items())) for k, v in sorted(out.items())}
+
+
+def _runtime_versions(run: str) -> dict[str, int]:
+    """INIT_START runtime versions in the saved CloudWatch logs, counted per log stream (one per environment)."""
+    seen: dict[str, str] = {}
+    d = os.path.join(run, "logs")
+    for f in sorted(os.listdir(d)) if os.path.isdir(d) else []:
+        with gzip.open(os.path.join(d, f), "rt") as fh:
+            for line in fh:
+                e = json.loads(line)
+                m = re.search(r"INIT_START Runtime Version: (\S+)", e.get("message", ""))
+                if m:
+                    seen[f"{f}:{e.get('logStreamName')}"] = m.group(1)
+    return dict(sorted(Counter(seen.values()).items()))
+
+
+def round_deltas(rows: list[dict], a: str, b: str = "base") -> dict:
+    """Per round and CPU part, median(a) - median(b) of the first-request total and Max Memory Used.
+
+    `sign` is "negative" or "positive" when every round's delta has that sign, else "mixed": an effect whose rounds
+    all agree within every part cannot come from which CPU part an arm drew, because the comparison never crosses
+    parts and the arms are interleaved within each round."""
+    ok = [r for r in rows if not r["error"] and not r["class_mismatch"]]
+    ms = _metrics()
+    out: dict = {}
+    for cls in ("cold", "restore"):
+        for name in ("first_request_total", "report_max_memory_mb"):
+            f = ms[cls][name]
+            per: dict = {}
+            for cpu in sorted({r.get("cpu_part") for r in ok}, key=str):
+                ds = []
+                for rd in sorted({r["round"] for r in ok}):
+
+                    def xs(arm, rd=rd, cpu=cpu, cls=cls, f=f):
+                        return [
+                            v
+                            for r in ok
+                            if r["arm"] == arm
+                            and r["round"] == rd
+                            and r["expected_class"] == cls
+                            and r.get("cpu_part") == cpu
+                            if (v := f(r)) is not None
+                        ]
+
+                    xa, xb = xs(a), xs(b)
+                    if xa and xb:
+                        ds.append(round(statistics.median(xa) - statistics.median(xb), 3))
+                if ds:
+                    sign = (
+                        "negative"
+                        if all(d < 0 for d in ds)
+                        else "positive"
+                        if all(d > 0 for d in ds)
+                        else "mixed"
+                    )
+                    per[str(cpu)] = {
+                        "per_round": ds,
+                        "min": min(ds),
+                        "max": max(ds),
+                        "sign": sign,
+                    }
+            if per:
+                out.setdefault(cls, {})[name] = per
+    return out
+
+
+def host_variability(run: str, cond: dict, rows: list[dict]) -> dict:
+    """The initiative's HOST VARIABILITY assessment for this run, from what the run actually recorded."""
+    ok = [r for r in rows if not r["error"] and not r["class_mismatch"]]
+    mix: dict[str, dict[str, dict[str, int]]] = defaultdict(lambda: defaultdict(dict))
+    for (arm, cls, cpu), n in sorted(
+        Counter((r["arm"], r["expected_class"], str(r.get("cpu_part"))) for r in ok).items()
+    ):
+        mix[cls][arm][cpu] = n
+    envs = {(r["arm"], (r.get("lkai") or {}).get("env_id")) for r in ok if r.get("lkai")}
+    return {
+        "observed": {
+            "cpu_part": "/proc/cpuinfo 'CPU part', read per request (rows' cpu_part)",
+            "cpu_parts_by_class_and_arm": {c: dict(v) for c, v in mix.items()},
+            "ggml_cpu_variants_by_cpu_part": _log_fields(ok, r"ggml_cpu=(\S+)"),
+            "os_cpu_count_by_cpu_part": _log_fields(ok, r"decider\.engine init .*? threads=(\d+)"),
+            "runtime_version_arn": cond.get("runtime_version_arn"),
+            "init_start_runtime_versions": _runtime_versions(run),
+            "environments": len(envs),
+            "log_streams": "logs/<function>.jsonl.gz, logStreamName per record",
+            "memory_mb": sorted({f["MemorySize"] for f in cond["functions"].values()}),
+            "architecture": sorted(
+                {a for f in cond["functions"].values() for a in f["Architectures"]}
+            ),
+        },
+        "unknown": list(HOST_UNRECORDED),
+        "generation": "not claimed: the runs recorded the CPU part number only (no implementer), so no Graviton "
+        "generation is named; parts are referred to by number",
+        "method": "every arm vs base is compared only within one CPU part ("
+        "<arm>_vs_base.<class>.<metric>.by_cpu_part); arms are interleaved within each round, and "
+        "per_round_deltas show each round's within-part delta",
+        "per_round_deltas": {arm: round_deltas(rows, arm) for arm in cond["arms"] if arm != "base"},
+    }
+
+
 def add_stream_phases(res: dict, rows: list[dict], snaps: dict) -> None:
     """The E4 init phases, which summarize.INIT_PHASES does not list, into phases.<arm>.cold/.restore."""
     ok = [r for r in rows if not r["error"] and not r["class_mismatch"]]
@@ -145,15 +275,40 @@ def add_stream_phases(res: dict, rows: list[dict], snaps: dict) -> None:
                 si[ph] = S.dist([s["init"][ph] for s in snaps[fn] if ph in s.get("init", {})])
 
 
+def amend_host(run: str, meta: dict, summarized_at: str) -> dict:
+    """Add host_variability to an existing results.json and take the meta's conclusion; nothing else changes."""
+    path = os.path.join(run, "results.json")
+    res = json.load(open(path))
+    cond, rows = S.load_run(run)
+    res["host_variability"] = host_variability(run, cond, rows) | {
+        "summarized_at_commit": summarized_at,
+        "assessment": meta.get("host_assessment"),
+    }
+    res["conclusion"] = meta["conclusion"]
+    json.dump(res, open(path, "w"), indent=1)
+    return res
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("run")
-    ap.add_argument("--reference", required=True)
+    ap.add_argument("--reference")
     ap.add_argument("--meta", required=True)
-    ap.add_argument("--experiment-commit", required=True)
-    ap.add_argument("--baseline-commit", required=True)
+    ap.add_argument("--experiment-commit")
+    ap.add_argument("--baseline-commit")
+    ap.add_argument("--host-only", action="store_true")
+    ap.add_argument("--summarized-at")
     a = ap.parse_args()
     meta = json.load(open(a.meta))
+    if a.host_only:
+        if not a.summarized_at:
+            ap.error("--host-only needs --summarized-at")
+        amend_host(a.run, meta, a.summarized_at)
+        print("amended", os.path.join(a.run, "results.json"))
+        return
+    for req in ("reference", "experiment_commit", "baseline_commit"):
+        if not getattr(a, req):
+            ap.error(f"--{req.replace('_', '-')} is required")
     res = S.summarize(a.run, a.reference, a.baseline_commit, meta)
     cond, rows = S.load_run(a.run)
     ref = json.load(open(a.reference))["outputs"]
@@ -197,6 +352,10 @@ def main() -> None:
         "or noise. The snapshot init itself (phases.<arm>.restore.snapshot_init) does show the overlap, and it "
         "bounds how long publish_version takes, not any request latency."
     )
+    res["host_variability"] = host_variability(a.run, cond, rows) | {
+        "summarized_at_commit": a.experiment_commit,
+        "assessment": meta.get("host_assessment"),
+    }
     path = os.path.join(a.run, "results.json")
     json.dump(res, open(path, "w"), indent=1)
     print("wrote", path)

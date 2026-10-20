@@ -409,3 +409,102 @@ def test_pin_mmap_threshold(sl, monkeypatch):
     libc.mallopt = lambda p, v: 0
     with pytest.raises(OSError, match="mallopt"):
         sl.pin_mmap_threshold()
+
+
+def _row(arm, rnd, cls, cpu, total, mem, tail=""):
+    rep = {"Duration": 1000.0 * total, "Max Memory Used": mem}
+    rep["Init Duration" if cls == "cold" else "Restore Duration"] = 0.0
+    return {
+        "arm": arm,
+        "round": rnd,
+        "expected_class": cls,
+        "cpu_part": cpu,
+        "report": rep,
+        "error": None,
+        "class_mismatch": False,
+        "latency_ms": None,
+        "lkai": {"env_id": f"{arm}{rnd}{cls}{cpu}{total}"},
+        "log_tail": tail,
+    }
+
+
+def test_round_deltas_stay_within_one_cpu_part_and_report_the_sign():
+    """A part only one arm drew contributes nothing, and a fast part in one arm cannot offset a slow part in the
+    other: each round's delta is within one part, and `sign` is "mixed" unless every round agrees."""
+    import summarize_e4
+
+    rows = [
+        _row("base", 0, "cold", "p1", 10.0, 100),
+        _row("stream", 0, "cold", "p1", 8.0, 90),
+        _row("base", 1, "cold", "p1", 10.5, 100),
+        _row("stream", 1, "cold", "p1", 8.4, 95),
+        _row("base", 0, "cold", "p2", 20.0, 100),  # stream never drew p2
+        _row("stream", 0, "cold", "p3", 1.0, 100),  # base never drew p3
+        _row("base", 0, "restore", "p1", 4.0, 100),
+        _row("stream", 0, "restore", "p1", 4.1, 100),
+        _row("base", 1, "restore", "p1", 4.0, 100),
+        _row("stream", 1, "restore", "p1", 3.9, 100),
+    ]
+    d = summarize_e4.round_deltas(rows, "stream")
+    cold = d["cold"]["first_request_total"]
+    assert set(cold) == {"p1"}
+    assert cold["p1"]["per_round"] == [-2.0, -2.1] and cold["p1"]["sign"] == "negative"
+    assert d["cold"]["report_max_memory_mb"]["p1"]["per_round"] == [-10, -5]
+    assert d["restore"]["first_request_total"]["p1"]["sign"] == "mixed"
+
+
+def test_host_variability_names_what_it_did_not_record(tmp_path):
+    """Observed fields come from the rows and saved logs; unrecorded ones are listed as unknown, and no Graviton
+    generation is named anywhere in the block."""
+    import gzip
+    import json
+    import re
+
+    import summarize_e4
+
+    (tmp_path / "logs").mkdir()
+    with gzip.open(tmp_path / "logs" / "fn.jsonl.gz", "wt") as fh:
+        for s in ("a", "b"):
+            fh.write(
+                json.dumps(
+                    {
+                        "logStreamName": s,
+                        "message": "INIT_START Runtime Version: python:3.12.v1\tARN",
+                    }
+                )
+                + "\n"
+            )
+    tail = "decider.engine init cpu_part=p1 ggml_cpu=libx.so,liby.so threads=6 ubatch=512"
+    rows = [
+        _row("base", 0, "cold", "p1", 10.0, 100, tail),
+        _row("stream", 0, "cold", "p1", 8.0, 90, tail),
+    ]
+    cond = {
+        "arms": ["base", "stream"],
+        "runtime_version_arn": "arn:x",
+        "functions": {
+            a: {"MemorySize": 10240, "Architectures": ["arm64"]} for a in ("base", "stream")
+        },
+    }
+    h = summarize_e4.host_variability(str(tmp_path), cond, rows)
+    o = h["observed"]
+    assert o["ggml_cpu_variants_by_cpu_part"] == {"p1": {"libx.so,liby.so": 2}}
+    assert o["os_cpu_count_by_cpu_part"] == {"p1": {"6": 2}}
+    assert o["init_start_runtime_versions"] == {"python:3.12.v1": 2}
+    assert o["cpu_parts_by_class_and_arm"]["cold"] == {"base": {"p1": 1}, "stream": {"p1": 1}}
+    assert "AT_HWCAP / AT_HWCAP2" in h["unknown"] and "kernel release" in h["unknown"]
+    assert set(h["per_round_deltas"]) == {"stream"}
+    assert not re.search(r"Graviton\d", json.dumps(h))
+
+
+def test_published_e4_texts_claim_no_graviton_generation():
+    """The initiative's host rule: the runs recorded CPU part numbers only, so no published E4 text names a
+    generation (the README's note that none is claimed is the one allowed mention)."""
+    import json
+    import re
+
+    for name in ("meta.json", "meta-r1.json"):
+        m = json.load(open(os.path.join(E4, name)))
+        assert not re.search(r"Graviton\d", json.dumps(m)), name
+        assert m["host_assessment"].startswith("Comparable; no rerun.")
+    assert not re.search(r"Graviton\d", open(os.path.join(E4, "README.md")).read())
