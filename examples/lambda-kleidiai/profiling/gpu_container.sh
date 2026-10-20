@@ -31,7 +31,11 @@ if [ ! -f /b/llama/.done ]; then
   cmake -B build -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF -DBUILD_SHARED_LIBS=ON -DLLAMA_BUILD_TESTS=OFF \
     -DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_SERVER=OFF -DLLAMA_BUILD_TOOLS=OFF -DGGML_NATIVE=OFF \
     -DGGML_BACKEND_DL=ON -DGGML_CPU_ALL_VARIANTS=ON -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=89 >/dev/null
-  cmake --build build -j "$(nproc)" >/b/build.log 2>&1 || { tail -40 /b/build.log; exit 1; }
+  # Only the libraries, as container_build.sh builds them: the `all` target also builds the app, which needs
+  # LLAMA_BUILD_TOOLS.
+  cmake --build build -j "$(nproc)" --target llama ggml-cuda \
+    $(cmake --build build --target help | awk '{print $2}' | grep '^ggml-cpu' | sort -u) >/b/build.log 2>&1 \
+    || { tail -40 /b/build.log; exit 1; }
   touch /b/llama/.done
 fi
 
