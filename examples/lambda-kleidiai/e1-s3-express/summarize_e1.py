@@ -1,0 +1,336 @@
+"""Turn an E1 bench run into results.json (lkai-result/1) plus the E1 comparison. Standard library only.
+
+  python summarize_e1.py <run-dir> --reference ../baseline/reference/outputs.json --meta meta.json
+
+baseline/summarize.py computes every per-arm distribution, the classification, variance and the correctness
+comparison against P1's reference answers, unchanged. This adds what E1 asks for:
+
+  comparison   per contrast (bucket type without VPC, bucket type in the VPC, the VPC's own cost), the median
+               difference of each download and init measure, p95, the per-round medians and whether every round
+               agrees in sign. The headline contrast is xz - gp (no VPC, the deployable answer); xzv - gpv holds
+               the AZ fixed; gpv - gp is the VPC confound.
+  cost         S3 requests, retrieval and storage priced per arm's bucket type, and Lambda cost per 1,000 cold
+               starts per arm.
+  status       from the headline contrast: improved / regressed when every round's median moves the same way and
+               the pooled change exceeds both 2% and the control arm's run-to-run range; otherwise no-change.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import math
+import os
+import statistics
+import sys
+from collections import defaultdict
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+BASE = os.path.join(HERE, "..", "baseline")
+sys.path.insert(0, BASE)
+import summarize as p1  # noqa: E402
+
+# us-east-2, AWS Price List API (service AmazonS3, regionCode us-east-2), read 2026-10-20.
+S3_PRICES = {
+    "gp": {
+        "storage_gb_month": 0.023,  # USE2-TimedStorage-ByteHrs, first 50 TB
+        "get_per_1000": 0.0004,  # USE2-Requests-Tier2 ($0.004 per 10,000)
+        "retrieval_gb": 0.0,
+        "upload_gb": 0.0,
+    },
+    "xz": {
+        "storage_gb_month": 0.11,  # USE2-TimedStorage-XZ-ByteHrs
+        "get_per_1000": 0.00003,  # USE2-Requests-XZ-Tier2
+        "retrieval_gb": 0.0006,  # USE2-Retrieval-XZ
+        "upload_gb": 0.0032,  # USE2-Upload-XZ
+    },
+    "source": "AWS Price List API, AmazonS3, regionCode=us-east-2, 2026-10-20",
+}
+ARM_BUCKET = {"gp": "gp", "xz": "xz", "gpv": "gp", "xzv": "xz"}
+CONTRASTS = {
+    "bucket_type_no_vpc": ("xz", "gp"),
+    "bucket_type_vpc_same_az": ("xzv", "gpv"),
+    "vpc_confound_gp": ("gpv", "gp"),
+    "vpc_confound_xz": ("xzv", "xz"),
+}
+HEADLINE = "bucket_type_no_vpc"
+
+
+def _ok(rows: list[dict], arm: str, cls: str) -> list[dict]:
+    return [
+        r
+        for r in rows
+        if r["arm"] == arm
+        and r["expected_class"] == cls
+        and not r["error"]
+        and not r["class_mismatch"]
+    ]
+
+
+def _init(r: dict, ph: str) -> float | None:
+    return ((r.get("lkai") or {}).get("init") or {}).get(ph)
+
+
+MEASURES = {
+    "cold": {
+        "weight_download": lambda r: _init(r, "weight_download"),
+        "model_load_mmap": lambda r: _init(r, "model_load_mmap"),
+        "model_ready": lambda r: _init(r, "model_ready"),
+        "report_init_duration": lambda r: (
+            r["report"].get("Init Duration", 0) / 1000 if "Init Duration" in r["report"] else None
+        ),
+        "first_request_total": lambda r: (
+            (r["report"].get("Init Duration", 0) + r["report"].get("Duration", 0)) / 1000
+        ),
+        "first_request_inference": lambda r: (
+            r["latency_ms"] / 1000 if r.get("latency_ms") is not None else None
+        ),
+    },
+    "restore": {
+        "report_restore_duration": lambda r: (
+            r["report"].get("Restore Duration", 0) / 1000
+            if "Restore Duration" in r["report"]
+            else None
+        ),
+        "first_request_total": lambda r: (
+            (r["report"].get("Restore Duration", 0) + r["report"].get("Duration", 0)) / 1000
+        ),
+    },
+    "warm": {
+        "steady_state_inference": lambda r: (
+            r["latency_ms"] / 1000 if r.get("latency_ms") is not None else None
+        ),
+    },
+}
+
+
+def p95(xs: list[float]) -> float | None:
+    return p1.pct(xs, 95) if xs else None
+
+
+def contrast(rows: list[dict], a: str, b: str) -> dict:
+    """a - b per measure: pooled medians, p95, per-round median deltas and their sign agreement."""
+    out: dict = {}
+    for cls, ms in MEASURES.items():
+        ra, rb = _ok(rows, a, cls), _ok(rows, b, cls)
+        for name, f in ms.items():
+            xa = [v for r in ra if (v := f(r)) is not None]
+            xb = [v for r in rb if (v := f(r)) is not None]
+            if not xa or not xb:
+                continue
+            ma, mb = statistics.median(xa), statistics.median(xb)
+            per_a, per_b = defaultdict(list), defaultdict(list)
+            for r in ra:
+                if (v := f(r)) is not None:
+                    per_a[r["round"]].append(v)
+            for r in rb:
+                if (v := f(r)) is not None:
+                    per_b[r["round"]].append(v)
+            rounds = sorted(set(per_a) & set(per_b))
+            deltas = [statistics.median(per_a[k]) - statistics.median(per_b[k]) for k in rounds]
+            meds_b = [statistics.median(per_b[k]) for k in sorted(per_b)]
+            out[f"{cls}.{name}"] = {
+                "a_p50": round(ma, 6),
+                "b_p50": round(mb, 6),
+                "delta_p50_s": round(ma - mb, 6),
+                "delta_pct": round(100 * (ma - mb) / mb, 2) if mb else None,
+                "a_p95": round(p95(xa), 6),
+                "b_p95": round(p95(xb), 6),
+                "n": [len(xa), len(xb)],
+                "per_round_delta_s": [round(d, 6) for d in deltas],
+                "rounds_a_faster": sum(d < 0 for d in deltas),
+                "rounds_b_faster": sum(d > 0 for d in deltas),
+                "b_round_median_range_s": round(max(meds_b) - min(meds_b), 6) if meds_b else None,
+            }
+    return out
+
+
+def download_pcts(rows: list[dict], snaps: dict[str, list[dict]], fn_of: dict[str, str]) -> dict:
+    """The brief's weight-download p50/p95/p99 per arm, for cold starts and for the snapshot init behind a restore
+    (a restore itself downloads nothing: the snapshot already holds the memfd)."""
+    out = {}
+    for arm, fn in fn_of.items():
+        cold = [v for r in _ok(rows, arm, "cold") if (v := _init(r, "weight_download")) is not None]
+        snap = [
+            s["init"]["weight_download"]
+            for s in snaps.get(fn, [])
+            if "weight_download" in s.get("init", {})
+        ]
+        out[arm] = {}
+        for k, xs in (("cold", cold), ("snapshot_init", snap)):
+            out[arm][k] = (
+                {
+                    "n": len(xs),
+                    "p50": round(p1.pct(xs, 50), 6),
+                    "p95": round(p1.pct(xs, 95), 6),
+                    "p99": round(p1.pct(xs, 99), 6),
+                    "mib_s_p50": round(2076712416 / 2**20 / p1.pct(xs, 50), 1),
+                }
+                if xs
+                else None
+            )
+    return out
+
+
+def s3_costs(cond: dict, rows: list[dict], snap_counts: dict[str, int]) -> dict:
+    """Per arm, priced for its bucket type. Downloads = cold starts + snapshot inits; one HEAD + ceil(size/64 MiB)
+    ranged GETs each (loader.py). CreateSession calls are free (not a billed request type in the price list)."""
+    size = cond["build_manifest"]["model"]["gguf_bytes"]
+    parts = math.ceil(size / p1.CHUNK)
+    out = {}
+    for arm in cond["arms"]:
+        k = ARM_BUCKET[arm]
+        pr = S3_PRICES[k]
+        colds = sum(1 for r in rows if r["arm"] == arm and "Init Duration" in r["report"])
+        downloads = colds + snap_counts.get(arm, 0)
+        req = downloads * (parts + 1) * pr["get_per_1000"] / 1000
+        gb = downloads * size / 1e9
+        billed = (
+            sum(
+                r["report"].get("Billed Duration", 0)
+                for r in rows
+                if r["arm"] == arm and "Init Duration" in r["report"]
+            )
+            / 1000
+        )
+        mem_gb = cond["functions"][arm]["MemorySize"] / 1024
+        per_cold_lambda = (billed / colds * mem_gb * p1.PRICES["arm64_gb_s"]) if colds else None
+        per_cold_s3 = (parts + 1) * pr["get_per_1000"] / 1000 + size / 1e9 * pr["retrieval_gb"]
+        out[arm] = {
+            "bucket_kind": k,
+            "weight_downloads": downloads,
+            "s3_request_usd": round(req, 8),
+            "s3_retrieval_usd": round(gb * pr["retrieval_gb"], 6),
+            "s3_gb_transferred": round(gb, 2),
+            "s3_storage_usd_month": round(size / 1e9 * pr["storage_gb_month"], 4),
+            "s3_one_time_upload_usd": round(size / 1e9 * pr["upload_gb"], 6),
+            "per_1000_cold_starts_usd": {
+                "lambda_duration": round(1000 * per_cold_lambda, 4) if per_cold_lambda else None,
+                "s3": round(1000 * per_cold_s3, 4),
+                "total": round(1000 * (per_cold_lambda or 0) + 1000 * per_cold_s3, 4),
+            },
+        }
+    return out
+
+
+def decide(cmp: dict) -> tuple[str, str]:
+    """Status from the headline contrast's cold weight download."""
+    c = cmp.get(HEADLINE, {}).get("cold.weight_download")
+    if not c:
+        return "inconclusive", "headline contrast has no cold weight_download samples"
+    n_rounds = len(c["per_round_delta_s"])
+    noise = max(abs(c["b_p50"]) * 0.02, c["b_round_median_range_s"] or 0.0)
+    if c["rounds_a_faster"] == n_rounds and -c["delta_p50_s"] > noise:
+        return (
+            "improved",
+            f"every round faster; pooled {c['delta_pct']}% beyond noise {noise:.3f} s",
+        )
+    if c["rounds_b_faster"] == n_rounds and c["delta_p50_s"] > noise:
+        return (
+            "regressed",
+            f"every round slower; pooled +{c['delta_pct']}% beyond noise {noise:.3f} s",
+        )
+    return "no-change", f"pooled {c['delta_pct']}% within noise {noise:.3f} s or rounds disagree"
+
+
+def summarize_e1(
+    run: str,
+    ref: str | None,
+    baseline_commit: str | None,
+    meta: dict,
+    experiment_commit: str | None = None,
+) -> dict:
+    res = p1.summarize(run, ref, baseline_commit, meta)
+    cond, rows = p1.load_run(run)
+    fn_of = {a: cond["functions"][a]["FunctionName"] for a in cond["arms"]}
+    versions = defaultdict(set)
+    for m in cond.get("rounds_meta", []):
+        for arm, pub in m.get("published", {}).items():
+            versions[fn_of[arm]].add(str(pub["version"]))
+    snaps = p1.snapshot_inits(run, versions)
+    snap_counts = {a: len(snaps.get(fn, [])) for a, fn in fn_of.items()}
+    cmp = {name: {"a": a, "b": b, **contrast(rows, a, b)} for name, (a, b) in CONTRASTS.items()}
+    status, why = decide(cmp)
+    res["primary_arm"] = "xz"
+    res["status"] = meta.get("status") or status
+    res["e1"] = {
+        "headline_contrast": HEADLINE,
+        "status_rule": why,
+        "comparison": cmp,
+        "weight_download_pcts": download_pcts(rows, snaps, fn_of),
+        "s3_costs_by_arm": s3_costs(cond, rows, snap_counts),
+        "snapshot_inits_by_arm": snap_counts,
+        "arms": {
+            "gp": "general-purpose bucket, no VPC (P1's configuration, E1's own bucket)",
+            "xz": "S3 Express One Zone directory bucket in the deployment AZ, no VPC (AZ of each "
+            "execution environment unknown)",
+            "gpv": "general-purpose bucket, VPC subnet in the deployment AZ, S3 gateway endpoint",
+            "xzv": "directory bucket, same subnet, S3 Express gateway endpoint (same AZ guaranteed)",
+        },
+    }
+    # baseline/summarize prices every download as S3 Standard; replace with the per-arm figures.
+    c = res["cost"]
+    c["s3_request_usd"] = round(
+        sum(v["s3_request_usd"] for v in res["e1"]["s3_costs_by_arm"].values()), 8
+    )
+    c["s3_retrieval_usd"] = round(
+        sum(v["s3_retrieval_usd"] for v in res["e1"]["s3_costs_by_arm"].values()), 6
+    )
+    c["weight_downloads"] = sum(
+        v["weight_downloads"] for v in res["e1"]["s3_costs_by_arm"].values()
+    )
+    c["snapshot_inits"] = sum(snap_counts.values())
+    c["s3_gb_transferred"] = round(
+        sum(v["s3_gb_transferred"] for v in res["e1"]["s3_costs_by_arm"].values()), 2
+    )
+    c["s3_storage_usd_month"] = round(
+        sum(v["s3_storage_usd_month"] for v in res["e1"]["s3_costs_by_arm"].values()) / 2, 4
+    )  # one gp + one xz bucket hold the GGUF; each kind appears in two arms
+    c["s3_prices"] = S3_PRICES
+    c.pop("total_usd", None)
+    c["total_usd"] = round(sum(v for k, v in c.items() if k.endswith("_usd")), 4)
+    res["deployment"]["az"] = meta.get("az") or res["deployment"]["az"]
+    # The deployed zip was built by P1 (manifest repo_commit); E1's own code is the harness at experiment_commit.
+    res["commits"] = {
+        "experiment": experiment_commit or res["commits"]["experiment"],
+        "baseline": baseline_commit or res["commits"]["baseline"],
+        "function_zip_built_at": cond["build_manifest"]["repo_commit"],
+        "repo_dirty_at_build": res["commits"]["repo_dirty_at_build"],
+    }
+    res["instrumentation_overhead"] = {
+        "method": "not measured here: every E1 arm is instrumented; P1 measured the overhead "
+        "(baseline/results/20261020T080835Z)"
+    }
+    return res
+
+
+def _git_head() -> str | None:
+    import subprocess
+
+    try:
+        return subprocess.run(
+            ["git", "-C", HERE, "rev-parse", "HEAD"], capture_output=True, text=True, check=True
+        ).stdout.strip()
+    except (OSError, subprocess.CalledProcessError):
+        return None
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("run")
+    ap.add_argument("--reference", default=os.path.join(BASE, "reference", "outputs.json"))
+    ap.add_argument("--baseline-commit", help="P1 commit E1 branched from")
+    ap.add_argument("--experiment-commit", help="E1 commit that ran (default: git HEAD)")
+    ap.add_argument("--meta", default=os.path.join(HERE, "meta.json"))
+    a = ap.parse_args()
+    meta = json.load(open(a.meta)) if a.meta else {}
+    exp = a.experiment_commit or _git_head()
+    res = summarize_e1(a.run, a.reference, a.baseline_commit, meta, exp)
+    path = os.path.join(a.run, "results.json")
+    json.dump(res, open(path, "w"), indent=1)
+    h = res["e1"]["comparison"][HEADLINE].get("cold.weight_download", {})
+    print("wrote", path, "status", res["status"], "|", res["e1"]["status_rule"], "|", json.dumps(h))
+
+
+if __name__ == "__main__":
+    main()

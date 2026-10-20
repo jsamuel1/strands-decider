@@ -1,0 +1,16 @@
+{
+ "experiment_id": "E1-s3-express",
+ "status": null,
+ "hypothesis": "Weights in an S3 Express One Zone directory bucket in the function's AZ have a lower time to first byte and higher throughput than an S3 general-purpose bucket, so the weight-download phase of a cold start (and of each SnapStart snapshot init) is shorter, while deserialize, model init and inference are unchanged.",
+ "changed_variable": {
+  "name": "weights bucket type",
+  "baseline": "S3 general-purpose bucket, S3 Standard (arm gp; also gpv in the VPC)",
+  "experiment": "S3 Express One Zone directory bucket in use2-az1 (arm xz; also xzv in a use2-az1 VPC subnet)"
+ },
+ "az": "directory bucket in use2-az1. Arms gp and xz are not VPC-attached, so Lambda picks each execution environment's AZ (unobservable); arms gpv and xzv run in one private use2-az1 subnet, so xzv is guaranteed same-AZ",
+ "conclusion": null,
+ "reproduce": [
+  "git fetch https://github.com/jsamuel1/strands-decider lkai/d654-s3-express && git checkout <commit of this file>",
+  "AWS_PROFILE=<profile> SOURCE=s3://<bucket holding P1's weights/ and code/ objects> examples/lambda-kleidiai/e1-s3-express/run_e1.sh <run-id>"
+ ]
+}
