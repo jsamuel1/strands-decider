@@ -11,6 +11,7 @@ from __future__ import annotations
 import hashlib
 import io
 import itertools
+import json
 import os
 import sys
 
@@ -201,3 +202,184 @@ def test_sha256_fd_empty_and_large_stride():
         assert e3dl.sha256_fd(fd) == hashlib.sha256(data).hexdigest()
     finally:
         os.close(fd)
+
+
+# ---------------------------------------------------------------------------- summarize_e3
+
+
+def _row(arm, rnd, wave, cpu, dl=None, lat=0.25, init_extra=None, counters=None, err=None):
+    rec = {
+        "arm": arm,
+        "round": rnd,
+        "wave": wave,
+        "seq": 0,
+        "request_id": "ticket-route-1q",
+        "qualifier": "$LATEST",
+        "rt_s": 30.0,
+        "status": 200,
+        "error": err,
+        "report": {"Duration": 1000.0, "Billed Duration": 1000.0, "Max Memory Used": 5100.0}
+        | ({"Init Duration": 800.0} if wave == "cold" else {}),
+        "expected_class": wave,
+        "observed_class": wave,
+        "class_mismatch": False,
+        "cpu_part": cpu,
+        "answers": {"q": {"type": "noul", "noul": 0.25}},
+        "latency_ms": lat * 1000,
+    }
+    inv = {"n": 1 if wave == "cold" else 2, "handler_s": 1.0, "wait_load_s": 0.0}
+    rec["lkai"] = {"inv": inv}
+    if wave == "cold":
+        rec["lkai"]["init"] = {"weight_download": dl, "model_load_mmap": 8.0, "model_ready": 34.0}
+        rec["lkai"]["init"] |= init_extra or {}
+        rec["lkai"]["counters"] = {"weight_mib_s": round(1980 / dl, 1)} | (counters or {})
+    return rec
+
+
+def _write_run(d, rows, arms, e3_dl):
+    os.makedirs(d, exist_ok=True)
+    fn = {
+        a: {
+            "FunctionName": f"lkai-e3-{a}",
+            "Runtime": "python3.12",
+            "Architectures": ["arm64"],
+            "MemorySize": 10240,
+            "Timeout": 900,
+            "EphemeralStorage": {"Size": 512},
+            "SnapStart": {"ApplyOn": "PublishedVersions"},
+            "Handler": "e3_entry.handler",
+            "environment": {"E3_DL": e3_dl.get(a) or ""},
+        }
+        for a in arms
+    }
+    cond = {
+        "region": "us-east-2",
+        "rounds": 2,
+        "concurrency": 2,
+        "warm_per_arm_per_round": 1,
+        "arms": arms,
+        "e3_dl": e3_dl,
+        "functions": fn,
+        "requests": {"requests": [{"id": "ticket-route-1q"}]},
+        "probe": "ticket-route-1q",
+        "requests_file": "baseline/requests.json",
+        "started": "2026-10-20T00:00:00Z",
+        "finished": "2026-10-20T01:00:00Z",
+        "client": {},
+        "p1_zip_sha256": "d" * 64,
+        "runtime_version_arn": "arn:aws:lambda:us-east-2::runtime:x",
+        "build_manifest": {
+            "repo_commit": "c" * 40,
+            "repo_dirty": False,
+            "model": {"gguf_sha256": "8" * 64, "gguf_bytes": 2076712416},
+            "llama_cpp": {},
+            "images": {},
+            "toolchain": [],
+            "assets_sha256": {},
+            "function_zip": {"sha256": "e" * 64},
+            "awscrt_wheel": {},
+            "e3_sources_sha256": {},
+        },
+        "rounds_meta": [],
+    }
+    json.dump(cond, open(os.path.join(d, "conditions.json"), "w"))
+    with open(os.path.join(d, "invocations.jsonl"), "w") as f:
+        for r in rows:
+            f.write(json.dumps(r) + "\n")
+
+
+def _summarize(tmp_path, rows, verify_rows, arms, e3_dl):
+    import summarize_e3
+
+    cold, ver, out = tmp_path / "cold", tmp_path / "verify", tmp_path / "out"
+    _write_run(str(cold), rows, arms, e3_dl)
+    _write_run(str(ver), verify_rows, arms, e3_dl)
+    ref = tmp_path / "ref.json"
+    ref.write_text(
+        json.dumps(
+            {"outputs": {"ticket-route-1q": {"0xd40": {"q": {"type": "noul", "noul": 0.25}}}}}
+        )
+    )
+    out.mkdir()
+    argv = [
+        "summarize_e3.py",
+        "--cold",
+        str(cold),
+        "--verify",
+        str(ver),
+        "--reference",
+        str(ref),
+        "--baseline-commit",
+        "7f066aa",
+        "--run-id",
+        "t",
+        "--out",
+        str(out),
+    ]
+    old = sys.argv
+    sys.argv = argv
+    try:
+        summarize_e3.main()
+    finally:
+        sys.argv = old
+    return {a: json.load(open(out / a / "results.json")) for a in arms if a != "ctl"}, out
+
+
+def test_summarize_status_per_setting_and_isolation(tmp_path):
+    arms = ["ctl", "fast", "same"]
+    e3_dl = {"ctl": None, "fast": "threads:16:64", "same": "threads:64:32"}
+    rows, ver = [], []
+    for rnd in range(2):
+        for i in range(10):
+            j = 0.01 * i
+            rows.append(_row("ctl", rnd, "cold", "0xd40", dl=25.0 + j))
+            rows.append(
+                _row("fast", rnd, "cold", "0xd40", dl=12.0 + j, counters={"e3_get_requests": 124})
+            )
+            rows.append(
+                _row("same", rnd, "cold", "0xd40", dl=25.0 + j, counters={"e3_get_requests": 31})
+            )
+            for a in arms:
+                rows.append(_row(a, rnd, "warm", "0xd40"))
+    good = {"e3_weight_sha256": "8" * 64}
+    ver += [_row("fast", 0, "cold", "0xd40", dl=12, counters=good)]
+    ver += [_row("same", 0, "cold", "0xd40", dl=25, counters=good)]
+    res, out = _summarize(tmp_path, rows, ver, arms, e3_dl)
+    assert res["fast"]["status"] == "improved"
+    assert res["fast"]["e3"]["download"]["vs_ctl"]["ci95_s"][1] < 0
+    assert res["fast"]["e3"]["download"]["s3_get_requests_per_download"] == [124]
+    assert res["fast"]["cost"]["s3_get_requests_per_download"] == 124
+    assert res["same"]["status"] == "no-change"
+    assert res["fast"]["e3"]["hash"]["match"] is True
+    assert set(res["fast"]["phases"]) == {"ctl", "fast"}  # only this setting and the control
+    arms_in_rows = {json.loads(x)["arm"] for x in open(out / "fast" / "invocations.jsonl")}
+    assert arms_in_rows == {"ctl", "fast"}
+    assert res["fast"]["e3"]["compute"]["cold.model_load_mmap"]["pooled_delta_p50_s"] == 0
+    assert "Status improved" in res["fast"]["conclusion"]
+    assert (out / "summary.md").read_text().count("\n") == 4
+
+
+def test_summarize_hash_mismatch_is_never_improved(tmp_path):
+    arms = ["ctl", "fast"]
+    e3_dl = {"ctl": None, "fast": "crt:8:25"}
+    rows = [
+        _row("ctl", r, "cold", "0xd40", dl=25.0 + 0.01 * i) for r in range(2) for i in range(10)
+    ]
+    rows += [
+        _row("fast", r, "cold", "0xd40", dl=12.0 + 0.01 * i) for r in range(2) for i in range(10)
+    ]
+    rows += [_row(a, 0, "warm", "0xd40") for a in arms]
+    ver = [_row("fast", 0, "cold", "0xd40", dl=12, counters={"e3_weight_sha256": "0" * 64})]
+    res, _ = _summarize(tmp_path, rows, ver, arms, e3_dl)
+    assert res["fast"]["e3"]["hash"]["match"] is False
+    assert res["fast"]["status"] == "inconclusive"
+
+
+def test_summarize_arm_without_rows_is_failed(tmp_path):
+    arms = ["ctl", "dead"]
+    e3_dl = {"ctl": None, "dead": "threads:8:128"}
+    rows = [_row("ctl", 0, "cold", "0xd40", dl=25.0 + 0.01 * i) for i in range(5)]
+    rows += [_row("dead", 0, "cold", "0xd40", dl=1.0, err="Unhandled")]
+    res, _ = _summarize(tmp_path, rows, [], arms, e3_dl)
+    assert res["dead"]["status"] == "failed"
+    assert res["dead"]["errors"]["count"] == 1

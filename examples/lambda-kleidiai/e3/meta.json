@@ -1,0 +1,26 @@
+{
+ "hypothesis": "A different part size, thread count or transfer engine for the parallel ranged GETs into the memfd raises the cold weight-download throughput above P1's 79 MiB/s, and changes nothing after the download.",
+ "hypotheses": {
+  "ldr": "A/A check: P1's own loader, run from the E3 zip through e3_entry, downloads as fast as the control (the wrapper and the bigger zip cost nothing).",
+  "aa": "P1's setting (64 MiB x 32 threads) re-implemented with request counters downloads as fast as P1's loader.",
+  "t16x64": "Smaller parts (16 MiB) on more threads (64) raise download throughput.",
+  "t8x128": "8 MiB parts on 128 threads raise download throughput.",
+  "t32x64": "32 MiB parts on 64 threads raise download throughput.",
+  "t64x64": "More threads (64) at P1's part size raise download throughput.",
+  "crt8": "awscrt's S3Client (8 MiB parts, 25 Gbit/s target), writing each body chunk into the memfd from its callback, beats the boto3 thread pool.",
+  "crt16": "awscrt's S3Client (16 MiB parts, 25 Gbit/s target), writing each body chunk into the memfd from its callback, beats the boto3 thread pool.",
+  "crtf16": "awscrt's S3Client (16 MiB parts, 25 Gbit/s target) writing the body itself to /proc/self/fd/N, with no Python per chunk, beats the boto3 thread pool."
+ },
+ "reproduce": [
+  "git fetch https://github.com/jsamuel1/strands-decider lkai/cab0-ranged-get && git checkout <commit>",
+  "# P1's zip and manifest from P1's bucket (code/d148d706.../), and the awscrt 0.38.0 aarch64 wheel:",
+  "pip download --no-deps --only-binary=:all: --platform manylinux2014_aarch64 --python-version 3.12 --implementation cp awscrt==0.38.0 -d wheels",
+  "python examples/lambda-kleidiai/e3/e3deploy.py build --p1-zip p1.zip --p1-manifest p1-manifest.json --wheel wheels/awscrt-0.38.0-cp311-abi3-manylinux2014_aarch64.manylinux_2_17_aarch64.whl",
+  "AWS_PROFILE=<p> python examples/lambda-kleidiai/e3/e3deploy.py up",
+  "AWS_PROFILE=<p> python examples/lambda-kleidiai/e3/e3bench.py --mode verify --out build/runs/verify-<id>",
+  "AWS_PROFILE=<p> python examples/lambda-kleidiai/e3/e3bench.py --mode cold --rounds 5 --concurrency 10 --out build/runs/cold-<id>",
+  "AWS_PROFILE=<p> python examples/lambda-kleidiai/e3/e3bench.py --mode restore --arms ctl,<best> --rounds 3 --out build/runs/restore-<id>",
+  "python examples/lambda-kleidiai/e3/summarize_e3.py --cold build/runs/cold-<id> --restore build/runs/restore-<id> --verify build/runs/verify-<id> --baseline-commit 7f066aa03e99e0d3ef2efb5453ff6bf35db3f5dd --run-id <id> --out build/runs/summary-<id>",
+  "AWS_PROFILE=<p> python examples/lambda-kleidiai/e3/e3deploy.py teardown"
+ ]
+}
