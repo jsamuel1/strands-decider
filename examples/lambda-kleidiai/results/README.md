@@ -96,10 +96,10 @@ Everything the initiative brief asks each experiment to publish. `schema.json` i
 
 The validator also requires each arm to carry cold, restore and warm classes; each class to carry its applicable
 requested phase families (`weight_download`, `model_load_mmap`, `model_ready`, and first inference for cold;
-restore duration and first inference for restore; steady-state inference for warm); fixed request IDs and
-started/finished timestamps; cost totals; a cold max-memory distribution per arm; at least one raw artifact; and
-complete baseline/experiment values for the single changed variable. A run that cannot measure one required phase
-records that phase as `null` instead of silently omitting it.
+restore duration, first inference, and nested `snapshot_init` for restore; steady-state inference for warm); fixed
+request IDs and started/finished timestamps; cost totals; a cold max-memory distribution per arm; at least one raw
+artifact; and complete baseline/experiment values for the single changed variable. A run that cannot measure one
+required phase records that phase as `null` instead of silently omitting it.
 
 The schema relaxes latency and deployment requirements for a `failed` run, but it still requires at least one raw
 artifact, a hypothesis, the changed variable, commits, errors, a conclusion and the reproduce commands. Every other

@@ -43,7 +43,7 @@ REQUIRED_PHASES_BY_CLASS = {
         "model_ready",
         "first_request_inference",
     },
-    "restore": {"report_restore_duration", "first_request_inference"},
+    "restore": {"report_restore_duration", "first_request_inference", "snapshot_init"},
     "warm": {"steady_state_inference"},
 }
 # The overview's headline phase per start class, and the brief's phases in display order.

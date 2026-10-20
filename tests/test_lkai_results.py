@@ -154,7 +154,12 @@ def test_schema_requires_complete_measurement_contract():
             lambda r: r["phases"]["inst"]["cold"].pop("report_max_memory_mb"),
             "phases.inst.cold: report_max_memory_mb MB distribution is required",
         ),
+        (
+            lambda r: r["phases"]["inst"]["restore"].pop("snapshot_init"),
+            "phases.inst.restore: missing required phase 'snapshot_init'",
+        ),
         (lambda r: r["cost"].pop("s3_request_usd"), "missing 's3_request_usd'"),
+        (lambda r: r["cost"].pop("s3_gb_transferred"), "missing 's3_gb_transferred'"),
         (lambda r: r.update(artifacts={}), "needs at least 1"),
     ]
     for mutate, expected in cases:
