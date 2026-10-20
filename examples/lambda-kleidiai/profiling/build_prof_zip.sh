@@ -27,7 +27,7 @@ python3 -m pip download -q --no-deps --only-binary=:all: --platform manylinux201
 (cd "$W/whl" && python3 -m zipfile -e "$PYSPY_WHL" x)
 cp "$W/whl/x/py_spy-0.4.2.data/scripts/py-spy" "$W/add/bin/py-spy"
 docker run --rm --platform linux/arm64 --entrypoint bash -v "$HERE:/p:ro" -v "$W/add/lib:/o" "$LAMBDA_IMAGE" -c \
-  "dnf install -y -q gcc >/dev/null && gcc -O2 -g -shared -fPIC -o /o/liblkaisamp.so /p/lkaisamp.c"
+  "dnf install -y gcc >/dev/null && gcc -O2 -g -shared -fPIC -o /o/liblkaisamp.so /p/lkaisamp.c"
 cp "$HERE/lkai_prof.py" "$HERE/lkai_probe.py" "$HERE/lkai_symbolise.py" "$W/add/"
 cp "$HERE/extensions/lkai-telemetry" "$W/layer/extensions/"
 chmod -R u=rwX,go=rX "$W/add" "$W/layer"
