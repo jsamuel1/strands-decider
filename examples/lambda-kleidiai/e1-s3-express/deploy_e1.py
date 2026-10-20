@@ -64,28 +64,48 @@ def is_directory_bucket(name: str) -> bool:
     return name.endswith("--x-s3")
 
 
-def role_policy(region: str, account: str, st: dict) -> dict:
-    """The only difference from P1's role: CreateSession on the directory bucket, ReadOnly sessions only."""
+VPC_ACCESS_POLICY_ARN = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+# The single execution role earlier revisions shared across all four arms (it carried the VPC policy for every arm).
+# Kept only so `up` and `teardown --all` can retire it.
+LEGACY_SHARED_ROLE_SUFFIX = "fn"
+
+
+def role_name(st: dict, arm: str) -> str:
+    """One execution role per arm, so each function holds only the grants its own bucket and network need."""
+    return f"{st['prefix']}-{arm}-fn"
+
+
+def role_policy(region: str, account: str, st: dict, arm: str) -> dict:
+    """P1's role scoped to one arm: read its own weights object, write its own log group.
+
+    A general-purpose arm gets exactly P1's statements. A directory-bucket arm replaces s3:GetObject with the one
+    E1-specific grant, s3express:CreateSession on the directory bucket, ReadOnly sessions only (object reads on a
+    directory bucket are authorised by the session, not by s3:GetObject).
+    """
+    kind, _ = ARMS[arm]
+    read = (
+        {
+            "Effect": "Allow",
+            "Action": "s3:GetObject",
+            "Resource": f"arn:aws:s3:::{st['bucket']}/{st['model_key']}",
+        }
+        if kind == "gp"
+        else {
+            "Effect": "Allow",
+            "Action": "s3express:CreateSession",
+            "Resource": f"arn:aws:s3express:{region}:{account}:bucket/{st['xz_bucket']}",
+            "Condition": {"StringEquals": {"s3express:SessionMode": "ReadOnly"}},
+        }
+    )
     return {
         "Version": "2012-10-17",
         "Statement": [
-            {
-                "Effect": "Allow",
-                "Action": "s3:GetObject",
-                "Resource": f"arn:aws:s3:::{st['bucket']}/{st['model_key']}",
-            },
-            {
-                "Effect": "Allow",
-                "Action": "s3express:CreateSession",
-                "Resource": f"arn:aws:s3express:{region}:{account}:bucket/{st['xz_bucket']}",
-                "Condition": {"StringEquals": {"s3express:SessionMode": "ReadOnly"}},
-            },
+            read,
             {
                 "Effect": "Allow",
                 "Action": ["logs:CreateLogStream", "logs:PutLogEvents"],
                 "Resource": [
-                    f"arn:aws:logs:{region}:{account}:log-group:/aws/lambda/{st['prefix']}-{a}:*"
-                    for a in ARMS
+                    f"arn:aws:logs:{region}:{account}:log-group:/aws/lambda/{st['prefix']}-{arm}:*"
                 ],
             },
         ],
@@ -330,8 +350,12 @@ def stage(s3, st: dict, source: str | None, build: str | None) -> None:
 # ---------------------------------------------------------------------------- IAM, functions
 
 
-def ensure_role(iam, st: dict, account: str) -> str:
-    name = f"{st['prefix']}-fn"
+def ensure_role(iam, st: dict, account: str, arm: str) -> str:
+    """This arm's role: its inline policy, plus AWSLambdaVPCAccessExecutionRole only when the arm is VPC-attached.
+
+    Attachment is converged both ways: a no-VPC arm's role has the VPC policy detached if it is present.
+    """
+    name = role_name(st, arm)
     trust = {
         "Version": "2012-10-17",
         "Statement": [
@@ -354,22 +378,50 @@ def ensure_role(iam, st: dict, account: str) -> str:
     iam.put_role_policy(
         RoleName=name,
         PolicyName="lkai-e1",
-        PolicyDocument=json.dumps(role_policy(st["region"], account, st)),
+        PolicyDocument=json.dumps(role_policy(st["region"], account, st, arm)),
     )
-    # ENI management for the two VPC arms (the managed policy AWS documents for VPC-attached functions).
-    iam.attach_role_policy(
-        RoleName=name,
-        PolicyArn="arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole",
-    )
-    st["role"] = arn
+    attached = {
+        p["PolicyArn"]
+        for page in iam.get_paginator("list_attached_role_policies").paginate(RoleName=name)
+        for p in page["AttachedPolicies"]
+    }
+    if ARMS[arm][1]:
+        # ENI management (the managed policy AWS documents for VPC-attached functions).
+        if VPC_ACCESS_POLICY_ARN not in attached:
+            iam.attach_role_policy(RoleName=name, PolicyArn=VPC_ACCESS_POLICY_ARN)
+    elif VPC_ACCESS_POLICY_ARN in attached:
+        iam.detach_role_policy(RoleName=name, PolicyArn=VPC_ACCESS_POLICY_ARN)
+    st.pop("role", None)  # the legacy shared role's ARN
+    st.setdefault("roles", {})[arm] = arn
     return arn
+
+
+def delete_role(iam, name: str) -> bool:
+    """Detach every managed policy, delete every inline one, then the role. False if it does not exist."""
+    try:
+        for page in iam.get_paginator("list_attached_role_policies").paginate(RoleName=name):
+            for p in page["AttachedPolicies"]:
+                iam.detach_role_policy(RoleName=name, PolicyArn=p["PolicyArn"])
+        for page in iam.get_paginator("list_role_policies").paginate(RoleName=name):
+            for p in page["PolicyNames"]:
+                iam.delete_role_policy(RoleName=name, PolicyName=p)
+        iam.delete_role(RoleName=name)
+    except iam.exceptions.NoSuchEntityException:
+        return False
+    print("deleted role", name)
+    return True
+
+
+def retire_legacy_shared_role(iam, st: dict) -> None:
+    """Once every function has moved to its own role, the old shared role (VPC policy on every arm) goes."""
+    delete_role(iam, f"{st['prefix']}-{LEGACY_SHARED_ROLE_SUFFIX}")
 
 
 def functions(sess, st: dict, account: str) -> None:
     lam, logs, iam = sess.client("lambda"), sess.client("logs"), sess.client("iam")
-    role = ensure_role(iam, st, account)
     st.setdefault("functions", {})
     for arm in ARMS:
+        role = ensure_role(iam, st, account, arm)
         cfg = function_config(st, arm, role)
         name = cfg["FunctionName"]
         group = f"/aws/lambda/{name}"
@@ -413,7 +465,8 @@ def functions(sess, st: dict, account: str) -> None:
             "bucket_kind": ARMS[arm][0],
             "vpc": ARMS[arm][1],
         }
-        print("function", name, c["CodeSha256"])
+        print("function", name, c["CodeSha256"], "role", role_name(st, arm))
+    retire_legacy_shared_role(iam, st)
 
 
 def smoke(lam, st: dict) -> None:
@@ -450,7 +503,7 @@ def sdk_probe(lam, st: dict) -> dict:
             Runtime=RUNTIME,
             Architectures=["arm64"],
             Handler="probe.handler",
-            Role=st["role"],
+            Role=st["roles"]["gp"],  # P1's grants, no VPC policy
             MemorySize=256,
             Timeout=30,
             Code={"ZipFile": buf.getvalue()},
@@ -487,16 +540,10 @@ def teardown(sess, st: dict, everything: bool) -> None:
         except lam.exceptions.ResourceNotFoundException:
             pass
     iam = sess.client("iam")
-    name = f"{st['prefix']}-fn"
-    try:
-        iam.detach_role_policy(
-            RoleName=name,
-            PolicyArn="arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole",
-        )
-        iam.delete_role_policy(RoleName=name, PolicyName="lkai-e1")
-        iam.delete_role(RoleName=name)
-    except iam.exceptions.NoSuchEntityException:
-        pass
+    for arm in ARMS:
+        delete_role(iam, role_name(st, arm))
+    retire_legacy_shared_role(iam, st)
+    st.pop("roles", None)
     s3 = sess.client("s3")
     for b in (st.get("bucket"), st.get("xz_bucket")):
         if not b:

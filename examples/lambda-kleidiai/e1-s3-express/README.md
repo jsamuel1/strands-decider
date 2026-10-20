@@ -44,9 +44,14 @@ range of per-round medians. Otherwise it reports `no-change`.
 Nothing in the function. The runtime-included SDK on the pinned runtime is boto3/botocore 1.42.97 (probed by
 `deploy_e1.py`), which recognises the `--<az-id>--x-s3` bucket name, calls `CreateSession` and signs the HEAD and
 ranged GETs with the session credentials against the zonal endpoint. CreateSession credentials last 5 minutes and
-the SDK refreshes them. The role differs from P1's in one statement: `s3express:CreateSession` on the directory
-bucket, conditioned on `s3express:SessionMode = ReadOnly`. VPC arms also get `AWSLambdaVPCAccessExecutionRole` for
-their network interfaces.
+the SDK refreshes them. Each arm has its own execution role holding only what that arm needs. A general-purpose arm's
+role is P1's: `s3:GetObject` on the weights object and log writes to its own group. A directory-bucket arm's role
+replaces `s3:GetObject` with the one E1-specific grant, `s3express:CreateSession` on the directory bucket,
+conditioned on `s3express:SessionMode = ReadOnly` (reads on a directory bucket are authorised by the session).
+Only the two VPC arms' roles (`gpv`, `xzv`) carry `AWSLambdaVPCAccessExecutionRole` for their network interfaces;
+`gp` and `xz` have no ENI permissions. Run 20261020T1235Z-e1 was measured with an earlier revision that gave all
+four arms one shared role with that policy attached. IAM grants do not enter the measured path, so the numbers
+stand; `deploy_e1.py up` moves the functions to the per-arm roles and deletes the shared one.
 
 The VPC network is new and E1-only. It is a /24 subnet with its own route table, gateway endpoints for `s3` and
 `s3express` attached only to that table, and a security group whose only egress is TCP 443 to the S3 and S3 Express
@@ -68,7 +73,7 @@ Per 2 GB download: Standard costs 32 requests × $0.0004/1000 ≈ $0.0000128. Ex
 
 ## Files
 
-- `deploy_e1.py`: buckets, network, role, the four functions, SDK probe, smoke test, teardown.
+- `deploy_e1.py`: buckets, network, per-arm roles, the four functions, SDK probe, smoke test, teardown.
 - `run_e1.sh`: deploy → `../baseline/bench.py --arms gp,xz,gpv,xzv` → `summarize_e1.py` → redaction → P2 validation.
 - `summarize_e1.py`: P1's `summarize.py` output plus `e1.comparison`, `e1.weight_download_pcts` (cold and
   snapshot-init p50/p95/p99 per arm), `e1.s3_costs_by_arm` (including cost per 1,000 cold starts) and the status.

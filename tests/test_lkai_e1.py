@@ -1,7 +1,9 @@
 """examples/lambda-kleidiai/e1-s3-express: the one-variable deployment and the E1 summary, without AWS.
 
 Pins what makes E1 a single-variable experiment against P1: every arm gets P1's configuration and differs only in the
-weights bucket and (for the VPC pair) the network; the role adds nothing but a ReadOnly CreateSession grant; and the
+weights bucket and (for the VPC pair) the network; each arm's role holds P1's grants for its own bucket and log group,
+with a ReadOnly CreateSession grant replacing s3:GetObject on directory-bucket arms and the VPC managed policy only on
+VPC arms; and the
 summary's contrasts, status rule and per-bucket-type pricing are computed from the rows they claim.
 """
 
@@ -66,29 +68,158 @@ def test_directory_bucket_name_carries_az_suffix_botocore_routes_on():
     assert not deploy_e1.is_directory_bucket("lkai-e1-us-east-2-aaaa")
 
 
-def test_role_adds_only_readonly_create_session_on_the_directory_bucket():
-    import deploy_e1
-
-    pol = deploy_e1.role_policy("us-east-2", "123456789012", _state())
-    actions = {
+def _actions(pol):
+    return {
         a
         for s in pol["Statement"]
         for a in ([s["Action"]] if isinstance(s["Action"], str) else s["Action"])
     }
-    assert actions == {
-        "s3:GetObject",
-        "s3express:CreateSession",
-        "logs:CreateLogStream",
-        "logs:PutLogEvents",
+
+
+def test_gp_role_is_p1s_grants_on_its_own_object_and_log_group():
+    import deploy_e1
+
+    for arm in ("gp", "gpv"):
+        pol = deploy_e1.role_policy("us-east-2", "123456789012", _state(), arm)
+        assert _actions(pol) == {"s3:GetObject", "logs:CreateLogStream", "logs:PutLogEvents"}
+        get = next(s for s in pol["Statement"] if s["Action"] == "s3:GetObject")
+        assert get["Resource"] == "arn:aws:s3:::lkai-e1-us-east-2-aaaa/weights/g/s2b-h512-Q8_0.gguf"
+        logs = next(s for s in pol["Statement"] if "logs:PutLogEvents" in s["Action"])
+        assert logs["Resource"] == [
+            f"arn:aws:logs:us-east-2:123456789012:log-group:/aws/lambda/lkai-e1-{arm}:*"
+        ]
+
+
+def test_xz_role_adds_only_readonly_create_session_on_the_directory_bucket():
+    import deploy_e1
+
+    for arm in ("xz", "xzv"):
+        pol = deploy_e1.role_policy("us-east-2", "123456789012", _state(), arm)
+        assert _actions(pol) == {
+            "s3express:CreateSession",
+            "logs:CreateLogStream",
+            "logs:PutLogEvents",
+        }
+        cs = next(s for s in pol["Statement"] if s["Action"] == "s3express:CreateSession")
+        assert (
+            cs["Resource"]
+            == "arn:aws:s3express:us-east-2:123456789012:bucket/lkai-e1-bbbb--use2-az1--x-s3"
+        )
+        assert cs["Condition"] == {"StringEquals": {"s3express:SessionMode": "ReadOnly"}}
+        logs = next(s for s in pol["Statement"] if "logs:PutLogEvents" in s["Action"])
+        assert logs["Resource"] == [
+            f"arn:aws:logs:us-east-2:123456789012:log-group:/aws/lambda/lkai-e1-{arm}:*"
+        ]
+
+
+class _NoSuchEntity(Exception):
+    pass
+
+
+class _IAM:
+    """Records calls; roles and their attached/inline policies live in dicts."""
+
+    exceptions = types.SimpleNamespace(NoSuchEntityException=_NoSuchEntity)
+
+    def __init__(self, roles=None):
+        # name -> {"attached": set, "inline": set}
+        self.roles = roles or {}
+        self.calls = []
+
+    def _role(self, name):
+        if name not in self.roles:
+            raise _NoSuchEntity(name)
+        return self.roles[name]
+
+    def get_role(self, RoleName):
+        self._role(RoleName)
+        return {"Role": {"Arn": f"arn:aws:iam::123456789012:role/{RoleName}"}}
+
+    def create_role(self, RoleName, **kw):
+        self.calls.append(("create_role", RoleName))
+        self.roles[RoleName] = {"attached": set(), "inline": set()}
+        return self.get_role(RoleName)
+
+    def put_role_policy(self, RoleName, PolicyName, PolicyDocument):
+        self.calls.append(("put_role_policy", RoleName, json.loads(PolicyDocument)))
+        self._role(RoleName)["inline"].add(PolicyName)
+
+    def attach_role_policy(self, RoleName, PolicyArn):
+        self.calls.append(("attach_role_policy", RoleName, PolicyArn))
+        self._role(RoleName)["attached"].add(PolicyArn)
+
+    def detach_role_policy(self, RoleName, PolicyArn):
+        self.calls.append(("detach_role_policy", RoleName, PolicyArn))
+        self._role(RoleName)["attached"].discard(PolicyArn)
+
+    def delete_role_policy(self, RoleName, PolicyName):
+        self._role(RoleName)["inline"].discard(PolicyName)
+
+    def delete_role(self, RoleName):
+        r = self._role(RoleName)
+        assert not r["attached"] and not r["inline"], "IAM refuses to delete a role with policies"
+        self.calls.append(("delete_role", RoleName))
+        del self.roles[RoleName]
+
+    def get_paginator(self, op):
+        iam = self
+
+        class P:
+            def paginate(self, RoleName):
+                r = iam._role(RoleName)
+                if op == "list_attached_role_policies":
+                    return [{"AttachedPolicies": [{"PolicyArn": a} for a in sorted(r["attached"])]}]
+                return [{"PolicyNames": sorted(r["inline"])}]
+
+        return P()
+
+
+def test_only_vpc_arms_roles_carry_the_vpc_access_policy(monkeypatch):
+    import deploy_e1
+
+    monkeypatch.setattr(deploy_e1.time, "sleep", lambda s: None)
+    iam, st = _IAM(), _state()
+    arns = {arm: deploy_e1.ensure_role(iam, st, "123456789012", arm) for arm in deploy_e1.ARMS}
+    assert len(set(arns.values())) == 4 and st["roles"] == arns and "role" not in st
+    for arm, (_, vpc) in deploy_e1.ARMS.items():
+        attached = iam.roles[deploy_e1.role_name(st, arm)]["attached"]
+        assert attached == ({deploy_e1.VPC_ACCESS_POLICY_ARN} if vpc else set()), arm
+    # every function is configured with its own arm's role
+    for arm in deploy_e1.ARMS:
+        assert deploy_e1.function_config(st, arm, st["roles"][arm])["Role"] == arns[arm]
+
+
+def test_ensure_role_detaches_a_stray_vpc_policy_from_a_no_vpc_arm(monkeypatch):
+    import deploy_e1
+
+    st = _state()
+    vpc = deploy_e1.VPC_ACCESS_POLICY_ARN
+    iam = _IAM({deploy_e1.role_name(st, "gp"): {"attached": {vpc}, "inline": set()}})
+    deploy_e1.ensure_role(iam, st, "123456789012", "gp")
+    assert iam.roles[deploy_e1.role_name(st, "gp")]["attached"] == set()
+    # a VPC arm that already has it is not re-attached
+    iam = _IAM({deploy_e1.role_name(st, "gpv"): {"attached": {vpc}, "inline": set()}})
+    deploy_e1.ensure_role(iam, st, "123456789012", "gpv")
+    assert not [c for c in iam.calls if c[0] == "attach_role_policy"]
+
+
+def test_legacy_shared_role_is_retired_and_teardown_deletes_every_arm_role(monkeypatch):
+    import deploy_e1
+
+    st = _state()
+    legacy = "lkai-e1-fn"
+    roles = {legacy: {"attached": {deploy_e1.VPC_ACCESS_POLICY_ARN}, "inline": {"lkai-e1"}}}
+    roles |= {
+        deploy_e1.role_name(st, a): {"attached": set(), "inline": {"lkai-e1"}} for a in ("gp", "xz")
     }
-    cs = next(s for s in pol["Statement"] if s["Action"] == "s3express:CreateSession")
-    assert (
-        cs["Resource"]
-        == "arn:aws:s3express:us-east-2:123456789012:bucket/lkai-e1-bbbb--use2-az1--x-s3"
-    )
-    assert cs["Condition"] == {"StringEquals": {"s3express:SessionMode": "ReadOnly"}}
-    get = next(s for s in pol["Statement"] if s["Action"] == "s3:GetObject")
-    assert get["Resource"] == "arn:aws:s3:::lkai-e1-us-east-2-aaaa/weights/g/s2b-h512-Q8_0.gguf"
+    iam = _IAM(roles)
+    deploy_e1.retire_legacy_shared_role(iam, st)
+    assert legacy not in iam.roles
+    for arm in deploy_e1.ARMS:  # gpv/xzv absent: tolerated
+        deploy_e1.delete_role(iam, deploy_e1.role_name(st, arm))
+    assert iam.roles == {}
+    # the per-arm names never collide with the legacy shared name
+    assert legacy not in {deploy_e1.role_name(st, a) for a in deploy_e1.ARMS}
 
 
 def test_arms_differ_only_in_bucket_and_vpc():
