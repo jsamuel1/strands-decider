@@ -79,6 +79,21 @@ to come from a different variable:
 
 The ~663 Mbit/s per-environment ceiling is the number those experiments need to beat.
 
+## Control identity
+
+`ctl` runs P1 zip `d148d706…`, and the E3 zip is built from it. P1's published run `20261020T080835Z` deployed
+`26eb2651…` (its `conditions.json` and `build-manifest.json`), a rebuild of the same inputs. The two zips have the
+same 1,899 entries. They differ only in the 4-byte source-mtime field of the `.pyc` headers; every `.pyc` body and
+every other file is byte-identical. The control also reproduces P1's published cold numbers within 0.08 s:
+
+| | P1 run, p50 | E3 ctl, p50 |
+|---|---|---|
+| imports | 0.715 | 0.719 |
+| weight_download | 25.04 | 24.96 |
+| model_load_mmap | 8.37 | 8.37 |
+| model_ready | 34.97 | 34.91 |
+| first request | 35.99 | 35.96 |
+
 ## How it is measured
 
 - `e3dl.py` holds the strategies, selected by `E3_DL`:
