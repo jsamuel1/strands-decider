@@ -1799,6 +1799,13 @@
       }
      }
     }
+   },
+   "restore": {
+    "n": 0,
+    "report_restore_duration": null,
+    "first_request_inference": null,
+    "first_request_total": null,
+    "snapshot_init": null
    }
   },
   "t32x64": {
@@ -3413,7 +3420,9 @@
    "restore": {
     "n": 0,
     "report_restore_duration": null,
-    "first_request_total": null
+    "first_request_inference": null,
+    "first_request_total": null,
+    "snapshot_init": null
    }
   }
  },

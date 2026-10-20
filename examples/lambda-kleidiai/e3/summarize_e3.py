@@ -571,14 +571,19 @@ def summarize_arm(arm: str, a: argparse.Namespace, meta: dict) -> dict:
         "reproduce": meta["reproduce"],
         "conclusion": None,
     }
-    if not phases[arm].get("restore"):
-        # The validator wants a restore class in every non-failed run. This arm's own restore was not measured
-        # (the operator chose a restore leg for the best arm only); the control's restore is in phases.ctl if any.
-        phases[arm]["restore"] = {
+    # The validator wants every required restore phase in every arm of a non-failed run. This setting's restore,
+    # and the control's restore in this file, were measured only where the arm was in the restore leg (the operator
+    # chose the best arm and ctl only). Unmeasured phases are explicit nulls, as P2's schema asks.
+    unmeasured = [x for x in c2["arms"] if not phases[x].get("restore")]
+    for x in unmeasured:
+        phases[x]["restore"] = {
             "n": 0,
             "report_restore_duration": None,
+            "first_request_inference": None,
             "first_request_total": None,
+            "snapshot_init": None,
         }
+    if arm in unmeasured:
         e3["restore_note"] = (
             "restore not measured for this setting (operator: restore leg for the best arm and ctl only). "
             "With SnapStart the weights download only in the snapshot init inside publish_version."

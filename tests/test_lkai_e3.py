@@ -360,6 +360,14 @@ def test_summarize_status_per_setting_and_isolation(tmp_path):
     assert res["same"]["status"] == "no-change"
     assert res["fast"]["e3"]["hash"]["match"] is True
     assert set(res["fast"]["phases"]) == {"ctl", "fast"}  # only this setting and the control
+    for a in (
+        "ctl",
+        "fast",
+    ):  # no restore leg: P2's required restore phases are explicit nulls in both arms
+        rs = res["fast"]["phases"][a]["restore"]
+        assert rs["n"] == 0
+        for k in ("report_restore_duration", "first_request_inference", "snapshot_init"):
+            assert k in rs and rs[k] is None
     arms_in_rows = {json.loads(x)["arm"] for x in open(out / "fast" / "invocations.jsonl")}
     assert arms_in_rows == {"ctl", "fast"}
     assert res["fast"]["e3"]["compute"]["cold.model_load_mmap"]["pooled_delta_p50_s"] == 0
