@@ -37,23 +37,65 @@ and returns the memfd path once the first MiB is in. Its `order` key is "bytes a
 tensor is complete": every range moves at about the same rate, so this is the expected arrival order. The base arm
 never sets the hooks, so it runs P1's code path with one null check per tensor.
 
-Arms, one zip (`e4_entry.handler`), differing only in environment:
+Arms, one zip (`e4_entry.handler`), differing only in environment (`deploy_e4.ARMS_SETS`: `E4_ARMS=r1` or `r2`):
 
 | Arm | Environment | Meaning |
 |---|---|---|
 | `base` | `E4_STREAM=0` | download, then load (P1's sequence) |
-| `stream` | `E4_STREAM=1 STREAM_ORDER=arrival` | the experiment |
-| `streamfile` | `E4_STREAM=1 STREAM_ORDER=file` | overlap in llama.cpp's own order: shows how much the ordering matters |
+| `stream` | `E4_STREAM=1 STREAM_ORDER=arrival E4_MMAP_THRESHOLD=4194304` | the experiment (run 2) |
+| `basethr` | `E4_STREAM=0 E4_MMAP_THRESHOLD=4194304` | the mmap-threshold pin alone (run 2) |
+| `streamdyn` | `E4_STREAM=1 STREAM_ORDER=arrival` | the overlap without the pin (run 2; run 1's `stream`) |
+| `streamfile` | `E4_STREAM=1 STREAM_ORDER=file` | overlap in llama.cpp's own order (run 1): shows how much the ordering matters |
 
 ## Reproduce
 
 ```bash
 # arm64 Linux host with Docker; P1's build (baseline/build.sh) is reused when present
-AWS_PROFILE=<profile> examples/lambda-kleidiai/e4_stream/run.sh <run-id>
+AWS_PROFILE=<profile> E4_ARMS=r2 examples/lambda-kleidiai/e4_stream/run.sh <run-id>
 # no AWS: each arm in the pinned Lambda image against a 80 MiB/s local stand-in for S3
 examples/lambda-kleidiai/e4_stream/localtest.sh
 ```
 
 ## Results
 
-See `results/<run-id>/results.json` and the P2 dashboard; the summary is filled in below once the run completes.
+Both runs are on the P2 dashboard (`E4-stream-load`); the redacted raw data is in `results/<run-id>/`. Lambda
+python3.12 arm64, 10,240 MB, SnapStart on published versions, us-east-2; P1's harness (`bench_e4.py` = `bench.py` with
+a fresh Lambda client per wave), 5 rounds x 10 per class and arm, arms interleaved. Deltas are medians within the
+same Graviton generation, pooled by sample count.
+
+**Run 2, `20261020T181753Z` (status improved).** Zip `ddd2f998…`, commit `4c5fcf0`. 0 errors, 0 class mismatches,
+2,400 of 2,400 answers bit-identical to P1's reference.
+
+| p50 (pooled delta vs base) | base | stream | basethr (pin only) | streamdyn (no pin) |
+|---|---|---|---|---|
+| cold first-request (Init + Duration) | 35.92 s | 31.40 s (-5.64 s) | 36.05 s (+0.19 s) | 31.35 s (-5.50 s) |
+| cold download+load | 33.71 s | 29.16 s (-5.64 s) | 33.81 s | 29.15 s |
+| cold first inference | | (+0.001 s) | (-0.002 s) | (+0.001 s) |
+| cold Max Memory Used | 5,158 MB | 5,122 MB (-34) | 5,122 MB (-35) | 5,631 MB (+476) |
+| restore first-request | 3.93 s | 3.92 s (-0.02 s) | 3.89 s (-0.07 s) | 4.27 s (+0.34 s) |
+| restore Max Memory Used | 5,152 MB | 5,110 MB (-41) | 5,112 MB (-40) | 5,647 MB (+495) |
+| warm inference | 0.706 s | 0.728 s (-0.02 s) | 0.722 s (-0.01 s) | 0.681 s (-0.04 s) |
+
+**Run 1, `20261020T131645Z` (status inconclusive).** Arms base / stream (no pin) / streamfile. stream: cold -4.97 s,
+restore +0.41 s, memory +470 MB. streamfile (overlap in llama.cpp's creation order): cold -1.10 s, so the arrival
+order is what makes the overlap pay.
+
+Findings:
+
+- **Cold start.** The overlap saves 4.0-9.3 s of the first request depending on the Graviton generation (0xd40
+  Graviton3: 35.92 -> 31.38 s, -4.54 s, -13 %; 0xd4f: -3.97 s, -12 %; 0xd0c Graviton2, whose repack is slowest: 48.49 ->
+  39.23 s, -9.26 s, -19 %), 5.64 s pooled. All of it is in download+load; the download itself is unchanged (25.0 s), and
+  the loader spends about 18.5 s of it blocked on bytes. Lambda picks the generation per environment, so the arms' raw
+  p90s differ partly by how many Graviton2 environments each drew.
+- **Memory.** Without a fix the overlap leaves about +480 MB resident (run 1, and streamdyn in run 2). Cause, found
+  locally with `malloc_stats` on the same zip and real S3: the KleidiAI repack frees large blocks while the 32 download
+  threads still read 8 MiB bodies, which raises glibc's dynamic mmap threshold, so each thread's arena keeps a ~16.7 MiB
+  free top that `malloc_trim` cannot return. Pinning `M_MMAP_THRESHOLD` at 4 MiB (`E4_MMAP_THRESHOLD`) stops it; the pin
+  alone also trims base by about 35-58 MB.
+- **Restore.** SnapStart already hides the download and the load: both run in `publish_version`'s snapshot init,
+  never in a restore. A restore only sees what the snapshot holds, which is why run 1's extra memory showed up as
+  +0.41 s of restore. With the pin, restore is unchanged (-0.02 s, inside run-to-run spread). E4 helps on-demand cold
+  starts and shortens snapshot creation; it does not speed up restores.
+- **Correctness.** Every arm of both runs gives bit-identical answers to P1 (same request, same CPU part).
+
+Cost: run 1 $3.54, run 2 $4.73 (harness estimate, including the SnapStart 3-hour cache minimum).

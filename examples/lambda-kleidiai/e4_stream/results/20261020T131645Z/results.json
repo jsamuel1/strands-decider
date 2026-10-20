@@ -8604,9 +8604,10 @@
  },
  "reproduce": [
   "git fetch https://github.com/jsamuel1/strands-decider lkai/7cb8-stream-load && git checkout FETCH_HEAD",
-  "AWS_PROFILE=<profile> examples/lambda-kleidiai/e4_stream/run.sh <run-id>"
+  "AWS_PROFILE=<profile> E4_ARMS=r1 examples/lambda-kleidiai/e4_stream/run.sh <run-id>",
+  "examples/lambda-kleidiai/e4_stream/localtest.sh   # no AWS: each arm against a local 80 MiB/s S3 stand-in"
  ],
- "conclusion": null,
+ "conclusion": "Run 1 of 2 (arms base / stream / streamfile, 5 rounds x 10, interleaved; 0 errors; 1,800 of 1,800 answers bit-identical to P1's reference). Cold: stream cuts first-request time by 4.97 s pooled within CPU part (35.91 -> 31.44 s p50, -14 %; Graviton2 0xd0c -9.4 s, -19 %); download+load 33.72 -> 29.19 s p50; the download itself is unchanged (24.99 vs 24.99 s), the loader spends 18.7 s of it blocked on bytes. streamfile (llama.cpp's own order) cuts only 1.10 s: the order is what makes the overlap pay. Restore: SnapStart already hides the download and load (both run in publish_version's snapshot init, never in a restore), and stream makes restore WORSE: +0.41 s first-request (3.96 -> 4.35 s p50, +10 %; per-round medians do not overlap) because it uses +470 MB (Max Memory Used 5,160 -> 5,631 MB p50) on cold, restore and warm alike, and the larger snapshot takes longer to restore. Local diagnosis (same zip, real S3, malloc_stats): the extra is glibc thread-arena retention, about 16.7 MiB in each of the 32 download threads' arenas, because the overlapped KleidiAI repack frees large blocks while the download still allocates 8 MiB bodies, raising glibc's dynamic mmap threshold; malloc_trim returns only ~90 MB of it. Run 2 pins the threshold (mallopt M_MMAP_THRESHOLD = 4 MiB; locally: stream peak RSS 4.94 GB vs base 5.00 GB, answers identical) and measures the pin alone on base.",
  "primary_arm": "stream",
  "stream_vs_base": {
   "cold": {
@@ -9834,5 +9835,6 @@
   },
   "method": "median(streamfile) - median(base) within each CPU part both arms drew (seconds; MB for report_max_memory_mb); pooled_delta_p50 weights the per-part deltas by the smaller sample count"
  },
- "snapstart_note": "Under SnapStart the download and load run inside publish_version's snapshot init, never in a restore. The streamed load can only change restore through what the snapshot holds (the same model in the same memory), so restore is the control class: any restore delta beyond run-to-run spread would be a defect or noise. The snapshot init itself (phases.<arm>.restore.snapshot_init) does show the overlap, and it bounds how long publish_version takes, not any request latency."
+ "snapstart_note": "Under SnapStart the download and load run inside publish_version's snapshot init, never in a restore. The streamed load can only change restore through what the snapshot holds (the same model in the same memory), so restore is the control class: any restore delta beyond run-to-run spread would be a defect or noise. The snapshot init itself (phases.<arm>.restore.snapshot_init) does show the overlap, and it bounds how long publish_version takes, not any request latency.",
+ "run_label": "E4 run 1: overlap vs P1 sequence (arms base/stream/streamfile)"
 }

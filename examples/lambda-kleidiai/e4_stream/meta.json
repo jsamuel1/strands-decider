@@ -1,15 +1,16 @@
 {
  "experiment_id": "E4-stream-load",
- "status": "inconclusive",
- "hypothesis": "On a cold start the baseline downloads the 1,981 MiB Q8_0 GGUF into a memfd (25.0 s p50) and only then lets llama.cpp load it (model_load_mmap 8.4 s p50, which includes KleidiAI repacking each Q8_0 matmul weight as it reads it). The loader reads the header first and then each tensor once, so the load can start as soon as the header is present and repack each tensor as its bytes land. Overlapping the two should cut cold download+load from ~33.4 s towards max(download, load) plus the tail of the last tensors, and change no output. It cannot change a SnapStart restore, which never downloads or loads.",
+ "status": "improved",
+ "hypothesis": "On a cold start the baseline downloads the 1,981 MiB Q8_0 GGUF into a memfd (25.0 s p50) and only then lets llama.cpp load it (model_load_mmap 8.4 s p50, which includes KleidiAI repacking each Q8_0 matmul weight as it reads it). The loader reads the header first and then each tensor once, so the load can start as soon as the header is present and repack each tensor as its bytes land. Overlapping the two should cut cold download+load towards max(download, load), change no output, and leave a SnapStart restore (which never downloads or loads) unchanged, provided the overlap leaves the same process memory behind. Run 1 showed it did not (+470 MB of glibc thread-arena retention); run 2 pins glibc's mmap threshold so the arenas cannot grow.",
  "changed_variable": {
   "name": "download/load overlap",
   "baseline": "download_to_memfd completes, then llama_model_load_from_file mmaps the memfd (P1)",
-  "experiment": "llama_model_load_from_file starts once the GGUF header is in the memfd; a dormant llama.cpp hook (e4_stream/patch_stream.py) blocks each tensor's read until its bytes have arrived and loads tensors in expected-arrival order (arm stream). Same file, same download (HEAD + 31 x 64 MiB ranges on 32 threads), same mmap path and kernels. Arm streamfile keeps llama.cpp's own tensor order as a control"
+  "experiment": "llama_model_load_from_file starts once the GGUF header is in the memfd; a dormant llama.cpp hook (e4_stream/patch_stream.py) blocks each tensor's read until its bytes have arrived and loads tensors in expected-arrival order; glibc's mmap threshold is pinned at 4 MiB (mallopt M_MMAP_THRESHOLD) so the overlapped repack cannot make the download threads' arenas retain memory (arm stream). Same file, same download (HEAD + 31 x 64 MiB ranges on 32 threads, 8 MiB reads), same mmap path and kernels. Controls: basethr = base with the pin only; streamdyn = the overlap without the pin (run 1's stream arm)"
  },
- "conclusion": null,
+ "conclusion": "Run 2 of 2 (arms base / stream / basethr / streamdyn, 5 rounds x 10 per class, interleaved; 0 errors, 0 class mismatches; 2,400 of 2,400 answers bit-identical to P1's reference). stream vs base, within CPU part: cold first-request -4.54 s on Graviton3 0xd40 (35.92 -> 31.38 s p50, -13 %), -3.97 s on 0xd4f (-12 %), -9.26 s on Graviton2 0xd0c (48.49 -> 39.23 s, -19 %), -5.64 s pooled; download+load -5.64 s pooled (33.71 -> 29.16 s p50) with the download itself unchanged; restore first-request -0.02 s (3.93 -> 3.92 s p50; per-round medians overlap, i.e. no change); Max Memory Used -34 MB cold, -41 MB restore, -59 MB warm; steady-state inference -0.02 s (noise). The pin alone (basethr) changes cold by +0.19 s and memory by -35 to -58 MB, so the cold gain is the overlap's and the memory recovery is the pin's. streamdyn reproduces run 1: cold -5.50 s but restore +0.34 s and memory +476 to +495 MB, confirming the restore regression was memory, not the overlap. SnapStart: the download and load run inside publish_version's snapshot init, never in a restore, so SnapStart already hides E4's cold-path saving on restore; E4 improves on-demand cold starts (and shortens the snapshot init), and with the pin leaves restore unchanged.",
  "reproduce": [
   "git fetch https://github.com/jsamuel1/strands-decider lkai/7cb8-stream-load && git checkout FETCH_HEAD",
-  "AWS_PROFILE=<profile> examples/lambda-kleidiai/e4_stream/run.sh <run-id>"
+  "AWS_PROFILE=<profile> E4_ARMS=r2 examples/lambda-kleidiai/e4_stream/run.sh <run-id>",
+  "examples/lambda-kleidiai/e4_stream/localtest.sh   # no AWS: each arm against a local 80 MiB/s S3 stand-in"
  ]
 }
