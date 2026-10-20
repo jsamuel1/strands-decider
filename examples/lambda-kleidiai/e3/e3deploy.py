@@ -80,9 +80,11 @@ def build(p1_zip: str, p1_manifest: str, wheel: str, out: str) -> dict:
         sys.exit(f"{p1_zip} is not the zip {p1_manifest} describes")
     os.makedirs(os.path.dirname(out), exist_ok=True)
     tmp = out + ".tmp"
-    with zipfile.ZipFile(p1_zip) as src, zipfile.ZipFile(wheel) as whl, zipfile.ZipFile(
-        tmp, "w", zipfile.ZIP_DEFLATED
-    ) as dst:
+    with (
+        zipfile.ZipFile(p1_zip) as src,
+        zipfile.ZipFile(wheel) as whl,
+        zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as dst,
+    ):
         names = set()
         for info in src.infolist():
             dst.writestr(info, src.read(info))
@@ -123,7 +125,8 @@ def build(p1_zip: str, p1_manifest: str, wheel: str, out: str) -> dict:
             "added": added,
         },
         "e3_sources_sha256": {
-            f: hashlib.sha256(open(os.path.join(HERE, f), "rb").read()).hexdigest() for f in E3_FILES
+            f: hashlib.sha256(open(os.path.join(HERE, f), "rb").read()).hexdigest()
+            for f in E3_FILES
         },
         "awscrt_wheel": {"file": os.path.basename(wheel), "sha256": p1.file_sha256(wheel)},
     }
@@ -137,7 +140,11 @@ def ensure_role(iam, st: dict) -> str:
     trust = {
         "Version": "2012-10-17",
         "Statement": [
-            {"Effect": "Allow", "Principal": {"Service": "lambda.amazonaws.com"}, "Action": "sts:AssumeRole"}
+            {
+                "Effect": "Allow",
+                "Principal": {"Service": "lambda.amazonaws.com"},
+                "Action": "sts:AssumeRole",
+            }
         ],
     }
     try:
@@ -211,9 +218,13 @@ def up(sess, st: dict, arms: list[str]) -> None:
                     lam.get_function(FunctionName=name)
                     lam.update_function_code(FunctionName=name, S3Bucket=st["bucket"], S3Key=key)
                     p1.wait_updated(lam, name)
-                    lam.update_function_configuration(**{k: v for k, v in cfg.items() if k != "Architectures"})
+                    lam.update_function_configuration(
+                        **{k: v for k, v in cfg.items() if k != "Architectures"}
+                    )
                 except lam.exceptions.ResourceNotFoundException:
-                    lam.create_function(**cfg, Code={"S3Bucket": st["bucket"], "S3Key": key}, Tags=TAGS)
+                    lam.create_function(
+                        **cfg, Code={"S3Bucket": st["bucket"], "S3Key": key}, Tags=TAGS
+                    )
                 break
             except lam.exceptions.InvalidParameterValueException as e:
                 if attempt == 5:
@@ -255,7 +266,9 @@ def teardown(sess, st: dict, everything: bool) -> None:
     lam = sess.client("lambda")
     for f in st.get("functions", {}).values():
         try:
-            for page in lam.get_paginator("list_versions_by_function").paginate(FunctionName=f["name"]):
+            for page in lam.get_paginator("list_versions_by_function").paginate(
+                FunctionName=f["name"]
+            ):
                 for v in page["Versions"]:
                     if v["Version"] != "$LATEST":
                         lam.delete_function(FunctionName=f["name"], Qualifier=v["Version"])

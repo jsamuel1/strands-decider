@@ -84,11 +84,15 @@ def conditions(b, sess, a, arms, reqs) -> dict:
         fns[arm]["environment"] = {
             k: v for k, v in c["Environment"]["Variables"].items() if k != "MODEL_BUCKET"
         }
-        fns[arm]["runtime_management"] = {k: rm.get(k) for k in ("UpdateRuntimeOn", "RuntimeVersionArn")}
+        fns[arm]["runtime_management"] = {
+            k: rm.get(k) for k in ("UpdateRuntimeOn", "RuntimeVersionArn")
+        }
         if p1deploy.b64_to_hex(c["CodeSha256"]) != f["code_sha256"]:
             sys.exit(f"{arm}: deployed code {c['CodeSha256']} is not {f['code_sha256']}")
         if rm.get("RuntimeVersionArn") != b.st["runtime_version_arn"]:
-            sys.exit(f"{arm}: runtime {rm.get('RuntimeVersionArn')} is not P1's {b.st['runtime_version_arn']}")
+            sys.exit(
+                f"{arm}: runtime {rm.get('RuntimeVersionArn')} is not P1's {b.st['runtime_version_arn']}"
+            )
     return {
         "schema": "lkai-conditions/1",
         "experiment": "E3",
@@ -106,7 +110,11 @@ def conditions(b, sess, a, arms, reqs) -> dict:
         "build_manifest": b.st["manifest"],
         "p1_zip_sha256": b.st["p1_zip_sha256"],
         "runtime_version_arn": b.st["runtime_version_arn"],
-        "client": {"python": platform.python_version(), "boto3": boto3.__version__, "host": platform.machine()},
+        "client": {
+            "python": platform.python_version(),
+            "boto3": boto3.__version__,
+            "host": platform.machine(),
+        },
         "started": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "rounds_meta": [],
     }
@@ -142,7 +150,9 @@ def main() -> None:
     last_end = 0.0
     for rnd in range(a.rounds):
         tag = f"e3-{a.mode}-r{rnd}-{time.time():.3f}"
-        order = rotated(arms, rnd) if a.mode != "restore" else (arms if rnd % 2 == 0 else arms[::-1])
+        order = (
+            rotated(arms, rnd) if a.mode != "restore" else (arms if rnd % 2 == 0 else arms[::-1])
+        )
         t0 = time.time()
         meta: dict = {"round": rnd, "order": order, "cold_tag": tag, "t0": t0}
         published: dict[str, dict] = {}
@@ -178,7 +188,9 @@ def main() -> None:
                     list(ex.map(lambda arm: set_env(b, arm, E3_VERIFY=None), order))
         if published:
             meta["published"] = published
-            meta["t_versions_deleted"] = max(p.get("t_deleted", time.time()) for p in published.values())
+            meta["t_versions_deleted"] = max(
+                p.get("t_deleted", time.time()) for p in published.values()
+            )
         time.sleep(a.log_lag)
         t_end = time.time()
         meta["log_window"] = [max(t0, last_end), t_end]

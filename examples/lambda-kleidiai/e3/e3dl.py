@@ -64,7 +64,9 @@ def parse(spec: str) -> dict[str, Any]:
         if part < 5 or gbps <= 0:  # CRT's minimum part size is 5 MiB
             raise ValueError(f"E3_DL {spec!r}: part >= 5 MiB and gbps > 0")
         return {"kind": kind, "part": part * MIB, "gbps": gbps}
-    raise ValueError(f"E3_DL {spec!r}: expected loader, threads:<mib>:<n>, crt:<mib>:<gbps> or crtfile:...")
+    raise ValueError(
+        f"E3_DL {spec!r}: expected loader, threads:<mib>:<n>, crt:<mib>:<gbps> or crtfile:..."
+    )
 
 
 def counters() -> dict[str, Any]:
@@ -74,7 +76,8 @@ def counters() -> dict[str, Any]:
 
 
 _SCRATCH: dict[str, Any] = {}
-_fds: list[int] = []  # like loader._fds: llama mmaps the memfd, so it stays open for the process lifetime
+# Like loader._fds: llama mmaps the memfd, so it stays open for the process lifetime.
+_fds: list[int] = []
 
 
 def memfd(name: str) -> int:

@@ -134,9 +134,7 @@ def test_loader_kind_is_p1_loader_with_p1_request_count(monkeypatch):
 
 def test_verify_records_sha256(monkeypatch):
     data = b"weights" * 1000
-    monkeypatch.setattr(
-        e3dl, "download_threads", lambda b, k, chunk, workers: _fd_with(data)
-    )
+    monkeypatch.setattr(e3dl, "download_threads", lambda b, k, chunk, workers: _fd_with(data))
     e3dl._SCRATCH.clear()
     path = e3dl.make_download(None, "threads:64:32", verify=True)("b", "k")
     os.close(int(path.rsplit("/", 1)[1]))
