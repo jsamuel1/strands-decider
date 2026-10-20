@@ -363,7 +363,7 @@ def test_run_script_parses_and_cleans_up_before_benchmark():
     path = os.path.join(E2, "run.sh")
     subprocess.run(["bash", "-n", path], check=True)
     src = open(path).read()
-    assert src.index("trap cleanup_versions EXIT") < src.index("bench.py")
+    assert src.index("trap cleanup_versions EXIT") < src.index('"$BASE/bench.py"')
     assert "--arms std,ozia" in src
 
 
