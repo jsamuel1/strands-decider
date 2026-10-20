@@ -10,7 +10,7 @@ overview of every experiment against the baseline, plus one detail page per run.
 | Results store | `s3://strands-decider-lkai-results-apse2/` in the `playground1` account, region `ap-southeast-2`: private, versioned, SSE-S3, TLS-only |
 | Run file | `runs/<experiment_id>/<run_id>/result.json` |
 | Raw artifacts | `runs/<experiment_id>/<run_id>/artifacts/<path>` (`invocations.jsonl`, `logs/`, `conditions.json`, profiles) |
-| Generated pages | `site/index.html`, `site/<experiment_id>/<run_id>.html`, `site/dashboard.html` (a single page with everything) |
+| Generated pages | Local build output: `index.html`, `<experiment_id>/<run_id>.html`, `dashboard.html` (single page uploaded to Artifactory) |
 | Schema | [`schema.json`](schema.json) |
 
 ## Publishing a run
@@ -28,8 +28,7 @@ The command:
 1. validates the file (exit 2 lists every problem);
 2. uploads the artifacts the file lists (`artifacts{}` and `profiling_artifacts[].path`, relative to the file's
    directory) and any extra paths, then `result.json`, all under `runs/<experiment_id>/<run_id>/`;
-3. regenerates `site/` from every `result.json` in the store, and writes the pages to `--out`
-   (default `build/lkai-dashboard/`);
+3. regenerates pages from every `result.json` in the store into `--out` (default `build/lkai-dashboard/`);
 4. reads the Artifactory dashboard's current SHA-256 before step 2 writes anything, then uploads `dashboard.html`
    with compare-and-swap on that early SHA (never one read after rendering), re-reads the new version by number,
    and checks its downloaded bytes against the generated file.
@@ -65,10 +64,9 @@ same layout.
   (exit 3) unless you pass `--replace`. A new measurement gets a new `run_id`. A new `result.json` is written
   create-only (S3 `If-None-Match: *`), so two publishers racing on one run ID cannot both win. Every S3 put carries
   a SHA-256 checksum that S3 verifies before storing.
-- No experiment edits a shared file. The pages in `site/` and the Artifactory dashboard are derived: every
-  regeneration rebuilds them from all the run files. If two publishers race, the later regeneration includes both
-  runs. After rendering, the publisher re-lists the store and renders again if a run appeared in the meantime; if
-  the run set never settles it refuses (exit 4) rather than publish a page it knows is missing a run.
+- No experiment edits a shared file. Generated pages are local build output derived from a stable double-read of
+  all run files. If the run set changes during rendering, generation retries; if it never settles, publication
+  refuses (exit 4). Only `dashboard.html` is uploaded, through Artifactory's compare-and-swap.
 - Artifactory uploads are compare-and-swap on a SHA read before the run set is loaded. Runs are append-only, and
   the version that SHA names was rendered before it was uploaded, so a page that wins the CAS contains every run
   the page it replaces did. A stale page loses the CAS instead.

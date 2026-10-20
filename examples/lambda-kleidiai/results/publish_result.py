@@ -7,7 +7,7 @@ Steps, all idempotent:
   1. validate the run file against results/schema.json (and the semantic checks in lkai_results.validate);
   2. upload the artifacts it lists (artifacts{}, profiling_artifacts[].path) plus any extra paths, and then its
      result.json, under runs/<experiment_id>/<run_id>/ in the store. Nothing outside that prefix is written;
-  3. regenerate site/ in the store from every result.json there, and write the single-file dashboard to --out;
+  3. regenerate a stable dashboard snapshot from every result.json in the store and write it to --out;
   4. upload --out/dashboard.html to Artifactory through its installed MCP server. The compare-and-swap SHA is read
      BEFORE step 2, so a page can only replace the version whose run set it already contains. The new version is
      then re-read by number and its bytes are checked against the generated page.
@@ -16,7 +16,8 @@ Ordering argument: runs are append-only, and a page is rendered from a run set l
 The version that SHA names was rendered from a run set loaded before it was uploaded, so before we read it. A CAS
 win therefore never removes a run from the dashboard; a stale publisher loses the CAS (exit 4) instead.
 
-The store is --store or $LKAI_RESULTS_STORE: s3://bucket/prefix, or a local directory for a dry run.
+The store is --store or $LKAI_RESULTS_STORE: s3://bucket/prefix, or a local directory for a dry run. Generated
+pages are local build output; only the single-file dashboard is published to the durable Artifactory URL.
 Exit codes: 0 published, 2 invalid run file, 3 run conflict/artifact refusal, 4 dashboard upload refusal.
 """
 
@@ -338,7 +339,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument(
         "--skip-dashboard-upload",
         action="store_true",
-        help="build site/dashboard.html but do not publish its Artifactory version (local preview/tests)",
+        help="build dashboard.html locally but do not publish its Artifactory version (local preview/tests)",
     )
     a = ap.parse_args(argv)
 
@@ -385,7 +386,7 @@ def main(argv: list[str] | None = None) -> int:
     except lr.RegenerateDidNotSettle as e:
         print(f"DASHBOARD REFUSED {e}", file=sys.stderr)
         return 4
-    print(f"dashboard rebuilt from {len(site['runs'])} run(s): {store.uri('site/index.html')}")
+    print(f"dashboard rebuilt from {len(site['runs'])} run(s): {os.path.abspath(a.out)}")
     if not a.skip_dashboard_upload:
         dash = os.path.abspath(os.path.join(a.out, "dashboard.html"))
         try:

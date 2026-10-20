@@ -352,8 +352,8 @@ def test_publish_requires_run_dir_for_listed_artifacts(tmp_path):
 
 
 def test_concurrent_publishers_never_collide(tmp_path):
-    """Each experiment card publishes in parallel. Every run ends up in the store and on the page, and no
-    publisher wrote outside its prefix (the only shared outputs are the derived site/ pages)."""
+    """Each experiment card publishes in parallel. Every run ends up in its own prefix; stable regeneration reads
+    all of them without writing any shared store key."""
     store = lr.LocalStore(str(tmp_path))
     base = real(load("fixture-improved"))
     runs = []
@@ -377,14 +377,13 @@ def test_concurrent_publishers_never_collide(tmp_path):
     for t in ts:
         t.join()
     assert errors == []
-    lr.regenerate(store)
-    keys = store.list("")
-    assert {k for k in keys if k.endswith("/result.json")} == {
-        f"runs/E{i}/run-{i}/result.json" for i in range(8)
-    }
-    page = store.get("site/dashboard.html").decode()
+    site = lr.regenerate(store)
+    page = site["pages"]
+    assert "dashboard.html" in page
+    assert store.list("site/") == []
+    rendered = lr.render_site(lr.load_runs(store))["dashboard.html"]
     for i in range(8):
-        assert f"E{i}/run-{i}" in page
+        assert f"E{i}/run-{i}" in rendered
 
 
 def test_publish_command_end_to_end(tmp_path, capsys):
@@ -799,33 +798,29 @@ def test_regenerate_raises_instead_of_writing_an_unsettled_page(tmp_path, monkey
     assert store.list("site/") == []
 
 
-def test_regenerate_rewrites_when_a_run_lands_during_its_site_write(tmp_path, monkeypatch):
-    """A run landing between our render and our site/ write: its publisher may write first, then we overwrite with
-    pages missing it. The post-write re-read must catch that and leave current pages as the last write."""
+def test_regenerate_retries_when_run_changes_during_render(tmp_path, monkeypatch):
     store = lr.LocalStore(str(tmp_path / "s"))
     a = real(load("fixture-improved"), "a")
     b = copy.deepcopy(a)
     b["run_id"] = "b"
     lr.publish_run(a, fixture_dir("fixture-improved"), store)
-    real_put = store.put
-    injected = []
+    real_render = lr.render_site
+    calls = []
 
-    def put(key, data, *args, **kw):
-        real_put(key, data, *args, **kw)
-        if key.startswith("site/") and not injected:
-            injected.append(key)
-            lr.publish_run(
-                b, fixture_dir("fixture-improved"), store
-            )  # the other publisher, mid-write
+    def render(runs, include_fixtures=None):
+        calls.append([lr.run_key(r) for r in runs])
+        page = real_render(runs, include_fixtures=include_fixtures)
+        if len(calls) == 1:
+            lr.publish_run(b, fixture_dir("fixture-improved"), store)
+        return page
 
-    monkeypatch.setattr(store, "put", put)
+    monkeypatch.setattr(lr, "render_site", render)
     out = tmp_path / "out"
     rep = lr.regenerate(store, str(out))
-    assert injected
+    assert len(calls) == 2
     assert rep["runs"] == sorted([lr.run_key(a), lr.run_key(b)])
-    page = store.get("site/dashboard.html").decode()
-    assert f"{a['experiment_id']}/b" in page
     assert f"{a['experiment_id']}/b" in (out / "dashboard.html").read_text()
+    assert store.list("site/") == []
 
 
 def test_regenerate_rerenders_a_replaced_run_with_unchanged_keys(tmp_path, monkeypatch):
@@ -846,9 +841,10 @@ def test_regenerate_rerenders_a_replaced_run_with_unchanged_keys(tmp_path, monke
         return page
 
     monkeypatch.setattr(lr, "render_site", render)
-    lr.regenerate(store)
+    lr.regenerate(store, str(tmp_path / "out"))
     assert len(renders) == 2 and renders[-1] == ["corrected conclusion text"]
-    assert "corrected conclusion text" in store.get("site/dashboard.html").decode()
+    assert "corrected conclusion text" in (tmp_path / "out" / "dashboard.html").read_text()
+    assert store.list("site/") == []
 
 
 def test_racing_creates_of_one_run_id_cannot_both_win(tmp_path, monkeypatch):
@@ -1060,10 +1056,14 @@ def test_detail_anchors_do_not_collide_after_slugging():
 
 
 def test_regenerate_is_deterministic(tmp_path):
-    store = lr.LocalStore(str(tmp_path))
+    store = lr.LocalStore(str(tmp_path / "store"))
     for r in all_fixtures():
         lr.publish_run(r, fixture_dir(r["run_id"]), store)
-    lr.regenerate(store)
-    first = {k: store.get(k) for k in store.list("site/")}
-    lr.regenerate(store)
-    assert {k: store.get(k) for k in store.list("site/")} == first
+    first = tmp_path / "first"
+    second = tmp_path / "second"
+    lr.regenerate(store, str(first))
+    lr.regenerate(store, str(second))
+    first_pages = {str(p.relative_to(first)): p.read_bytes() for p in first.rglob("*.html")}
+    second_pages = {str(p.relative_to(second)): p.read_bytes() for p in second.rglob("*.html")}
+    assert first_pages == second_pages
+    assert store.list("site/") == []

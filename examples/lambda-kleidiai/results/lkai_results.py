@@ -6,9 +6,9 @@ One file per experiment run (results/schema.json), stored at
     <store>/runs/<experiment_id>/<run_id>/artifacts/<path>      raw logs, invocations, profiles
 
 Nothing under runs/ is shared: a publisher writes only its own run's prefix, and refuses to replace a run that
-already exists with different bytes. The dashboard (<store>/site/index.html and one page per run) is derived:
-`render_site` rebuilds all of it from every result.json in the store, so publishers never edit a shared file and a
-lost race is repaired by the next regeneration.
+already exists with different bytes. Dashboard pages are derived into a local output directory from a stable
+snapshot of every result.json, then the self-contained dashboard.html is compare-and-swap uploaded to Artifactory.
+No publisher writes a shared page prefix in the result store.
 
 The store is a local directory or s3://bucket/prefix (S3Store imports boto3 lazily; nothing else needs it).
 """
@@ -627,30 +627,19 @@ def _fingerprint(runs: list[dict]) -> list[tuple[str, str]]:
 
 
 def regenerate(store, out_dir: str | None = None, include_fixtures: bool | None = None) -> dict:
-    """Rebuild every page from every result.json in the store, upload site/, and write the combined single-file
-    dashboard to out_dir (for Artifactory).
+    """Render every page from a stable snapshot of all result.json objects.
 
-    site/ is written only from a render whose input (run keys and content) was unchanged between loading it and
-    rendering it, so a render that never settles writes nothing. After writing, the run set is read once more: if a
-    run landed meanwhile, its publisher may already have written newer pages that ours replaced, so we render and
-    write again. RegenerateDidNotSettle is raised, and out_dir is not written, when 5 attempts never end on a
-    confirmed-current write; the caller then exits 4 and `--regenerate-only` repairs site/ once publishers quiesce."""
+    Runs are loaded twice and fingerprinted by key plus content. A moving run set retries up to five times, then
+    raises RegenerateDidNotSettle without writing output. Generated pages are written only to out_dir; the durable
+    dashboard is published from dashboard.html through Artifactory's compare-and-swap. No experiment publisher
+    writes a shared site/ prefix in the run store."""
     runs = load_runs(store)
     for _ in range(5):
         seen = _fingerprint(runs)
         site = render_site(runs, include_fixtures=include_fixtures)
         latest = load_runs(store)
-        if _fingerprint(latest) != seen:
-            runs = latest  # someone published meanwhile: render again so their run is on the page
-            continue
-        # Publish only a render whose input was observed stable: a refusal leaves site/ untouched.
-        for name, page in site.items():
-            store.put(f"site/{name}", page.encode(), "text/html; charset=utf-8")
-        latest = load_runs(store)
         if _fingerprint(latest) == seen:
             break
-        # A run landed while we wrote. Its publisher may already have written newer pages that ours just replaced,
-        # so render again rather than leave stale pages as the last write to site/.
         runs = latest
     else:
         raise RegenerateDidNotSettle(
