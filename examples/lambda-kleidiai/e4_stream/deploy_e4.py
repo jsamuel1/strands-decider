@@ -5,10 +5,9 @@
   python deploy_e4.py show     --build <e4-build>
 
 <e4-build> holds function.zip and manifest.json (e4_stream/build.sh) and model/s2b-h512-Q8_0.gguf (P1's weights,
-byte for byte: the format is not E4's variable). Functions, all LKAI_PHASES=1 and handler e4_entry.handler:
-  <prefix>-base        E4_STREAM=0                       download, then load: P1's sequence
-  <prefix>-stream      E4_STREAM=1 STREAM_ORDER=arrival  the load follows the download front (the experiment)
-  <prefix>-streamfile  E4_STREAM=1 STREAM_ORDER=file     the same overlap in llama.cpp's own tensor order (control)
+byte for byte: the format is not E4's variable). Functions, all LKAI_PHASES=1 and handler e4_entry.handler, one
+per arm of ARMS_SETS[E4_ARMS] (default r2; e4_entry.py lists them), <prefix>-<arm>. They differ only in the E4_*
+and STREAM_ORDER variables.
 Everything else is P1's deploy.functions (python3.12, arm64, 10,240 MB, 512 MB ephemeral, 900 s, SnapStart on
 published versions, the runtime version pinned). The role may GetObject the one GGUF key only. State goes to
 <e4-build>/deployment.json, in the shape baseline/bench.py reads.
@@ -28,11 +27,24 @@ sys.path.insert(0, os.path.join(os.path.dirname(HERE), "baseline"))
 import deploy  # noqa: E402
 
 # --- arms ---
-ARMS_ENV = {
-    "base": {"E4_STREAM": "0"},
-    "stream": {"E4_STREAM": "1", "STREAM_ORDER": "arrival"},
-    "streamfile": {"E4_STREAM": "1", "STREAM_ORDER": "file"},
+THR = str(4 * 1024 * 1024)  # E4_MMAP_THRESHOLD: stream_loader.pin_mmap_threshold
+ARMS_SETS = {
+    # run 20261020T131645Z: the overlap (in expected-arrival and in file order) against P1's sequence
+    "r1": {
+        "base": {"E4_STREAM": "0"},
+        "stream": {"E4_STREAM": "1", "STREAM_ORDER": "arrival"},
+        "streamfile": {"E4_STREAM": "1", "STREAM_ORDER": "file"},
+    },
+    # run 2: the overlap with glibc's mmap threshold pinned (stream), the pin alone (basethr), and run 1's stream
+    # arm again (streamdyn), so the pin's effect is measured both with and without the overlap
+    "r2": {
+        "base": {"E4_STREAM": "0"},
+        "stream": {"E4_STREAM": "1", "STREAM_ORDER": "arrival", "E4_MMAP_THRESHOLD": THR},
+        "basethr": {"E4_STREAM": "0", "E4_MMAP_THRESHOLD": THR},
+        "streamdyn": {"E4_STREAM": "1", "STREAM_ORDER": "arrival"},
+    },
 }
+ARMS_ENV = ARMS_SETS[os.environ.get("E4_ARMS", "r2")]
 # --- end arms ---
 HANDLER = "e4_entry.handler"
 deploy.TAGS = {"Project": "strands-decider", "Experiment": "lambda-kleidiai-E4"}

@@ -366,13 +366,46 @@ def test_bench_e4_uses_a_fresh_lambda_client_per_wave(monkeypatch):
     assert all(c.svc == "lambda" and c.meta.config is first.meta.config for c in seen)
 
 
-def test_e4_arms_differ_only_in_stream_environment():
-    sys.path.insert(0, os.path.abspath(E4))
+def _arm_sets():
     src = open(os.path.join(E4, "deploy_e4.py")).read()
-    ns: dict = {}
+    ns: dict = {"os": types.SimpleNamespace(environ={})}
     exec(src.split("# --- arms ---", 1)[1].split("# --- end arms ---", 1)[0], ns)
-    arms = ns["ARMS_ENV"]
-    assert set(arms) == {"base", "stream", "streamfile"}
-    assert arms["base"] == {"E4_STREAM": "0"}
-    assert arms["stream"] == {"E4_STREAM": "1", "STREAM_ORDER": "arrival"}
-    assert arms["streamfile"] == {"E4_STREAM": "1", "STREAM_ORDER": "file"}
+    return ns["ARMS_SETS"], ns["ARMS_ENV"]
+
+
+def test_e4_arms_differ_only_in_e4_environment():
+    sets, default = _arm_sets()
+    assert default is sets["r2"]
+    r1, r2 = sets["r1"], sets["r2"]
+    assert r1 == {
+        "base": {"E4_STREAM": "0"},
+        "stream": {"E4_STREAM": "1", "STREAM_ORDER": "arrival"},
+        "streamfile": {"E4_STREAM": "1", "STREAM_ORDER": "file"},
+    }
+    thr = str(4 * MIB)
+    assert r2["base"] == r1["base"]
+    assert r2["streamdyn"] == r1["stream"]  # run 1's experiment arm, re-measured
+    assert r2["stream"] == r1["stream"] | {"E4_MMAP_THRESHOLD": thr}
+    assert r2["basethr"] == r1["base"] | {"E4_MMAP_THRESHOLD": thr}
+    for arms in sets.values():
+        assert all(
+            set(e) <= {"E4_STREAM", "STREAM_ORDER", "E4_MMAP_THRESHOLD"} for e in arms.values()
+        )
+
+
+def test_pin_mmap_threshold(sl, monkeypatch):
+    calls = []
+    libc = types.SimpleNamespace(mallopt=lambda p, v: calls.append((p, v)) or 1)
+    monkeypatch.setattr(sl.ctypes, "CDLL", lambda name: libc)
+    monkeypatch.delenv("E4_MMAP_THRESHOLD", raising=False)
+    assert (
+        sl.pin_mmap_threshold() is None and calls == []
+    )  # unset: glibc's dynamic threshold, as P1
+    monkeypatch.setenv("E4_MMAP_THRESHOLD", "0")
+    assert sl.pin_mmap_threshold() is None and calls == []
+    monkeypatch.setenv("E4_MMAP_THRESHOLD", str(4 * MIB))
+    assert sl.pin_mmap_threshold() == 4 * MIB
+    assert calls == [(-3, 4 * MIB)]  # M_MMAP_THRESHOLD
+    libc.mallopt = lambda p, v: 0
+    with pytest.raises(OSError, match="mallopt"):
+        sl.pin_mmap_threshold()

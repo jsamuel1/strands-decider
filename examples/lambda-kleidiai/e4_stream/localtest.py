@@ -127,12 +127,15 @@ for r in reqs["requests"]:
 _stop.set()
 mem_after = _proc_mem()
 trim = None
-if (
-    os.environ.get("E4_DIAG_TRIM") == "1"
-):  # diagnosis only: is the extra memory free heap the allocator kept?
+# diagnosis only: is the extra memory free heap the allocator kept? (E4_DIAG_MALLOC_STATS=1: per-arena bytes on stderr)
+if os.environ.get("E4_DIAG_TRIM") == "1":
     import ctypes
 
-    ctypes.CDLL("libc.so.6").malloc_trim(0)
+    libc = ctypes.CDLL("libc.so.6")
+    if os.environ.get("E4_DIAG_MALLOC_STATS") == "1":
+        sys.stderr.flush()
+        libc.malloc_stats()
+    libc.malloc_trim(0)
     trim = _proc_mem()
 
 rec = {

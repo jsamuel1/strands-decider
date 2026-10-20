@@ -1,11 +1,13 @@
 """Lambda entry point of E4 (handler "e4_entry.handler"): P1's instrumented baseline (lkai_entry), with the weight
 download and the model load overlapped when E4_STREAM=1.
 
-Every E4 arm runs this file from the same zip; the arms differ only in their environment:
-  base         E4_STREAM=0   download_to_memfd, then the load (P1's sequence; the llama.cpp hooks stay unset)
-  stream       E4_STREAM=1   the load starts once the GGUF header is in the memfd and follows the download front
-                             (stream_loader.py; tensors loaded in expected-arrival order, STREAM_ORDER=arrival)
-  streamfile   E4_STREAM=1, STREAM_ORDER=file   the same overlap, tensors in llama.cpp's own order (a control)
+Every E4 arm runs this file from the same zip; the arms differ only in their environment (deploy_e4.ARMS_ENV):
+  base         E4_STREAM=0                       download, then load (P1's sequence; the llama.cpp hooks stay unset)
+  stream       E4_STREAM=1 E4_MMAP_THRESHOLD=4 MiB   the load starts once the GGUF header is in the memfd and follows
+                             the download front (stream_loader.py), with glibc's mmap threshold pinned
+  basethr      E4_STREAM=0 E4_MMAP_THRESHOLD=4 MiB   base with the same pin: what the pin alone does
+  streamfile   E4_STREAM=1, STREAM_ORDER=file    (first run only) the overlap in llama.cpp's own tensor order
+  E4_MMAP_THRESHOLD unset: glibc's dynamic threshold, as P1 (first run's stream arm)
 
 Both arms import loader, engine and stream_loader here, before lkai_entry, so their imports are the same; that time
 is added to lkai_entry's `imports` phase. On every arm this module also records `download_and_load`: from the start
@@ -28,6 +30,8 @@ import loader as _loader  # noqa: E402
 import stream_loader  # noqa: E402
 
 STREAM = os.environ.get("E4_STREAM", "0") == "1"
+# Before any download thread allocates (E4_MMAP_THRESHOLD; stream_loader.pin_mmap_threshold says why).
+MMAP_THRESHOLD = stream_loader.pin_mmap_threshold()
 _PRE_IMPORTS_S = (time.monotonic_ns() - _T0) / 1e9
 _t = {"download_start": None}
 
@@ -65,5 +69,6 @@ if _rec is not None:
     _rec.add("imports", _PRE_IMPORTS_S)
     _rec.counters["e4_stream"] = STREAM
     _rec.counters["e4_stream_order"] = os.environ.get("STREAM_ORDER", "arrival") if STREAM else None
+    _rec.counters["e4_mmap_threshold"] = MMAP_THRESHOLD
 
 handler = lkai_entry.handler

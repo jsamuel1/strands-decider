@@ -6,7 +6,7 @@
 On top of summarize.summarize (phases per arm, variance, classification, errors, cost):
   - the streamed-load phases per arm and class (download_and_load, stream_header_wait, stream_load_blocked);
   - correctness of every arm against P1's reference/outputs.json (same request, same CPU part);
-  - <arm>_vs_base for stream and streamfile: median(arm) - median(base) within each CPU part both drew, for the
+  - <arm>_vs_base for every arm but base: median(arm) - median(base) within each CPU part both drew, for the
     REPORT metrics and init phases, pooled by sample count (summarize.overhead's method);
   - snapshot inits counted on every arm (all are instrumented, so none needs P1's estimate);
   - snapstart_note: what the restore class can and cannot show for this variable.
@@ -187,7 +187,8 @@ def main() -> None:
     }
     res["conditions"]["weight_fetch"] = (
         "every arm: PR #77's HEAD + 64 MiB ranged GETs on 32 threads into a memfd. base: then llama.cpp mmaps it. "
-        "stream/streamfile: the load starts once the header has arrived and waits per tensor (e4_stream/)"
+        "E4_STREAM=1 arms: the load starts once the header has arrived and waits per tensor (e4_stream/); "
+        "E4_MMAP_THRESHOLD arms: glibc mmap threshold pinned (stream_loader.pin_mmap_threshold)"
     )
     res["snapstart_note"] = (
         "Under SnapStart the download and load run inside publish_version's snapshot init, never in a restore. "

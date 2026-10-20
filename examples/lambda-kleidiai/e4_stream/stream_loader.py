@@ -217,6 +217,25 @@ def _record(**kv: Any) -> None:
                 rec.counters[k] = v
 
 
+def pin_mmap_threshold() -> int | None:
+    """Fix glibc's mmap threshold at E4_MMAP_THRESHOLD bytes (unset or 0: leave glibc's dynamic threshold).
+
+    Why: glibc raises its mmap threshold to the size of each large block freed (up to 32 MiB) and its trim threshold
+    to twice that. In the streamed load the KleidiAI repack frees large buffers on the main thread while the download
+    threads still read 8 MiB bodies, so the thresholds rise before the download ends; each download thread's arena
+    then keeps a ~16.7 MiB free top that malloc_trim cannot return (it trims only the main arena's top). 32 threads:
+    about +480 MB on Lambda's Max Memory Used, which also lands in the SnapStart snapshot (E4 run 20261020T131645Z:
+    restore +0.41 s). In P1's sequence the repack starts after the download, so the arenas have already shrunk. A fixed
+    threshold (mallopt M_MMAP_THRESHOLD) stops the adjustment: 8 MiB bodies are then mmapped and unmapped per read."""
+    v = int(os.environ.get("E4_MMAP_THRESHOLD") or 0)
+    if v <= 0:
+        return None
+    M_MMAP_THRESHOLD = -3  # malloc.h
+    if ctypes.CDLL("libc.so.6").mallopt(M_MMAP_THRESHOLD, v) != 1:
+        raise OSError(f"mallopt(M_MMAP_THRESHOLD, {v}) failed")
+    return v
+
+
 def download_to_memfd_streaming(bucket: str, key: str, header_bytes: int = 1 << 20) -> str:
     """Start loader.download_to_memfd's download and return /proc/self/fd/<n> once the first `header_bytes` (rounded
     up to whole 8 MiB body chunks by the range they live in) have arrived, with the hooks installed.

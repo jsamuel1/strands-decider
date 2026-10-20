@@ -4,13 +4,14 @@
 #   AWS_PROFILE=<profile> examples/lambda-kleidiai/e4_stream/run.sh [RUN_ID]
 #
 # 1. e4_stream/build.sh   P1's pinned weights and llama.cpp, plus patch_stream.py, built into one function.zip
-# 2. deploy_e4.py up      lkai-e4-base / -stream / -streamfile: same zip and config, different E4_STREAM/STREAM_ORDER
+# 2. deploy_e4.py up      one function per arm of deploy_e4.ARMS_SETS[E4_ARMS] (r2 default; r1 = the first run):
+#                         same zip and config, different E4_* / STREAM_ORDER variables
 # 3. bench_e4.py         P1's interleaved cold / restore / warm harness (baseline/bench.py) over the three arms, with a
 #                         fresh Lambda client per wave (bench_e4.py says why)
 # 4. summarize_e4.py      lkai-result/1, correctness against P1's reference/outputs.json
 # 5. baseline/redact.py   results/<RUN_ID>/ is what gets committed
 # Env knobs as baseline/run.sh: REGION=us-east-2 ROUNDS=5 CONCURRENCY=10 WARM=10 PREFIX=lkai-e4
-# TEARDOWN=versions|all|none, ARMS=base,stream,streamfile. LKAI_BUILD (default baseline/build) is P1's build.
+# TEARDOWN=versions|all|none, E4_ARMS=r1|r2. LKAI_BUILD (default baseline/build) is P1's build.
 set -euo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd)
 BASE=$(cd "$HERE/../baseline" && pwd)
@@ -24,6 +25,7 @@ PY=${PYTHON:-python3}
 # P1's pushed baseline HEAD that this branch starts from (feat/lambda-kleidiai-baseline on the fork).
 BASELINE_COMMIT=${BASELINE_COMMIT:-aac59d45555ebded9357c23f6f8e4f939edf25d7}
 
+ARMS=$("$PY" -c "import sys; sys.argv=['x']; sys.path.insert(0, '$HERE'); import deploy_e4; print(','.join(deploy_e4.ARMS_ENV))" 2>/dev/null) || { echo "deploy_e4 import failed"; exit 1; }
 [ -f "$B/function.zip" ] && [ -z "${REBUILD:-}" ] || "$HERE/build.sh"
 "$PY" "$HERE/deploy_e4.py" up --build "$B" --region "$REGION" --prefix "$PREFIX"
 cleanup_versions() {
@@ -35,7 +37,7 @@ cleanup_versions() {
   esac
 }
 trap cleanup_versions EXIT
-"$PY" "$HERE/bench_e4.py" --build "$B" --arms "${ARMS:-base,stream,streamfile}" --region "$REGION" \
+"$PY" "$HERE/bench_e4.py" --build "$B" --arms "$ARMS" --region "$REGION" \
   --rounds "${ROUNDS:-5}" --concurrency "${CONCURRENCY:-10}" --warm "${WARM:-10}" --out "$RAW"
 "$PY" "$HERE/summarize_e4.py" "$RAW" --reference "$BASE/reference/outputs.json" --meta "$HERE/meta.json" \
   --experiment-commit "$(git -C "$HERE" rev-parse HEAD)" --baseline-commit "$BASELINE_COMMIT"
