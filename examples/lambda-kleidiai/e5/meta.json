@@ -1,0 +1,11 @@
+{
+ "experiment_id": "E5-mmap-format",
+ "status": "inconclusive",
+ "hypothesis": "The pinned llama.cpp loader cannot mmap a pre-repacked KleidiAI layout (on-disk repacked types were removed upstream), so the only format change it supports with the same Q8_0 tensors is less metadata to deserialize. Dropping llama.cpp's text vocabulary (248,320 tokens and 247,587 BPE merges, which the engine never uses: it tokenizes in Python) removes ~11 MB of metadata parsing from llama_model_load_from_file; it should shorten deserialize/mmap by a fraction of a second and change no output.",
+ "changed_variable": "weight file format: GGUF Q8_0 with embedded gpt2 BPE vocabulary (baseline) -> the same tensors byte for byte in a GGUF with tokenizer.ggml.model=none (convert_no_vocab.py)",
+ "conclusion": null,
+ "reproduce": [
+  "git fetch https://github.com/jsamuel1/strands-decider lkai/3259-mmap-format && git checkout FETCH_HEAD",
+  "AWS_PROFILE=<profile> examples/lambda-kleidiai/e5/run.sh <run-id>"
+ ]
+}
