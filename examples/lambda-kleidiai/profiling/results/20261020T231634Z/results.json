@@ -3,7 +3,7 @@
  "experiment_id": "P3-profilers",
  "run_id": "20261020T231634Z",
  "status": "inconclusive",
- "hypothesis": "Which profilers work inside the P1 Lambda (python3.12, arm64, 10,240 MB, SnapStart) and what each costs. Each profiler arm runs P1's code with one profiler on; its cost is the difference in Lambda's own REPORT numbers against a REPORT-only control (rep), paired by round (and by request for warm), Graviton3 only, judged against rep2, a second byte-identical REPORT-only function, as the null. 'nvidia-spi' (the operator's word) is read as NVIDIA's tooling: nvidia-smi and Nsight Systems/Compute.",
+ "hypothesis": "Which profilers work inside the P1 Lambda (python3.12, arm64, 10,240 MB, SnapStart) and what each costs. Each profiler arm runs P1's code with one profiler on; its cost is the difference in Lambda's own REPORT numbers against a REPORT-only control (rep), paired by round (and by request for warm), CPU part 0xd40 rows only, judged against rep2, a second byte-identical REPORT-only function run in the same rounds, as a paired null. 'nvidia-spi' (the operator's word) is read as NVIDIA's tooling: nvidia-smi and Nsight Systems/Compute.",
  "changed_variable": {
   "name": "profiler",
   "baseline": "none (REPORT-only: lkai_entry.handler, LKAI_PHASES=0, P1's zip)",
@@ -16351,7 +16351,7 @@
   "python $P/offline_summary.py --graviton build/p3/graviton --gpu <gpu out> --graviton-symbolised <sym.json> --out $P/results/offline",
   "$P/stage_run.sh build/p3/runs/<run-id> $P/results/<run-id> <bucket> <account> <prof-manifest source_commit> build/p3/prof-manifest.json  # summarize_prof.py (verifies every packaged input against the commit) + redaction"
  ],
- "conclusion": "Applicability (in Lambda): NVIDIA tools (nvidia-smi, nsys, ncu) are INAPPLICABLE because there is no GPU (no /dev/nvidia*, no PCI 0x10de, no driver or libraries; 7 environments, all Graviton3 0xd40). perf, eBPF, ptrace and py-spy --native are DENIED (EPERM; CapEff 0, seccomp filter, perf_event_paranoid 2, no PMU). These WORK: P1 phase timers, REPORT/CloudWatch, X-Ray, the Telemetry API extension, cProfile, py-spy --nonblocking, and an in-process SIGPROF sampler (lkaisamp), which gives native KleidiAI kernel profiles where perf is denied. Overhead (run 20261020T231634Z: 8 arms, 4,800 invocations, 0 errors, a fresh Lambda client per wave; mean of 5 per-round paired deltas vs rep on Graviton3, each arm tested against the rep2 same-code null by an exact permutation test, p<0.05 and beyond the null's largest |delta|): phase timers and X-Ray show no cost distinguishable from the null on any phase (null spread up to 28 ms Init, 155 ms cold Duration, 112 ms Restore Duration, 35 ms first restored request, ~1.8% warm). Measurable: cProfile +113 ms Init (14%); Telemetry extension +93 ms Init (11%); py-spy +4.7% median per warm request; lkaisamp +457 ms cold first-request Duration. lkaisamp's first-after-restore Duration rose +1.5 to +1.8 s in 3 of 5 rounds but not in 2, so it is not called measurable (p=0.119); the delta is outside the baseline's internal timing but before lkai_prof.handler returns, and attribution within its dump/symbolise hook remains open. Final latency comparisons should use REPORT or phase timers only. Hot spots (shares of all recorded samples): cold = S3 download 25.0 s (69.4%; 58% of py-spy init samples in TLS read) then the KleidiAI repack 8.4 s (23.3%; buffer_set_tensor 30.8% + rhs_pack 12.2% of init CPU samples, single-threaded offline). Restore = Lambda restore 3.21 s (82%), then a first forward 2.8x warm whose CPU samples are 51% memset inside llama_kv_cache::clear / llama_memory_recurrent::clear. Warm = KleidiAI i8mm matmul 49% of CPU, then f32 dot 9%, gated-delta-net 8%, concat 6%, OpenMP barrier 5%, fwht 5%. Run 20261020T124451Z is superseded: one pooled Lambda client across SnapStart waits lost 45 restore invokes to client timeouts (this was earlier misreported as a Lambda platform stall), and its noise floor was the X-Ray arm itself. Status is inconclusive because this is a measurement study, not a latency change.",
+ "conclusion": "Applicability (in Lambda): NVIDIA tools (nvidia-smi, nsys, ncu) are INAPPLICABLE because there is no GPU (no /dev/nvidia*, no PCI 0x10de, no driver or libraries; 7 probe environments, all CPU part 0xd40). perf, eBPF, ptrace and py-spy --native are DENIED (EPERM; CapEff 0, seccomp filter, perf_event_paranoid 2, no PMU). These WORK: P1 phase timers, REPORT/CloudWatch, X-Ray, the Telemetry API extension, cProfile, py-spy --nonblocking, and an in-process SIGPROF sampler (lkaisamp), which gives native KleidiAI kernel profiles where perf is denied. Overhead (run 20261020T231634Z: 8 arms, 4,800 invocations, 0 errors, a fresh Lambda client per wave; mean of 5 per-round deltas vs rep on CPU part 0xd40). rep2, a byte-identical REPORT-only function in the same rounds, is the null; arm-rep and rep2-rep share each round's rep, so inference uses the paired per-round difference arm-rep2 with an exact two-sided sign-flip test. With 5 pairs the smallest attainable p is 0.0625, so NO profiler cost is statistically established at alpha 0.05 (an earlier unpaired 5-vs-5 test reported p=0.008; withdrawn). Estimates with a consistent direction (all 5 paired differences one sign and every round beyond the null's largest |delta|; descriptive, p=0.0625): cProfile +113 ms Init (14%); Telemetry extension +93 ms Init (11%); py-spy +4.7% median per warm request; lkaisamp +457 ms cold first-request Duration. Phase timers and X-Ray show no consistent direction on any phase (null spread up to 28 ms Init, 155 ms cold Duration, 112 ms Restore Duration, 35 ms first restored request, ~1.8% warm); not proof of zero cost. lkaisamp's first-after-restore Duration rose +1.5 to +1.8 s in 3 of 5 rounds but not in 2 (p=0.25); the delta is outside the baseline's internal timing but before lkai_prof.handler returns, and attribution within its dump/symbolise hook remains open. Final latency comparisons should use REPORT or phase timers only. Host variability (results.json -> host_variability, reanalysis of committed evidence, no new spend): three CPU part IDs served the run (0xd40 4,225 rows, 0xd0c 528, 0xd4f 47), in every arm; no generation is inferred from them. Each loaded its own ggml CPU variant (0xd40 armv8.6_1, 0xd0c armv8.2_2, 0xd4f armv8.6_2), so kernels differ by part. No log stream changed part ID (4,472 of 4,800 rows linked). Unknown: per-invocation implementer/variant/revision/features, HWCAPs, core count and restored core count, cgroup limits, per-invocation kernel, AZ, snapshot-build host. Overhead cells are 0xd40-only, so the part mix cannot move them; pooled figures depend on the mix (rep warm REPORT p50 650 ms on 0xd40 vs 1,188 ms on 0xd0c). Hot spots (shares of all recorded samples): cold = S3 download 25.0 s (69.4%; 58% of py-spy init samples in TLS read) then the KleidiAI repack 8.4 s (23.3%; buffer_set_tensor 30.8% + rhs_pack 12.2% of init CPU samples pooled over parts; buffer_set_tensor 26.4% on 0xd40, 37.6% on 0xd0c, 30.3% on 0xd4f; single-threaded offline). Restore = Lambda restore 3.21 s (82%), then a first forward 2.8x warm whose CPU samples are 51% memset inside llama_kv_cache::clear / llama_memory_recurrent::clear (0xd40). Warm (0xd40) = KleidiAI i8mm matmul 49% of CPU, then f32 dot 9%, gated-delta-net 8%, concat 6%, OpenMP barrier 5%, fwht 5%. Warm concat is 5.6% in Lambda vs 2.65% offline under the same sampler on the same part ID 0xd40; not attributed to code (unrecorded host factors). Run 20261020T124451Z is superseded: one pooled Lambda client across SnapStart waits lost 45 restore invokes to client timeouts (this was earlier misreported as a Lambda platform stall), and its noise floor was the X-Ray arm itself. Status is inconclusive because this is a measurement study, not a latency change.",
  "primary_arm": "rep",
  "profiler_overhead": {
   "rep2": {
@@ -18421,7 +18421,7 @@
   "usable": true
  },
  "profiler_overhead_paired": {
-  "method": "per round: median(arm) - median(rep) of the REPORT field, Graviton3 (0xd40) rows only, no errors or class mismatches, each median from >= 3 samples (else the round is skipped and listed); then mean/min/max over the rounds. Warm also per (round, request) as a percentage. Null: rep2, a second function byte-identical to rep, so rep2 - rep is what zero cost looks like. Each arm (xray and none included) is judged against that null by an exact two-sided permutation test on the mean of its per-round deltas (warm by request: per-round mean %), alpha 0.05, and must also exceed the null's largest |per-round value| to be called measurable",
+  "method": "per round: median(arm) - median(rep) of the REPORT field, CPU part 0xd40 rows only, no errors or class mismatches, each median from >= 3 samples (else the round is skipped and listed); then mean/min/max over the rounds. Warm also per (round, request) as a percentage. Null: rep2, a second function byte-identical to rep, run in the same rounds, so rep2 - rep is what zero cost looks like. arm - rep and rep2 - rep share each round's rep median, so they are paired: each arm (xray and none included) is tested on the per-round paired difference arm - rep2 (warm by request: per-round mean %) by an exact two-sided sign-flip test, alpha 0.05, and must also exceed the null's largest |per-round value| to be called measurable. With 5 paired rounds the smallest attainable p is 2/32 = 0.0625, so no cell can be called measurable at alpha 0.05 (underpowered); consistent_direction is a descriptive flag, not a test",
   "cpu_part": "0xd40",
   "null_arm": "rep2",
   "noise_floor_ms": {
@@ -18435,60 +18435,168 @@
    "none": {
     "cold.Init Duration": {
      "verdict": "not measurable",
-     "p": 0.5238,
-     "n_arm": 5,
-     "n_null": 5,
+     "p": 0.5,
+     "test": "exact two-sided paired sign-flip on arm - null per round",
+     "n_pairs": 5,
+     "rounds": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
+     "min_attainable_p": 0.0625,
+     "underpowered": true,
      "unit": "ms",
+     "paired_diff_by_round": [
+      19.4,
+      -19.5,
+      16.0,
+      29.8,
+      -1.6
+     ],
+     "paired_diff_mean": 8.82,
+     "consistent_direction": false,
      "arm_mean": 8.68,
      "null_mean": -0.14,
      "null_max_abs": 27.6
     },
     "cold.Duration": {
      "verdict": "not measurable",
-     "p": 0.7857,
-     "n_arm": 5,
-     "n_null": 5,
+     "p": 0.75,
+     "test": "exact two-sided paired sign-flip on arm - null per round",
+     "n_pairs": 5,
+     "rounds": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
+     "min_attainable_p": 0.0625,
+     "underpowered": true,
      "unit": "ms",
+     "paired_diff_by_round": [
+      101.9,
+      55.4,
+      44.6,
+      22.9,
+      -148.5
+     ],
+     "paired_diff_mean": 15.26,
+     "consistent_direction": false,
      "arm_mean": 68.6,
      "null_mean": 53.34,
      "null_max_abs": 154.8
     },
     "restore.Restore Duration": {
      "verdict": "not measurable",
-     "p": 0.119,
-     "n_arm": 5,
-     "n_null": 5,
+     "p": 0.125,
+     "test": "exact two-sided paired sign-flip on arm - null per round",
+     "n_pairs": 5,
+     "rounds": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
+     "min_attainable_p": 0.0625,
+     "underpowered": true,
      "unit": "ms",
+     "paired_diff_by_round": [
+      -85.6,
+      2.6,
+      -14.6,
+      -56.4,
+      -58.1
+     ],
+     "paired_diff_mean": -42.42,
+     "consistent_direction": false,
      "arm_mean": 5.42,
      "null_mean": 47.84,
      "null_max_abs": 111.6
     },
     "restore.Duration": {
      "verdict": "not measurable",
-     "p": 0.2698,
-     "n_arm": 5,
-     "n_null": 5,
+     "p": 0.25,
+     "test": "exact two-sided paired sign-flip on arm - null per round",
+     "n_pairs": 5,
+     "rounds": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
+     "min_attainable_p": 0.0625,
+     "underpowered": true,
      "unit": "ms",
+     "paired_diff_by_round": [
+      -7.2,
+      -5.1,
+      0.0,
+      1.5,
+      -48.8
+     ],
+     "paired_diff_mean": -11.92,
+     "consistent_direction": false,
      "arm_mean": 0.3,
      "null_mean": 12.22,
      "null_max_abs": 35.2
     },
     "warm.Duration": {
      "verdict": "not measurable",
-     "p": 0.8413,
-     "n_arm": 5,
-     "n_null": 5,
+     "p": 0.9375,
+     "test": "exact two-sided paired sign-flip on arm - null per round",
+     "n_pairs": 5,
+     "rounds": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
+     "min_attainable_p": 0.0625,
+     "underpowered": true,
      "unit": "ms",
+     "paired_diff_by_round": [
+      39.7,
+      -5.0,
+      3.6,
+      -5.6,
+      -14.9
+     ],
+     "paired_diff_mean": 3.56,
+     "consistent_direction": false,
      "arm_mean": 4.2,
      "null_mean": 0.64,
      "null_max_abs": 31.2
     },
     "warm.Duration.by_request": {
      "verdict": "not measurable",
-     "p": 0.2937,
-     "n_arm": 5,
-     "n_null": 5,
+     "p": 0.125,
+     "test": "exact two-sided paired sign-flip on arm - null per round",
+     "n_pairs": 5,
+     "rounds": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
+     "min_attainable_p": 0.0625,
+     "underpowered": true,
      "unit": "pct",
+     "paired_diff_by_round": [
+      -0.341,
+      -0.422,
+      0.301,
+      -1.748,
+      -1.58
+     ],
+     "paired_diff_mean": -0.76,
+     "consistent_direction": false,
      "arm_mean": -0.57,
      "null_mean": 0.18,
      "null_max_abs": 1.83
@@ -18496,31 +18604,85 @@
    },
    "cprofile": {
     "cold.Init Duration": {
-     "verdict": "measurable",
-     "p": 0.0079,
-     "n_arm": 5,
-     "n_null": 5,
+     "verdict": "not measurable",
+     "p": 0.0625,
+     "test": "exact two-sided paired sign-flip on arm - null per round",
+     "n_pairs": 5,
+     "rounds": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
+     "min_attainable_p": 0.0625,
+     "underpowered": true,
      "unit": "ms",
+     "paired_diff_by_round": [
+      98.1,
+      92.0,
+      121.7,
+      128.3,
+      123.7
+     ],
+     "paired_diff_mean": 112.76,
+     "consistent_direction": true,
      "arm_mean": 112.62,
      "null_mean": -0.14,
      "null_max_abs": 27.6
     },
     "cold.Duration": {
      "verdict": "not measurable",
-     "p": 0.119,
-     "n_arm": 5,
-     "n_null": 5,
+     "p": 0.0625,
+     "test": "exact two-sided paired sign-flip on arm - null per round",
+     "n_pairs": 5,
+     "rounds": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
+     "min_attainable_p": 0.0625,
+     "underpowered": true,
      "unit": "ms",
+     "paired_diff_by_round": [
+      65.0,
+      233.4,
+      239.3,
+      84.1,
+      43.2
+     ],
+     "paired_diff_mean": 133.0,
+     "consistent_direction": false,
      "arm_mean": 186.34,
      "null_mean": 53.34,
      "null_max_abs": 154.8
     },
     "restore.Restore Duration": {
      "verdict": "not measurable",
-     "p": 0.3095,
-     "n_arm": 5,
-     "n_null": 5,
+     "p": 0.125,
+     "test": "exact two-sided paired sign-flip on arm - null per round",
+     "n_pairs": 5,
+     "rounds": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
+     "min_attainable_p": 0.0625,
+     "underpowered": true,
      "unit": "ms",
+     "paired_diff_by_round": [
+      -6.4,
+      8.3,
+      35.0,
+      7.2,
+      63.9
+     ],
+     "paired_diff_mean": 21.6,
+     "consistent_direction": false,
      "arm_mean": 69.44,
      "null_mean": 47.84,
      "null_max_abs": 111.6
@@ -18528,19 +18690,55 @@
     "restore.Duration": {
      "verdict": "not measurable",
      "p": 1.0,
-     "n_arm": 5,
-     "n_null": 5,
+     "test": "exact two-sided paired sign-flip on arm - null per round",
+     "n_pairs": 5,
+     "rounds": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
+     "min_attainable_p": 0.0625,
+     "underpowered": true,
      "unit": "ms",
+     "paired_diff_by_round": [
+      14.2,
+      -2.3,
+      7.9,
+      11.9,
+      -30.8
+     ],
+     "paired_diff_mean": 0.18,
+     "consistent_direction": false,
      "arm_mean": 12.4,
      "null_mean": 12.22,
      "null_max_abs": 35.2
     },
     "warm.Duration": {
      "verdict": "not measurable",
-     "p": 0.5635,
-     "n_arm": 5,
-     "n_null": 5,
+     "p": 0.5,
+     "test": "exact two-sided paired sign-flip on arm - null per round",
+     "n_pairs": 5,
+     "rounds": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
+     "min_attainable_p": 0.0625,
+     "underpowered": true,
      "unit": "ms",
+     "paired_diff_by_round": [
+      -1.2,
+      -3.2,
+      32.2,
+      11.8,
+      -0.8
+     ],
+     "paired_diff_mean": 7.76,
+     "consistent_direction": false,
      "arm_mean": 8.4,
      "null_mean": 0.64,
      "null_max_abs": 31.2
@@ -18548,9 +18746,27 @@
     "warm.Duration.by_request": {
      "verdict": "not measurable",
      "p": 1.0,
-     "n_arm": 5,
-     "n_null": 5,
+     "test": "exact two-sided paired sign-flip on arm - null per round",
+     "n_pairs": 5,
+     "rounds": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
+     "min_attainable_p": 0.0625,
+     "underpowered": true,
      "unit": "pct",
+     "paired_diff_by_round": [
+      -0.394,
+      0.124,
+      1.027,
+      -0.148,
+      -0.61
+     ],
+     "paired_diff_mean": -0.0,
+     "consistent_direction": false,
      "arm_mean": 0.18,
      "null_mean": 0.18,
      "null_max_abs": 1.83
@@ -18559,60 +18775,168 @@
    "pyspy": {
     "cold.Init Duration": {
      "verdict": "not measurable",
-     "p": 0.1349,
-     "n_arm": 5,
-     "n_null": 5,
+     "p": 0.0625,
+     "test": "exact two-sided paired sign-flip on arm - null per round",
+     "n_pairs": 5,
+     "rounds": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
+     "min_attainable_p": 0.0625,
+     "underpowered": true,
      "unit": "ms",
+     "paired_diff_by_round": [
+      1.8,
+      6.5,
+      9.7,
+      44.1,
+      41.3
+     ],
+     "paired_diff_mean": 20.68,
+     "consistent_direction": false,
      "arm_mean": 20.54,
      "null_mean": -0.14,
      "null_max_abs": 27.6
     },
     "cold.Duration": {
      "verdict": "not measurable",
-     "p": 0.3016,
-     "n_arm": 5,
-     "n_null": 5,
+     "p": 0.1875,
+     "test": "exact two-sided paired sign-flip on arm - null per round",
+     "n_pairs": 5,
+     "rounds": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
+     "min_attainable_p": 0.0625,
+     "underpowered": true,
      "unit": "ms",
+     "paired_diff_by_round": [
+      146.3,
+      48.3,
+      147.7,
+      128.5,
+      -65.0
+     ],
+     "paired_diff_mean": 81.16,
+     "consistent_direction": false,
      "arm_mean": 134.5,
      "null_mean": 53.34,
      "null_max_abs": 154.8
     },
     "restore.Restore Duration": {
      "verdict": "not measurable",
-     "p": 0.3968,
-     "n_arm": 5,
-     "n_null": 5,
+     "p": 0.4375,
+     "test": "exact two-sided paired sign-flip on arm - null per round",
+     "n_pairs": 5,
+     "rounds": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
+     "min_attainable_p": 0.0625,
+     "underpowered": true,
      "unit": "ms",
+     "paired_diff_by_round": [
+      -111.7,
+      84.2,
+      -28.8,
+      -53.4,
+      -36.8
+     ],
+     "paired_diff_mean": -29.3,
+     "consistent_direction": false,
      "arm_mean": 18.54,
      "null_mean": 47.84,
      "null_max_abs": 111.6
     },
     "restore.Duration": {
      "verdict": "not measurable",
-     "p": 0.2698,
-     "n_arm": 5,
-     "n_null": 5,
+     "p": 0.0625,
+     "test": "exact two-sided paired sign-flip on arm - null per round",
+     "n_pairs": 5,
+     "rounds": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
+     "min_attainable_p": 0.0625,
+     "underpowered": true,
      "unit": "ms",
+     "paired_diff_by_round": [
+      16.0,
+      4.4,
+      24.2,
+      7.8,
+      13.7
+     ],
+     "paired_diff_mean": 13.22,
+     "consistent_direction": false,
      "arm_mean": 25.44,
      "null_mean": 12.22,
      "null_max_abs": 35.2
     },
     "warm.Duration": {
      "verdict": "not measurable",
-     "p": 0.0635,
-     "n_arm": 5,
-     "n_null": 5,
+     "p": 0.0625,
+     "test": "exact two-sided paired sign-flip on arm - null per round",
+     "n_pairs": 5,
+     "rounds": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
+     "min_attainable_p": 0.0625,
+     "underpowered": true,
      "unit": "ms",
+     "paired_diff_by_round": [
+      68.3,
+      3.3,
+      61.2,
+      37.5,
+      42.8
+     ],
+     "paired_diff_mean": 42.62,
+     "consistent_direction": false,
      "arm_mean": 43.26,
      "null_mean": 0.64,
      "null_max_abs": 31.2
     },
     "warm.Duration.by_request": {
-     "verdict": "measurable",
-     "p": 0.0079,
-     "n_arm": 5,
-     "n_null": 5,
+     "verdict": "not measurable",
+     "p": 0.0625,
+     "test": "exact two-sided paired sign-flip on arm - null per round",
+     "n_pairs": 5,
+     "rounds": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
+     "min_attainable_p": 0.0625,
+     "underpowered": true,
      "unit": "pct",
+     "paired_diff_by_round": [
+      5.689,
+      2.583,
+      5.382,
+      4.34,
+      5.134
+     ],
+     "paired_diff_mean": 4.63,
+     "consistent_direction": true,
      "arm_mean": 4.81,
      "null_mean": 0.18,
      "null_max_abs": 1.83
@@ -18621,60 +18945,168 @@
    "sampler": {
     "cold.Init Duration": {
      "verdict": "not measurable",
-     "p": 0.2222,
-     "n_arm": 5,
-     "n_null": 5,
+     "p": 0.0625,
+     "test": "exact two-sided paired sign-flip on arm - null per round",
+     "n_pairs": 5,
+     "rounds": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
+     "min_attainable_p": 0.0625,
+     "underpowered": true,
      "unit": "ms",
+     "paired_diff_by_round": [
+      21.3,
+      0.2,
+      20.2,
+      26.6,
+      10.3
+     ],
+     "paired_diff_mean": 15.72,
+     "consistent_direction": false,
      "arm_mean": 15.58,
      "null_mean": -0.14,
      "null_max_abs": 27.6
     },
     "cold.Duration": {
-     "verdict": "measurable",
-     "p": 0.0079,
-     "n_arm": 5,
-     "n_null": 5,
+     "verdict": "not measurable",
+     "p": 0.0625,
+     "test": "exact two-sided paired sign-flip on arm - null per round",
+     "n_pairs": 5,
+     "rounds": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
+     "min_attainable_p": 0.0625,
+     "underpowered": true,
      "unit": "ms",
+     "paired_diff_by_round": [
+      360.0,
+      362.3,
+      491.2,
+      502.4,
+      301.0
+     ],
+     "paired_diff_mean": 403.38,
+     "consistent_direction": true,
      "arm_mean": 456.72,
      "null_mean": 53.34,
      "null_max_abs": 154.8
     },
     "restore.Restore Duration": {
      "verdict": "not measurable",
-     "p": 0.1508,
-     "n_arm": 5,
-     "n_null": 5,
+     "p": 0.375,
+     "test": "exact two-sided paired sign-flip on arm - null per round",
+     "n_pairs": 5,
+     "rounds": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
+     "min_attainable_p": 0.0625,
+     "underpowered": true,
      "unit": "ms",
+     "paired_diff_by_round": [
+      -65.0,
+      141.1,
+      64.1,
+      -11.4,
+      167.6
+     ],
+     "paired_diff_mean": 59.28,
+     "consistent_direction": false,
      "arm_mean": 107.12,
      "null_mean": 47.84,
      "null_max_abs": 111.6
     },
     "restore.Duration": {
      "verdict": "not measurable",
-     "p": 0.119,
-     "n_arm": 5,
-     "n_null": 5,
+     "p": 0.25,
+     "test": "exact two-sided paired sign-flip on arm - null per round",
+     "n_pairs": 5,
+     "rounds": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
+     "min_attainable_p": 0.0625,
+     "underpowered": true,
      "unit": "ms",
+     "paired_diff_by_round": [
+      -1.6,
+      -10.3,
+      1519.8,
+      1749.2,
+      1737.1
+     ],
+     "paired_diff_mean": 998.84,
+     "consistent_direction": false,
      "arm_mean": 1011.06,
      "null_mean": 12.22,
      "null_max_abs": 35.2
     },
     "warm.Duration": {
      "verdict": "not measurable",
-     "p": 0.0873,
-     "n_arm": 5,
-     "n_null": 5,
+     "p": 0.0625,
+     "test": "exact two-sided paired sign-flip on arm - null per round",
+     "n_pairs": 5,
+     "rounds": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
+     "min_attainable_p": 0.0625,
+     "underpowered": true,
      "unit": "ms",
+     "paired_diff_by_round": [
+      -2.6,
+      -54.4,
+      -2.7,
+      -33.2,
+      -51.8
+     ],
+     "paired_diff_mean": -28.94,
+     "consistent_direction": false,
      "arm_mean": -28.3,
      "null_mean": 0.64,
      "null_max_abs": 31.2
     },
     "warm.Duration.by_request": {
      "verdict": "not measurable",
-     "p": 0.119,
-     "n_arm": 5,
-     "n_null": 5,
+     "p": 0.1875,
+     "test": "exact two-sided paired sign-flip on arm - null per round",
+     "n_pairs": 5,
+     "rounds": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
+     "min_attainable_p": 0.0625,
+     "underpowered": true,
      "unit": "pct",
+     "paired_diff_by_round": [
+      -0.09,
+      -2.092,
+      0.839,
+      -1.19,
+      -2.369
+     ],
+     "paired_diff_mean": -0.98,
+     "consistent_direction": false,
      "arm_mean": -0.8,
      "null_mean": 0.18,
      "null_max_abs": 1.83
@@ -18683,60 +19115,168 @@
    "xray": {
     "cold.Init Duration": {
      "verdict": "not measurable",
-     "p": 0.7302,
-     "n_arm": 5,
-     "n_null": 5,
+     "p": 0.25,
+     "test": "exact two-sided paired sign-flip on arm - null per round",
+     "n_pairs": 5,
+     "rounds": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
+     "min_attainable_p": 0.0625,
+     "underpowered": true,
      "unit": "ms",
+     "paired_diff_by_round": [
+      4.5,
+      -6.4,
+      6.4,
+      6.7,
+      14.1
+     ],
+     "paired_diff_mean": 5.06,
+     "consistent_direction": false,
      "arm_mean": 4.92,
      "null_mean": -0.14,
      "null_max_abs": 27.6
     },
     "cold.Duration": {
      "verdict": "not measurable",
-     "p": 0.754,
-     "n_arm": 5,
-     "n_null": 5,
+     "p": 0.5625,
+     "test": "exact two-sided paired sign-flip on arm - null per round",
+     "n_pairs": 5,
+     "rounds": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
+     "min_attainable_p": 0.0625,
+     "underpowered": true,
      "unit": "ms",
+     "paired_diff_by_round": [
+      54.6,
+      -49.0,
+      125.3,
+      58.0,
+      -71.9
+     ],
+     "paired_diff_mean": 23.4,
+     "consistent_direction": false,
      "arm_mean": 76.74,
      "null_mean": 53.34,
      "null_max_abs": 154.8
     },
     "restore.Restore Duration": {
      "verdict": "not measurable",
-     "p": 0.3413,
-     "n_arm": 5,
-     "n_null": 5,
+     "p": 0.0625,
+     "test": "exact two-sided paired sign-flip on arm - null per round",
+     "n_pairs": 5,
+     "rounds": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
+     "min_attainable_p": 0.0625,
+     "underpowered": true,
      "unit": "ms",
+     "paired_diff_by_round": [
+      -73.8,
+      -1.6,
+      -17.1,
+      -0.2,
+      -26.4
+     ],
+     "paired_diff_mean": -23.82,
+     "consistent_direction": false,
      "arm_mean": 24.02,
      "null_mean": 47.84,
      "null_max_abs": 111.6
     },
     "restore.Duration": {
      "verdict": "not measurable",
-     "p": 0.8254,
-     "n_arm": 5,
-     "n_null": 5,
+     "p": 0.6875,
+     "test": "exact two-sided paired sign-flip on arm - null per round",
+     "n_pairs": 5,
+     "rounds": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
+     "min_attainable_p": 0.0625,
+     "underpowered": true,
      "unit": "ms",
+     "paired_diff_by_round": [
+      -14.4,
+      10.9,
+      13.4,
+      -2.4,
+      -17.5
+     ],
+     "paired_diff_mean": -2.0,
+     "consistent_direction": false,
      "arm_mean": 10.22,
      "null_mean": 12.22,
      "null_max_abs": 35.2
     },
     "warm.Duration": {
      "verdict": "not measurable",
-     "p": 0.3968,
-     "n_arm": 5,
-     "n_null": 5,
+     "p": 0.25,
+     "test": "exact two-sided paired sign-flip on arm - null per round",
+     "n_pairs": 5,
+     "rounds": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
+     "min_attainable_p": 0.0625,
+     "underpowered": true,
      "unit": "ms",
+     "paired_diff_by_round": [
+      -30.2,
+      -6.4,
+      11.8,
+      -7.1,
+      -23.1
+     ],
+     "paired_diff_mean": -11.0,
+     "consistent_direction": false,
      "arm_mean": -10.36,
      "null_mean": 0.64,
      "null_max_abs": 31.2
     },
     "warm.Duration.by_request": {
      "verdict": "not measurable",
-     "p": 0.2619,
-     "n_arm": 5,
-     "n_null": 5,
+     "p": 0.1875,
+     "test": "exact two-sided paired sign-flip on arm - null per round",
+     "n_pairs": 5,
+     "rounds": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
+     "min_attainable_p": 0.0625,
+     "underpowered": true,
      "unit": "pct",
+     "paired_diff_by_round": [
+      -2.026,
+      -0.31,
+      1.368,
+      -1.713,
+      -1.532
+     ],
+     "paired_diff_mean": -0.84,
+     "consistent_direction": false,
      "arm_mean": -0.66,
      "null_mean": 0.18,
      "null_max_abs": 1.83
@@ -18744,61 +19284,169 @@
    },
    "telemetry": {
     "cold.Init Duration": {
-     "verdict": "measurable",
-     "p": 0.0079,
-     "n_arm": 5,
-     "n_null": 5,
+     "verdict": "not measurable",
+     "p": 0.0625,
+     "test": "exact two-sided paired sign-flip on arm - null per round",
+     "n_pairs": 5,
+     "rounds": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
+     "min_attainable_p": 0.0625,
+     "underpowered": true,
      "unit": "ms",
+     "paired_diff_by_round": [
+      115.4,
+      93.0,
+      82.0,
+      84.2,
+      90.1
+     ],
+     "paired_diff_mean": 92.94,
+     "consistent_direction": true,
      "arm_mean": 92.8,
      "null_mean": -0.14,
      "null_max_abs": 27.6
     },
     "cold.Duration": {
      "verdict": "not measurable",
-     "p": 0.0556,
-     "n_arm": 5,
-     "n_null": 5,
+     "p": 0.0625,
+     "test": "exact two-sided paired sign-flip on arm - null per round",
+     "n_pairs": 5,
+     "rounds": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
+     "min_attainable_p": 0.0625,
+     "underpowered": true,
      "unit": "ms",
+     "paired_diff_by_round": [
+      -84.4,
+      -146.3,
+      -108.9,
+      -45.3,
+      -389.2
+     ],
+     "paired_diff_mean": -154.82,
+     "consistent_direction": false,
      "arm_mean": -101.48,
      "null_mean": 53.34,
      "null_max_abs": 154.8
     },
     "restore.Restore Duration": {
      "verdict": "not measurable",
-     "p": 0.9286,
-     "n_arm": 5,
-     "n_null": 5,
+     "p": 1.0,
+     "test": "exact two-sided paired sign-flip on arm - null per round",
+     "n_pairs": 5,
+     "rounds": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
+     "min_attainable_p": 0.0625,
+     "underpowered": true,
      "unit": "ms",
+     "paired_diff_by_round": [
+      -102.3,
+      26.2,
+      23.3,
+      74.3,
+      -7.9
+     ],
+     "paired_diff_mean": 2.72,
+     "consistent_direction": false,
      "arm_mean": 50.56,
      "null_mean": 47.84,
      "null_max_abs": 111.6
     },
     "restore.Duration": {
      "verdict": "not measurable",
-     "p": 0.5397,
-     "n_arm": 5,
-     "n_null": 5,
+     "p": 0.25,
+     "test": "exact two-sided paired sign-flip on arm - null per round",
+     "n_pairs": 5,
+     "rounds": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
+     "min_attainable_p": 0.0625,
+     "underpowered": true,
      "unit": "ms",
+     "paired_diff_by_round": [
+      -8.0,
+      4.7,
+      -2.4,
+      -3.3,
+      -21.4
+     ],
+     "paired_diff_mean": -6.08,
+     "consistent_direction": false,
      "arm_mean": 6.14,
      "null_mean": 12.22,
      "null_max_abs": 35.2
     },
     "warm.Duration": {
      "verdict": "not measurable",
-     "p": 0.6825,
-     "n_arm": 5,
-     "n_null": 5,
+     "p": 0.5625,
+     "test": "exact two-sided paired sign-flip on arm - null per round",
+     "n_pairs": 5,
+     "rounds": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
+     "min_attainable_p": 0.0625,
+     "underpowered": true,
      "unit": "ms",
+     "paired_diff_by_round": [
+      -17.0,
+      -4.3,
+      27.9,
+      23.9,
+      -4.9
+     ],
+     "paired_diff_mean": 5.12,
+     "consistent_direction": false,
      "arm_mean": 5.76,
      "null_mean": 0.64,
      "null_max_abs": 31.2
     },
     "warm.Duration.by_request": {
      "verdict": "not measurable",
-     "p": 0.746,
-     "n_arm": 5,
-     "n_null": 5,
+     "p": 0.6875,
+     "test": "exact two-sided paired sign-flip on arm - null per round",
+     "n_pairs": 5,
+     "rounds": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
+     "min_attainable_p": 0.0625,
+     "underpowered": true,
      "unit": "pct",
+     "paired_diff_by_round": [
+      -0.823,
+      -1.126,
+      1.264,
+      0.296,
+      -0.722
+     ],
+     "paired_diff_mean": -0.22,
+     "consistent_direction": false,
      "arm_mean": -0.04,
      "null_mean": 0.18,
      "null_max_abs": 1.83
@@ -18809,6 +19457,13 @@
    "rep2": {
     "cold.Init Duration": {
      "rounds": 5,
+     "round_ids": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
      "min_n_per_round": 3,
      "skipped_rounds": [],
      "delta_ms_by_round": [
@@ -18826,6 +19481,13 @@
     },
     "cold.Duration": {
      "rounds": 5,
+     "round_ids": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
      "min_n_per_round": 3,
      "skipped_rounds": [],
      "delta_ms_by_round": [
@@ -18843,6 +19505,13 @@
     },
     "restore.Restore Duration": {
      "rounds": 5,
+     "round_ids": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
      "min_n_per_round": 3,
      "skipped_rounds": [],
      "delta_ms_by_round": [
@@ -18860,6 +19529,13 @@
     },
     "restore.Duration": {
      "rounds": 5,
+     "round_ids": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
      "min_n_per_round": 3,
      "skipped_rounds": [],
      "delta_ms_by_round": [
@@ -18877,6 +19553,13 @@
     },
     "warm.Duration": {
      "rounds": 5,
+     "round_ids": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
      "min_n_per_round": 3,
      "skipped_rounds": [],
      "delta_ms_by_round": [
@@ -18924,6 +19607,13 @@
       4.854,
       2.437
      ],
+     "round_ids": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
      "pct_by_round": [
       0.172,
       0.959,
@@ -18936,6 +19626,13 @@
    "none": {
     "cold.Init Duration": {
      "rounds": 5,
+     "round_ids": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
      "min_n_per_round": 3,
      "skipped_rounds": [],
      "delta_ms_by_round": [
@@ -18953,6 +19650,13 @@
     },
     "cold.Duration": {
      "rounds": 5,
+     "round_ids": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
      "min_n_per_round": 3,
      "skipped_rounds": [],
      "delta_ms_by_round": [
@@ -18970,6 +19674,13 @@
     },
     "restore.Restore Duration": {
      "rounds": 5,
+     "round_ids": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
      "min_n_per_round": 3,
      "skipped_rounds": [],
      "delta_ms_by_round": [
@@ -18987,6 +19698,13 @@
     },
     "restore.Duration": {
      "rounds": 5,
+     "round_ids": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
      "min_n_per_round": 3,
      "skipped_rounds": [],
      "delta_ms_by_round": [
@@ -19004,6 +19722,13 @@
     },
     "warm.Duration": {
      "rounds": 5,
+     "round_ids": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
      "min_n_per_round": 3,
      "skipped_rounds": [],
      "delta_ms_by_round": [
@@ -19051,6 +19776,13 @@
       2.536,
       0.806
      ],
+     "round_ids": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
      "pct_by_round": [
       -0.169,
       0.537,
@@ -19063,6 +19795,13 @@
    "cprofile": {
     "cold.Init Duration": {
      "rounds": 5,
+     "round_ids": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
      "min_n_per_round": 3,
      "skipped_rounds": [],
      "delta_ms_by_round": [
@@ -19080,6 +19819,13 @@
     },
     "cold.Duration": {
      "rounds": 5,
+     "round_ids": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
      "min_n_per_round": 3,
      "skipped_rounds": [],
      "delta_ms_by_round": [
@@ -19097,6 +19843,13 @@
     },
     "restore.Restore Duration": {
      "rounds": 5,
+     "round_ids": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
      "min_n_per_round": 3,
      "skipped_rounds": [],
      "delta_ms_by_round": [
@@ -19114,6 +19867,13 @@
     },
     "restore.Duration": {
      "rounds": 5,
+     "round_ids": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
      "min_n_per_round": 3,
      "skipped_rounds": [],
      "delta_ms_by_round": [
@@ -19131,6 +19891,13 @@
     },
     "warm.Duration": {
      "rounds": 5,
+     "round_ids": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
      "min_n_per_round": 3,
      "skipped_rounds": [],
      "delta_ms_by_round": [
@@ -19178,6 +19945,13 @@
       4.726,
       2.954
      ],
+     "round_ids": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
      "pct_by_round": [
       -0.222,
       1.083,
@@ -19190,6 +19964,13 @@
    "pyspy": {
     "cold.Init Duration": {
      "rounds": 5,
+     "round_ids": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
      "min_n_per_round": 3,
      "skipped_rounds": [],
      "delta_ms_by_round": [
@@ -19207,6 +19988,13 @@
     },
     "cold.Duration": {
      "rounds": 5,
+     "round_ids": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
      "min_n_per_round": 3,
      "skipped_rounds": [],
      "delta_ms_by_round": [
@@ -19224,6 +20012,13 @@
     },
     "restore.Restore Duration": {
      "rounds": 5,
+     "round_ids": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
      "min_n_per_round": 3,
      "skipped_rounds": [],
      "delta_ms_by_round": [
@@ -19241,6 +20036,13 @@
     },
     "restore.Duration": {
      "rounds": 5,
+     "round_ids": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
      "min_n_per_round": 3,
      "skipped_rounds": [],
      "delta_ms_by_round": [
@@ -19258,6 +20060,13 @@
     },
     "warm.Duration": {
      "rounds": 5,
+     "round_ids": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
      "min_n_per_round": 3,
      "skipped_rounds": [],
      "delta_ms_by_round": [
@@ -19305,6 +20114,13 @@
       11.51,
       10.093
      ],
+     "round_ids": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
      "pct_by_round": [
       5.861,
       3.542,
@@ -19317,6 +20133,13 @@
    "sampler": {
     "cold.Init Duration": {
      "rounds": 5,
+     "round_ids": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
      "min_n_per_round": 3,
      "skipped_rounds": [],
      "delta_ms_by_round": [
@@ -19334,6 +20157,13 @@
     },
     "cold.Duration": {
      "rounds": 5,
+     "round_ids": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
      "min_n_per_round": 3,
      "skipped_rounds": [],
      "delta_ms_by_round": [
@@ -19351,6 +20181,13 @@
     },
     "restore.Restore Duration": {
      "rounds": 5,
+     "round_ids": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
      "min_n_per_round": 3,
      "skipped_rounds": [],
      "delta_ms_by_round": [
@@ -19368,6 +20205,13 @@
     },
     "restore.Duration": {
      "rounds": 5,
+     "round_ids": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
      "min_n_per_round": 3,
      "skipped_rounds": [],
      "delta_ms_by_round": [
@@ -19385,6 +20229,13 @@
     },
     "warm.Duration": {
      "rounds": 5,
+     "round_ids": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
      "min_n_per_round": 3,
      "skipped_rounds": [],
      "delta_ms_by_round": [
@@ -19432,6 +20283,13 @@
       -3.209,
       1.08
      ],
+     "round_ids": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
      "pct_by_round": [
       0.082,
       -1.133,
@@ -19444,6 +20302,13 @@
    "xray": {
     "cold.Init Duration": {
      "rounds": 5,
+     "round_ids": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
      "min_n_per_round": 3,
      "skipped_rounds": [],
      "delta_ms_by_round": [
@@ -19461,6 +20326,13 @@
     },
     "cold.Duration": {
      "rounds": 5,
+     "round_ids": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
      "min_n_per_round": 3,
      "skipped_rounds": [],
      "delta_ms_by_round": [
@@ -19478,6 +20350,13 @@
     },
     "restore.Restore Duration": {
      "rounds": 5,
+     "round_ids": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
      "min_n_per_round": 3,
      "skipped_rounds": [],
      "delta_ms_by_round": [
@@ -19495,6 +20374,13 @@
     },
     "restore.Duration": {
      "rounds": 5,
+     "round_ids": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
      "min_n_per_round": 3,
      "skipped_rounds": [],
      "delta_ms_by_round": [
@@ -19512,6 +20398,13 @@
     },
     "warm.Duration": {
      "rounds": 5,
+     "round_ids": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
      "min_n_per_round": 3,
      "skipped_rounds": [],
      "delta_ms_by_round": [
@@ -19559,6 +20452,13 @@
       1.266,
       0.814
      ],
+     "round_ids": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
      "pct_by_round": [
       -1.854,
       0.649,
@@ -19571,6 +20471,13 @@
    "telemetry": {
     "cold.Init Duration": {
      "rounds": 5,
+     "round_ids": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
      "min_n_per_round": 3,
      "skipped_rounds": [],
      "delta_ms_by_round": [
@@ -19588,6 +20495,13 @@
     },
     "cold.Duration": {
      "rounds": 5,
+     "round_ids": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
      "min_n_per_round": 3,
      "skipped_rounds": [],
      "delta_ms_by_round": [
@@ -19605,6 +20519,13 @@
     },
     "restore.Restore Duration": {
      "rounds": 5,
+     "round_ids": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
      "min_n_per_round": 3,
      "skipped_rounds": [],
      "delta_ms_by_round": [
@@ -19622,6 +20543,13 @@
     },
     "restore.Duration": {
      "rounds": 5,
+     "round_ids": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
      "min_n_per_round": 3,
      "skipped_rounds": [],
      "delta_ms_by_round": [
@@ -19639,6 +20567,13 @@
     },
     "warm.Duration": {
      "rounds": 5,
+     "round_ids": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
      "min_n_per_round": 3,
      "skipped_rounds": [],
      "delta_ms_by_round": [
@@ -19685,6 +20620,13 @@
       0.109,
       4.096,
       0.416
+     ],
+     "round_ids": [
+      0,
+      1,
+      2,
+      3,
+      4
      ],
      "pct_by_round": [
       -0.651,
@@ -21612,6 +22554,1040 @@
          "edge": "_ctypes.cpython-312-aarch64-linux-gnu.so:_ctypes_callproc -> _ctypes.cpython-312-aarch64-linux-gnu.so:i_get",
          "samples": 1,
          "share": 0.0164
+        }
+       ]
+      }
+     }
+    },
+    "sampler_init_0xd0c": {
+     "records": 10,
+     "samples": 28637,
+     "dropped": 0,
+     "cpu_s": 409.987,
+     "effective_hz_per_cpu_s": 69.8,
+     "phases": {
+      "init": {
+       "samples": 28636,
+       "top_self": [
+        {
+         "symbol": "libggml-cpu-armv8.2_2.so:_ZL43ggml_backend_cpu_kleidiai_buffer_set_tensorP19ggml_backend_bufferP11ggml_tensorPKvmm",
+         "samples": 10777,
+         "share": 0.3763
+        },
+        {
+         "symbol": "libggml-cpu-armv8.2_2.so:kai_run_rhs_pack_nxk_qsi8cxp_qsi8cx_neon",
+         "samples": 3930,
+         "share": 0.1372
+        },
+        {
+         "symbol": "libc.so.6:__GI_memset",
+         "samples": 2028,
+         "share": 0.0708
+        },
+        {
+         "symbol": "libggml-cpu-armv8.2_2.so:+0x32000",
+         "samples": 1661,
+         "share": 0.058
+        },
+        {
+         "symbol": "libc.so.6:read",
+         "samples": 1145,
+         "share": 0.04
+        },
+        {
+         "symbol": "libm.so.6:lroundf",
+         "samples": 761,
+         "share": 0.0266
+        },
+        {
+         "symbol": "libc.so.6:pthread_cond_signal",
+         "samples": 758,
+         "share": 0.0265
+        },
+        {
+         "symbol": "libc.so.6:pwrite",
+         "samples": 598,
+         "share": 0.0209
+        },
+        {
+         "symbol": "libc.so.6:__memcpy_simd",
+         "samples": 462,
+         "share": 0.0161
+        },
+        {
+         "symbol": "libc.so.6:__lll_lock_wake",
+         "samples": 436,
+         "share": 0.0152
+        },
+        {
+         "symbol": "libc.so.6:__futex_abstimed_wait_cancelable64",
+         "samples": 431,
+         "share": 0.0151
+        },
+        {
+         "symbol": "libpython3.12.so.1.0:_PyEval_EvalFrameDefault",
+         "samples": 289,
+         "share": 0.0101
+        },
+        {
+         "symbol": "libcrypto.so.3.5.7:+0x33c000",
+         "samples": 285,
+         "share": 0.01
+        },
+        {
+         "symbol": "libc.so.6:__lll_lock_wait",
+         "samples": 231,
+         "share": 0.0081
+        },
+        {
+         "symbol": "libggml-cpu-armv8.2_2.so:kai_run_matmul_clamp_f32_qai8dxp4x4_qsi8cxp4x4_16x4_neon_dotprod",
+         "samples": 222,
+         "share": 0.0078
+        },
+        {
+         "symbol": "libc.so.6:malloc",
+         "samples": 158,
+         "share": 0.0055
+        },
+        {
+         "symbol": "libc.so.6:bcmp",
+         "samples": 157,
+         "share": 0.0055
+        },
+        {
+         "symbol": "libllama.so.0.7.0:_ZN11llama_vocab4impl4loadER18llama_model_loaderRK6LLM_KV",
+         "samples": 117,
+         "share": 0.0041
+        },
+        {
+         "symbol": "libc.so.6:poll",
+         "samples": 117,
+         "share": 0.0041
+        },
+        {
+         "symbol": "libc.so.6:_int_malloc",
+         "samples": 115,
+         "share": 0.004
+        }
+       ],
+       "by_library": [
+        {
+         "library": "libggml-cpu-armv8.2_2.so",
+         "samples": 16684,
+         "share": 0.5826
+        },
+        {
+         "library": "libc.so.6",
+         "samples": 7409,
+         "share": 0.2587
+        },
+        {
+         "library": "libpython3.12.so.1.0",
+         "samples": 1618,
+         "share": 0.0565
+        },
+        {
+         "library": "libm.so.6",
+         "samples": 761,
+         "share": 0.0266
+        },
+        {
+         "library": "libcrypto.so.3.5.7",
+         "samples": 613,
+         "share": 0.0214
+        },
+        {
+         "library": "tokenizers.abi3.so",
+         "samples": 503,
+         "share": 0.0176
+        },
+        {
+         "library": "libllama.so.0.7.0",
+         "samples": 448,
+         "share": 0.0156
+        },
+        {
+         "library": "libstdc++.so.6.0.33",
+         "samples": 162,
+         "share": 0.0057
+        },
+        {
+         "library": "libssl.so.3.5.7",
+         "samples": 137,
+         "share": 0.0048
+        },
+        {
+         "library": "ld-linux-aarch64.so.1",
+         "samples": 98,
+         "share": 0.0034
+        },
+        {
+         "library": "_multiarray_umath.cpython-312-aarch64-linux-gnu.so",
+         "samples": 36,
+         "share": 0.0013
+        },
+        {
+         "library": "_ssl.cpython-312-aarch64-linux-gnu.so",
+         "samples": 15,
+         "share": 0.0005
+        }
+       ],
+       "top_caller_edges": [
+        {
+         "edge": "libggml-cpu-armv8.2_2.so:_ZL43ggml_backend_cpu_kleidiai_buffer_set_tensorP19ggml_backend_bufferP11ggml_tensorPKvmm -> libggml-cpu-armv8.2_2.so:_ZL43ggml_backend_cpu_kleidiai_buffer_set_tensorP19ggml_backend_bufferP11ggml_tensorPKvmm",
+         "samples": 10777,
+         "share": 0.3763
+        },
+        {
+         "edge": "libggml-cpu-armv8.2_2.so:kai_run_rhs_pack_nxk_qsi8cxp_qsi8cx_neon -> libggml-cpu-armv8.2_2.so:kai_run_rhs_pack_nxk_qsi8cxp_qsi8cx_neon",
+         "samples": 3930,
+         "share": 0.1372
+        },
+        {
+         "edge": "libggml-cpu-armv8.2_2.so:_ZL43ggml_backend_cpu_kleidiai_buffer_set_tensorP19ggml_backend_bufferP11ggml_tensorPKvmm -> libggml-cpu-armv8.2_2.so:+0x32000",
+         "samples": 1661,
+         "share": 0.058
+        },
+        {
+         "edge": "libggml-cpu-armv8.2_2.so:kai_run_rhs_pack_nxk_qsi8cxp_qsi8cx_neon -> libc.so.6:__GI_memset",
+         "samples": 1141,
+         "share": 0.0398
+        },
+        {
+         "edge": "libc.so.6:read -> libc.so.6:read",
+         "samples": 1034,
+         "share": 0.0361
+        },
+        {
+         "edge": "libggml-cpu-armv8.2_2.so:_ZL43ggml_backend_cpu_kleidiai_buffer_set_tensorP19ggml_backend_bufferP11ggml_tensorPKvmm -> libm.so.6:lroundf",
+         "samples": 761,
+         "share": 0.0266
+        },
+        {
+         "edge": "libpython3.12.so.1.0:PyEval_SaveThread -> libc.so.6:pthread_cond_signal",
+         "samples": 757,
+         "share": 0.0264
+        },
+        {
+         "edge": "libc.so.6:pwrite -> libc.so.6:pwrite",
+         "samples": 598,
+         "share": 0.0209
+        },
+        {
+         "edge": "libc.so.6:__pthread_mutex_unlock_usercnt -> libc.so.6:__lll_lock_wake",
+         "samples": 436,
+         "share": 0.0152
+        },
+        {
+         "edge": "libc.so.6:__futex_abstimed_wait_cancelable64 -> libc.so.6:__futex_abstimed_wait_cancelable64",
+         "samples": 431,
+         "share": 0.0151
+        },
+        {
+         "edge": "libggml-cpu-armv8.2_2.so:_ZNSt6vectorIaSaIaEE14_M_fill_insertEN9__gnu_cxx17__normal_iteratorIPaS1_EEmRKa -> libc.so.6:__GI_memset",
+         "samples": 369,
+         "share": 0.0129
+        },
+        {
+         "edge": "libcrypto.so.3.5.7:+0x2ae000 -> libcrypto.so.3.5.7:+0x33c000",
+         "samples": 158,
+         "share": 0.0055
+        }
+       ]
+      },
+      "untagged": {
+       "samples": 1,
+       "top_self": [
+        {
+         "symbol": "libpython3.12.so.1.0:_Py_dict_lookup",
+         "samples": 1,
+         "share": 1.0
+        }
+       ],
+       "by_library": [
+        {
+         "library": "libpython3.12.so.1.0",
+         "samples": 1,
+         "share": 1.0
+        }
+       ],
+       "top_caller_edges": [
+        {
+         "edge": "libpython3.12.so.1.0:find_name_in_mro -> libpython3.12.so.1.0:_Py_dict_lookup",
+         "samples": 1,
+         "share": 1.0
+        }
+       ]
+      }
+     }
+    },
+    "sampler_init_0xd40": {
+     "records": 36,
+     "samples": 54202,
+     "dropped": 0,
+     "cpu_s": 866.901,
+     "effective_hz_per_cpu_s": 62.5,
+     "phases": {
+      "init": {
+       "samples": 54200,
+       "top_self": [
+        {
+         "symbol": "libggml-cpu-armv8.6_1.so:_ZL43ggml_backend_cpu_kleidiai_buffer_set_tensorP19ggml_backend_bufferP11ggml_tensorPKvmm",
+         "samples": 14308,
+         "share": 0.264
+        },
+        {
+         "symbol": "libggml-cpu-armv8.6_1.so:kai_run_rhs_pack_nxk_qsi8cxp_qsi8cx_neon",
+         "samples": 6144,
+         "share": 0.1134
+        },
+        {
+         "symbol": "libc.so.6:__GI_memset",
+         "samples": 4417,
+         "share": 0.0815
+        },
+        {
+         "symbol": "libc.so.6:read",
+         "samples": 3195,
+         "share": 0.0589
+        },
+        {
+         "symbol": "libggml-cpu-armv8.6_1.so:+0x32000",
+         "samples": 2372,
+         "share": 0.0438
+        },
+        {
+         "symbol": "libc.so.6:pthread_cond_signal",
+         "samples": 2254,
+         "share": 0.0416
+        },
+        {
+         "symbol": "libc.so.6:__lll_lock_wake",
+         "samples": 1815,
+         "share": 0.0335
+        },
+        {
+         "symbol": "libc.so.6:pwrite",
+         "samples": 1593,
+         "share": 0.0294
+        },
+        {
+         "symbol": "libm.so.6:lroundf",
+         "samples": 1354,
+         "share": 0.025
+        },
+        {
+         "symbol": "libc.so.6:__futex_abstimed_wait_cancelable64",
+         "samples": 1087,
+         "share": 0.0201
+        },
+        {
+         "symbol": "libc.so.6:__memcpy_sve",
+         "samples": 1068,
+         "share": 0.0197
+        },
+        {
+         "symbol": "libc.so.6:__lll_lock_wait",
+         "samples": 779,
+         "share": 0.0144
+        },
+        {
+         "symbol": "libpython3.12.so.1.0:_PyEval_EvalFrameDefault",
+         "samples": 623,
+         "share": 0.0115
+        },
+        {
+         "symbol": "libcrypto.so.3.5.7:+0x337000",
+         "samples": 457,
+         "share": 0.0084
+        },
+        {
+         "symbol": "libc.so.6:malloc",
+         "samples": 456,
+         "share": 0.0084
+        },
+        {
+         "symbol": "libc.so.6:poll",
+         "samples": 398,
+         "share": 0.0073
+        },
+        {
+         "symbol": "libllama.so.0.7.0:_ZN11llama_vocab4impl4loadER18llama_model_loaderRK6LLM_KV",
+         "samples": 353,
+         "share": 0.0065
+        },
+        {
+         "symbol": "libc.so.6:bcmp",
+         "samples": 347,
+         "share": 0.0064
+        },
+        {
+         "symbol": "libggml-cpu-armv8.6_1.so:kai_kernel_matmul_clamp_f32_qai8dxp4x8_qsi8cxp4x8_16x4_neon_i8mm",
+         "samples": 324,
+         "share": 0.006
+        },
+        {
+         "symbol": "tokenizers.abi3.so:_RINvXs4_NtNtCs3XFGBRFiuKX_5alloc3vec9into_iterINtB6_8IntoIterTNtNtBa_6string6StringBY_EENtNtNtNtCs7z6u5Op6t72_4core4iter6traits8iterator8Iterator8try_folduNCINvNvXs_NtNtB1u_8adapte",
+         "samples": 259,
+         "share": 0.0048
+        }
+       ],
+       "by_library": [
+        {
+         "library": "libggml-cpu-armv8.6_1.so",
+         "samples": 23447,
+         "share": 0.4326
+        },
+        {
+         "library": "libc.so.6",
+         "samples": 20006,
+         "share": 0.3691
+        },
+        {
+         "library": "libpython3.12.so.1.0",
+         "samples": 4080,
+         "share": 0.0753
+        },
+        {
+         "library": "tokenizers.abi3.so",
+         "samples": 1374,
+         "share": 0.0254
+        },
+        {
+         "library": "libm.so.6",
+         "samples": 1356,
+         "share": 0.025
+        },
+        {
+         "library": "libllama.so.0.7.0",
+         "samples": 1338,
+         "share": 0.0247
+        },
+        {
+         "library": "libcrypto.so.3.5.7",
+         "samples": 1190,
+         "share": 0.022
+        },
+        {
+         "library": "libstdc++.so.6.0.33",
+         "samples": 389,
+         "share": 0.0072
+        },
+        {
+         "library": "libssl.so.3.5.7",
+         "samples": 300,
+         "share": 0.0055
+        },
+        {
+         "library": "ld-linux-aarch64.so.1",
+         "samples": 256,
+         "share": 0.0047
+        },
+        {
+         "library": "_multiarray_umath.cpython-312-aarch64-linux-gnu.so",
+         "samples": 86,
+         "share": 0.0016
+        },
+        {
+         "library": "libggml-base.so.0.27.0",
+         "samples": 40,
+         "share": 0.0007
+        }
+       ],
+       "top_caller_edges": [
+        {
+         "edge": "libggml-cpu-armv8.6_1.so:_ZL43ggml_backend_cpu_kleidiai_buffer_set_tensorP19ggml_backend_bufferP11ggml_tensorPKvmm -> libggml-cpu-armv8.6_1.so:_ZL43ggml_backend_cpu_kleidiai_buffer_set_tensorP19ggml_backend_bufferP11ggml_tensorPKvmm",
+         "samples": 14304,
+         "share": 0.2639
+        },
+        {
+         "edge": "libggml-cpu-armv8.6_1.so:kai_run_rhs_pack_nxk_qsi8cxp_qsi8cx_neon -> libggml-cpu-armv8.6_1.so:kai_run_rhs_pack_nxk_qsi8cxp_qsi8cx_neon",
+         "samples": 6144,
+         "share": 0.1134
+        },
+        {
+         "edge": "libc.so.6:read -> libc.so.6:read",
+         "samples": 2823,
+         "share": 0.0521
+        },
+        {
+         "edge": "libggml-cpu-armv8.6_1.so:_ZL43ggml_backend_cpu_kleidiai_buffer_set_tensorP19ggml_backend_bufferP11ggml_tensorPKvmm -> libggml-cpu-armv8.6_1.so:+0x32000",
+         "samples": 2372,
+         "share": 0.0438
+        },
+        {
+         "edge": "libggml-cpu-armv8.6_1.so:kai_run_rhs_pack_nxk_qsi8cxp_qsi8cx_neon -> libc.so.6:__GI_memset",
+         "samples": 2278,
+         "share": 0.042
+        },
+        {
+         "edge": "libpython3.12.so.1.0:PyEval_SaveThread -> libc.so.6:pthread_cond_signal",
+         "samples": 2251,
+         "share": 0.0415
+        },
+        {
+         "edge": "libc.so.6:__pthread_mutex_unlock_usercnt -> libc.so.6:__lll_lock_wake",
+         "samples": 1815,
+         "share": 0.0335
+        },
+        {
+         "edge": "libc.so.6:pwrite -> libc.so.6:pwrite",
+         "samples": 1593,
+         "share": 0.0294
+        },
+        {
+         "edge": "libggml-cpu-armv8.6_1.so:_ZL43ggml_backend_cpu_kleidiai_buffer_set_tensorP19ggml_backend_bufferP11ggml_tensorPKvmm -> libm.so.6:lroundf",
+         "samples": 1354,
+         "share": 0.025
+        },
+        {
+         "edge": "libc.so.6:__futex_abstimed_wait_cancelable64 -> libc.so.6:__futex_abstimed_wait_cancelable64",
+         "samples": 1073,
+         "share": 0.0198
+        },
+        {
+         "edge": "libggml-cpu-armv8.6_1.so:_ZNSt6vectorIaSaIaEE14_M_fill_insertEN9__gnu_cxx17__normal_iteratorIPaS1_EEmRKa -> libc.so.6:__GI_memset",
+         "samples": 891,
+         "share": 0.0164
+        },
+        {
+         "edge": "libllama.so.0.7.0:_ZN14llama_kv_cacheC1ERK11llama_modelRK13llama_hparams9ggml_typeS6_bbbjjjj14llama_swa_typeP14llama_memory_iRKSt8functionIFbiEERKSA_IFiiEESI_PKc -> libc.so.6:__GI_memset",
+         "samples": 309,
+         "share": 0.0057
+        }
+       ]
+      },
+      "untagged": {
+       "samples": 2,
+       "top_self": [
+        {
+         "symbol": "libpython3.12.so.1.0:_PyObject_GenericGetAttrWithDict",
+         "samples": 1,
+         "share": 0.5
+        },
+        {
+         "symbol": "libpython3.12.so.1.0:_PyUnicode_JoinArray",
+         "samples": 1,
+         "share": 0.5
+        }
+       ],
+       "by_library": [
+        {
+         "library": "libpython3.12.so.1.0",
+         "samples": 2,
+         "share": 1.0
+        }
+       ],
+       "top_caller_edges": [
+        {
+         "edge": "? -> libpython3.12.so.1.0:_PyObject_GenericGetAttrWithDict",
+         "samples": 1,
+         "share": 0.5
+        },
+        {
+         "edge": "libpython3.12.so.1.0:_PyUnicode_JoinArray -> libpython3.12.so.1.0:_PyUnicode_JoinArray",
+         "samples": 1,
+         "share": 0.5
+        }
+       ]
+      }
+     }
+    },
+    "sampler_init_0xd4f": {
+     "records": 4,
+     "samples": 4917,
+     "dropped": 0,
+     "cpu_s": 78.416,
+     "effective_hz_per_cpu_s": 62.7,
+     "phases": {
+      "init": {
+       "samples": 4917,
+       "top_self": [
+        {
+         "symbol": "libggml-cpu-armv8.6_2.so:_ZL43ggml_backend_cpu_kleidiai_buffer_set_tensorP19ggml_backend_bufferP11ggml_tensorPKvmm",
+         "samples": 1488,
+         "share": 0.3026
+        },
+        {
+         "symbol": "libggml-cpu-armv8.6_2.so:kai_run_rhs_pack_nxk_qsi8cxp_qsi8cx_neon",
+         "samples": 507,
+         "share": 0.1031
+        },
+        {
+         "symbol": "libc.so.6:__GI_memset",
+         "samples": 395,
+         "share": 0.0803
+        },
+        {
+         "symbol": "libc.so.6:read",
+         "samples": 287,
+         "share": 0.0584
+        },
+        {
+         "symbol": "libc.so.6:pthread_cond_signal",
+         "samples": 196,
+         "share": 0.0399
+        },
+        {
+         "symbol": "libc.so.6:pwrite",
+         "samples": 179,
+         "share": 0.0364
+        },
+        {
+         "symbol": "libc.so.6:__lll_lock_wake",
+         "samples": 169,
+         "share": 0.0344
+        },
+        {
+         "symbol": "libggml-cpu-armv8.6_2.so:+0x32000",
+         "samples": 149,
+         "share": 0.0303
+        },
+        {
+         "symbol": "libm.so.6:lroundf",
+         "samples": 126,
+         "share": 0.0256
+        },
+        {
+         "symbol": "libc.so.6:__memcpy_sve",
+         "samples": 109,
+         "share": 0.0222
+        },
+        {
+         "symbol": "libc.so.6:__futex_abstimed_wait_cancelable64",
+         "samples": 80,
+         "share": 0.0163
+        },
+        {
+         "symbol": "libc.so.6:__lll_lock_wait",
+         "samples": 77,
+         "share": 0.0157
+        },
+        {
+         "symbol": "libpython3.12.so.1.0:_PyEval_EvalFrameDefault",
+         "samples": 47,
+         "share": 0.0096
+        },
+        {
+         "symbol": "libc.so.6:malloc",
+         "samples": 41,
+         "share": 0.0083
+        },
+        {
+         "symbol": "libggml-cpu-armv8.6_2.so:kai_kernel_matmul_clamp_f32_qai8dxp4x8_qsi8cxp4x8_16x4_neon_i8mm",
+         "samples": 34,
+         "share": 0.0069
+        },
+        {
+         "symbol": "libllama.so.0.7.0:_ZN11llama_vocab4impl4loadER18llama_model_loaderRK6LLM_KV",
+         "samples": 34,
+         "share": 0.0069
+        },
+        {
+         "symbol": "libc.so.6:poll",
+         "samples": 33,
+         "share": 0.0067
+        },
+        {
+         "symbol": "libc.so.6:bcmp",
+         "samples": 29,
+         "share": 0.0059
+        },
+        {
+         "symbol": "libcrypto.so.3.5.7:+0x337000",
+         "samples": 26,
+         "share": 0.0053
+        },
+        {
+         "symbol": "tokenizers.abi3.so:_RINvXs4_NtNtCs3XFGBRFiuKX_5alloc3vec9into_iterINtB6_8IntoIterTNtNtBa_6string6StringBY_EENtNtNtNtCs7z6u5Op6t72_4core4iter6traits8iterator8Iterator8try_folduNCINvNvXs_NtNtB1u_8adapte",
+         "samples": 24,
+         "share": 0.0049
+        }
+       ],
+       "by_library": [
+        {
+         "library": "libggml-cpu-armv8.6_2.so",
+         "samples": 2200,
+         "share": 0.4474
+        },
+        {
+         "library": "libc.so.6",
+         "samples": 1817,
+         "share": 0.3695
+        },
+        {
+         "library": "libpython3.12.so.1.0",
+         "samples": 332,
+         "share": 0.0675
+        },
+        {
+         "library": "libllama.so.0.7.0",
+         "samples": 135,
+         "share": 0.0275
+        },
+        {
+         "library": "libm.so.6",
+         "samples": 126,
+         "share": 0.0256
+        },
+        {
+         "library": "tokenizers.abi3.so",
+         "samples": 126,
+         "share": 0.0256
+        },
+        {
+         "library": "libcrypto.so.3.5.7",
+         "samples": 71,
+         "share": 0.0144
+        },
+        {
+         "library": "libstdc++.so.6.0.33",
+         "samples": 38,
+         "share": 0.0077
+        },
+        {
+         "library": "ld-linux-aarch64.so.1",
+         "samples": 25,
+         "share": 0.0051
+        },
+        {
+         "library": "libssl.so.3.5.7",
+         "samples": 14,
+         "share": 0.0028
+        },
+        {
+         "library": "_multiarray_umath.cpython-312-aarch64-linux-gnu.so",
+         "samples": 8,
+         "share": 0.0016
+        },
+        {
+         "library": "_pydantic_core.cpython-312-aarch64-linux-gnu.so",
+         "samples": 5,
+         "share": 0.001
+        }
+       ],
+       "top_caller_edges": [
+        {
+         "edge": "libggml-cpu-armv8.6_2.so:_ZL43ggml_backend_cpu_kleidiai_buffer_set_tensorP19ggml_backend_bufferP11ggml_tensorPKvmm -> libggml-cpu-armv8.6_2.so:_ZL43ggml_backend_cpu_kleidiai_buffer_set_tensorP19ggml_backend_bufferP11ggml_tensorPKvmm",
+         "samples": 1488,
+         "share": 0.3026
+        },
+        {
+         "edge": "libggml-cpu-armv8.6_2.so:kai_run_rhs_pack_nxk_qsi8cxp_qsi8cx_neon -> libggml-cpu-armv8.6_2.so:kai_run_rhs_pack_nxk_qsi8cxp_qsi8cx_neon",
+         "samples": 507,
+         "share": 0.1031
+        },
+        {
+         "edge": "libc.so.6:read -> libc.so.6:read",
+         "samples": 246,
+         "share": 0.05
+        },
+        {
+         "edge": "libggml-cpu-armv8.6_2.so:kai_run_rhs_pack_nxk_qsi8cxp_qsi8cx_neon -> libc.so.6:__GI_memset",
+         "samples": 200,
+         "share": 0.0407
+        },
+        {
+         "edge": "libpython3.12.so.1.0:PyEval_SaveThread -> libc.so.6:pthread_cond_signal",
+         "samples": 196,
+         "share": 0.0399
+        },
+        {
+         "edge": "libc.so.6:pwrite -> libc.so.6:pwrite",
+         "samples": 179,
+         "share": 0.0364
+        },
+        {
+         "edge": "libc.so.6:__pthread_mutex_unlock_usercnt -> libc.so.6:__lll_lock_wake",
+         "samples": 169,
+         "share": 0.0344
+        },
+        {
+         "edge": "libggml-cpu-armv8.6_2.so:_ZL43ggml_backend_cpu_kleidiai_buffer_set_tensorP19ggml_backend_bufferP11ggml_tensorPKvmm -> libggml-cpu-armv8.6_2.so:+0x32000",
+         "samples": 149,
+         "share": 0.0303
+        },
+        {
+         "edge": "libggml-cpu-armv8.6_2.so:_ZL43ggml_backend_cpu_kleidiai_buffer_set_tensorP19ggml_backend_bufferP11ggml_tensorPKvmm -> libm.so.6:lroundf",
+         "samples": 126,
+         "share": 0.0256
+        },
+        {
+         "edge": "libggml-cpu-armv8.6_2.so:_ZNSt6vectorIaSaIaEE14_M_fill_insertEN9__gnu_cxx17__normal_iteratorIPaS1_EEmRKa -> libc.so.6:__GI_memset",
+         "samples": 81,
+         "share": 0.0165
+        },
+        {
+         "edge": "libc.so.6:__futex_abstimed_wait_cancelable64 -> libc.so.6:__futex_abstimed_wait_cancelable64",
+         "samples": 80,
+         "share": 0.0163
+        },
+        {
+         "edge": "libssl.so.3.5.7:+0x94000 -> libc.so.6:__memcpy_sve",
+         "samples": 46,
+         "share": 0.0094
+        }
+       ]
+      }
+     }
+    },
+    "sampler_init_None": {
+     "records": 18,
+     "samples": 36520,
+     "dropped": 0,
+     "cpu_s": 540.628,
+     "effective_hz_per_cpu_s": 67.6,
+     "phases": {
+      "init": {
+       "samples": 36519,
+       "top_self": [
+        {
+         "symbol": "libggml-cpu-armv8.2_2.so:_ZL43ggml_backend_cpu_kleidiai_buffer_set_tensorP19ggml_backend_bufferP11ggml_tensorPKvmm",
+         "samples": 9637,
+         "share": 0.2639
+        },
+        {
+         "symbol": "libggml-cpu-armv8.6_1.so:_ZL43ggml_backend_cpu_kleidiai_buffer_set_tensorP19ggml_backend_bufferP11ggml_tensorPKvmm",
+         "samples": 3538,
+         "share": 0.0969
+        },
+        {
+         "symbol": "libggml-cpu-armv8.2_2.so:kai_run_rhs_pack_nxk_qsi8cxp_qsi8cx_neon",
+         "samples": 3505,
+         "share": 0.096
+        },
+        {
+         "symbol": "libc.so.6:__GI_memset",
+         "samples": 2541,
+         "share": 0.0696
+        },
+        {
+         "symbol": "libc.so.6:read",
+         "samples": 1669,
+         "share": 0.0457
+        },
+        {
+         "symbol": "libggml-cpu-armv8.6_1.so:kai_run_rhs_pack_nxk_qsi8cxp_qsi8cx_neon",
+         "samples": 1528,
+         "share": 0.0418
+        },
+        {
+         "symbol": "libggml-cpu-armv8.2_2.so:+0x32000",
+         "samples": 1451,
+         "share": 0.0397
+        },
+        {
+         "symbol": "libm.so.6:lroundf",
+         "samples": 1042,
+         "share": 0.0285
+        },
+        {
+         "symbol": "libc.so.6:pthread_cond_signal",
+         "samples": 989,
+         "share": 0.0271
+        },
+        {
+         "symbol": "libc.so.6:pwrite",
+         "samples": 814,
+         "share": 0.0223
+        },
+        {
+         "symbol": "libc.so.6:__lll_lock_wake",
+         "samples": 737,
+         "share": 0.0202
+        },
+        {
+         "symbol": "libc.so.6:__futex_abstimed_wait_cancelable64",
+         "samples": 579,
+         "share": 0.0159
+        },
+        {
+         "symbol": "libggml-cpu-armv8.6_1.so:+0x32000",
+         "samples": 571,
+         "share": 0.0156
+        },
+        {
+         "symbol": "libc.so.6:__lll_lock_wait",
+         "samples": 349,
+         "share": 0.0096
+        },
+        {
+         "symbol": "libpython3.12.so.1.0:_PyEval_EvalFrameDefault",
+         "samples": 347,
+         "share": 0.0095
+        },
+        {
+         "symbol": "libc.so.6:__memcpy_simd",
+         "samples": 339,
+         "share": 0.0093
+        },
+        {
+         "symbol": "libc.so.6:malloc",
+         "samples": 279,
+         "share": 0.0076
+        },
+        {
+         "symbol": "libc.so.6:_int_malloc",
+         "samples": 275,
+         "share": 0.0075
+        },
+        {
+         "symbol": "libcrypto.so.3.5.7:+0x33c000",
+         "samples": 251,
+         "share": 0.0069
+        },
+        {
+         "symbol": "libc.so.6:__memcpy_sve",
+         "samples": 212,
+         "share": 0.0058
+        }
+       ],
+       "by_library": [
+        {
+         "library": "libggml-cpu-armv8.2_2.so",
+         "samples": 14850,
+         "share": 0.4066
+        },
+        {
+         "library": "libc.so.6",
+         "samples": 10034,
+         "share": 0.2748
+        },
+        {
+         "library": "libggml-cpu-armv8.6_1.so",
+         "samples": 5781,
+         "share": 0.1583
+        },
+        {
+         "library": "libpython3.12.so.1.0",
+         "samples": 2092,
+         "share": 0.0573
+        },
+        {
+         "library": "libm.so.6",
+         "samples": 1043,
+         "share": 0.0286
+        },
+        {
+         "library": "libcrypto.so.3.5.7",
+         "samples": 773,
+         "share": 0.0212
+        },
+        {
+         "library": "tokenizers.abi3.so",
+         "samples": 662,
+         "share": 0.0181
+        },
+        {
+         "library": "libllama.so.0.7.0",
+         "samples": 515,
+         "share": 0.0141
+        },
+        {
+         "library": "libstdc++.so.6.0.33",
+         "samples": 220,
+         "share": 0.006
+        },
+        {
+         "library": "libssl.so.3.5.7",
+         "samples": 143,
+         "share": 0.0039
+        },
+        {
+         "library": "ld-linux-aarch64.so.1",
+         "samples": 132,
+         "share": 0.0036
+        },
+        {
+         "library": "_multiarray_umath.cpython-312-aarch64-linux-gnu.so",
+         "samples": 52,
+         "share": 0.0014
+        }
+       ],
+       "top_caller_edges": [
+        {
+         "edge": "libggml-cpu-armv8.2_2.so:_ZL43ggml_backend_cpu_kleidiai_buffer_set_tensorP19ggml_backend_bufferP11ggml_tensorPKvmm -> libggml-cpu-armv8.2_2.so:_ZL43ggml_backend_cpu_kleidiai_buffer_set_tensorP19ggml_backend_bufferP11ggml_tensorPKvmm",
+         "samples": 9637,
+         "share": 0.2639
+        },
+        {
+         "edge": "libggml-cpu-armv8.6_1.so:_ZL43ggml_backend_cpu_kleidiai_buffer_set_tensorP19ggml_backend_bufferP11ggml_tensorPKvmm -> libggml-cpu-armv8.6_1.so:_ZL43ggml_backend_cpu_kleidiai_buffer_set_tensorP19ggml_backend_bufferP11ggml_tensorPKvmm",
+         "samples": 3537,
+         "share": 0.0969
+        },
+        {
+         "edge": "libggml-cpu-armv8.2_2.so:kai_run_rhs_pack_nxk_qsi8cxp_qsi8cx_neon -> libggml-cpu-armv8.2_2.so:kai_run_rhs_pack_nxk_qsi8cxp_qsi8cx_neon",
+         "samples": 3505,
+         "share": 0.096
+        },
+        {
+         "edge": "libggml-cpu-armv8.6_1.so:kai_run_rhs_pack_nxk_qsi8cxp_qsi8cx_neon -> libggml-cpu-armv8.6_1.so:kai_run_rhs_pack_nxk_qsi8cxp_qsi8cx_neon",
+         "samples": 1528,
+         "share": 0.0418
+        },
+        {
+         "edge": "libggml-cpu-armv8.2_2.so:_ZL43ggml_backend_cpu_kleidiai_buffer_set_tensorP19ggml_backend_bufferP11ggml_tensorPKvmm -> libggml-cpu-armv8.2_2.so:+0x32000",
+         "samples": 1451,
+         "share": 0.0397
+        },
+        {
+         "edge": "libc.so.6:read -> libc.so.6:read",
+         "samples": 1447,
+         "share": 0.0396
+        },
+        {
+         "edge": "libpython3.12.so.1.0:PyEval_SaveThread -> libc.so.6:pthread_cond_signal",
+         "samples": 989,
+         "share": 0.0271
+        },
+        {
+         "edge": "libggml-cpu-armv8.2_2.so:kai_run_rhs_pack_nxk_qsi8cxp_qsi8cx_neon -> libc.so.6:__GI_memset",
+         "samples": 815,
+         "share": 0.0223
+        },
+        {
+         "edge": "libc.so.6:pwrite -> libc.so.6:pwrite",
+         "samples": 814,
+         "share": 0.0223
+        },
+        {
+         "edge": "libc.so.6:__pthread_mutex_unlock_usercnt -> libc.so.6:__lll_lock_wake",
+         "samples": 737,
+         "share": 0.0202
+        },
+        {
+         "edge": "libggml-cpu-armv8.2_2.so:_ZL43ggml_backend_cpu_kleidiai_buffer_set_tensorP19ggml_backend_bufferP11ggml_tensorPKvmm -> libm.so.6:lroundf",
+         "samples": 702,
+         "share": 0.0192
+        },
+        {
+         "edge": "libc.so.6:__futex_abstimed_wait_cancelable64 -> libc.so.6:__futex_abstimed_wait_cancelable64",
+         "samples": 578,
+         "share": 0.0158
+        }
+       ]
+      },
+      "untagged": {
+       "samples": 1,
+       "top_self": [
+        {
+         "symbol": "libpython3.12.so.1.0:_PyEval_EvalFrameDefault",
+         "samples": 1,
+         "share": 1.0
+        }
+       ],
+       "by_library": [
+        {
+         "library": "libpython3.12.so.1.0",
+         "samples": 1,
+         "share": 1.0
+        }
+       ],
+       "top_caller_edges": [
+        {
+         "edge": "libpython3.12.so.1.0:_PyObject_FastCallDictTstate -> libpython3.12.so.1.0:_PyEval_EvalFrameDefault",
+         "samples": 1,
+         "share": 1.0
         }
        ]
       }
@@ -24530,6 +26506,974 @@
    }
   }
  },
+ "host_variability": {
+  "schema": "lkai-host-variability/1",
+  "new_measurements": false,
+  "aws_calls": 0,
+  "source": "reanalysis of this run's committed invocations.jsonl.gz, logs/ and conditions.json, plus the committed lambda-probe/*.json; no rerun",
+  "identity_label": "MIDR CPU part ID as read from /proc/cpuinfo per request (handler._cpu_part); used as an opaque label. No processor generation is inferred from it.",
+  "observed": {
+   "cpu_part_ids": [
+    "0xd0c",
+    "0xd40",
+    "0xd4f"
+   ],
+   "multiple_identities": true,
+   "cpu_part_counts_total": {
+    "0xd0c": 528,
+    "0xd40": 4225,
+    "0xd4f": 47
+   },
+   "cpu_part_counts_by_arm_class": {
+    "cprofile": {
+     "cold": {
+      "0xd0c": 7,
+      "0xd40": 36,
+      "0xd4f": 7
+     },
+     "restore": {
+      "0xd0c": 2,
+      "0xd40": 48
+     },
+     "warm": {
+      "0xd0c": 19,
+      "0xd40": 481
+     }
+    },
+    "none": {
+     "cold": {
+      "0xd0c": 9,
+      "0xd40": 37,
+      "0xd4f": 4
+     },
+     "restore": {
+      "0xd0c": 4,
+      "0xd40": 46
+     },
+     "warm": {
+      "0xd0c": 41,
+      "0xd40": 459
+     }
+    },
+    "pyspy": {
+     "cold": {
+      "0xd0c": 6,
+      "0xd40": 36,
+      "0xd4f": 8
+     },
+     "restore": {
+      "0xd0c": 4,
+      "0xd40": 46
+     },
+     "warm": {
+      "0xd0c": 40,
+      "0xd40": 460
+     }
+    },
+    "rep": {
+     "cold": {
+      "0xd0c": 8,
+      "0xd40": 35,
+      "0xd4f": 7
+     },
+     "restore": {
+      "0xd0c": 8,
+      "0xd40": 42
+     },
+     "warm": {
+      "0xd0c": 79,
+      "0xd40": 421
+     }
+    },
+    "rep2": {
+     "cold": {
+      "0xd0c": 5,
+      "0xd40": 43,
+      "0xd4f": 2
+     },
+     "restore": {
+      "0xd0c": 5,
+      "0xd40": 45
+     },
+     "warm": {
+      "0xd0c": 49,
+      "0xd40": 451
+     }
+    },
+    "sampler": {
+     "cold": {
+      "0xd0c": 10,
+      "0xd40": 36,
+      "0xd4f": 4
+     },
+     "restore": {
+      "0xd0c": 4,
+      "0xd40": 46
+     },
+     "warm": {
+      "0xd0c": 41,
+      "0xd40": 459
+     }
+    },
+    "telemetry": {
+     "cold": {
+      "0xd0c": 12,
+      "0xd40": 31,
+      "0xd4f": 7
+     },
+     "restore": {
+      "0xd0c": 10,
+      "0xd40": 40
+     },
+     "warm": {
+      "0xd0c": 102,
+      "0xd40": 398
+     }
+    },
+    "xray": {
+     "cold": {
+      "0xd0c": 9,
+      "0xd40": 33,
+      "0xd4f": 8
+     },
+     "restore": {
+      "0xd0c": 5,
+      "0xd40": 45
+     },
+     "warm": {
+      "0xd0c": 49,
+      "0xd40": 451
+     }
+    }
+   },
+   "cpu_part_counts_by_round": {
+    "0": {
+     "0xd0c": 136,
+     "0xd40": 816,
+     "0xd4f": 8
+    },
+    "1": {
+     "0xd0c": 76,
+     "0xd40": 872,
+     "0xd4f": 12
+    },
+    "2": {
+     "0xd0c": 47,
+     "0xd40": 902,
+     "0xd4f": 11
+    },
+    "3": {
+     "0xd0c": 153,
+     "0xd40": 796,
+     "0xd4f": 11
+    },
+    "4": {
+     "0xd0c": 116,
+     "0xd40": 839,
+     "0xd4f": 5
+    }
+   },
+   "ggml_cpu_variants_loaded_by_part": {
+    "0xd0c": {
+     "libggml-cpu-armv8.0_1.so,libggml-cpu-armv8.2_2.so": 43
+    },
+    "0xd40": {
+     "libggml-cpu-armv8.0_1.so,libggml-cpu-armv8.6_1.so": 179
+    },
+    "0xd4f": {
+     "libggml-cpu-armv8.0_1.so,libggml-cpu-armv8.6_2.so": 28
+    }
+   },
+   "runtime_version_arn": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+   "runtime_versions_in_init_start": {
+    "python:3.12.mainlinev2.v43": 541
+   },
+   "configured": {
+    "memory_mb": [
+     10240.0
+    ],
+    "region": "us-east-2",
+    "threads": 6
+   },
+   "log_stream_linkage": {
+    "rows": 4800,
+    "rows_linked_to_stream": 4472,
+    "rows_unlinked": 328,
+    "unlinked_reason": "the 4 KB log tail lost its START line",
+    "streams": 650,
+    "streams_with_more_than_one_part": 0,
+    "streams_by_part": {
+     "0xd0c": 85,
+     "0xd40": 537,
+     "0xd4f": 28
+    }
+   },
+   "probe_environments": {
+    "function": "lkai-p3-probe (separate function, same runtime ARN, arch, memory; not this run)",
+    "by_file": {
+     "p1.json": {
+      "implementer": "0x41",
+      "architecture": "8",
+      "variant": "0x1",
+      "part": "0xd40",
+      "revision": "1",
+      "features": "fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm dcpodp svei8mm svebf16 i8mm bf16 dgh rng",
+      "processors": 6,
+      "nproc": 6,
+      "kernel": "5.10.255-268-309.1092.amzn2.aarch64",
+      "python": "3.12.14",
+      "mem_total": "MemTotal:       10972280 kB"
+     },
+     "p2.json": {
+      "implementer": "0x41",
+      "architecture": "8",
+      "variant": "0x1",
+      "part": "0xd40",
+      "revision": "1",
+      "features": "fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm dcpodp svei8mm svebf16 i8mm bf16 dgh rng",
+      "processors": 6,
+      "nproc": 6,
+      "kernel": "5.10.255-268-309.1092.amzn2.aarch64",
+      "python": "3.12.14",
+      "mem_total": "MemTotal:       10972280 kB"
+     },
+     "p3.json": {
+      "implementer": "0x41",
+      "architecture": "8",
+      "variant": "0x1",
+      "part": "0xd40",
+      "revision": "1",
+      "features": "fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm dcpodp svei8mm svebf16 i8mm bf16 dgh rng",
+      "processors": 6,
+      "nproc": 6,
+      "kernel": "5.10.255-268-309.1092.amzn2.aarch64",
+      "python": "3.12.14",
+      "mem_total": "MemTotal:       10972280 kB"
+     },
+     "p4.json": {
+      "implementer": "0x41",
+      "architecture": "8",
+      "variant": "0x1",
+      "part": "0xd40",
+      "revision": "1",
+      "features": "fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm dcpodp svei8mm svebf16 i8mm bf16 dgh rng",
+      "processors": 6,
+      "nproc": 6,
+      "kernel": "5.10.255-268-309.1092.amzn2.aarch64",
+      "python": "3.12.14",
+      "mem_total": "MemTotal:       10972280 kB"
+     },
+     "p5.json": {
+      "implementer": "0x41",
+      "architecture": "8",
+      "variant": "0x1",
+      "part": "0xd40",
+      "revision": "1",
+      "features": "fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm dcpodp svei8mm svebf16 i8mm bf16 dgh rng",
+      "processors": 6,
+      "nproc": 6,
+      "kernel": "5.10.255-268-309.1092.amzn2.aarch64",
+      "python": "3.12.14",
+      "mem_total": "MemTotal:       10972280 kB"
+     },
+     "p6.json": {
+      "implementer": "0x41",
+      "architecture": "8",
+      "variant": "0x1",
+      "part": "0xd40",
+      "revision": "1",
+      "features": "fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm dcpodp svei8mm svebf16 i8mm bf16 dgh rng",
+      "processors": 6,
+      "nproc": 6,
+      "kernel": "5.10.255-268-309.1092.amzn2.aarch64",
+      "python": "3.12.14",
+      "mem_total": "MemTotal:       10972280 kB"
+     },
+     "q1.json": {
+      "implementer": "0x41",
+      "architecture": "8",
+      "variant": "0x1",
+      "part": "0xd40",
+      "revision": "1",
+      "features": "fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm dcpodp svei8mm svebf16 i8mm bf16 dgh rng",
+      "processors": 6,
+      "nproc": 6,
+      "kernel": "5.10.255-268-309.1092.amzn2.aarch64",
+      "python": "3.12.14",
+      "mem_total": "MemTotal:       10972280 kB"
+     }
+    },
+    "part_ids_seen": [
+     "0xd40"
+    ]
+   },
+   "report_duration_p50_by_arm_class_part": {
+    "cprofile.cold": {
+     "0xd0c": {
+      "n": 7,
+      "duration_p50_ms": 47894.2
+     },
+     "0xd40": {
+      "n": 36,
+      "duration_p50_ms": 35337.8
+     },
+     "0xd4f": {
+      "n": 7,
+      "duration_p50_ms": 33777.6
+     }
+    },
+    "cprofile.restore": {
+     "0xd0c": {
+      "n": 2,
+      "duration_p50_ms": 1131.0
+     },
+     "0xd40": {
+      "n": 48,
+      "duration_p50_ms": 686.5
+     }
+    },
+    "cprofile.warm": {
+     "0xd0c": {
+      "n": 19,
+      "duration_p50_ms": 1181.7
+     },
+     "0xd40": {
+      "n": 481,
+      "duration_p50_ms": 657.6
+     }
+    },
+    "none.cold": {
+     "0xd0c": {
+      "n": 9,
+      "duration_p50_ms": 47545.2
+     },
+     "0xd40": {
+      "n": 37,
+      "duration_p50_ms": 35180.2
+     },
+     "0xd4f": {
+      "n": 4,
+      "duration_p50_ms": 33774.1
+     }
+    },
+    "none.restore": {
+     "0xd0c": {
+      "n": 4,
+      "duration_p50_ms": 1061.1
+     },
+     "0xd40": {
+      "n": 46,
+      "duration_p50_ms": 673.5
+     }
+    },
+    "none.warm": {
+     "0xd0c": {
+      "n": 41,
+      "duration_p50_ms": 1118.4
+     },
+     "0xd40": {
+      "n": 459,
+      "duration_p50_ms": 651.5
+     }
+    },
+    "pyspy.cold": {
+     "0xd0c": {
+      "n": 6,
+      "duration_p50_ms": 47508.8
+     },
+     "0xd40": {
+      "n": 36,
+      "duration_p50_ms": 35253.7
+     },
+     "0xd4f": {
+      "n": 8,
+      "duration_p50_ms": 33965.8
+     }
+    },
+    "pyspy.restore": {
+     "0xd0c": {
+      "n": 4,
+      "duration_p50_ms": 1202.6
+     },
+     "0xd40": {
+      "n": 46,
+      "duration_p50_ms": 700.4
+     }
+    },
+    "pyspy.warm": {
+     "0xd0c": {
+      "n": 40,
+      "duration_p50_ms": 1170.8
+     },
+     "0xd40": {
+      "n": 460,
+      "duration_p50_ms": 686.8
+     }
+    },
+    "rep.cold": {
+     "0xd0c": {
+      "n": 8,
+      "duration_p50_ms": 47420.8
+     },
+     "0xd40": {
+      "n": 35,
+      "duration_p50_ms": 35171.9
+     },
+     "0xd4f": {
+      "n": 7,
+      "duration_p50_ms": 33917.8
+     }
+    },
+    "rep.restore": {
+     "0xd0c": {
+      "n": 8,
+      "duration_p50_ms": 1040.5
+     },
+     "0xd40": {
+      "n": 42,
+      "duration_p50_ms": 677.5
+     }
+    },
+    "rep.warm": {
+     "0xd0c": {
+      "n": 79,
+      "duration_p50_ms": 1187.7
+     },
+     "0xd40": {
+      "n": 421,
+      "duration_p50_ms": 650.1
+     }
+    },
+    "rep2.cold": {
+     "0xd0c": {
+      "n": 5,
+      "duration_p50_ms": 47484.7
+     },
+     "0xd40": {
+      "n": 43,
+      "duration_p50_ms": 35138.9
+     },
+     "0xd4f": {
+      "n": 2,
+      "duration_p50_ms": 34082.2
+     }
+    },
+    "rep2.restore": {
+     "0xd0c": {
+      "n": 5,
+      "duration_p50_ms": 1079.6
+     },
+     "0xd40": {
+      "n": 45,
+      "duration_p50_ms": 678.8
+     }
+    },
+    "rep2.warm": {
+     "0xd0c": {
+      "n": 49,
+      "duration_p50_ms": 1176.0
+     },
+     "0xd40": {
+      "n": 451,
+      "duration_p50_ms": 639.1
+     }
+    },
+    "sampler.cold": {
+     "0xd0c": {
+      "n": 10,
+      "duration_p50_ms": 48103.2
+     },
+     "0xd40": {
+      "n": 36,
+      "duration_p50_ms": 35538.4
+     },
+     "0xd4f": {
+      "n": 4,
+      "duration_p50_ms": 33891.7
+     }
+    },
+    "sampler.restore": {
+     "0xd0c": {
+      "n": 4,
+      "duration_p50_ms": 2130.5
+     },
+     "0xd40": {
+      "n": 46,
+      "duration_p50_ms": 963.4
+     }
+    },
+    "sampler.warm": {
+     "0xd0c": {
+      "n": 41,
+      "duration_p50_ms": 1109.4
+     },
+     "0xd40": {
+      "n": 459,
+      "duration_p50_ms": 620.9
+     }
+    },
+    "telemetry.cold": {
+     "0xd0c": {
+      "n": 12,
+      "duration_p50_ms": 47770.2
+     },
+     "0xd40": {
+      "n": 31,
+      "duration_p50_ms": 35008.1
+     },
+     "0xd4f": {
+      "n": 7,
+      "duration_p50_ms": 33653.6
+     }
+    },
+    "telemetry.restore": {
+     "0xd0c": {
+      "n": 10,
+      "duration_p50_ms": 1066.1
+     },
+     "0xd40": {
+      "n": 40,
+      "duration_p50_ms": 680.1
+     }
+    },
+    "telemetry.warm": {
+     "0xd0c": {
+      "n": 102,
+      "duration_p50_ms": 1148.4
+     },
+     "0xd40": {
+      "n": 398,
+      "duration_p50_ms": 630.1
+     }
+    },
+    "xray.cold": {
+     "0xd0c": {
+      "n": 9,
+      "duration_p50_ms": 47568.0
+     },
+     "0xd40": {
+      "n": 33,
+      "duration_p50_ms": 35230.7
+     },
+     "0xd4f": {
+      "n": 8,
+      "duration_p50_ms": 33905.5
+     }
+    },
+    "xray.restore": {
+     "0xd0c": {
+      "n": 5,
+      "duration_p50_ms": 1078.1
+     },
+     "0xd40": {
+      "n": 45,
+      "duration_p50_ms": 685.7
+     }
+    },
+    "xray.warm": {
+     "0xd0c": {
+      "n": 49,
+      "duration_p50_ms": 1211.2
+     },
+     "0xd40": {
+      "n": 451,
+      "duration_p50_ms": 620.0
+     }
+    }
+   },
+   "rep_warm_engine_p50_by_request_part": {
+    "agent-action-guard-2q": {
+     "0xd0c": {
+      "n": 16,
+      "engine_p50_ms": 1674.9
+     },
+     "0xd40": {
+      "n": 84,
+      "engine_p50_ms": 876.4
+     }
+    },
+    "cracked-screen-2q": {
+     "0xd0c": {
+      "n": 16,
+      "engine_p50_ms": 814.8
+     },
+     "0xd40": {
+      "n": 84,
+      "engine_p50_ms": 473.4
+     }
+    },
+    "incident-review-4q": {
+     "0xd0c": {
+      "n": 16,
+      "engine_p50_ms": 3448.5
+     },
+     "0xd40": {
+      "n": 84,
+      "engine_p50_ms": 1762.9
+     }
+    },
+    "payouts-3q": {
+     "0xd0c": {
+      "n": 16,
+      "engine_p50_ms": 1160.7
+     },
+     "0xd40": {
+      "n": 84,
+      "engine_p50_ms": 649.8
+     }
+    },
+    "ticket-route-1q": {
+     "0xd0c": {
+      "n": 15,
+      "engine_p50_ms": 439.8
+     },
+     "0xd40": {
+      "n": 85,
+      "engine_p50_ms": 244.9
+     }
+    }
+   },
+   "lkaisamp_top_self_by_part": {
+    "init_0xd0c": {
+     "records": 10,
+     "samples": 28636,
+     "top_self": [
+      {
+       "symbol": "_ZL43ggml_backend_cpu_kleidiai_buffer_set_tensorP19ggml_backend_bufferP11ggml_tensorPKvmm",
+       "share": 0.3763
+      },
+      {
+       "symbol": "kai_run_rhs_pack_nxk_qsi8cxp_qsi8cx_neon",
+       "share": 0.1372
+      },
+      {
+       "symbol": "__GI_memset",
+       "share": 0.0708
+      },
+      {
+       "symbol": "+0x32000",
+       "share": 0.058
+      },
+      {
+       "symbol": "read",
+       "share": 0.04
+      },
+      {
+       "symbol": "lroundf",
+       "share": 0.0266
+      },
+      {
+       "symbol": "pthread_cond_signal",
+       "share": 0.0265
+      },
+      {
+       "symbol": "pwrite",
+       "share": 0.0209
+      },
+      {
+       "symbol": "__memcpy_simd",
+       "share": 0.0161
+      },
+      {
+       "symbol": "__lll_lock_wake",
+       "share": 0.0152
+      }
+     ]
+    },
+    "init_0xd40": {
+     "records": 36,
+     "samples": 54200,
+     "top_self": [
+      {
+       "symbol": "_ZL43ggml_backend_cpu_kleidiai_buffer_set_tensorP19ggml_backend_bufferP11ggml_tensorPKvmm",
+       "share": 0.264
+      },
+      {
+       "symbol": "kai_run_rhs_pack_nxk_qsi8cxp_qsi8cx_neon",
+       "share": 0.1134
+      },
+      {
+       "symbol": "__GI_memset",
+       "share": 0.0815
+      },
+      {
+       "symbol": "read",
+       "share": 0.0589
+      },
+      {
+       "symbol": "+0x32000",
+       "share": 0.0438
+      },
+      {
+       "symbol": "pthread_cond_signal",
+       "share": 0.0416
+      },
+      {
+       "symbol": "__lll_lock_wake",
+       "share": 0.0335
+      },
+      {
+       "symbol": "pwrite",
+       "share": 0.0294
+      },
+      {
+       "symbol": "lroundf",
+       "share": 0.025
+      },
+      {
+       "symbol": "__futex_abstimed_wait_cancelable64",
+       "share": 0.0201
+      }
+     ]
+    },
+    "init_0xd4f": {
+     "records": 4,
+     "samples": 4917,
+     "top_self": [
+      {
+       "symbol": "_ZL43ggml_backend_cpu_kleidiai_buffer_set_tensorP19ggml_backend_bufferP11ggml_tensorPKvmm",
+       "share": 0.3026
+      },
+      {
+       "symbol": "kai_run_rhs_pack_nxk_qsi8cxp_qsi8cx_neon",
+       "share": 0.1031
+      },
+      {
+       "symbol": "__GI_memset",
+       "share": 0.0803
+      },
+      {
+       "symbol": "read",
+       "share": 0.0584
+      },
+      {
+       "symbol": "pthread_cond_signal",
+       "share": 0.0399
+      },
+      {
+       "symbol": "pwrite",
+       "share": 0.0364
+      },
+      {
+       "symbol": "__lll_lock_wake",
+       "share": 0.0344
+      },
+      {
+       "symbol": "+0x32000",
+       "share": 0.0303
+      },
+      {
+       "symbol": "lroundf",
+       "share": 0.0256
+      },
+      {
+       "symbol": "__memcpy_sve",
+       "share": 0.0222
+      }
+     ]
+    },
+    "invoke_restore_0xd0c": {
+     "records": 4,
+     "samples": 404,
+     "top_self": [
+      {
+       "symbol": "__GI_memset",
+       "share": 0.4183
+      },
+      {
+       "symbol": "kai_run_matmul_clamp_f32_qai8dxp4x4_qsi8cxp4x4_16x4_neon_dotprod",
+       "share": 0.3861
+      },
+      {
+       "symbol": "ggml_compute_forward_concat",
+       "share": 0.0421
+      },
+      {
+       "symbol": "+0x27000",
+       "share": 0.0322
+      },
+      {
+       "symbol": "_ZL46ggml_compute_forward_gated_delta_net_one_chunkPK19ggml_compute_paramsP11ggml_tensorll",
+       "share": 0.0223
+      },
+      {
+       "symbol": "ggml_compute_forward_fwht",
+       "share": 0.0198
+      },
+      {
+       "symbol": "kai_run_lhs_quant_pack_qai8dxp_f32",
+       "share": 0.0149
+      },
+      {
+       "symbol": "ggml_vec_swiglu_f32",
+       "share": 0.0099
+      },
+      {
+       "symbol": "ggml_vec_dot_f32",
+       "share": 0.0099
+      },
+      {
+       "symbol": "+0x5c3000",
+       "share": 0.0074
+      }
+     ]
+    },
+    "invoke_restore_0xd40": {
+     "records": 46,
+     "samples": 2670,
+     "top_self": [
+      {
+       "symbol": "__GI_memset",
+       "share": 0.5067
+      },
+      {
+       "symbol": "kai_kernel_matmul_clamp_f32_qai8dxp4x8_qsi8cxp4x8_16x4_neon_i8mm",
+       "share": 0.3491
+      },
+      {
+       "symbol": "ggml_compute_forward_fwht",
+       "share": 0.0225
+      },
+      {
+       "symbol": "+0x27000",
+       "share": 0.0217
+      },
+      {
+       "symbol": "ggml_compute_forward_concat",
+       "share": 0.0169
+      },
+      {
+       "symbol": "dgemv_t_NEOVERSEV1",
+       "share": 0.0112
+      },
+      {
+       "symbol": "ggml_vec_dot_f32",
+       "share": 0.0094
+      },
+      {
+       "symbol": "_ZL46ggml_compute_forward_gated_delta_net_one_chunkPK19ggml_compute_paramsP11ggml_tensorll",
+       "share": 0.0079
+      },
+      {
+       "symbol": "ggml_vec_swiglu_f32",
+       "share": 0.0071
+      },
+      {
+       "symbol": "syscall",
+       "share": 0.0045
+      }
+     ]
+    },
+    "invoke_warm_0xd0c": {
+     "records": 41,
+     "samples": 5299,
+     "top_self": [
+      {
+       "symbol": "kai_run_matmul_clamp_f32_qai8dxp4x4_qsi8cxp4x4_16x4_neon_dotprod",
+       "share": 0.5937
+      },
+      {
+       "symbol": "_ZL46ggml_compute_forward_gated_delta_net_one_chunkPK19ggml_compute_paramsP11ggml_tensorll",
+       "share": 0.0653
+      },
+      {
+       "symbol": "+0x27000",
+       "share": 0.0651
+      },
+      {
+       "symbol": "ggml_compute_forward_concat",
+       "share": 0.0647
+      },
+      {
+       "symbol": "ggml_vec_dot_f32",
+       "share": 0.0342
+      },
+      {
+       "symbol": "ggml_compute_forward_fwht",
+       "share": 0.0309
+      },
+      {
+       "symbol": "_ZN12_GLOBAL__N_18tinyBLASILi4E13__Float32x4_tS1_fffE9gemm_blocILi4ELi6EEEvll",
+       "share": 0.0226
+      },
+      {
+       "symbol": "kai_run_lhs_quant_pack_qai8dxp_f32",
+       "share": 0.0206
+      },
+      {
+       "symbol": "ggml_compute_forward_ssm_conv",
+       "share": 0.0128
+      },
+      {
+       "symbol": "__GI_memset",
+       "share": 0.0123
+      }
+     ]
+    },
+    "invoke_warm_0xd40": {
+     "records": 459,
+     "samples": 27899,
+     "top_self": [
+      {
+       "symbol": "kai_kernel_matmul_clamp_f32_qai8dxp4x8_qsi8cxp4x8_16x4_neon_i8mm",
+       "share": 0.4882
+      },
+      {
+       "symbol": "ggml_vec_dot_f32",
+       "share": 0.0878
+      },
+      {
+       "symbol": "_ZL46ggml_compute_forward_gated_delta_net_one_chunkPK19ggml_compute_paramsP11ggml_tensorll",
+       "share": 0.0779
+      },
+      {
+       "symbol": "ggml_compute_forward_concat",
+       "share": 0.0564
+      },
+      {
+       "symbol": "+0x27000",
+       "share": 0.0543
+      },
+      {
+       "symbol": "ggml_compute_forward_fwht",
+       "share": 0.0506
+      },
+      {
+       "symbol": "ggml_compute_forward_ssm_conv",
+       "share": 0.0258
+      },
+      {
+       "symbol": "__GI_memset",
+       "share": 0.0223
+      },
+      {
+       "symbol": "kai_run_lhs_quant_pack_qai8dxp_f32",
+       "share": 0.02
+      },
+      {
+       "symbol": "ggml_compute_forward_rms_norm_mul_fused",
+       "share": 0.0152
+      }
+     ]
+    }
+   }
+  },
+  "unknown": {
+   "processor_generation_or_microarchitecture": "not observed: only the MIDR CPU part ID is recorded per invocation; no name is inferred from a part ID or from timings",
+   "cpu_implementer_variant_revision_per_invocation": "not recorded per invocation (the probe read them, below, in 7 environments of a separate function, all part 0xd40)",
+   "cpu_features_hwcaps_per_invocation": "not recorded (no /proc/cpuinfo Features or AT_HWCAP per invocation)",
+   "hwcaps_for_0xd0c_0xd4f": "never observed: the probe never landed on those part IDs",
+   "core_count_per_invocation": "not recorded; threads=6 is the configured thread count, not an observed nproc",
+   "restored_core_count": "not recorded: nproc after a SnapStart restore was never read",
+   "cgroup_cpu_memory_limits": "not recorded (cpu.max / memory.max were not read)",
+   "kernel_per_invocation": "not recorded (the probe saw one kernel release in its 7 environments)",
+   "availability_zone": "not observable from inside the function and not recorded",
+   "physical_host_identity": "not observable",
+   "snapshot_build_host_cpu": "not recorded: the CPU part of the environment that ran publish_version's init"
+  },
+  "method": "Overhead verdicts use part 0xd40 rows only (paired by round against rep and rep2 on that part). Other part IDs are counted, not compared: per (arm, class, round) they are too sparse for a paired cell. Native hot-spot tables are split by part ID because each part ID loads a different libggml-cpu variant. Phase hot spots (P1 timers) are pooled over parts unless split above.",
+  "assessment": "More than one CPU part ID served this run; they are recorded, not ranked or named. Every overhead verdict is within 0xd40, so a part mix cannot move it. Absolute figures differ by part ID (report_duration_p50_by_arm_class_part, rep_warm_engine_p50_by_request_part); any pooled figure depends on that run's part mix."
+ },
  "lambda_probe": {
   "schema": "lkai-probe/1",
   "uname": {
@@ -24718,7 +27662,7 @@
   "lambda_host": {
    "evidence": "profiling/results/lambda-probe/p1..p6.json, q1.json: lkai_probe.py run inside lkai-p3-probe (same runtime version ARN, arch and memory as P1), 7 environments",
    "uname": "Linux 5.10.255-268-309.1092.amzn2.aarch64",
-   "cpu": "aarch64, CPU part 0xd40 (Neoverse-V1, Graviton3) in all 7; features include sve i8mm bf16 asimddp",
+   "cpu": "aarch64, implementer 0x41, variant 0x1, CPU part 0xd40, revision 1 in all 7 probe environments; features include sve i8mm bf16 asimddp. No processor generation is inferred from the part ID. The profiler run itself also saw parts 0xd0c and 0xd4f (results.json -> host_variability); the probe never landed on them, so their features and HWCAPs are unknown",
    "nproc": 6,
    "mem_total_kb": 10972280,
    "uid": 993,
@@ -24794,14 +27738,14 @@
     "category": "runtime + native",
     "lambda": "denied",
     "evidence": "`py-spy dump --native` and `dump` without --nonblocking of a child: \"Failed to suspend process ... EPERM: Operation not permitted\" (lambda-probe/q1.json -> py_spy.dump_child_native / dump_child_blocking). Suspending needs ptrace: PTRACE_SEIZE and PTRACE_ATTACH of our own child both EPERM. PR_SET_PTRACER is also EPERM.",
-    "offline": "works on the Graviton host (graviton/pyspy-native.txt) and costs about +29% per forward there (overhead_vs_plain.pyspy)"
+    "offline": "works on the arm64 DevSpace, part 0xd40 (graviton/pyspy-native.txt) and costs about +29% per forward there (overhead_vs_plain.pyspy)"
    },
    {
     "tool": "perf (perf_event_open)",
     "category": "native",
     "lambda": "denied",
     "evidence": "perf_event_open of a user-space-only hardware cycles counter, software cpu-clock and software task-clock on the calling thread: all EPERM in every environment (lambda-probe -> syscalls.perf_event_open), with perf_event_paranoid 2, no PMU devices and CapEff 0. perf is also not in the runtime image.",
-    "offline": "works on the Graviton DevSpace (paranoid 2, armv8_pmuv3_0 PMU): perf stat, perf record -F 999 -g, graviton/perf-*"
+    "offline": "works on the arm64 DevSpace, part 0xd40 (paranoid 2, armv8_pmuv3_0 PMU): perf stat, perf record -F 999 -g, graviton/perf-*"
    },
    {
     "tool": "eBPF (bpf syscall, bpftrace/BCC)",
@@ -24819,7 +27763,7 @@
     "tool": "lkaisamp (in-process SIGPROF native sampler)",
     "category": "native (loader + KleidiAI kernels)",
     "lambda": "works",
-    "evidence": "setitimer(ITIMER_PROF) SIGPROF is delivered (19 signals in 0.2 s CPU, lambda-probe -> itimer_prof_sigprof). lkai-p3-sampler records the interrupted PC and LR of whichever thread is on CPU, tagged by phase, and symbolises in the function from /proc/self/maps and the ELF .symtab/.dynsym of the shipped libraries (the shipped ggml/llama libraries keep .symtab: libggml-cpu-armv8.6_1.so, the variant Graviton3 loads, has 2,459 FUNC symbols, 733 of them KleidiAI kai_*). Limits: no stack walk (PC + caller only); one SIGPROF pending per process, so the effective rate per CPU-second is below 1 kHz (reported as effective_hz_per_cpu_s); CPU time only, so waits (S3 reads, futexes) are invisible."
+    "evidence": "setitimer(ITIMER_PROF) SIGPROF is delivered (19 signals in 0.2 s CPU, lambda-probe -> itimer_prof_sigprof). lkai-p3-sampler records the interrupted PC and LR of whichever thread is on CPU, tagged by phase, and symbolises in the function from /proc/self/maps and the ELF .symtab/.dynsym of the shipped libraries (the shipped ggml/llama libraries keep .symtab: libggml-cpu-armv8.6_1.so, the variant part 0xd40 loads, has 2,459 FUNC symbols, 733 of them KleidiAI kai_*). Limits: no stack walk (PC + caller only); one SIGPROF pending per process, so the effective rate per CPU-second is below 1 kHz (reported as effective_hz_per_cpu_s); CPU time only, so waits (S3 reads, futexes) are invisible."
    },
    {
     "tool": "async-profiler",
@@ -24828,10 +27772,10 @@
     "evidence": "The runtime is python3.12; there is no JVM. Its Python counterparts are py-spy and cProfile above."
    },
    {
-    "tool": "Offline profile of the same image on Graviton3",
+    "tool": "Offline profile of the same image on an arm64 host (part 0xd40)",
     "category": "offline",
     "lambda": "n/a (offline)",
-    "evidence": "OFFLINE, NOT LAMBDA. P1's function.zip and GGUF in P1's pinned Lambda python3.12 image on an arm64 DevSpace (CPU part 0xd40, Graviton3, kernel 6.1 AL2023), 6 threads on 6 pinned CPUs. Steady-state forwards match Lambda within 2% (ticket-route-1q 0.243 s offline vs 0.24 s Lambda p50, Graviton3)."
+    "evidence": "OFFLINE, NOT LAMBDA. P1's function.zip and GGUF in P1's pinned Lambda python3.12 image on an arm64 DevSpace (CPU part 0xd40, kernel 6.1 AL2023), 6 threads on 6 pinned CPUs. Steady-state forwards match Lambda within 2% (ticket-route-1q 0.243 s offline vs 0.24 s Lambda p50, part 0xd40)."
    },
    {
     "tool": "Offline profile on x86_64",

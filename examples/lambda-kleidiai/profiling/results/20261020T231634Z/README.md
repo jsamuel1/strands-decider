@@ -17,7 +17,7 @@ Everything is in `results/` and is published to the P2 dashboard as experiment `
 | Label | Meaning |
 |---|---|
 | **Lambda** | Measured inside the deployed function: same zip bytes as P1 (plus added files on profiler arms), same runtime version ARN, arm64, 10,240 MB, SnapStart, us-east-2 |
-| **OFFLINE, NOT LAMBDA (Graviton3)** | P1's `function.zip` and GGUF in P1's pinned Lambda python3.12 image on an arm64 DevSpace (CPU part 0xd40, kernel 6.1), 6 threads pinned to 6 CPUs. The GGUF is read from local disk, so `weight_read` is not comparable to Lambda's S3 download |
+| **OFFLINE, NOT LAMBDA (arm64 DevSpace, part 0xd40)** | P1's `function.zip` and GGUF in P1's pinned Lambda python3.12 image on an arm64 DevSpace (CPU part 0xd40, kernel 6.1), 6 threads pinned to 6 CPUs. The GGUF is read from local disk, so `weight_read` is not comparable to Lambda's S3 download |
 | **OFFLINE, NOT LAMBDA (x86 / GPU)** | The same llama.cpp commit and patches rebuilt for x86_64, with the CUDA backend for the NVIDIA L4 of a g6.4xlarge. These are not the deployed binaries: there is no KleidiAI on x86, and the Lambda zip is CPU-only |
 
 ## What the function runs on (Lambda)
@@ -25,8 +25,9 @@ Everything is in `results/` and is published to the P2 dashboard as experiment `
 `lkai_probe.py`, inside `lkai-p3-probe` (P1's runtime version, arm64, 10,240 MB), across 7 execution environments
 (`results/lambda-probe/*.json`):
 
-- `uname`: `5.10.255-268-309.1092.amzn2.aarch64`. `/proc/cpuinfo`: 6 processors, CPU part `0xd40` (Graviton3) in
-  all 7, with `sve i8mm bf16 asimddp`.
+- `uname`: `5.10.255-268-309.1092.amzn2.aarch64`. `/proc/cpuinfo`: 6 processors, implementer `0x41`, variant `0x1`,
+  part `0xd40`, revision `1` in all 7, with `sve i8mm bf16 asimddp` among the features. The probe never landed on
+  another part ID, but the profiler run did (see Host variability): the probe is not a census of Lambda hosts.
 - **No GPU:** `/dev/nvidia*` absent, no PCI vendor `0x10de` (no PCI devices are listed at all), `/proc/driver/nvidia`
   absent, `libcuda.so.1` and `libnvidia-ml.so.1` not loadable, `nvidia-smi`/`nsys`/`ncu` not on `PATH`.
 - Sandbox: uid 993, every capability set empty (`CapEff=CapBnd=0`), `NoNewPrivs=1`, seccomp mode 2 with 6 filters,
@@ -51,11 +52,11 @@ Everything is in `results/` and is published to the P2 dashboard as experiment `
 | Telemetry API extension | **works** | arm `telemetry`: `extensions/lkai-telemetry` subscribed (`platform.telemetrySubscription: Subscribed`) | — |
 | cProfile | **works** | arm `cprofile`: on Python 3.12 one profile covers every thread; a second concurrent one is refused | — |
 | py-spy, Python frames (`--nonblocking`) | **works** | arm `pyspy`: run as the function's own child, reading the parent with `process_vm_readv` | — |
-| py-spy `--native` / blocking | **denied** | `Failed to suspend process ... EPERM` (needs ptrace) | works on Graviton3, about +29% per forward |
-| perf | **denied** | `perf_event_open` EPERM ×3, no PMU, not in the image | works on Graviton3 |
+| py-spy `--native` / blocking | **denied** | `Failed to suspend process ... EPERM` (needs ptrace) | works on the arm64 DevSpace, about +29% per forward |
+| perf | **denied** | `perf_event_open` EPERM ×3, no PMU, not in the image | works on the arm64 DevSpace |
 | eBPF (bpftrace, BCC) | **denied** | `bpf()` EPERM, `unprivileged_bpf_disabled=1`, no bpffs/tracefs | — |
 | ptrace tools (gdb, strace, ltrace) | **denied** | `PTRACE_SEIZE`/`PTRACE_ATTACH` EPERM; none on `PATH` | — |
-| lkaisamp (this directory's native sampler) | **works** | arm `sampler`: SIGPROF delivered; PCs symbolised in the function against the shipped libraries' `.symtab` | agrees with perf on Graviton3 |
+| lkaisamp (this directory's native sampler) | **works** | arm `sampler`: SIGPROF delivered; PCs symbolised in the function against the shipped libraries' `.symtab` | agrees with perf on the arm64 DevSpace |
 | async-profiler | **inapplicable** | JVM-only; the runtime is Python | — |
 
 ### lkaisamp: native profiling where perf is denied
@@ -64,14 +65,14 @@ Everything is in `results/` and is published to the P2 dashboard as experiment `
 thread's PC and LR (aarch64's return address, so the leaf's caller), its tid and a phase tag. It does nothing else: no
 allocation, no locks, no unwinding. `lkai_symbolise.py` resolves the samples in the function from `/proc/self/maps`
 and the ELF symbol tables of the shipped libraries, using the standard library only. `libggml-cpu-armv8.6_1.so`, the
-variant Graviton3 loads, keeps 2,459 function symbols, 733 of them KleidiAI `kai_*`. Its limits:
+variant part 0xd40 loads, keeps 2,459 function symbols, 733 of them KleidiAI `kai_*`. Its limits:
 
 - It records a PC and its caller only, not a full stack.
 - The kernel keeps one SIGPROF pending per process, so with 6 busy threads the effective rate is well under 1 kHz per
   CPU-second (`effective_hz_per_cpu_s` in the results).
 - It measures CPU time only, so S3 reads and futex waits do not appear.
 
-On Graviton3 its per-phase ranking matches `perf record` (results below).
+On the arm64 DevSpace (part 0xd40) its per-phase ranking matches `perf record` (results below).
 
 ## Overhead (Lambda)
 
@@ -85,54 +86,68 @@ zero-cost arm looks like. That is the null every arm is judged against, X-Ray an
 Run `20261020T231634Z` (us-east-2, 8 arms, 5 rounds, 4,800 invocations, $9.61 per its `cost` block, most of it the
 SnapStart cache minimum on 40 published versions). `bench.py` opened a new Lambda client for every invocation wave
 (480 clients), so no pooled connection outlived a publish or SnapStart wait. All 4,800 invocations succeeded, with 0
-client errors and 0 start-class mismatches, and every arm/round restore cell has 6 to 10 valid Graviton3 samples
-(`restore_evidence`). All eight arms returned answers bit-identical to P1's reference (4,800 compared, 0 choice
-flips).
+client errors and 0 start-class mismatches, and every arm/round restore cell has 6 to 10 valid samples on CPU part
+0xd40 (`restore_evidence`). All eight arms returned answers bit-identical to P1's reference (4,800 compared, 0
+choice flips).
 
-Each cell is the mean over the 5 rounds of `median(arm) − median(rep)` within the round, Graviton3 (0xd40) rows only,
+Each cell is the mean over the 5 rounds of `median(arm) − median(rep)` within the round, CPU part 0xd40 rows only,
 then the [min, max] over rounds. A round is compared only when both medians rest on at least 3 valid samples (none
 was skipped in this run). Warm is paired by request as well (25 cells of round × request, since the five requests
-take 0.25 to 1.75 s), shown as the median percentage. `p` is an exact two-sided permutation test (252 splits) of the
-arm's 5 per-round values against `rep2`'s 5 (warm: each round's mean percentage, since a round's cells share its
-environments). A cell is **measurable** (bold) only if p < 0.05 and its mean is beyond `rep2`'s largest |per-round
-value|. With 5 rounds per side, 0.008 is the smallest p possible: all five rounds sit beyond all five null rounds.
+take 0.25 to 1.75 s), shown as the median percentage.
+
+**Inference.** `rep2` runs in the same rounds as every arm, so `arm − rep` and `rep2 − rep` share each round's `rep`
+median: they are paired, not two independent groups. The test statistic is the per-round paired difference
+`(arm − rep) − (rep2 − rep) = arm − rep2` (warm: each round's mean percentage, since a round's cells share its
+environments), and `p` is an exact two-sided sign-flip test over its 2⁵ = 32 sign assignments. **With 5 pairs the
+smallest attainable p is 2/32 = 0.0625, so no cell can reach p < 0.05: this study is underpowered to call any
+profiler cost statistically measurable.** An earlier version of this table tested the two sets of deltas as
+independent 5-vs-5 groups (252 splits) and reported p = 0.008 for four cells; that discarded the pairing and
+overstated the evidence, and is withdrawn. The estimates themselves are unchanged.
+
+Bold with † marks a **consistent direction** (descriptive, not a test): all 5 paired differences have the same sign,
+and every round's `arm − rep` is beyond `rep2`'s largest |per-round value|.
 
 | Arm | Cold Init Duration | Cold Duration (first request) | Restore Duration | First request after restore | Warm Duration, per request |
 |---|---|---|---|---|---|
 | `rep2` (null: same code as `rep`) | −0 ms [−28, +26] | +53 ms [−63, +155] | +48 ms [+5, +112] | +12 ms [−8, +35] | +0.3% [−4.6, +4.8] |
-| `none` (phase timers) | +9 ms [−5, +38], p=0.524 | +69 ms [−67, +199], p=0.786 | +5 ms [−53, +42], p=0.119 | +0 ms [−14, +18], p=0.270 | −0.3% [−4.1, +2.5], p=0.294 |
-| `xray` | +5 ms [−21, +24], p=0.730 | +77 ms [−27, +280], p=0.754 | +24 ms [−21, +52], p=0.341 | +10 ms [+5, +18], p=0.825 | −0.6% [−6.9, +2.1], p=0.262 |
-| `cprofile` | **+113 ms [+101, +120], p=0.008** | +186 ms [+21, +394], p=0.119 | +70 ms [+47, +105], p=0.309 | +12 ms [−1, +40], p=1.000 | −0.2% [−1.5, +4.7], p=1.000 |
-| `telemetry` | **+93 ms [+57, +134], p=0.008** | −102 ms [−308, +46], p=0.056 | +50 ms [−3, +127], p=0.929 | +6 ms [−10, +17], p=0.540 | −0.3% [−5.1, +4.1], p=0.746 |
-| `pyspy` | +20 ms [−5, +38], p=0.135 | +134 ms [+16, +302], p=0.302 | +18 ms [−32, +123], p=0.397 | +25 ms [+6, +49], p=0.270 | **+4.7% [+0.9, +12.8], p=0.008** |
-| `sampler` (lkaisamp) | +16 ms [−1, +40], p=0.222 | **+457 ms [+382, +646], p=0.008** | +107 ms [+41, +180], p=0.151 | +1,011 ms [−9, +1,772], p=0.119 | −0.3% [−7.4, +3.9], p=0.119 |
+| `none` (phase timers) | +9 ms [−5, +38], p=0.5 | +69 ms [−67, +199], p=0.75 | +5 ms [−53, +42], p=0.125 | +0 ms [−14, +18], p=0.25 | −0.3% [−4.1, +2.5], p=0.125 |
+| `xray` | +5 ms [−21, +24], p=0.25 | +77 ms [−27, +280], p=0.5625 | +24 ms [−21, +52], p=0.0625 | +10 ms [+5, +18], p=0.6875 | −0.6% [−6.9, +2.1], p=0.1875 |
+| `cprofile` | **+113 ms [+101, +120], p=0.0625 †** | +186 ms [+21, +394], p=0.0625 | +70 ms [+47, +105], p=0.125 | +12 ms [−1, +40], p=1 | −0.2% [−1.5, +4.7], p=1 |
+| `telemetry` | **+93 ms [+57, +134], p=0.0625 †** | −102 ms [−308, +46], p=0.0625 | +50 ms [−3, +127], p=1 | +6 ms [−10, +17], p=0.25 | −0.3% [−5.1, +4.1], p=0.6875 |
+| `pyspy` | +20 ms [−5, +38], p=0.0625 | +134 ms [+16, +302], p=0.1875 | +18 ms [−32, +123], p=0.4375 | +25 ms [+6, +49], p=0.0625 | **+4.7% [+0.9, +12.8], p=0.0625 †** |
+| `sampler` (lkaisamp) | +16 ms [−1, +40], p=0.0625 | **+457 ms [+382, +646], p=0.0625 †** | +107 ms [+41, +180], p=0.375 | +1,011 ms [−9, +1,772], p=0.25 | −0.3% [−7.4, +3.9], p=0.1875 |
 
-Control medians (`rep`, Graviton3): Init Duration 812 ms, cold Duration 35.2 s, Restore Duration 3.21 s, first
-request after restore 678 ms, warm 650 ms (pooled over the five requests). Full per-round values, the verdicts and
-their p-values are in `results.json` → `profiler_overhead_paired`.
+Several cells sit at p = 0.0625 without a consistent direction: their 5 paired differences share a sign, but at
+least one round's `arm − rep` falls inside the null's spread.
 
-What the null supports, and what it does not:
+Control medians (`rep`, part 0xd40): Init Duration 812 ms, cold Duration 35.2 s, Restore Duration 3.21 s, first
+request after restore 678 ms, warm 650 ms (pooled over the five requests). Full per-round values, the paired
+differences, the verdicts and their p-values are in `results.json` → `profiler_overhead_paired`.
 
-- **Phase timers (`none`) and X-Ray: no cost distinguishable from `rep2`** on any phase (every p ≥ 0.12). This is
-  not proof of zero cost: with 5 rounds, a cost smaller than the null's spread (up to 28 ms Init, 155 ms cold
-  Duration, 112 ms Restore Duration, 35 ms first restored request, about 1.8% per-round warm) cannot be resolved.
-- **cProfile: +113 ms of Init Duration** (14%), above the null in every round. Its +186 ms on the cold first request
-  is not distinguishable from the null. No warm cost is measurable: its per-invocation profile spans only the Python
-  layer, and the forward runs in C.
-- **Telemetry API extension: +93 ms of Init Duration** (11%), above the null in every round: the extension's own
-  registration and subscription (Telemetry's `extension_register_ms` p50 30 ms, p90 89 ms). Nothing else measurable.
-- **py-spy (non-native): +4.7% median per warm request** (per-round means +3.5% to +6.6%, all above the null's
-  largest 1.8%): the sampler process reading the interpreter at 100 Hz while 6 threads compute.
-- **lkaisamp: +457 ms on the cold first request** (Duration), above the null in every round. On the first request
+What this supports, and what it does not:
+
+- **No profiler cost is statistically established at α = 0.05** (5 paired rounds cannot get below p = 0.0625). A
+  6th round could reach p = 0.031; 7 rounds 0.016.
+- **Phase timers (`none`) and X-Ray: no consistent direction** on any phase. This is not proof of zero cost: with 5
+  rounds, a cost smaller than the null's spread (up to 28 ms Init, 155 ms cold Duration, 112 ms Restore Duration,
+  35 ms first restored request, about 1.8% per-round warm) cannot be resolved.
+- **cProfile: +113 ms of Init Duration** (14%), consistent direction, every round above the null (p = 0.0625). Its
+  +186 ms on the cold first request does not have a consistent direction. No warm cost is visible: its
+  per-invocation profile spans only the Python layer, and the forward runs in C.
+- **Telemetry API extension: +93 ms of Init Duration** (11%), consistent direction (p = 0.0625). Telemetry's own
+  `extension_register_ms` (p50 30 ms, p90 89 ms) is a plausible part of it; nothing else has a consistent direction.
+- **py-spy (non-native): +4.7% median per warm request**, consistent direction (per-round paired differences +2.6%
+  to +5.7%; every round above the null's largest 1.8%; p = 0.0625).
+- **lkaisamp: +457 ms on the cold first request** (Duration), consistent direction (p = 0.0625). On the first request
   after a restore it added about +1.5 to +1.8 s in rounds 2 to 4 but nothing in rounds 0 and 1 (per-round deltas
-  +24, −9, +1,512, +1,756, +1,772 ms), so the 5-round test does not call it measurable (p=0.119). Run
-  `20261020T124451Z` saw +1.8 to +2.3 s in all rounds; why two rounds of this run did not is not established. Its
-  warm cost is not measurable. These deltas appear in Lambda's `Duration`, while the handler's internal
-  `latency_ms` and phase records are unchanged. The sampler dumps and symbolises before `lkai_prof.handler`
-  returns, so the cost is outside the baseline's internal timing but still before Lambda receives the response.
-  Attribution within that hook remains open: parsing the ELF tables takes 26 ms offline, which does not explain it.
+  +24, −9, +1,512, +1,756, +1,772 ms; p = 0.25). Run `20261020T124451Z` saw +1.8 to +2.3 s in all rounds; why two
+  rounds of this run did not is not established. No warm cost is visible. These deltas appear in Lambda's
+  `Duration`, while the handler's internal `latency_ms` and phase records are unchanged. The sampler dumps and
+  symbolises before `lkai_prof.handler` returns, so the cost is outside the baseline's internal timing but still
+  before Lambda receives the response. Attribution within that hook remains open: parsing the ELF tables takes 26 ms
+  offline, which does not explain it.
 
-The offline Graviton3 overheads below are not Lambda numbers, but they rank the same way for the warm forward.
+The offline overheads below (arm64 DevSpace) are not Lambda numbers, but they rank the same way for the warm forward.
 
 **Final latency comparisons use light instrumentation only:** the REPORT-only arm or P1's phase timers. Profiler arms
 are for finding hot spots, not for timing them.
@@ -154,12 +169,68 @@ review, invalidated it:
 Its raw evidence stays in `results/20261020T124451Z/` for audit. Its `results.json` was regenerated with the corrected
 summariser, so the restore verdicts there are `withheld` (sparse cells) and every share uses full denominators.
 
+## Host variability (Lambda, run 20261020T231634Z)
+
+The initiative's host-variability rules apply: CPU identity is recorded as observed, anything not observed is marked
+unknown, and no processor generation is inferred from a part ID or from timings. This section is a reanalysis of
+the committed evidence only (no AWS calls, no new measurement). The machine-readable form is `results.json` →
+`host_variability` (`lkai-host-variability/1`).
+
+**Observed.** Every invocation row records the MIDR CPU part ID that `handler._cpu_part()` read from
+`/proc/cpuinfo` during that request, so a restored environment reports the host it was restored on. Three part IDs
+served this run: `0xd40` 4,225 rows, `0xd0c` 528, `0xd4f` 47. They appear in every arm:
+
+| Arm | cold (0xd40 / 0xd0c / 0xd4f) | restore (0xd40 / 0xd0c) | warm (0xd40 / 0xd0c) |
+|---|---|---|---|
+| `rep` | 35 / 8 / 7 | 42 / 8 | 421 / 79 |
+| `rep2` | 43 / 5 / 2 | 45 / 5 | 451 / 49 |
+| `none` | 37 / 9 / 4 | 46 / 4 | 459 / 41 |
+| `xray` | 33 / 9 / 8 | 45 / 5 | 451 / 49 |
+| `cprofile` | 36 / 7 / 7 | 48 / 2 | 481 / 19 |
+| `telemetry` | 31 / 12 / 7 | 40 / 10 | 398 / 102 |
+| `pyspy` | 36 / 6 / 8 | 46 / 4 | 460 / 40 |
+| `sampler` | 36 / 10 / 4 | 46 / 4 | 459 / 41 |
+
+No restore or warm row ran on `0xd4f`. Each part ID loaded its own ggml CPU variant (from the engine's init log,
+250 cold rows): `0xd40` → `libggml-cpu-armv8.6_1.so`, `0xd0c` → `libggml-cpu-armv8.2_2.so`, `0xd4f` →
+`libggml-cpu-armv8.6_2.so`, so the KleidiAI kernels differ by part ID (warm matmul on 0xd40
+`kai_kernel_matmul_clamp_f32_qai8dxp4x8_qsi8cxp4x8_16x4_neon_i8mm`, on 0xd0c
+`kai_run_matmul_clamp_f32_qai8dxp4x4_qsi8cxp4x4_16x4_neon_dotprod`). 4,472 of 4,800 rows link to their CloudWatch log
+stream through the START RequestId in the log tail (the other 328 tails lost that line); across the 650 linked
+streams no stream changed part ID. Every INIT_START names `python:3.12.mainlinev2.v43`. The in-function probe
+(`lambda-probe/*.json`, a separate function, 7 environments) read implementer `0x41`, variant `0x1`, part `0xd40`,
+revision `1`, 6 processors, kernel `5.10.255-268-309.1092.amzn2.aarch64`, Python 3.12.14 and the full feature string;
+it never landed on `0xd0c` or `0xd4f`.
+
+**Unknown** (not recorded in this run): implementer, variant, revision and feature flags per invocation; HWCAPs;
+the core count per invocation and after a restore (`threads=6` is configuration, not an observed nproc); cgroup CPU
+and memory limits; the kernel per invocation; availability zone; physical host; the part ID of the environment that
+built each SnapStart snapshot; and any processor name or generation for any part ID.
+
+**How comparisons handle it.** Every overhead cell above uses part `0xd40` rows only, paired by round against `rep`
+and `rep2` on the same part, so the part mix cannot move a verdict. Other part IDs are counted but not compared:
+per (arm, class, round) they are too sparse for a paired cell. Figures do differ by part ID, so any pooled figure
+depends on its run's mix. `rep` warm REPORT Duration p50 is 650 ms on `0xd40` vs 1,188 ms on `0xd0c`; `rep` warm
+engine p50 for `ticket-route-1q` 245 ms vs 440 ms, for `incident-review-4q` 1,763 ms vs 3,449 ms; `rep` cold Duration
+p50 35.2 s (`0xd40`, n=35), 47.4 s (`0xd0c`, n=8), 33.9 s (`0xd4f`, n=7). The native hot-spot tables are split by part
+ID (`host_variability.observed.lkaisamp_top_self_by_part`): init `buffer_set_tensor` is 26.4% of init CPU samples on
+`0xd40` (36 inits), 37.6% on `0xd0c` (10), 30.3% on `0xd4f` (4); warm `concat` is 5.6% on `0xd40` and 6.5% on `0xd0c`.
+
+**The concat gap.** Lambda warm `concat` (lkaisamp, `0xd40`, 459 invocations) is 5.6% of CPU samples. Offline, on
+the arm64 DevSpace that also reads part `0xd40`, it is 2.65% under the same sampler (`steady_state_inference`, 6,008
+samples) and 1.2% under `perf record` (whole run). The same part ID on both sides rules out a part-ID mix as the
+cause of this gap, but not other host differences that were not recorded (implementer/variant/revision per
+invocation, cgroup limits, core count, kernel 5.10 vs 6.1, sampler rate). It is not attributed to code.
+
+H1 (host-variability card) reuses these tables rather than re-profiling.
+
 ## Baseline hot spots by phase (feeds E6)
 
 Phases are ranked by wall time from P1's own timers, read from the `none` arm (`rep` runs with `LKAI_PHASES=0` and
-has no phase records; `none` runs P1's timers, which show no cost distinguishable from the null above). Each phase's
-contents come from the profiler best placed to see them. **Lambda** rows are from run `20261020T231634Z`, Graviton3
-(0xd40) where split. **Offline** rows are the Graviton3 DevSpace and are not Lambda.
+has no phase records; `none` runs P1's timers, which show no consistent-direction cost against the null above). Each
+phase's contents come from the profiler best placed to see them. **Lambda** rows are from run `20261020T231634Z`,
+CPU part 0xd40 where split, pooled over part IDs where not (see Host variability). **Offline** rows are the arm64
+DevSpace (part 0xd40) and are not Lambda.
 
 Every percentage below is a share of **all** samples (or all own-time) the profiler recorded for that phase, not of
 the rows kept in its top-N table: `summarize_prof._merge_top` divides by each record's full total. The previous
@@ -173,7 +244,7 @@ An on-demand cold start loads the model inside the first invocation (PR #77's ba
 | Rank | Phase (P1 timer) | p50 | Share of first request | What the time is (evidence) |
 |---|---|---|---|---|
 | 1 | `weight_download` | 24.99 s | 69.4% | **Waiting on S3 over TLS.** py-spy (Lambda): 58.3% of init leaf samples in `ssl.py:1103 read`. cProfile (Lambda): `_ssl._SSLSocket.read` has 58.5% of init own-time (1,487 s of 2,540 s summed over all threads, the 32 download threads included). lkaisamp sees little here because waiting uses no CPU; `libc read` + `pwrite` (copies into the memfd) are 7.7% of init CPU samples (5.1% + 2.6%). 79 MiB/s. Network-bound: the E1 to E4 experiments target it |
-| 2 | `model_load_mmap` | 8.38 s | 23.3% | **The KleidiAI weight repack, not I/O.** lkaisamp (Lambda, init, 124,272 samples): `ggml_backend_cpu_kleidiai_buffer_set_tensor` 30.8% (16.4% + 14.4%, the copies in the two CPU variants) + `kai_run_rhs_pack_nxk_qsi8cxp_qsi8cx_neon` 12.2% (6.2% + 6.0%) + `memset` 7.5% + `lroundf` 2.6% of init CPU samples. Offline Graviton3 lkaisamp, `model_load` phase only: `buffer_set_tensor` 46.8%, `rhs_pack` 22.8%, the variant's unsymbolised `+0x32000` 9.0%, `memset` 6.1%, all on **one thread** (1 sampled thread over the 7.9 s phase). py-spy (Lambda): `engine.py:114 __init__` (the native `dec_load`) holds 31.3% of init leaf samples. E5 (mmap-friendly format) targets it; a repacked-at-build-time format would remove it |
+| 2 | `model_load_mmap` | 8.38 s | 23.3% | **The KleidiAI weight repack, not I/O.** lkaisamp (Lambda, init, 124,272 samples, pooled over part IDs): `ggml_backend_cpu_kleidiai_buffer_set_tensor` 30.8% (16.4% + 14.4%, the copies in the two CPU variants) + `kai_run_rhs_pack_nxk_qsi8cxp_qsi8cx_neon` 12.2% (6.2% + 6.0%) + `memset` 7.5% + `lroundf` 2.6% of init CPU samples. Offline arm64 DevSpace lkaisamp, `model_load` phase only: `buffer_set_tensor` 46.8%, `rhs_pack` 22.8%, the variant's unsymbolised `+0x32000` 9.0%, `memset` 6.1%, all on **one thread** (1 sampled thread over the 7.9 s phase). py-spy (Lambda): `engine.py:114 __init__` (the native `dec_load`) holds 31.3% of init leaf samples. E5 (mmap-friendly format) targets it; a repacked-at-build-time format would remove it |
 | 3 | `assets_load` | 0.95 s | 2.6% | Tokenizer and numpy head (`tokenizers.abi3.so` 2.1% of init CPU samples) |
 | 4 | `imports` | 0.73 s | 2.0% | Python imports and bytecode compile (cProfile: `builtins.compile` 21.8 s own-time summed over threads, 0.9%) |
 | 5 | `context_init` | 0.33 s | 0.9% | llama context creation |
@@ -185,12 +256,12 @@ An on-demand cold start loads the model inside the first invocation (PR #77's ba
 | Rank | Phase | p50 | Share | What the time is |
 |---|---|---|---|---|
 | 1 | `report_restore_duration` | 3.21 s | 82.2% | Lambda's snapshot restore, before any function code runs (X-Ray `Restore` segment p50 3.23 s, 50 traces). No profiler inside the function can see it: it happens before the runtime resumes. Telemetry reports the same span (`platform.restoreReport`) |
-| 2 | `first_request_inference` | 0.67 s | 17.3% | **2.8× the warm forward (0.24 s) for the same request, and half of it is `memset`.** Over all 46 restored first invocations of the sampler arm on Graviton3 (`sampler_invoke_restore_0xd40`, 2,670 samples): `memset` 50.7%, the i8mm matmul 34.9%, then the warm kernels at 1 to 2% each. Warm, `memset` is 2.2%. Its callers, from the sampler's caller edges: `llama_kv_cache::clear` (690 samples) and `llama_memory_recurrent::clear` (661), the per-request cache clears. Warm, the same clears are cheap, so the likely extra cost is first-touch page faults on the restored cache memory (a fault's kernel time is charged to the instruction that touched the page). That part is an inference: Lambda allows no perf to count faults directly |
+| 2 | `first_request_inference` | 0.67 s | 17.3% | **2.8× the warm forward (0.24 s) for the same request, and half of it is `memset`.** Over all 46 restored first invocations of the sampler arm on part 0xd40 (`sampler_invoke_restore_0xd40`, 2,670 samples): `memset` 50.7%, the i8mm matmul 34.9%, then the warm kernels at 1 to 2% each. Warm, `memset` is 2.2%. Its callers, from the sampler's caller edges: `llama_kv_cache::clear` (690 samples) and `llama_memory_recurrent::clear` (661), the per-request cache clears. Warm, the same clears are cheap, so the likely extra cost is first-touch page faults on the restored cache memory (a fault's kernel time is charged to the instruction that touched the page). That part is an inference: Lambda allows no perf to count faults directly |
 | 3 | `restore_to_invoke` | 0.011 s | 0.3% | after-restore hooks |
 
 ### Warm steady state: 0.25 to 1.77 s per request, Lambda
 
-| Rank | Native symbol (Lambda lkaisamp, warm, Graviton3; 27,899 samples over 459 invocations) | Share of CPU samples | Offline Graviton3 perf record (whole run) |
+| Rank | Native symbol (Lambda lkaisamp, warm, part 0xd40; 27,899 samples over 459 invocations) | Share of CPU samples | Offline arm64 DevSpace (part 0xd40) perf record (whole run) |
 |---|---|---|---|
 | 1 | `kai_kernel_matmul_clamp_f32_qai8dxp4x8_qsi8cxp4x8_16x4_neon_i8mm` (KleidiAI int8 matmul) | 48.8% | 47.7% |
 | 2 | `ggml_vec_dot_f32` (f32 dot products: attention / recurrent state) | 8.8% | 9.4% |
@@ -203,10 +274,10 @@ An on-demand cold start loads the model inside the first invocation (PR #77's ba
 | 9 | `kai_run_lhs_quant_pack_qai8dxp_f32` (activation quantisation) | 2.0% | 1.3% |
 | 10 | `rms_norm_mul_fused`, `swiglu`, `silu` | 1.5%, 1.3%, 1.1% | 0.9%, 1.0%, 0.9% |
 
-By library (Lambda, warm, Graviton3): `libggml-cpu-armv8.6_1.so` 88.8%, libgomp 5.5%, libc 4.0%, numpy's OpenBLAS
+By library (Lambda, warm, part 0xd40): `libggml-cpu-armv8.6_1.so` 88.8%, libgomp 5.5%, libc 4.0%, numpy's OpenBLAS
 0.6%. Python is negligible. py-spy (Lambda, warm): 93.1% of leaf samples sit in `engine.py:156 _fork`, the ctypes call
 into the forward. cProfile (Lambda, warm): `_fork` 92.0% of own-time, `_eval` 6.0%, the numpy head (`cumsum`,
-`logits`) under 2%. Graviton2 sandboxes (0xd0c, 10.5% of warm rows in this run) load the dot-product variant
+`logits`) under 2%. Part 0xd0c environments (10.5% of warm rows in this run) load the dot-product variant
 (`kai_run_matmul_clamp_f32_qai8dxp4x4_qsi8cxp4x4_16x4_neon_dotprod`), which is kept in its own table
 (`sampler_invoke_warm_0xd0c`).
 
@@ -214,7 +285,8 @@ into the forward. cProfile (Lambda, warm): `_fork` 92.0% of own-time, `_eval` 6.
 
 - Warm: about half the CPU time is the int8 matmul kernel, already the fastest KleidiAI path for this CPU. The
   non-matmul half (f32 dot products, the gated-delta-net recurrence, `concat`, `fwht`, OpenMP barriers: about 33%
-  together) has more room. `concat` is 5.6% in Lambda against 1.2% offline, which is worth one look.
+  together) has more room. `concat` is 5.6% in Lambda (part 0xd40) against 2.65% offline under the same sampler and
+  1.2% under perf, also on part 0xd40; the gap is not attributed to code (see Host variability), but worth one look.
 - Restore: half of the first forward after a restore is `memset` inside `llama_kv_cache::clear` and
   `llama_memory_recurrent::clear`. Clearing (touching) those caches once in an after-restore hook, before the first
   request, is a candidate one-change experiment. So is clearing only the cells that were used.
@@ -226,8 +298,8 @@ into the forward. cProfile (Lambda, warm): `_fork` 92.0% of own-time, `_eval` 6.
 
 | Host | Steady forward, `ticket-route-1q` / `incident-review-4q` | Notes |
 |---|---|---|
-| Lambda Graviton3, 6 vCPU (`rep` warm, REPORT Duration p50, run 20261020T231634Z) | 0.247 / 1.765 s | the deployed function |
-| Graviton3 DevSpace, same image, 6 CPUs | 0.243 / 1.739 s | within 2% of Lambda; perf available |
+| Lambda, part 0xd40, 6 vCPU (`rep` warm, REPORT Duration p50, run 20261020T231634Z) | 0.247 / 1.765 s | the deployed function |
+| arm64 DevSpace, part 0xd40, same image, 6 CPUs | 0.243 / 1.739 s | within 2% of Lambda; perf available |
 | AMD EPYC 7R13 (g6.4xlarge host CPU), 6 threads, `haswell` variant, no KleidiAI | 0.670 / 4.488 s | x86 is not a deployment target of this example |
 | NVIDIA L4, all layers offloaded (CUDA, sm_89) | 0.023 / 0.106 s | top kernels `mul_mat_q` (Q8_0) at 61.5% of GPU kernel time over all its tile sizes; nvidia-smi peak memory and utilisation in `results/offline/gpu-host/` |
 
@@ -273,7 +345,7 @@ python $P/summarize_prof.py build/p3/runs/<run-id> --reference examples/lambda-k
 | `build_prof_zip.sh`, `deploy_arms.py` | Build the profiler package; deploy and tear down the `lkai-p3-*` arms |
 | `summarize_prof.py`, `fetch_xray.py` | Build `results.json` (lkai-result/1 plus `profiler_overhead`, `profiles`, `applicability`, `hot_spots`) |
 | `offline_drive.py` | Runs the engine outside Lambda with `PHASE` markers; used by every offline profile |
-| `graviton_profile.sh`, `graviton_container.sh` | The offline Graviton3 profile (perf, py-spy --native, cProfile, lkaisamp) |
+| `graviton_profile.sh`, `graviton_container.sh` | The offline arm64 DevSpace profile (perf, py-spy --native, cProfile, lkaisamp) |
 | `gpu_profile.sh`, `gpu_container.sh`, `gpu_rerun.sh` | The offline x86 and NVIDIA L4 profile (nvidia-smi, nsys, ncu) |
 | `applicability.json` | The matrix, with evidence |
 | `results/` | Probe outputs, offline evidence, and the Lambda run (redacted: no account ID or bucket name) |

@@ -200,7 +200,7 @@ def test_overhead_vs_compares_one_arm_to_the_control_by_cpu_part():
             _row("pyspy", 0, "warm", lat=900.0, cpu="0xd0c"), _row("sampler", 0, "warm", lat=470.0)]
     ov = sp.overhead_vs(rows, "pyspy")
     cell = ov["warm"]["steady_state_inference"]
-    assert list(cell["by_cpu_part"]) == ["0xd40"]  # Graviton2 has no control sample
+    assert list(cell["by_cpu_part"]) == ["0xd40"]  # part 0xd0c has no control sample
     assert cell["pooled_delta_p50_s"] == pytest.approx(0.04)
     assert ov["method"].startswith("median(pyspy) - median(rep)")
     assert sp.overhead_vs(rows, "sampler")["warm"]["steady_state_inference"]["pooled_delta_p50_s"] == pytest.approx(0.01)
@@ -434,7 +434,7 @@ def test_paired_warm_by_request_removes_request_mix():
             _prow("x", 0, "warm", 275, rid="short"), *[_prow("x", 0, "warm", 1925, rid="long")] * 5]
     w = sp.paired_warm_by_request(rows, "x")
     assert w == {"cells": 2, "median_pct": 10.0, "min_pct": 10.0, "max_pct": 10.0, "pct_by_cell": [10.0, 10.0],
-                 "pct_by_round": [10.0]}
+                 "round_ids": [0], "pct_by_round": [10.0]}
 
 
 def test_profile_extracts_split_warm_sampler_tables_by_cpu_part(tmp_path):
@@ -534,34 +534,57 @@ def test_paired_rounds_skip_a_round_whose_control_is_one_sample():
     assert ev["by_arm_round"]["rep"]["1"] == {"sent": 5, "client_errors": 4, "valid_0xd40": 1}
 
 
-def test_permutation_p_is_exact_for_five_rounds():
+def test_sign_flip_p_is_exact_and_floored_by_pair_count():
     import summarize_prof as sp
 
-    assert sp.permutation_p([10, 11, 12, 13, 14], [0, 1, 2, 3, 4]) == round(2 / 252, 4)  # only the two extreme splits
-    assert sp.permutation_p([1, 2], [1, 2]) == 1.0
-    assert sp.permutation_p([1], [1, 2]) is None
+    # 5 pairs, all one sign: only the all-plus and all-minus assignments are as extreme.
+    assert sp.sign_flip_p([10, 11, 12, 13, 14]) == round(2 / 32, 4)
+    assert sp.sign_flip_p([-3, -1, -2, -5, -4]) == 0.0625
+    assert sp.sign_flip_p([1, -1]) == 1.0
+    assert sp.sign_flip_p([1]) is None
+    assert sp.sign_flip_p([1.0] * 6) == round(2 / 64, 4)  # 6 pairs could reach 0.03
 
 
-def test_null_verdicts_judge_xray_and_timers_against_the_replicate_not_themselves():
-    """The X-Ray arm's own deltas used to define the noise floor that X-Ray was then judged by."""
+def test_null_test_keeps_round_pairing_and_cannot_go_below_its_floor():
+    """arm - rep and rep2 - rep share each round's rep median: a 5-vs-5 unpaired permutation gave p=0.008, which a
+    paired design of 5 rounds cannot support. The paired statistic is arm - rep2 per round."""
     import summarize_prof as sp
 
     def cell(d):
-        return {"delta_ms_by_round": d, "min_ms": min(d), "max_ms": max(d)}
+        return {"delta_ms_by_round": d, "round_ids": list(range(len(d))), "min_ms": min(d), "max_ms": max(d)}
 
     null = [-20.0, 15.0, -5.0, 10.0, 0.0]
     paired = {"rep2": {"cold.Init Duration": cell(null)},
-              "xray": {"cold.Init Duration": cell([-10.0, 12.0, 3.0, -8.0, 5.0])},  # within the null
-              "cprofile": {"cold.Init Duration": cell([100.0, 110.0, 99.0, 117.0, 107.0])},  # far outside
-              "none": {"cold.Init Duration": cell([25.0, 30.0, 22.0, 28.0, 26.0])}}  # small but every round
+              "xray": {"cold.Init Duration": cell([-10.0, 12.0, 3.0, -8.0, 5.0])},
+              "cprofile": {"cold.Init Duration": cell([100.0, 110.0, 99.0, 117.0, 107.0])}}
     v = sp.null_verdicts(paired)
-    assert "rep2" not in v  # the null is never judged against itself
-    assert v["xray"]["cold.Init Duration"]["verdict"] == "not measurable"
-    assert v["cprofile"]["cold.Init Duration"]["verdict"] == "measurable"
-    assert v["none"]["cold.Init Duration"]["verdict"] == "measurable"  # an xray-defined floor (|max| 12) would agree,
-    assert v["none"]["cold.Init Duration"]["null_max_abs"] == 20.0  # but the floor now comes from rep2 alone
+    assert "rep2" not in v
+    c = v["cprofile"]["cold.Init Duration"]
+    assert c["p"] == 0.0625 and c["min_attainable_p"] == 0.0625 and c["underpowered"] is True
+    assert c["verdict"] == "not measurable"  # p < 0.05 is unattainable with 5 pairs
+    assert c["paired_diff_by_round"] == [120.0, 95.0, 104.0, 107.0, 107.0]  # arm - rep2, round by round
+    assert c["consistent_direction"] is True and c["null_max_abs"] == 20.0
+    assert v["xray"]["cold.Init Duration"]["consistent_direction"] is False
+    # Mutation probe: the old unpaired 5-vs-5 test on the same values would have reported p = 2/252 < 0.05.
+    assert 2 / 252 < 0.05 < c["p"]
+    # Pairing is by round id, not position: a round only one arm kept is dropped from the pairs.
+    gappy = {"rep2": {"k": {"delta_ms_by_round": [1.0, 2.0, 3.0], "round_ids": [0, 1, 2]}},
+             "x": {"k": {"delta_ms_by_round": [9.0, 9.0], "round_ids": [0, 2]}}}
+    g = sp.null_verdicts(gappy)["x"]["k"]
+    assert g["rounds"] == [0, 2] and g["paired_diff_by_round"] == [8.0, 6.0] and g["min_attainable_p"] == 0.5
     assert sp.null_verdicts({"rep2": {}, "x": {"warm.Duration": cell([1.0])}})["x"]["warm.Duration"]["verdict"] == (
         "insufficient")
+
+
+def test_six_pairs_can_be_measurable():
+    import summarize_prof as sp
+
+    def cell(d):
+        return {"delta_ms_by_round": d, "round_ids": list(range(len(d)))}
+
+    v = sp.null_verdicts({"rep2": {"k": cell([1.0, -2.0, 0.0, 2.0, -1.0, 1.0])},
+                          "x": {"k": cell([50.0, 52.0, 49.0, 55.0, 51.0, 50.0])}})["x"]["k"]
+    assert v["p"] == round(2 / 64, 4) and v["underpowered"] is False and v["verdict"] == "measurable"
 
 
 def _prov_repo(tmp_path):
@@ -632,12 +655,67 @@ def test_warm_by_request_verdict_tests_rounds_not_correlated_cells():
 
     def w(by_round):
         return {"warm.Duration.by_request": {"pct_by_cell": [x for x in by_round for _ in range(5)],
-                                             "pct_by_round": by_round}}
+                                             "pct_by_round": by_round, "round_ids": list(range(len(by_round)))}}
 
     v = sp.null_verdicts({"rep2": w([-2.0, 1.0, 3.0, -1.0, 0.5]), "x": w([5.0, 6.0, 4.0, 7.0, 5.5])})
     cell = v["x"]["warm.Duration.by_request"]
-    assert cell["n_arm"] == cell["n_null"] == 5 and cell["p"] == round(2 / 252, 4)
-    assert cell["verdict"] == "measurable" and cell["null_max_abs"] == 3.0
+    assert cell["n_pairs"] == 5 and cell["p"] == 0.0625  # 5 rounds, not 25 cells
+    assert cell["verdict"] == "not measurable" and cell["consistent_direction"] is True and cell["null_max_abs"] == 3.0
+
+
+def test_host_variability_reports_part_ids_unknowns_and_no_generation(tmp_path):
+    import summarize_prof as sp
+
+    tail = "START RequestId: {} Version: $LATEST\n... init cpu_part={} ggml_cpu=libggml-cpu-a.so,libggml-cpu-{}.so ...\n"
+    rows = []
+    for i, (arm, cls, cpu) in enumerate([("rep", "cold", "0xd40"), ("rep", "warm", "0xd40"), ("rep", "cold", "0xd0c"),
+                                         ("x", "cold", "0xd4f"), ("x", "restore", "0xd40")]):
+        r = _row(arm, i % 2, cls, cpu=cpu)
+        r["log_tail"] = tail.format(f"req{i}", cpu, cpu)
+        rows.append(r)
+    rows[1]["log_tail"] = "no start line"
+    d = tmp_path / "logs"
+    d.mkdir()
+    with gzip.open(d / "fn.jsonl.gz", "wt") as f:
+        for i in (0, 2, 3, 4):
+            f.write(json.dumps({"logStreamName": f"s{i}", "message": f"START RequestId: req{i} Version: $LATEST"}) + "\n")
+        f.write(json.dumps({"logStreamName": "s0", "message": "INIT_START Runtime Version: python:3.12.v43\tARN"}) + "\n")
+    probes = tmp_path / "probe"
+    probes.mkdir()
+    (probes / "p1.json").write_text(json.dumps({"cpuinfo": {"processors": 6, "first": {
+        "CPU implementer": "0x41", "CPU variant": "0x1", "CPU part": "0xd40", "CPU revision": "1", "Features": "fp sve"}},
+        "nproc": 6, "uname": {"release": "5.10"}, "python": "3.12.14"}))
+    hv = sp.host_variability(rows, {"runtime_version_arn": "arn:rt", "region": "r"}, str(tmp_path), str(probes))
+    o = hv["observed"]
+    assert hv["new_measurements"] is False and hv["aws_calls"] == 0
+    assert o["cpu_part_ids"] == ["0xd0c", "0xd40", "0xd4f"] and o["multiple_identities"] is True
+    assert o["cpu_part_counts_by_arm_class"]["rep"] == {"cold": {"0xd0c": 1, "0xd40": 1}, "warm": {"0xd40": 1}}
+    assert o["cpu_part_counts_by_arm_class"]["x"] == {"cold": {"0xd4f": 1}, "restore": {"0xd40": 1}}
+    assert o["ggml_cpu_variants_loaded_by_part"]["0xd4f"] == {"libggml-cpu-a.so,libggml-cpu-0xd4f.so": 1}
+    assert o["log_stream_linkage"]["rows_linked_to_stream"] == 4 and o["log_stream_linkage"]["rows_unlinked"] == 1
+    assert o["log_stream_linkage"]["streams_with_more_than_one_part"] == 0
+    assert o["runtime_versions_in_init_start"] == {"python:3.12.v43": 1}
+    assert o["probe_environments"]["by_file"]["p1.json"]["implementer"] == "0x41"
+    for k in ("cpu_features_hwcaps_per_invocation", "cgroup_cpu_memory_limits", "restored_core_count",
+              "kernel_per_invocation", "availability_zone", "processor_generation_or_microarchitecture"):
+        assert k in hv["unknown"]
+    blob = json.dumps(hv)
+    assert "Graviton" not in blob and "Neoverse" not in blob  # part IDs are labels, never mapped to a generation
+
+
+GENERATION = __import__("re").compile(r"Graviton ?[2-5]|Neoverse|Graviton(?:2|3|4|5) sandboxes")
+
+
+def test_p3_text_and_results_never_name_a_generation():
+    """The initiative's host-variability contract forbids inferring a processor generation from a CPU part ID or
+    from timings. P3's own docs, matrix, meta and committed results use part IDs only."""
+    files = [PROF / "README.md", PROF / "applicability.json", PROF / "meta.json", PROF / "summarize_prof.py"]
+    for run in ("20261020T231634Z", "20261020T124451Z"):
+        d = PROF / "results" / run
+        files += [d / f for f in ("README.md", "meta.json", "applicability.json", "results.json") if (d / f).exists()]
+    for f in files:
+        hits = GENERATION.findall(f.read_text())
+        assert not hits, (f, hits[:3])
 
 
 @pytest.mark.parametrize("run,extra", [("20261020T231634Z", []), ("20261020T124451Z", ["--superseded-by",
@@ -669,5 +747,5 @@ def test_committed_results_regenerate_from_committed_evidence(tmp_path, run, ext
     got = json.loads((work / "results.json").read_text())
     got["artifacts"]["invocations"] = "invocations.jsonl.gz"  # stage_run.sh points the link at the .gz
     for k in ("profiler_overhead_paired", "profiles", "hot_spots", "restore_evidence", "correctness_by_arm",
-              "deployment", "conclusion", "status"):
+              "deployment", "conclusion", "status", "host_variability"):
         assert got.get(k) == want.get(k), k

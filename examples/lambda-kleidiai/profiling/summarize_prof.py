@@ -63,7 +63,7 @@ def paired_rounds(rows: list[dict], arm: str, ctrl: str = "rep", cpu: str = "0xd
             na, nc = len(per.get((arm, k), [])), len(per.get((ctrl, k), []))
             (used if na >= min_n and nc >= min_n else skipped).append((k, na, nc))
         d = [statistics.median(per[(arm, k)]) - statistics.median(per[(ctrl, k)]) for k, _, _ in used]
-        cell: dict = {"rounds": len(d), "min_n_per_round": min_n,
+        cell: dict = {"rounds": len(d), "round_ids": [k for k, _, _ in used], "min_n_per_round": min_n,
                       "skipped_rounds": [{"round": k, "n_arm": na, "n_ctrl": nc} for k, na, nc in skipped]}
         if d:
             base = statistics.median([v for k, _, _ in used for v in per[(ctrl, k)]])
@@ -94,44 +94,38 @@ def paired_warm_by_request(rows: list[dict], arm: str, ctrl: str = "rep", cpu: s
     by_round: dict = defaultdict(list)
     for (rnd, _rid), x in pc:
         by_round[rnd].append(x)
+    rounds = sorted(by_round)
     return {"cells": len(pct), "median_pct": round(statistics.median(pct), 2), "min_pct": round(min(pct), 2),
-            "max_pct": round(max(pct), 2), "pct_by_cell": [round(x, 3) for x in pct],
-            "pct_by_round": [round(statistics.fmean(by_round[k]), 3) for k in sorted(by_round)]}
+            "max_pct": round(max(pct), 2), "pct_by_cell": [round(x, 3) for x in pct], "round_ids": rounds,
+            "pct_by_round": [round(statistics.fmean(by_round[k]), 3) for k in rounds]}
 
 
-def permutation_p(a: list[float], b: list[float], n_perm: int = 20000, seed: int = 0) -> float | None:
-    """Two-sided p-value of |mean(a) - mean(b)| under exchangeability of a and b. Exact over every split when there
-    are at most 50,000 of them (5 vs 5 rounds: 252), else `n_perm` seeded random splits."""
+def sign_flip_p(d: list[float]) -> float | None:
+    """Exact two-sided paired sign-flip (randomisation) p-value of |mean(d)| over all 2^n sign assignments of the
+    per-pair differences `d`. Under the null each pair's difference is symmetric about 0, so flipping its sign is an
+    equally likely relabelling. The smallest attainable value is 2 / 2^n (n = 5 pairs: 0.0625). None below 2 pairs."""
     import itertools
-    import math
-    import random
 
-    if len(a) < 2 or len(b) < 2:
+    if len(d) < 2:
         return None
-    pool, k = a + b, len(a)
-    obs = abs(statistics.fmean(a) - statistics.fmean(b)) - 1e-9
-    tot = sum(pool)
-
-    def stat(idx) -> float:
-        s = sum(pool[i] for i in idx)
-        return abs(s / k - (tot - s) / (len(pool) - k))
-
-    if math.comb(len(pool), k) <= 50000:
-        splits = list(itertools.combinations(range(len(pool)), k))
-        return round(sum(stat(c) >= obs for c in splits) / len(splits), 4)
-    rng = random.Random(seed)
-    hits = sum(stat(rng.sample(range(len(pool)), k)) >= obs for _ in range(n_perm))
-    return round((hits + 1) / (n_perm + 1), 4)
+    obs = abs(statistics.fmean(d)) - 1e-9
+    flips = list(itertools.product((1, -1), repeat=len(d)))
+    return round(sum(abs(statistics.fmean([s * x for s, x in zip(sg, d, strict=True)])) >= obs for sg in flips) / len(flips), 4)
 
 
 def null_verdicts(paired: dict, null_arm: str = NULL_ARM, alpha: float = 0.05) -> dict:
-    """Judge every arm (X-Ray and the phase timers included) against the same-code null: `null_arm` is a second
-    function byte-identical to the control, so its per-round deltas against the control are what a zero-cost arm
-    looks like. Per metric, an arm's per-round deltas (warm: its per-(round, request) percentages) are tested against
-    the null's with an exact two-sided permutation test on the mean. Warm per-request percentages are tested as their
-    per-round means, since a round's cells share its environments. `measurable` needs p < alpha AND |mean| beyond
-    the null's largest |per-round value|; `not measurable` otherwise; `insufficient` when either side has under 2
-    values. The null arm itself is never judged against itself."""
+    """Judge every arm (X-Ray and the phase timers included) against the same-code null. `null_arm` is a second
+    function byte-identical to the control, run in the same rounds, so per round both `arm - rep` and `null - rep`
+    share that round's `rep` median: they are PAIRED, not two independent groups. The per-round test statistic is
+    their difference, (arm - rep) - (null - rep) = arm - null, over the rounds both arms kept (warm: per-round mean
+    percentages, since a round's cells share its environments). Inference is an exact two-sided sign-flip test on
+    the mean of those paired differences. With n pairs the smallest attainable p is 2 / 2^n, so 5 rounds cannot
+    reach p < 0.05: `min_attainable_p` and `underpowered` say so on every cell.
+
+    `measurable` needs p < alpha AND |mean(arm - rep)| beyond the null's largest |per-round value|; `not measurable`
+    otherwise; `insufficient` under 2 paired rounds. `consistent_direction` (descriptive only, not a test) is True
+    when every paired difference has the same sign and every per-round |arm - rep| exceeds the null's largest
+    |per-round value|. The null arm itself is never judged."""
     nul = paired.get(null_arm) or {}
     out: dict = {}
     for arm, cells in paired.items():
@@ -139,19 +133,29 @@ def null_verdicts(paired: dict, null_arm: str = NULL_ARM, alpha: float = 0.05) -
             continue
         v: dict = {}
         for key, cell in cells.items():
-            if key == "warm.Duration.by_request":
-                a, b, unit = cell.get("pct_by_round") or [], (nul.get(key) or {}).get("pct_by_round") or [], "pct"
-            else:
-                a, b, unit = cell.get("delta_ms_by_round") or [], (nul.get(key) or {}).get("delta_ms_by_round") or [], "ms"
-            p = permutation_p(a, b)
-            floor = max((abs(x) for x in b), default=None)
+            vals, unit = ("pct_by_round", "pct") if key == "warm.Duration.by_request" else ("delta_ms_by_round", "ms")
+            ncell = nul.get(key) or {}
+            a = dict(zip(cell.get("round_ids") or [], cell.get(vals) or [], strict=True))
+            b = dict(zip(ncell.get("round_ids") or [], ncell.get(vals) or [], strict=True))
+            common = sorted(set(a) & set(b))
+            d = [a[k] - b[k] for k in common]
+            av, bv = [a[k] for k in common], [b[k] for k in common]
+            p = sign_flip_p(d)
+            floor = max((abs(x) for x in bv), default=None)
             if p is None:
                 verdict = "insufficient"
             else:
-                verdict = "measurable" if p < alpha and abs(statistics.fmean(a)) > floor else "not measurable"
-            v[key] = {"verdict": verdict, "p": p, "n_arm": len(a), "n_null": len(b), "unit": unit,
-                      "arm_mean": round(statistics.fmean(a), 2) if a else None,
-                      "null_mean": round(statistics.fmean(b), 2) if b else None,
+                verdict = "measurable" if p < alpha and abs(statistics.fmean(av)) > floor else "not measurable"
+            min_p = round(2 / 2 ** len(d), 4) if len(d) >= 2 else None
+            v[key] = {"verdict": verdict, "p": p, "test": "exact two-sided paired sign-flip on arm - null per round",
+                      "n_pairs": len(d), "rounds": common, "min_attainable_p": min_p,
+                      "underpowered": min_p is None or min_p >= alpha, "unit": unit,
+                      "paired_diff_by_round": [round(x, 3) for x in d],
+                      "paired_diff_mean": round(statistics.fmean(d), 2) if d else None,
+                      "consistent_direction": bool(len(d) >= 2 and (all(x > 0 for x in d) or all(x < 0 for x in d))
+                                                   and floor is not None and all(abs(x) > floor for x in av)),
+                      "arm_mean": round(statistics.fmean(av), 2) if av else None,
+                      "null_mean": round(statistics.fmean(bv), 2) if bv else None,
                       "null_max_abs": round(floor, 2) if floor is not None else None}
         out[arm] = v
     return out
@@ -214,11 +218,21 @@ def profile_extracts(run: str, cond: dict) -> dict:
         inits = [r for r in recs if r["kind"] == "init"]
         invs = [r for r in recs if r["kind"] == "invoke"]
         # The start class and CPU part of each invocation, from P1's phase record in the same log stream (the
-        # lkai_prof arms keep LKAI_PHASES=1). A `warm` profile is the steady state; Graviton2 sandboxes (0xd0c) load
-        # the dot-product variant, so their kernels differ and the tables are kept apart by CPU part.
+        # lkai_prof arms keep LKAI_PHASES=1). A `warm` profile is the steady state. Each CPU part ID loads its own
+        # libggml-cpu variant (logged at init), so kernels differ and tables are kept apart by CPU part ID. No
+        # processor generation is inferred from a part ID.
         cls = {(r["_stream"], (r.get("inv") or {}).get("n")): ((r.get("inv") or {}).get("class"),
                                                                 (r.get("inv") or {}).get("cpu_part"))
                for r in _records(ev.get(fn, []), "LKAI") if r.get("kind") == "invoke"}
+        # A stream is one execution environment; its part ID never changed within a stream in the committed runs
+        # (host_variability.observed.log_stream_linkage), so an init record takes its stream's part ID.
+        stream_cpu: dict = defaultdict(set)
+        for (stream, _n), (_c, cpu) in cls.items():
+            stream_cpu[stream].add(cpu)
+        for r in inits:
+            parts = stream_cpu.get(r["_stream"]) or set()
+            r["_cpu"] = next(iter(parts)) if len(parts) == 1 else None
+        init_by_cpu = {c: [r for r in inits if r["_cpu"] == c] for c in sorted({r["_cpu"] for r in inits}, key=str)}
         for r in invs:
             r["_class"], r["_cpu"] = cls.get((r["_stream"], r.get("n")), (None, None))
         warm_invs = [r for r in invs if r["_class"] == "warm"]
@@ -253,7 +267,8 @@ def profile_extracts(run: str, cond: dict) -> dict:
                                                 inclusive=True),
                 }
         if any("sampler" in r for r in recs):
-            groups = [("init", inits), ("invoke", invs)] + [(f"invoke_warm_{c}", rs) for c, rs in warm_by_cpu.items()]
+            groups = [("init", inits), ("invoke", invs)] + [(f"init_{c}", rs) for c, rs in init_by_cpu.items()]
+            groups += [(f"invoke_warm_{c}", rs) for c, rs in warm_by_cpu.items()]
             groups += [(f"invoke_restore_{c}", rs) for c, rs in rest_by_cpu.items()]
             for kind, rs in groups:
                 sm = [r["sampler"] for r in rs if isinstance(r.get("sampler"), dict)]
@@ -366,7 +381,7 @@ def verify_prof_manifest(pm: dict, commit: str, repo: str = HERE) -> dict:
 
 def restore_evidence(rows: list[dict], arms: list[str], cpu: str = "0xd40", min_n: int = MIN_CELL_N) -> dict:
     """Restore-wave integrity: per arm and round, how many restore invokes were sent, how many failed client-side, and
-    how many valid Graviton3 samples remain. `usable` is False when any arm has a round below `min_n`; restore
+    how many valid samples on CPU part 0xd40 remain. `usable` is False when any arm has a round below `min_n`; restore
     conclusions then must not be drawn (paired_rounds skips those rounds either way)."""
     rs = [r for r in rows if r["expected_class"] == "restore"]
     by: dict = {}
@@ -382,6 +397,153 @@ def restore_evidence(rows: list[dict], arms: list[str], cpu: str = "0xd40", min_
     return {"min_n": min_n, "by_arm_round": by, "sparse_cells": [{"arm": a, "round": int(k)} for a, k in sparse],
             "client_errors": sum(c["client_errors"] for per in by.values() for c in per.values()),
             "usable": not sparse}
+
+
+def _strip_lib(sym: str) -> str:
+    return sym.split(":", 1)[1] if ":" in sym else sym
+
+
+HOST_UNKNOWN = {
+    "processor_generation_or_microarchitecture": "not observed: only the MIDR CPU part ID is recorded per invocation; "
+    "no name is inferred from a part ID or from timings",
+    "cpu_implementer_variant_revision_per_invocation": "not recorded per invocation (the probe read them, below, "
+    "in 7 environments of a separate function, all part 0xd40)",
+    "cpu_features_hwcaps_per_invocation": "not recorded (no /proc/cpuinfo Features or AT_HWCAP per invocation)",
+    "hwcaps_for_0xd0c_0xd4f": "never observed: the probe never landed on those part IDs",
+    "core_count_per_invocation": "not recorded; threads=6 is the configured thread count, not an observed nproc",
+    "restored_core_count": "not recorded: nproc after a SnapStart restore was never read",
+    "cgroup_cpu_memory_limits": "not recorded (cpu.max / memory.max were not read)",
+    "kernel_per_invocation": "not recorded (the probe saw one kernel release in its 7 environments)",
+    "availability_zone": "not observable from inside the function and not recorded",
+    "physical_host_identity": "not observable",
+    "snapshot_build_host_cpu": "not recorded: the CPU part of the environment that ran publish_version's init",
+}
+
+
+def host_variability(rows: list[dict], cond: dict, run: str, probe_dir: str | None = None,
+                     profiles: dict | None = None) -> dict:
+    """Machine-readable host identity for this run: what was observed, what was not (explicitly `unknown`), and how
+    comparisons handle it. Reanalysis of the committed evidence only: no AWS call, no new measurement."""
+    ok = [r for r in rows if not r["error"] and not r["class_mismatch"]]
+    by_arm_class: dict = defaultdict(lambda: defaultdict(Counter))
+    for r in rows:
+        by_arm_class[r["arm"]][r["expected_class"]][str(r.get("cpu_part"))] += 1
+    totals = Counter(str(r.get("cpu_part")) for r in rows)
+    by_round: dict = defaultdict(Counter)
+    for r in rows:
+        by_round[str(r["round"])][str(r.get("cpu_part"))] += 1
+    # Which libggml-cpu variants each part ID loaded (the engine logs them at init, cold rows only).
+    variants: dict = defaultdict(Counter)
+    for r in rows:
+        m = re.search(r"init cpu_part=(\S+) ggml_cpu=(\S+)", r.get("log_tail") or "")
+        if m:
+            variants[m.group(1)][m.group(2)] += 1
+    # Log-stream linkage: a row's START RequestId in its log tail -> the CloudWatch stream that logged it.
+    req2stream: dict = {}
+    runtimes: Counter = Counter()
+    d = os.path.join(run, "logs")
+    for f in sorted(os.listdir(d)) if os.path.isdir(d) else []:
+        with gzip.open(os.path.join(d, f), "rt") as fh:
+            for line in fh:
+                e = json.loads(line)
+                for m in re.finditer(r"START RequestId: (\S+)", e["message"]):
+                    req2stream[m.group(1)] = e.get("logStreamName")
+                m = re.search(r"INIT_START Runtime Version: (\S+)", e["message"])
+                if m:
+                    runtimes[m.group(1)] += 1
+    stream_parts: dict = defaultdict(set)
+    linked = 0
+    for r in rows:
+        m = re.search(r"START RequestId: (\S+)", r.get("log_tail") or "")
+        s = req2stream.get(m.group(1)) if m else None
+        if s:
+            linked += 1
+            stream_parts[(r["arm"], s)].add(str(r.get("cpu_part")))
+    streams_by_part = Counter(next(iter(p)) for p in stream_parts.values() if len(p) == 1)
+    # REPORT Duration p50 per (arm, class, part): whether a figure differs by part ID.
+    rep_by_part: dict = defaultdict(dict)
+    groups: dict = defaultdict(list)
+    for r in ok:
+        if "Duration" in (r["report"] or {}):
+            groups[(r["arm"], r["expected_class"], str(r.get("cpu_part")))].append(r["report"]["Duration"])
+    for (arm, c, p), v in sorted(groups.items()):
+        rep_by_part[f"{arm}.{c}"][p] = {"n": len(v), "duration_p50_ms": round(statistics.median(v), 1)}
+    warm_req: dict = defaultdict(lambda: defaultdict(list))
+    for r in ok:
+        if r["arm"] == "rep" and r["expected_class"] == "warm" and r.get("latency_ms") is not None:
+            warm_req[r["request_id"]][str(r.get("cpu_part"))].append(r["latency_ms"])
+    engine_warm = {rid: {p: {"n": len(v), "engine_p50_ms": round(statistics.median(v), 1)} for p, v in sorted(ps.items())}
+                   for rid, ps in sorted(warm_req.items())}
+    # Native hot spots per part ID (lkaisamp), library prefix stripped so the same kernel in different variants lines up.
+    kernels: dict = {}
+    smp = ((profiles or {}).get("sampler") or {})
+    for k, v in sorted(smp.items()):
+        if k.startswith(("sampler_invoke_warm_", "sampler_invoke_restore_", "sampler_init_0x")):
+            ph = (v.get("phases") or {})
+            name = "init" if k.startswith("sampler_init_") else "invoke"
+            top = (ph.get(name) or {}).get("top_self") or []
+            merged: Counter = Counter()
+            for x in top:  # the same kernel can appear once per loaded variant library; shares share a denominator
+                if x["share"] is not None:
+                    merged[_strip_lib(x["symbol"])] += x["share"]
+            kernels[k.removeprefix("sampler_")] = {"records": v.get("records"), "samples": (ph.get(name) or {}).get("samples"),
+                                                   "top_self": [{"symbol": s, "share": round(sh, 4)}
+                                                                for s, sh in merged.most_common(10)]}
+    probes = {}
+    for p in sorted(os.listdir(probe_dir)) if probe_dir and os.path.isdir(probe_dir) else []:
+        if p.endswith(".json"):
+            j = json.load(open(os.path.join(probe_dir, p)))
+            c = (j.get("cpuinfo") or {}).get("first") or {}
+            probes[p] = {"implementer": c.get("CPU implementer"), "architecture": c.get("CPU architecture"),
+                         "variant": c.get("CPU variant"), "part": c.get("CPU part"), "revision": c.get("CPU revision"),
+                         "features": c.get("Features"), "processors": (j.get("cpuinfo") or {}).get("processors"),
+                         "nproc": j.get("nproc"), "kernel": (j.get("uname") or {}).get("release"),
+                         "python": j.get("python"), "mem_total": (j.get("meminfo_head") or [None])[0]}
+    parts = sorted(totals)
+    return {
+        "schema": "lkai-host-variability/1",
+        "new_measurements": False,
+        "aws_calls": 0,
+        "source": "reanalysis of this run's committed invocations.jsonl.gz, logs/ and conditions.json, plus the "
+                  "committed lambda-probe/*.json; no rerun",
+        "identity_label": "MIDR CPU part ID as read from /proc/cpuinfo per request (handler._cpu_part); used as an "
+                          "opaque label. No processor generation is inferred from it.",
+        "observed": {
+            "cpu_part_ids": parts,
+            "multiple_identities": len(parts) > 1,
+            "cpu_part_counts_total": dict(sorted(totals.items())),
+            "cpu_part_counts_by_arm_class": {a: {c: dict(sorted(v.items())) for c, v in sorted(cs.items())}
+                                             for a, cs in sorted(by_arm_class.items())},
+            "cpu_part_counts_by_round": {k: dict(sorted(v.items())) for k, v in sorted(by_round.items())},
+            "ggml_cpu_variants_loaded_by_part": {p: dict(v) for p, v in sorted(variants.items())},
+            "runtime_version_arn": cond.get("runtime_version_arn"),
+            "runtime_versions_in_init_start": dict(runtimes),
+            "configured": {"memory_mb": sorted({r["report"].get("Memory Size") for r in ok if r.get("report")}),
+                           "region": cond.get("region"), "threads": 6},
+            "log_stream_linkage": {"rows": len(rows), "rows_linked_to_stream": linked,
+                                   "rows_unlinked": len(rows) - linked,
+                                   "unlinked_reason": "the 4 KB log tail lost its START line",
+                                   "streams": len(stream_parts),
+                                   "streams_with_more_than_one_part": sum(len(p) > 1 for p in stream_parts.values()),
+                                   "streams_by_part": dict(sorted(streams_by_part.items()))},
+            "probe_environments": {"function": "lkai-p3-probe (separate function, same runtime ARN, arch, memory; "
+                                               "not this run)", "by_file": probes,
+                                   "part_ids_seen": sorted({v["part"] for v in probes.values()})},
+            "report_duration_p50_by_arm_class_part": dict(rep_by_part),
+            "rep_warm_engine_p50_by_request_part": engine_warm,
+            "lkaisamp_top_self_by_part": kernels,
+        },
+        "unknown": HOST_UNKNOWN,
+        "method": "Overhead verdicts use part 0xd40 rows only (paired by round against rep and rep2 on that part). "
+                  "Other part IDs are counted, not compared: per (arm, class, round) they are too sparse for a "
+                  "paired cell. Native hot-spot tables are split by part ID because each part ID loads a different "
+                  "libggml-cpu variant. Phase hot spots (P1 timers) are pooled over parts unless split above.",
+        "assessment": "More than one CPU part ID served this run; they are recorded, not ranked or named. Every "
+                      "overhead verdict is within 0xd40, so a part mix cannot move it. Absolute figures differ by part "
+                      "ID (report_duration_p50_by_arm_class_part, rep_warm_engine_p50_by_request_part); any pooled "
+                      "figure depends on that run's part mix." if len(parts) > 1 else
+                      "One CPU part ID served this run.",
+    }
 
 
 def main() -> None:
@@ -446,13 +608,17 @@ def main() -> None:
                 if k.startswith("restore."):
                     v[k] = {**v[k], "verdict": "withheld", "reason": "restore cells below min_n"}
     res["profiler_overhead_paired"] = {
-        "method": "per round: median(arm) - median(rep) of the REPORT field, Graviton3 (0xd40) rows only, no errors or "
+        "method": "per round: median(arm) - median(rep) of the REPORT field, CPU part 0xd40 rows only, no errors or "
                   f"class mismatches, each median from >= {MIN_CELL_N} samples (else the round is skipped and listed); "
                   "then mean/min/max over the rounds. Warm also per (round, request) as a percentage. Null: "
-                  f"{NULL_ARM}, a second function byte-identical to rep, so {NULL_ARM} - rep is what zero cost looks "
-                  "like. Each arm (xray and none included) is judged against that null by an exact two-sided "
-                  "permutation test on the mean of its per-round deltas (warm by request: per-round mean %), alpha "
-                  "0.05, and must also exceed the null's largest |per-round value| to be called measurable",
+                  f"{NULL_ARM}, a second function byte-identical to rep, run in the same rounds, so {NULL_ARM} - rep "
+                  "is what zero cost looks like. arm - rep and "
+                  f"{NULL_ARM} - rep share each round's rep median, so they are paired: each arm (xray and none "
+                  f"included) is tested on the per-round paired difference arm - {NULL_ARM} (warm by request: "
+                  "per-round mean %) by an exact two-sided sign-flip test, alpha 0.05, and must also exceed the "
+                  "null's largest |per-round value| to be called measurable. With 5 paired rounds the smallest "
+                  "attainable p is 2/32 = 0.0625, so no cell can be called measurable at alpha 0.05 "
+                  "(underpowered); consistent_direction is a descriptive flag, not a test",
         "cpu_part": "0xd40",
         "null_arm": NULL_ARM,
         "noise_floor_ms": noise_floor(paired),
@@ -466,6 +632,8 @@ def main() -> None:
             "cells contaminated by client read timeouts) and has no same-code null arm")
     res.pop("instrumentation_overhead", None)
     res["profiles"] = {"lambda": profile_extracts(a.run, cond)}
+    res["host_variability"] = host_variability(rows, cond, a.run, os.path.dirname(a.probe) if a.probe else None,
+                                               res["profiles"]["lambda"])
     if a.offline:
         p = os.path.join(a.offline, "offline-summary.json")
         res["profiles"]["offline_not_lambda"] = json.load(open(p))
