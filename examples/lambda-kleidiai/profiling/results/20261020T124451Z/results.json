@@ -113,6 +113,11 @@
     "lkai_prof.py": "9bc4aa0431fbf8c0eb0f9becb4a18ae13335f508aceec5e2121e3df53da82bc6",
     "lkai_symbolise.py": "93b5ed0f97ada4cc1618a6626c049a7741ffe5a6464ae54bae4a3945c2373102"
    }
+  },
+  "prof_zip_provenance": {
+   "result": "unverifiable",
+   "commit": "2a514e0ad0061dd6d9bb9126ccd4f1602d165676",
+   "reason": "lkai-prof-build/1 manifest: no source hashes for lkaisamp.c or the Telemetry extension, and no pinned py-spy wheel; only the copied .py files can be compared"
   }
  },
  "model": {
@@ -15787,7 +15792,7 @@
   "python $P/offline_summary.py --graviton build/p3/graviton --gpu <gpu out> --graviton-symbolised <sym.json> --out $P/results/offline",
   "python $P/summarize_prof.py build/p3/runs/<run-id> --reference examples/lambda-kleidiai/baseline/reference/outputs.json --baseline-commit <P1 sha> --meta $P/meta.json --applicability $P/applicability.json --offline $P/results/offline --probe $P/results/lambda-probe/q1.json"
  ],
- "conclusion": "Applicability (in Lambda): NVIDIA tools (nvidia-smi, nsys, ncu) are INAPPLICABLE because there is no GPU (no /dev/nvidia*, no PCI 0x10de, no driver or libraries; 7 environments, all Graviton3 0xd40). perf, eBPF, ptrace and py-spy --native are DENIED (EPERM; CapEff 0, seccomp filter, perf_event_paranoid 2, no PMU). These WORK: P1 phase timers, REPORT/CloudWatch, X-Ray, the Telemetry API extension, cProfile, py-spy --nonblocking, and an in-process SIGPROF sampler (lkaisamp), which gives native KleidiAI kernel profiles where perf is denied. Overhead vs REPORT-only (mean of 5 per-round paired deltas, Graviton3): phase timers and X-Ray not measurable. cProfile +107 ms Init (13%). Telemetry extension +98 ms Init (12%). py-spy +4.8% per warm request (>0 in 25/25 cells) and +24 ms on the first restored request. lkaisamp +0.9% warm (noise) but +377 ms cold and +2.1 s first-after-restore Duration; the delta is outside the baseline's internal timing but occurs before `lkai_prof.handler` returns, and attribution within its dump/symbolise hook remains open. Final latency comparisons should use REPORT or phase timers only. Hot spots: cold = S3 download 25.0 s (69.5%, TLS reads) then the KleidiAI repack 8.4 s (23.4%; buffer_set_tensor + rhs_pack, single-threaded offline). Restore = Lambda restore 3.30 s (83%), then a first forward 2.8x warm whose time is 50% memset inside llama_kv_cache::clear / llama_memory_recurrent::clear. Warm = KleidiAI i8mm matmul 50% of CPU, then f32 dot 8%, gated-delta-net 8%, OpenMP barrier 6%, concat 5%, fwht 5%. Platform finding: the first restore wave of every round (5/5) after publishing 7 versions back to back had 9 of 10 invokes never start (no RESTORE_START, no throttle); cause not established. Status is inconclusive because this is a measurement study, not a latency change.",
+ "conclusion": "SUPERSEDED by run 20261020T231634Z; overhead conclusions withdrawn. This run reused one Lambda client across sequential version publication and SnapStart waits: 45 restore invokes died as client read timeouts that never reached Lambda (earlier misreported here as a Lambda platform stall), leaving the rep restore control one valid Graviton3 sample in rounds 0, 2 and 4. Its noise floor was the X-Ray arm's own deltas. Its hot-spot tables are kept, now as shares of all recorded samples (buffer_set_tensor 29.9% and rhs_pack 11.7% of init CPU samples, not 35.2% and 13.7%). Applicability findings are unchanged. Deployed profiler package: lkai-prof-build/1 manifest, which does not bind lkaisamp.c, the Telemetry extension or the py-spy wheel to source; provenance is recorded as unverifiable. Applicability (in Lambda): NVIDIA tools (nvidia-smi, nsys, ncu) are INAPPLICABLE because there is no GPU (no /dev/nvidia*, no PCI 0x10de, no driver or libraries; 7 environments, all Graviton3 0xd40). perf, eBPF, ptrace and py-spy --native are DENIED (EPERM; CapEff 0, seccomp filter, perf_event_paranoid 2, no PMU). These WORK: P1 phase timers, REPORT/CloudWatch, X-Ray, the Telemetry API extension, cProfile, py-spy --nonblocking, and an in-process SIGPROF sampler (lkaisamp), which gives native KleidiAI kernel profiles where perf is denied.",
  "primary_arm": "rep",
  "profiler_overhead": {
   "none": {
@@ -17369,20 +17374,393 @@
    ]
   }
  },
+ "restore_evidence": {
+  "min_n": 3,
+  "by_arm_round": {
+   "rep": {
+    "0": {
+     "sent": 10,
+     "client_errors": 9,
+     "valid_0xd40": 1
+    },
+    "1": {
+     "sent": 10,
+     "client_errors": 0,
+     "valid_0xd40": 10
+    },
+    "2": {
+     "sent": 10,
+     "client_errors": 9,
+     "valid_0xd40": 1
+    },
+    "3": {
+     "sent": 10,
+     "client_errors": 0,
+     "valid_0xd40": 8
+    },
+    "4": {
+     "sent": 10,
+     "client_errors": 9,
+     "valid_0xd40": 1
+    }
+   },
+   "none": {
+    "0": {
+     "sent": 10,
+     "client_errors": 0,
+     "valid_0xd40": 10
+    },
+    "1": {
+     "sent": 10,
+     "client_errors": 0,
+     "valid_0xd40": 10
+    },
+    "2": {
+     "sent": 10,
+     "client_errors": 0,
+     "valid_0xd40": 10
+    },
+    "3": {
+     "sent": 10,
+     "client_errors": 0,
+     "valid_0xd40": 9
+    },
+    "4": {
+     "sent": 10,
+     "client_errors": 0,
+     "valid_0xd40": 8
+    }
+   },
+   "cprofile": {
+    "0": {
+     "sent": 10,
+     "client_errors": 0,
+     "valid_0xd40": 10
+    },
+    "1": {
+     "sent": 10,
+     "client_errors": 0,
+     "valid_0xd40": 9
+    },
+    "2": {
+     "sent": 10,
+     "client_errors": 0,
+     "valid_0xd40": 9
+    },
+    "3": {
+     "sent": 10,
+     "client_errors": 0,
+     "valid_0xd40": 10
+    },
+    "4": {
+     "sent": 10,
+     "client_errors": 0,
+     "valid_0xd40": 9
+    }
+   },
+   "pyspy": {
+    "0": {
+     "sent": 10,
+     "client_errors": 0,
+     "valid_0xd40": 9
+    },
+    "1": {
+     "sent": 10,
+     "client_errors": 0,
+     "valid_0xd40": 10
+    },
+    "2": {
+     "sent": 10,
+     "client_errors": 0,
+     "valid_0xd40": 10
+    },
+    "3": {
+     "sent": 10,
+     "client_errors": 0,
+     "valid_0xd40": 9
+    },
+    "4": {
+     "sent": 10,
+     "client_errors": 0,
+     "valid_0xd40": 10
+    }
+   },
+   "sampler": {
+    "0": {
+     "sent": 10,
+     "client_errors": 0,
+     "valid_0xd40": 10
+    },
+    "1": {
+     "sent": 10,
+     "client_errors": 0,
+     "valid_0xd40": 7
+    },
+    "2": {
+     "sent": 10,
+     "client_errors": 0,
+     "valid_0xd40": 10
+    },
+    "3": {
+     "sent": 10,
+     "client_errors": 0,
+     "valid_0xd40": 10
+    },
+    "4": {
+     "sent": 10,
+     "client_errors": 0,
+     "valid_0xd40": 7
+    }
+   },
+   "xray": {
+    "0": {
+     "sent": 10,
+     "client_errors": 0,
+     "valid_0xd40": 9
+    },
+    "1": {
+     "sent": 10,
+     "client_errors": 0,
+     "valid_0xd40": 10
+    },
+    "2": {
+     "sent": 10,
+     "client_errors": 0,
+     "valid_0xd40": 10
+    },
+    "3": {
+     "sent": 10,
+     "client_errors": 0,
+     "valid_0xd40": 10
+    },
+    "4": {
+     "sent": 10,
+     "client_errors": 0,
+     "valid_0xd40": 8
+    }
+   },
+   "telemetry": {
+    "0": {
+     "sent": 10,
+     "client_errors": 0,
+     "valid_0xd40": 10
+    },
+    "1": {
+     "sent": 10,
+     "client_errors": 9,
+     "valid_0xd40": 1
+    },
+    "2": {
+     "sent": 10,
+     "client_errors": 0,
+     "valid_0xd40": 9
+    },
+    "3": {
+     "sent": 10,
+     "client_errors": 9,
+     "valid_0xd40": 1
+    },
+    "4": {
+     "sent": 10,
+     "client_errors": 0,
+     "valid_0xd40": 10
+    }
+   }
+  },
+  "sparse_cells": [
+   {
+    "arm": "rep",
+    "round": 0
+   },
+   {
+    "arm": "rep",
+    "round": 2
+   },
+   {
+    "arm": "rep",
+    "round": 4
+   },
+   {
+    "arm": "telemetry",
+    "round": 1
+   },
+   {
+    "arm": "telemetry",
+    "round": 3
+   }
+  ],
+  "client_errors": 45,
+  "usable": false
+ },
  "profiler_overhead_paired": {
-  "method": "per round: median(arm) - median(rep) of the REPORT field, Graviton3 (0xd40) rows only, no errors or class mismatches; then mean/min/max over the rounds. noise_floor_ms: the largest |per-round delta| of the xray arm, which runs P1's zip unchanged (Lambda's tracing is outside the function's Duration)",
+  "method": "per round: median(arm) - median(rep) of the REPORT field, Graviton3 (0xd40) rows only, no errors or class mismatches, each median from >= 3 samples (else the round is skipped and listed); then mean/min/max over the rounds. Warm also per (round, request) as a percentage. Null: rep2, a second function byte-identical to rep, so rep2 - rep is what zero cost looks like. Each arm (xray and none included) is judged against that null by an exact two-sided permutation test on the mean of its per-round deltas (warm by request: per-round mean %), alpha 0.05, and must also exceed the null's largest |per-round value| to be called measurable",
   "cpu_part": "0xd40",
-  "noise_floor_ms": {
-   "cold.Init Duration": 11.0,
-   "cold.Duration": 170.0,
-   "restore.Restore Duration": 165.7,
-   "restore.Duration": 30.4,
-   "warm.Duration": 61.6
+  "null_arm": "rep2",
+  "noise_floor_ms": {},
+  "verdicts": {
+   "none": {
+    "cold.Init Duration": {
+     "verdict": "withheld",
+     "reason": "no rep2 null in this run"
+    },
+    "cold.Duration": {
+     "verdict": "withheld",
+     "reason": "no rep2 null in this run"
+    },
+    "restore.Restore Duration": {
+     "verdict": "withheld",
+     "reason": "restore cells below min_n"
+    },
+    "restore.Duration": {
+     "verdict": "withheld",
+     "reason": "restore cells below min_n"
+    },
+    "warm.Duration": {
+     "verdict": "withheld",
+     "reason": "no rep2 null in this run"
+    },
+    "warm.Duration.by_request": {
+     "verdict": "withheld",
+     "reason": "no rep2 null in this run"
+    }
+   },
+   "cprofile": {
+    "cold.Init Duration": {
+     "verdict": "withheld",
+     "reason": "no rep2 null in this run"
+    },
+    "cold.Duration": {
+     "verdict": "withheld",
+     "reason": "no rep2 null in this run"
+    },
+    "restore.Restore Duration": {
+     "verdict": "withheld",
+     "reason": "restore cells below min_n"
+    },
+    "restore.Duration": {
+     "verdict": "withheld",
+     "reason": "restore cells below min_n"
+    },
+    "warm.Duration": {
+     "verdict": "withheld",
+     "reason": "no rep2 null in this run"
+    },
+    "warm.Duration.by_request": {
+     "verdict": "withheld",
+     "reason": "no rep2 null in this run"
+    }
+   },
+   "pyspy": {
+    "cold.Init Duration": {
+     "verdict": "withheld",
+     "reason": "no rep2 null in this run"
+    },
+    "cold.Duration": {
+     "verdict": "withheld",
+     "reason": "no rep2 null in this run"
+    },
+    "restore.Restore Duration": {
+     "verdict": "withheld",
+     "reason": "restore cells below min_n"
+    },
+    "restore.Duration": {
+     "verdict": "withheld",
+     "reason": "restore cells below min_n"
+    },
+    "warm.Duration": {
+     "verdict": "withheld",
+     "reason": "no rep2 null in this run"
+    },
+    "warm.Duration.by_request": {
+     "verdict": "withheld",
+     "reason": "no rep2 null in this run"
+    }
+   },
+   "sampler": {
+    "cold.Init Duration": {
+     "verdict": "withheld",
+     "reason": "no rep2 null in this run"
+    },
+    "cold.Duration": {
+     "verdict": "withheld",
+     "reason": "no rep2 null in this run"
+    },
+    "restore.Restore Duration": {
+     "verdict": "withheld",
+     "reason": "restore cells below min_n"
+    },
+    "restore.Duration": {
+     "verdict": "withheld",
+     "reason": "restore cells below min_n"
+    },
+    "warm.Duration": {
+     "verdict": "withheld",
+     "reason": "no rep2 null in this run"
+    },
+    "warm.Duration.by_request": {
+     "verdict": "withheld",
+     "reason": "no rep2 null in this run"
+    }
+   },
+   "xray": {
+    "cold.Init Duration": {
+     "verdict": "withheld",
+     "reason": "no rep2 null in this run"
+    },
+    "cold.Duration": {
+     "verdict": "withheld",
+     "reason": "no rep2 null in this run"
+    },
+    "restore.Restore Duration": {
+     "verdict": "withheld",
+     "reason": "restore cells below min_n"
+    },
+    "restore.Duration": {
+     "verdict": "withheld",
+     "reason": "restore cells below min_n"
+    },
+    "warm.Duration": {
+     "verdict": "withheld",
+     "reason": "no rep2 null in this run"
+    },
+    "warm.Duration.by_request": {
+     "verdict": "withheld",
+     "reason": "no rep2 null in this run"
+    }
+   },
+   "telemetry": {
+    "cold.Init Duration": {
+     "verdict": "withheld",
+     "reason": "no rep2 null in this run"
+    },
+    "cold.Duration": {
+     "verdict": "withheld",
+     "reason": "no rep2 null in this run"
+    },
+    "restore.Restore Duration": {
+     "verdict": "withheld",
+     "reason": "restore cells below min_n"
+    },
+    "restore.Duration": {
+     "verdict": "withheld",
+     "reason": "restore cells below min_n"
+    },
+    "warm.Duration": {
+     "verdict": "withheld",
+     "reason": "no rep2 null in this run"
+    },
+    "warm.Duration.by_request": {
+     "verdict": "withheld",
+     "reason": "no rep2 null in this run"
+    }
+   }
   },
   "arms": {
    "none": {
     "cold.Init Duration": {
      "rounds": 5,
+     "min_n_per_round": 3,
+     "skipped_rounds": [],
      "delta_ms_by_round": [
       3.5,
       10.0,
@@ -17398,6 +17776,8 @@
     },
     "cold.Duration": {
      "rounds": 5,
+     "min_n_per_round": 3,
+     "skipped_rounds": [],
      "delta_ms_by_round": [
       13.8,
       50.2,
@@ -17412,37 +17792,69 @@
      "mean_pct": 0.11
     },
     "restore.Restore Duration": {
-     "rounds": 5,
-     "delta_ms_by_round": [
-      -267.3,
-      52.0,
-      -79.4,
-      -118.6,
-      -138.6
+     "rounds": 2,
+     "min_n_per_round": 3,
+     "skipped_rounds": [
+      {
+       "round": 0,
+       "n_arm": 10,
+       "n_ctrl": 1
+      },
+      {
+       "round": 2,
+       "n_arm": 10,
+       "n_ctrl": 1
+      },
+      {
+       "round": 4,
+       "n_arm": 8,
+       "n_ctrl": 1
+      }
      ],
-     "mean_ms": -110.4,
-     "min_ms": -267.3,
+     "delta_ms_by_round": [
+      52.0,
+      -118.6
+     ],
+     "mean_ms": -33.3,
+     "min_ms": -118.6,
      "max_ms": 52.0,
-     "control_p50_ms": 3281.4,
-     "mean_pct": -3.36
+     "control_p50_ms": 3284.3,
+     "mean_pct": -1.01
     },
     "restore.Duration": {
-     "rounds": 5,
-     "delta_ms_by_round": [
-      -8.6,
-      -1.5,
-      -13.2,
-      -7.8,
-      -16.9
+     "rounds": 2,
+     "min_n_per_round": 3,
+     "skipped_rounds": [
+      {
+       "round": 0,
+       "n_arm": 10,
+       "n_ctrl": 1
+      },
+      {
+       "round": 2,
+       "n_arm": 10,
+       "n_ctrl": 1
+      },
+      {
+       "round": 4,
+       "n_arm": 8,
+       "n_ctrl": 1
+      }
      ],
-     "mean_ms": -9.6,
-     "min_ms": -16.9,
+     "delta_ms_by_round": [
+      -1.5,
+      -7.8
+     ],
+     "mean_ms": -4.7,
+     "min_ms": -7.8,
      "max_ms": -1.5,
-     "control_p50_ms": 681.5,
-     "mean_pct": -1.41
+     "control_p50_ms": 681.2,
+     "mean_pct": -0.68
     },
     "warm.Duration": {
      "rounds": 5,
+     "min_n_per_round": 3,
+     "skipped_rounds": [],
      "delta_ms_by_round": [
       -42.4,
       -23.5,
@@ -17460,12 +17872,48 @@
      "cells": 25,
      "median_pct": -0.51,
      "min_pct": -3.58,
-     "max_pct": 8.44
+     "max_pct": 8.44,
+     "pct_by_cell": [
+      1.896,
+      2.47,
+      0.854,
+      -1.742,
+      -1.137,
+      -2.598,
+      -3.393,
+      -0.015,
+      -3.575,
+      -0.204,
+      -2.165,
+      -1.068,
+      -1.25,
+      -0.576,
+      2.06,
+      -1.344,
+      -1.139,
+      0.571,
+      0.977,
+      -1.966,
+      -0.514,
+      0.389,
+      0.753,
+      8.438,
+      1.699
+     ],
+     "pct_by_round": [
+      0.468,
+      -1.957,
+      -0.6,
+      -0.58,
+      2.153
+     ]
     }
    },
    "cprofile": {
     "cold.Init Duration": {
      "rounds": 5,
+     "min_n_per_round": 3,
+     "skipped_rounds": [],
      "delta_ms_by_round": [
       99.9,
       98.6,
@@ -17481,6 +17929,8 @@
     },
     "cold.Duration": {
      "rounds": 5,
+     "min_n_per_round": 3,
+     "skipped_rounds": [],
      "delta_ms_by_round": [
       218.7,
       179.4,
@@ -17495,37 +17945,69 @@
      "mean_pct": 0.47
     },
     "restore.Restore Duration": {
-     "rounds": 5,
-     "delta_ms_by_round": [
-      -72.2,
-      130.0,
-      64.9,
-      23.5,
-      126.7
+     "rounds": 2,
+     "min_n_per_round": 3,
+     "skipped_rounds": [
+      {
+       "round": 0,
+       "n_arm": 10,
+       "n_ctrl": 1
+      },
+      {
+       "round": 2,
+       "n_arm": 9,
+       "n_ctrl": 1
+      },
+      {
+       "round": 4,
+       "n_arm": 9,
+       "n_ctrl": 1
+      }
      ],
-     "mean_ms": 54.6,
-     "min_ms": -72.2,
+     "delta_ms_by_round": [
+      130.0,
+      23.5
+     ],
+     "mean_ms": 76.8,
+     "min_ms": 23.5,
      "max_ms": 130.0,
-     "control_p50_ms": 3281.4,
-     "mean_pct": 1.66
+     "control_p50_ms": 3284.3,
+     "mean_pct": 2.34
     },
     "restore.Duration": {
-     "rounds": 5,
-     "delta_ms_by_round": [
-      -9.3,
-      0.5,
-      -17.5,
-      7.4,
-      0.5
+     "rounds": 2,
+     "min_n_per_round": 3,
+     "skipped_rounds": [
+      {
+       "round": 0,
+       "n_arm": 10,
+       "n_ctrl": 1
+      },
+      {
+       "round": 2,
+       "n_arm": 9,
+       "n_ctrl": 1
+      },
+      {
+       "round": 4,
+       "n_arm": 9,
+       "n_ctrl": 1
+      }
      ],
-     "mean_ms": -3.7,
-     "min_ms": -17.5,
+     "delta_ms_by_round": [
+      0.5,
+      7.4
+     ],
+     "mean_ms": 3.9,
+     "min_ms": 0.5,
      "max_ms": 7.4,
-     "control_p50_ms": 681.5,
-     "mean_pct": -0.54
+     "control_p50_ms": 681.2,
+     "mean_pct": 0.58
     },
     "warm.Duration": {
      "rounds": 5,
+     "min_n_per_round": 3,
+     "skipped_rounds": [],
      "delta_ms_by_round": [
       -45.7,
       -4.7,
@@ -17543,12 +18025,48 @@
      "cells": 25,
      "median_pct": 0.07,
      "min_pct": -2.23,
-     "max_pct": 4.18
+     "max_pct": 4.18,
+     "pct_by_cell": [
+      0.772,
+      2.116,
+      0.066,
+      -2.231,
+      -1.177,
+      -1.443,
+      0.893,
+      1.219,
+      -0.708,
+      1.181,
+      0.781,
+      0.124,
+      0.761,
+      1.842,
+      4.108,
+      -1.493,
+      -1.747,
+      -0.334,
+      -2.073,
+      -0.792,
+      -0.667,
+      -0.225,
+      -0.565,
+      4.184,
+      1.251
+     ],
+     "pct_by_round": [
+      -0.091,
+      0.228,
+      1.523,
+      -1.288,
+      0.796
+     ]
     }
    },
    "pyspy": {
     "cold.Init Duration": {
      "rounds": 5,
+     "min_n_per_round": 3,
+     "skipped_rounds": [],
      "delta_ms_by_round": [
       15.7,
       -5.2,
@@ -17564,6 +18082,8 @@
     },
     "cold.Duration": {
      "rounds": 5,
+     "min_n_per_round": 3,
+     "skipped_rounds": [],
      "delta_ms_by_round": [
       186.8,
       246.6,
@@ -17578,37 +18098,69 @@
      "mean_pct": 0.11
     },
     "restore.Restore Duration": {
-     "rounds": 5,
-     "delta_ms_by_round": [
-      -200.7,
-      26.3,
-      89.6,
-      -105.6,
-      31.8
+     "rounds": 2,
+     "min_n_per_round": 3,
+     "skipped_rounds": [
+      {
+       "round": 0,
+       "n_arm": 9,
+       "n_ctrl": 1
+      },
+      {
+       "round": 2,
+       "n_arm": 10,
+       "n_ctrl": 1
+      },
+      {
+       "round": 4,
+       "n_arm": 10,
+       "n_ctrl": 1
+      }
      ],
-     "mean_ms": -31.7,
-     "min_ms": -200.7,
-     "max_ms": 89.6,
-     "control_p50_ms": 3281.4,
-     "mean_pct": -0.97
+     "delta_ms_by_round": [
+      26.3,
+      -105.6
+     ],
+     "mean_ms": -39.6,
+     "min_ms": -105.6,
+     "max_ms": 26.3,
+     "control_p50_ms": 3284.3,
+     "mean_pct": -1.21
     },
     "restore.Duration": {
-     "rounds": 5,
-     "delta_ms_by_round": [
-      28.3,
-      21.7,
-      16.2,
-      33.8,
-      17.4
+     "rounds": 2,
+     "min_n_per_round": 3,
+     "skipped_rounds": [
+      {
+       "round": 0,
+       "n_arm": 9,
+       "n_ctrl": 1
+      },
+      {
+       "round": 2,
+       "n_arm": 10,
+       "n_ctrl": 1
+      },
+      {
+       "round": 4,
+       "n_arm": 10,
+       "n_ctrl": 1
+      }
      ],
-     "mean_ms": 23.5,
-     "min_ms": 16.2,
+     "delta_ms_by_round": [
+      21.7,
+      33.8
+     ],
+     "mean_ms": 27.7,
+     "min_ms": 21.7,
      "max_ms": 33.8,
-     "control_p50_ms": 681.5,
-     "mean_pct": 3.44
+     "control_p50_ms": 681.2,
+     "mean_pct": 4.07
     },
     "warm.Duration": {
      "rounds": 5,
+     "min_n_per_round": 3,
+     "skipped_rounds": [],
      "delta_ms_by_round": [
       4.1,
       40.3,
@@ -17626,12 +18178,48 @@
      "cells": 25,
      "median_pct": 4.8,
      "min_pct": 0.03,
-     "max_pct": 13.27
+     "max_pct": 13.27,
+     "pct_by_cell": [
+      4.627,
+      9.523,
+      2.361,
+      5.13,
+      6.545,
+      3.726,
+      4.8,
+      3.141,
+      6.125,
+      12.978,
+      1.479,
+      4.962,
+      0.156,
+      3.164,
+      9.351,
+      1.424,
+      3.543,
+      1.589,
+      4.909,
+      9.322,
+      0.03,
+      5.545,
+      0.971,
+      7.75,
+      13.274
+     ],
+     "pct_by_round": [
+      5.637,
+      6.154,
+      3.822,
+      4.158,
+      5.514
+     ]
     }
    },
    "sampler": {
     "cold.Init Duration": {
      "rounds": 5,
+     "min_n_per_round": 3,
+     "skipped_rounds": [],
      "delta_ms_by_round": [
       25.5,
       5.8,
@@ -17647,6 +18235,8 @@
     },
     "cold.Duration": {
      "rounds": 5,
+     "min_n_per_round": 3,
+     "skipped_rounds": [],
      "delta_ms_by_round": [
       439.5,
       543.4,
@@ -17661,37 +18251,69 @@
      "mean_pct": 1.07
     },
     "restore.Restore Duration": {
-     "rounds": 5,
-     "delta_ms_by_round": [
-      -192.4,
-      64.1,
-      53.5,
-      -71.0,
-      42.3
+     "rounds": 2,
+     "min_n_per_round": 3,
+     "skipped_rounds": [
+      {
+       "round": 0,
+       "n_arm": 10,
+       "n_ctrl": 1
+      },
+      {
+       "round": 2,
+       "n_arm": 10,
+       "n_ctrl": 1
+      },
+      {
+       "round": 4,
+       "n_arm": 7,
+       "n_ctrl": 1
+      }
      ],
-     "mean_ms": -20.7,
-     "min_ms": -192.4,
+     "delta_ms_by_round": [
+      64.1,
+      -71.0
+     ],
+     "mean_ms": -3.4,
+     "min_ms": -71.0,
      "max_ms": 64.1,
-     "control_p50_ms": 3281.4,
-     "mean_pct": -0.63
+     "control_p50_ms": 3284.3,
+     "mean_pct": -0.11
     },
     "restore.Duration": {
-     "rounds": 5,
-     "delta_ms_by_round": [
-      2177.2,
-      2078.8,
-      1830.6,
-      2344.0,
-      1991.8
+     "rounds": 2,
+     "min_n_per_round": 3,
+     "skipped_rounds": [
+      {
+       "round": 0,
+       "n_arm": 10,
+       "n_ctrl": 1
+      },
+      {
+       "round": 2,
+       "n_arm": 10,
+       "n_ctrl": 1
+      },
+      {
+       "round": 4,
+       "n_arm": 7,
+       "n_ctrl": 1
+      }
      ],
-     "mean_ms": 2084.5,
-     "min_ms": 1830.6,
+     "delta_ms_by_round": [
+      2078.8,
+      2344.0
+     ],
+     "mean_ms": 2211.4,
+     "min_ms": 2078.8,
      "max_ms": 2344.0,
-     "control_p50_ms": 681.5,
-     "mean_pct": 305.86
+     "control_p50_ms": 681.2,
+     "mean_pct": 324.63
     },
     "warm.Duration": {
      "rounds": 5,
+     "min_n_per_round": 3,
+     "skipped_rounds": [],
      "delta_ms_by_round": [
       -85.0,
       -26.0,
@@ -17709,12 +18331,48 @@
      "cells": 25,
      "median_pct": 0.91,
      "min_pct": -8.12,
-     "max_pct": 8.46
+     "max_pct": 8.46,
+     "pct_by_cell": [
+      4.362,
+      3.229,
+      0.564,
+      -8.052,
+      1.04,
+      -0.226,
+      1.991,
+      3.69,
+      -4.523,
+      8.457,
+      -0.419,
+      0.912,
+      -0.775,
+      -5.409,
+      2.918,
+      -0.597,
+      -0.014,
+      1.943,
+      -8.122,
+      -0.024,
+      1.074,
+      2.47,
+      0.989,
+      0.295,
+      3.335
+     ],
+     "pct_by_round": [
+      0.229,
+      1.878,
+      -0.555,
+      -1.363,
+      1.633
+     ]
     }
    },
    "xray": {
     "cold.Init Duration": {
      "rounds": 5,
+     "min_n_per_round": 3,
+     "skipped_rounds": [],
      "delta_ms_by_round": [
       1.6,
       11.0,
@@ -17730,6 +18388,8 @@
     },
     "cold.Duration": {
      "rounds": 5,
+     "min_n_per_round": 3,
+     "skipped_rounds": [],
      "delta_ms_by_round": [
       170.0,
       -33.9,
@@ -17744,37 +18404,69 @@
      "mean_pct": -0.03
     },
     "restore.Restore Duration": {
-     "rounds": 5,
-     "delta_ms_by_round": [
-      -165.7,
-      -80.4,
-      51.7,
-      -147.6,
-      -51.4
+     "rounds": 2,
+     "min_n_per_round": 3,
+     "skipped_rounds": [
+      {
+       "round": 0,
+       "n_arm": 9,
+       "n_ctrl": 1
+      },
+      {
+       "round": 2,
+       "n_arm": 10,
+       "n_ctrl": 1
+      },
+      {
+       "round": 4,
+       "n_arm": 8,
+       "n_ctrl": 1
+      }
      ],
-     "mean_ms": -78.7,
-     "min_ms": -165.7,
-     "max_ms": 51.7,
-     "control_p50_ms": 3281.4,
-     "mean_pct": -2.4
+     "delta_ms_by_round": [
+      -80.4,
+      -147.6
+     ],
+     "mean_ms": -114.0,
+     "min_ms": -147.6,
+     "max_ms": -80.4,
+     "control_p50_ms": 3284.3,
+     "mean_pct": -3.47
     },
     "restore.Duration": {
-     "rounds": 5,
-     "delta_ms_by_round": [
-      -12.1,
-      -5.7,
-      -30.4,
-      -0.9,
-      -12.7
+     "rounds": 2,
+     "min_n_per_round": 3,
+     "skipped_rounds": [
+      {
+       "round": 0,
+       "n_arm": 9,
+       "n_ctrl": 1
+      },
+      {
+       "round": 2,
+       "n_arm": 10,
+       "n_ctrl": 1
+      },
+      {
+       "round": 4,
+       "n_arm": 8,
+       "n_ctrl": 1
+      }
      ],
-     "mean_ms": -12.4,
-     "min_ms": -30.4,
+     "delta_ms_by_round": [
+      -5.7,
+      -0.9
+     ],
+     "mean_ms": -3.3,
+     "min_ms": -5.7,
      "max_ms": -0.9,
-     "control_p50_ms": 681.5,
-     "mean_pct": -1.82
+     "control_p50_ms": 681.2,
+     "mean_pct": -0.49
     },
     "warm.Duration": {
      "rounds": 5,
+     "min_n_per_round": 3,
+     "skipped_rounds": [],
      "delta_ms_by_round": [
       -59.4,
       -10.2,
@@ -17792,12 +18484,48 @@
      "cells": 25,
      "median_pct": -0.1,
      "min_pct": -4.25,
-     "max_pct": 4.76
+     "max_pct": 4.76,
+     "pct_by_cell": [
+      2.503,
+      2.149,
+      -0.005,
+      -4.254,
+      -1.211,
+      -0.889,
+      -2.3,
+      -0.042,
+      -1.556,
+      0.073,
+      0.299,
+      -0.172,
+      -0.097,
+      1.859,
+      2.433,
+      -0.424,
+      -1.51,
+      0.521,
+      -1.796,
+      -0.127,
+      -1.505,
+      -0.128,
+      -0.061,
+      4.76,
+      2.301
+     ],
+     "pct_by_round": [
+      -0.163,
+      -0.943,
+      0.864,
+      -0.667,
+      1.073
+     ]
     }
    },
    "telemetry": {
     "cold.Init Duration": {
      "rounds": 5,
+     "min_n_per_round": 3,
+     "skipped_rounds": [],
      "delta_ms_by_round": [
       78.6,
       85.2,
@@ -17813,6 +18541,8 @@
     },
     "cold.Duration": {
      "rounds": 5,
+     "min_n_per_round": 3,
+     "skipped_rounds": [],
      "delta_ms_by_round": [
       -133.6,
       33.4,
@@ -17827,37 +18557,71 @@
      "mean_pct": -0.24
     },
     "restore.Restore Duration": {
-     "rounds": 5,
-     "delta_ms_by_round": [
-      -172.3,
-      172.4,
-      81.0,
-      -13.1,
-      -3.5
-     ],
-     "mean_ms": 12.9,
-     "min_ms": -172.3,
-     "max_ms": 172.4,
-     "control_p50_ms": 3281.4,
-     "mean_pct": 0.39
+     "rounds": 0,
+     "min_n_per_round": 3,
+     "skipped_rounds": [
+      {
+       "round": 0,
+       "n_arm": 10,
+       "n_ctrl": 1
+      },
+      {
+       "round": 1,
+       "n_arm": 1,
+       "n_ctrl": 10
+      },
+      {
+       "round": 2,
+       "n_arm": 9,
+       "n_ctrl": 1
+      },
+      {
+       "round": 3,
+       "n_arm": 1,
+       "n_ctrl": 8
+      },
+      {
+       "round": 4,
+       "n_arm": 10,
+       "n_ctrl": 1
+      }
+     ]
     },
     "restore.Duration": {
-     "rounds": 5,
-     "delta_ms_by_round": [
-      -12.3,
-      2.8,
-      -10.3,
-      -16.1,
-      -25.2
-     ],
-     "mean_ms": -12.2,
-     "min_ms": -25.2,
-     "max_ms": 2.8,
-     "control_p50_ms": 681.5,
-     "mean_pct": -1.79
+     "rounds": 0,
+     "min_n_per_round": 3,
+     "skipped_rounds": [
+      {
+       "round": 0,
+       "n_arm": 10,
+       "n_ctrl": 1
+      },
+      {
+       "round": 1,
+       "n_arm": 1,
+       "n_ctrl": 10
+      },
+      {
+       "round": 2,
+       "n_arm": 9,
+       "n_ctrl": 1
+      },
+      {
+       "round": 3,
+       "n_arm": 1,
+       "n_ctrl": 8
+      },
+      {
+       "round": 4,
+       "n_arm": 10,
+       "n_ctrl": 1
+      }
+     ]
     },
     "warm.Duration": {
      "rounds": 5,
+     "min_n_per_round": 3,
+     "skipped_rounds": [],
      "delta_ms_by_round": [
       -34.9,
       73.2,
@@ -17875,11 +18639,47 @@
      "cells": 25,
      "median_pct": 0.34,
      "min_pct": -5.51,
-     "max_pct": 6.3
+     "max_pct": 6.3,
+     "pct_by_cell": [
+      2.596,
+      2.786,
+      0.959,
+      -0.63,
+      -1.181,
+      -1.194,
+      0.548,
+      -0.06,
+      0.122,
+      3.26,
+      0.902,
+      0.341,
+      -0.461,
+      1.411,
+      2.492,
+      -2.354,
+      -4.867,
+      -0.567,
+      -5.51,
+      -0.206,
+      -0.432,
+      0.394,
+      0.602,
+      6.298,
+      1.024
+     ],
+     "pct_by_round": [
+      0.906,
+      0.535,
+      0.937,
+      -2.701,
+      1.577
+     ]
     }
    }
-  }
+  },
+  "withdrawn": "superseded by run 20261020T231634Z: this run reused one Lambda client across SnapStart waits (restore cells contaminated by client read timeouts) and has no same-code null arm"
  },
+ "superseded_by": "20261020T231634Z",
  "profiles": {
   "lambda": {
    "rep": {
@@ -17897,408 +18697,409 @@
      {
       "fn": "_base.py:612:result_iterator",
       "cumtime": 6138.105817,
-      "share": 0.086
+      "share": null
      },
      {
       "fn": "threading.py:1117:join",
       "cumtime": 5596.665219,
-      "share": 0.0784
+      "share": null
      },
      {
       "fn": "threading.py:1155:_wait_for_tstate_lock",
       "cumtime": 5596.617111,
-      "share": 0.0784
+      "share": null
      },
      {
       "fn": "_base.py:314:_result_or_cancel",
       "cumtime": 3645.53637,
-      "share": 0.0511
+      "share": null
      },
      {
       "fn": "socket.py:706:readinto",
       "cumtime": 2635.490729,
-      "share": 0.0369
+      "share": null
      },
      {
       "fn": "ssl.py:1236:recv_into",
       "cumtime": 2635.396242,
-      "share": 0.0369
+      "share": null
      },
      {
       "fn": "handler.py:45:_load",
       "cumtime": 2626.027983,
-      "share": 0.0368
+      "share": null
      },
      {
       "fn": "ssl.py:1094:read",
       "cumtime": 2610.775974,
-      "share": 0.0366
+      "share": null
      },
      {
       "fn": "thread.py:54:run",
       "cumtime": 2341.858872,
-      "share": 0.0328
+      "share": null
      },
      {
       "fn": "lkai_entry.py:59:_download",
       "cumtime": 1750.946768,
-      "share": 0.0245
+      "share": null
      },
      {
       "fn": "loader.py:73:download_to_memfd",
       "cumtime": 1750.933087,
-      "share": 0.0245
+      "share": null
      },
      {
       "fn": "response.py:1059:read",
       "cumtime": 1726.365911,
-      "share": 0.0242
+      "share": null
      },
      {
       "fn": "response.py:165:iter_chunks",
       "cumtime": 1726.364655,
-      "share": 0.0242
+      "share": null
      },
      {
       "fn": "response.py:92:read",
       "cumtime": 1726.360978,
-      "share": 0.0242
+      "share": null
      },
      {
       "fn": "_base.py:646:__exit__",
       "cumtime": 1679.296978,
-      "share": 0.0235
+      "share": null
      },
      {
       "fn": "thread.py:220:shutdown",
       "cumtime": 1679.290171,
-      "share": 0.0235
+      "share": null
      },
      {
       "fn": "response.py:1007:_raw_read",
       "cumtime": 1677.20972,
-      "share": 0.0235
+      "share": null
      },
      {
       "fn": "response.py:954:_fp_read",
       "cumtime": 1677.175304,
-      "share": 0.0235
+      "share": null
      },
      {
       "fn": "client.py:478:read",
       "cumtime": 1677.16972,
-      "share": 0.0235
+      "share": null
      },
      {
       "fn": "loader.py:85:<lambda>",
       "cumtime": 1554.492879,
-      "share": 0.0218
+      "share": null
      }
     ],
     "cprofile_init_top_tottime": [
      {
       "fn": "~:0:<method 'read' of '_ssl._SSLSocket' objects>",
       "tottime": 1534.538942,
-      "share": 0.5892
+      "share": null
      },
      {
       "fn": "engine.py:103:__init__",
       "tottime": 786.395748,
-      "share": 0.3019
+      "share": null
      },
      {
       "fn": "~:0:<built-in method from_file>",
       "tottime": 58.977481,
-      "share": 0.0226
+      "share": null
      },
      {
       "fn": "ssl.py:1236:recv_into",
       "tottime": 29.300709,
-      "share": 0.0112
+      "share": null
      },
      {
       "fn": "socket.py:706:readinto",
       "tottime": 24.757018,
-      "share": 0.0095
+      "share": null
      },
      {
       "fn": "~:0:<method 'read' of '_io.BufferedReader' objects>",
       "tottime": 23.018732,
-      "share": 0.0088
+      "share": null
      },
      {
       "fn": "~:0:<built-in method builtins.compile>",
       "tottime": 22.556379,
-      "share": 0.0087
+      "share": null
      },
      {
       "fn": "~:0:<built-in method posix.pwrite>",
       "tottime": 21.648512,
-      "share": 0.0083
+      "share": null
      },
      {
       "fn": "engine.py:133:_eval",
       "tottime": 18.937091,
-      "share": 0.0073
+      "share": null
      },
      {
       "fn": "ssl.py:1094:read",
       "tottime": 15.209776,
-      "share": 0.0058
+      "share": null
      },
      {
       "fn": "~:0:<method '_checkReadable' of '_io._IOBase' objects>",
       "tottime": 8.722763,
-      "share": 0.0033
+      "share": null
      },
      {
       "fn": "~:0:<method 'get_tensors' of 'builtins.safe_open' objects>",
       "tottime": 6.820345,
-      "share": 0.0026
+      "share": null
      },
      {
       "fn": "~:0:<method '_checkClosed' of '_io._IOBase' objects>",
       "tottime": 6.755979,
-      "share": 0.0026
+      "share": null
      },
      {
       "fn": "~:0:<built-in method _imp.create_dynamic>",
       "tottime": 5.746871,
-      "share": 0.0022
+      "share": null
      },
      {
       "fn": "~:0:<built-in method posix.stat>",
       "tottime": 4.384229,
-      "share": 0.0017
+      "share": null
      },
      {
       "fn": "socket.py:745:readable",
       "tottime": 4.146714,
-      "share": 0.0016
+      "share": null
      },
      {
       "fn": "decoder.py:344:raw_decode",
       "tottime": 3.952107,
-      "share": 0.0015
+      "share": null
      },
      {
       "fn": "ssl.py:1082:_checkClosed",
       "tottime": 3.313941,
-      "share": 0.0013
+      "share": null
      },
      {
       "fn": "~:0:<method '__exit__' of 'memoryview' objects>",
       "tottime": 3.131759,
-      "share": 0.0012
+      "share": null
      },
      {
       "fn": "~:0:<built-in method _imp.exec_dynamic>",
       "tottime": 2.891703,
-      "share": 0.0011
+      "share": null
      }
     ],
+    "cprofile_init_tottime_total": null,
     "cprofile_invoke_top_tottime": [
      {
       "fn": "engine.py:145:_fork",
       "tottime": 387.146959,
-      "share": 0.8222
+      "share": null
      },
      {
       "fn": "engine.py:133:_eval",
       "tottime": 74.00974,
-      "share": 0.1572
+      "share": null
      },
      {
       "fn": "~:0:<method 'cumsum' of 'numpy.ndarray' objects>",
       "tottime": 5.140858,
-      "share": 0.0109
+      "share": null
      },
      {
       "fn": "hidden_engine.py:63:logits",
       "tottime": 2.876224,
-      "share": 0.0061
+      "share": null
      },
      {
       "fn": "~:0:<method 'encode_batch' of 'tokenizers.Tokenizer' objects>",
       "tottime": 0.354399,
-      "share": 0.0008
+      "share": null
      },
      {
       "fn": "~:0:<method 'encode' of 'tokenizers.Tokenizer' objects>",
       "tottime": 0.254837,
-      "share": 0.0005
+      "share": null
      },
      {
       "fn": "hidden_engine.py:165:_probs",
       "tottime": 0.102203,
-      "share": 0.0002
+      "share": null
      },
      {
       "fn": "~:0:<method 'validate_python' of 'pydantic_core._pydantic_core.SchemaValidator' objects>",
       "tottime": 0.085573,
-      "share": 0.0002
+      "share": null
      },
      {
       "fn": "hidden_engine.py:58:_norm",
       "tottime": 0.081615,
-      "share": 0.0002
+      "share": null
      },
      {
       "fn": "~:0:<built-in method _io.open>",
       "tottime": 0.069939,
-      "share": 0.0001
+      "share": null
      },
      {
       "fn": "engine.py:161:forward_shared",
       "tottime": 0.068529,
-      "share": 0.0001
+      "share": null
      },
      {
       "fn": "_methods.py:148:_var",
       "tottime": 0.066725,
-      "share": 0.0001
+      "share": null
      },
      {
       "fn": "hidden_engine.py:129:fit",
       "tottime": 0.056552,
-      "share": 0.0001
+      "share": null
      },
      {
       "fn": "engine.py:196:evaluate",
       "tottime": 0.055993,
-      "share": 0.0001
+      "share": null
      },
      {
       "fn": "handler.py:85:_cpu_part",
       "tottime": 0.055109,
-      "share": 0.0001
+      "share": null
      },
      {
       "fn": "~:0:<method 'reduce' of 'numpy.ufunc' objects>",
       "tottime": 0.0533,
-      "share": 0.0001
+      "share": null
      },
      {
       "fn": "_methods.py:115:_mean",
       "tottime": 0.044177,
-      "share": 0.0001
+      "share": null
      },
      {
       "fn": "~:0:<built-in method numpy.asarray>",
       "tottime": 0.032324,
-      "share": 0.0001
+      "share": null
      },
      {
       "fn": "prompting.py:102:render_question",
       "tottime": 0.027278,
-      "share": 0.0001
+      "share": null
      },
      {
       "fn": "prompting.py:233:to_answer",
       "tottime": 0.024123,
-      "share": 0.0001
+      "share": null
      }
     ],
     "cprofile_invoke_warm_top_tottime": [
      {
       "fn": "engine.py:145:_fork",
       "tottime": 387.146959,
-      "share": 0.9188
+      "share": null
      },
      {
       "fn": "engine.py:133:_eval",
       "tottime": 25.531177,
-      "share": 0.0606
+      "share": null
      },
      {
       "fn": "~:0:<method 'cumsum' of 'numpy.ndarray' objects>",
       "tottime": 5.140858,
-      "share": 0.0122
+      "share": null
      },
      {
       "fn": "hidden_engine.py:63:logits",
       "tottime": 2.256715,
-      "share": 0.0054
+      "share": null
      },
      {
       "fn": "~:0:<method 'encode' of 'tokenizers.Tokenizer' objects>",
       "tottime": 0.233806,
-      "share": 0.0006
+      "share": null
      },
      {
       "fn": "~:0:<method 'encode_batch' of 'tokenizers.Tokenizer' objects>",
       "tottime": 0.23232,
-      "share": 0.0006
+      "share": null
      },
      {
       "fn": "hidden_engine.py:165:_probs",
       "tottime": 0.078454,
-      "share": 0.0002
+      "share": null
      },
      {
       "fn": "hidden_engine.py:58:_norm",
       "tottime": 0.071655,
-      "share": 0.0002
+      "share": null
      },
      {
       "fn": "~:0:<method 'validate_python' of 'pydantic_core._pydantic_core.SchemaValidator' objects>",
       "tottime": 0.060528,
-      "share": 0.0001
+      "share": null
      },
      {
       "fn": "~:0:<built-in method _io.open>",
       "tottime": 0.058693,
-      "share": 0.0001
+      "share": null
      },
      {
       "fn": "_methods.py:148:_var",
       "tottime": 0.057239,
-      "share": 0.0001
+      "share": null
      },
      {
       "fn": "hidden_engine.py:129:fit",
       "tottime": 0.046321,
-      "share": 0.0001
+      "share": null
      },
      {
       "fn": "handler.py:85:_cpu_part",
       "tottime": 0.045897,
-      "share": 0.0001
+      "share": null
      },
      {
       "fn": "engine.py:196:evaluate",
       "tottime": 0.045777,
-      "share": 0.0001
+      "share": null
      },
      {
       "fn": "~:0:<method 'reduce' of 'numpy.ufunc' objects>",
       "tottime": 0.045699,
-      "share": 0.0001
+      "share": null
      },
      {
       "fn": "_methods.py:115:_mean",
       "tottime": 0.03635,
-      "share": 0.0001
+      "share": null
      },
      {
       "fn": "~:0:<built-in method numpy.asarray>",
       "tottime": 0.026487,
-      "share": 0.0001
+      "share": null
      },
      {
       "fn": "engine.py:161:forward_shared",
       "tottime": 0.026362,
-      "share": 0.0001
+      "share": null
      },
      {
       "fn": "prompting.py:233:to_answer",
       "tottime": 0.021579,
-      "share": 0.0001
+      "share": null
      },
      {
       "fn": "prompting.py:102:render_question",
       "tottime": 0.021558,
-      "share": 0.0001
+      "share": null
      }
     ]
    },
@@ -18358,22 +19159,22 @@
       {
        "frame": "read (ssl.py:1103)",
        "samples": 121330,
-       "share": 0.572
+       "share": 0.5702
       },
       {
        "frame": "__init__ (engine.py:114)",
        "samples": 69222,
-       "share": 0.3263
+       "share": 0.3253
       },
       {
        "frame": "_download_part (loader.py:59)",
        "samples": 5739,
-       "share": 0.0271
+       "share": 0.027
       },
       {
        "frame": "from_assets (strands_decider/hidden_engine.py:125)",
        "samples": 5362,
-       "share": 0.0253
+       "share": 0.0252
       },
       {
        "frame": "_call_with_frames_removed (<frozen importlib._bootstrap>:488)",
@@ -18460,102 +19261,102 @@
       {
        "frame": "_bootstrap (threading.py:1032)",
        "samples": 186782,
-       "share": 0.0593
+       "share": 0.8778
       },
       {
        "frame": "_bootstrap_inner (threading.py:1075)",
        "samples": 186780,
-       "share": 0.0593
+       "share": 0.8778
       },
       {
        "frame": "run (threading.py:1012)",
        "samples": 186777,
-       "share": 0.0593
+       "share": 0.8778
       },
       {
        "frame": "run (concurrent/futures/thread.py:59)",
        "samples": 186400,
-       "share": 0.0592
+       "share": 0.876
       },
       {
        "frame": "_worker (concurrent/futures/thread.py:93)",
        "samples": 186400,
-       "share": 0.0592
+       "share": 0.876
       },
       {
        "frame": "<lambda> (loader.py:85)",
        "samples": 129840,
-       "share": 0.0412
+       "share": 0.6102
       },
       {
        "frame": "_download_part (loader.py:58)",
        "samples": 122060,
-       "share": 0.0387
+       "share": 0.5736
       },
       {
        "frame": "read (botocore/response.py:98)",
        "samples": 122057,
-       "share": 0.0387
+       "share": 0.5736
       },
       {
        "frame": "read (urllib3/response.py:1110)",
        "samples": 122054,
-       "share": 0.0387
+       "share": 0.5736
       },
       {
        "frame": "iter_chunks (botocore/response.py:170)",
        "samples": 122053,
-       "share": 0.0387
+       "share": 0.5736
       },
       {
        "frame": "_raw_read (urllib3/response.py:1022)",
        "samples": 122019,
-       "share": 0.0387
+       "share": 0.5734
       },
       {
        "frame": "_fp_read (urllib3/response.py:1005)",
        "samples": 122016,
-       "share": 0.0387
+       "share": 0.5734
       },
       {
        "frame": "read (http/client.py:494)",
        "samples": 122010,
-       "share": 0.0387
+       "share": 0.5734
       },
       {
        "frame": "readinto (socket.py:720)",
        "samples": 121694,
-       "share": 0.0386
+       "share": 0.5719
       },
       {
        "frame": "read (ssl.py:1103)",
        "samples": 121331,
-       "share": 0.0385
+       "share": 0.5702
       },
       {
        "frame": "recv_into (ssl.py:1251)",
        "samples": 121325,
-       "share": 0.0385
+       "share": 0.5702
       },
       {
        "frame": "_load (handler.py:51)",
        "samples": 75462,
-       "share": 0.0239
+       "share": 0.3546
       },
       {
        "frame": "_load_engine (lkai_entry.py:95)",
        "samples": 75461,
-       "share": 0.0239
+       "share": 0.3546
       },
       {
        "frame": "load_engine (engine.py:237)",
        "samples": 69358,
-       "share": 0.022
+       "share": 0.326
       },
       {
        "frame": "__init__ (lkai_entry.py:78)",
        "samples": 69356,
-       "share": 0.022
+       "share": 0.3259
       }
      ]
     },
@@ -18714,102 +19515,102 @@
       {
        "frame": "thread (2): MainThread",
        "samples": 40963,
-       "share": 0.0667
+       "share": 1.0
       },
       {
        "frame": "handler (lkai_prof.py:216)",
        "samples": 40959,
-       "share": 0.0667
+       "share": 0.9999
       },
       {
        "frame": "handle_event_request (awslambdaric/bootstrap.py:178)",
        "samples": 40959,
-       "share": 0.0667
+       "share": 0.9999
       },
       {
        "frame": "main (awslambdaric/__main__.py:31)",
        "samples": 40959,
-       "share": 0.0667
+       "share": 0.9999
       },
       {
        "frame": "run (awslambdaric/bootstrap.py:539)",
        "samples": 40959,
-       "share": 0.0667
+       "share": 0.9999
       },
       {
        "frame": "main (bootstrap.py:60)",
        "samples": 40959,
-       "share": 0.0667
+       "share": 0.9999
       },
       {
        "frame": "<module> (bootstrap.py:63)",
        "samples": 40959,
-       "share": 0.0667
+       "share": 0.9999
       },
       {
        "frame": "handler (lkai_entry.py:146)",
        "samples": 40954,
-       "share": 0.0667
+       "share": 0.9998
       },
       {
        "frame": "handler (app.py:30)",
        "samples": 40951,
-       "share": 0.0667
+       "share": 0.9997
       },
       {
        "frame": "handler (handler.py:163)",
        "samples": 40951,
-       "share": 0.0667
+       "share": 0.9997
       },
       {
        "frame": "_evaluate (handler.py:103)",
        "samples": 40943,
-       "share": 0.0666
+       "share": 0.9995
       },
       {
        "frame": "wrapper (phases.py:124)",
        "samples": 40941,
-       "share": 0.0666
+       "share": 0.9995
       },
       {
        "frame": "evaluate (engine.py:217)",
        "samples": 40648,
-       "share": 0.0662
+       "share": 0.9923
       },
       {
        "frame": "_fork (engine.py:156)",
        "samples": 34044,
-       "share": 0.0554
+       "share": 0.8311
       },
       {
        "frame": "forward_shared (engine.py:181)",
        "samples": 34044,
-       "share": 0.0554
+       "share": 0.8311
       },
       {
        "frame": "forward_shared (engine.py:169)",
        "samples": 6597,
-       "share": 0.0107
+       "share": 0.161
       },
       {
        "frame": "_eval (engine.py:138)",
        "samples": 6597,
-       "share": 0.0107
+       "share": 0.161
       },
       {
        "frame": "evaluate (engine.py:221)",
        "samples": 281,
-       "share": 0.0005
+       "share": 0.0069
       },
       {
        "frame": "_probs (strands_decider/hidden_engine.py:166)",
        "samples": 272,
-       "share": 0.0004
+       "share": 0.0066
       },
       {
        "frame": "logits (strands_decider/hidden_engine.py:66)",
        "samples": 188,
-       "share": 0.0003
+       "share": 0.0046
       }
      ]
     },
@@ -18968,102 +19769,102 @@
       {
        "frame": "thread (2): MainThread",
        "samples": 36514,
-       "share": 0.0667
+       "share": 1.0
       },
       {
        "frame": "<module> (bootstrap.py:63)",
        "samples": 36512,
-       "share": 0.0667
+       "share": 0.9999
       },
       {
        "frame": "main (bootstrap.py:60)",
        "samples": 36512,
-       "share": 0.0667
+       "share": 0.9999
       },
       {
        "frame": "handle_event_request (awslambdaric/bootstrap.py:178)",
        "samples": 36512,
-       "share": 0.0667
+       "share": 0.9999
       },
       {
        "frame": "run (awslambdaric/bootstrap.py:539)",
        "samples": 36512,
-       "share": 0.0667
+       "share": 0.9999
       },
       {
        "frame": "handler (lkai_prof.py:216)",
        "samples": 36512,
-       "share": 0.0667
+       "share": 0.9999
       },
       {
        "frame": "main (awslambdaric/__main__.py:31)",
        "samples": 36512,
-       "share": 0.0667
+       "share": 0.9999
       },
       {
        "frame": "handler (lkai_entry.py:146)",
        "samples": 36508,
-       "share": 0.0667
+       "share": 0.9998
       },
       {
        "frame": "handler (app.py:30)",
        "samples": 36506,
-       "share": 0.0667
+       "share": 0.9998
       },
       {
        "frame": "handler (handler.py:163)",
        "samples": 36506,
-       "share": 0.0667
+       "share": 0.9998
       },
       {
        "frame": "_evaluate (handler.py:103)",
        "samples": 36501,
-       "share": 0.0666
+       "share": 0.9996
       },
       {
        "frame": "wrapper (phases.py:124)",
        "samples": 36500,
-       "share": 0.0666
+       "share": 0.9996
       },
       {
        "frame": "evaluate (engine.py:217)",
        "samples": 36258,
-       "share": 0.0662
+       "share": 0.993
       },
       {
        "frame": "_fork (engine.py:156)",
        "samples": 34044,
-       "share": 0.0622
+       "share": 0.9324
       },
       {
        "frame": "forward_shared (engine.py:181)",
        "samples": 34044,
-       "share": 0.0622
+       "share": 0.9324
       },
       {
        "frame": "forward_shared (engine.py:169)",
        "samples": 2207,
-       "share": 0.004
+       "share": 0.0604
       },
       {
        "frame": "_eval (engine.py:138)",
        "samples": 2207,
-       "share": 0.004
+       "share": 0.0604
       },
       {
        "frame": "evaluate (engine.py:221)",
        "samples": 232,
-       "share": 0.0004
+       "share": 0.0064
       },
       {
        "frame": "_probs (strands_decider/hidden_engine.py:166)",
        "samples": 224,
-       "share": 0.0004
+       "share": 0.0061
       },
       {
        "frame": "logits (strands_decider/hidden_engine.py:66)",
        "samples": 162,
-       "share": 0.0003
+       "share": 0.0044
       }
      ]
     }
@@ -19084,154 +19885,154 @@
         {
          "symbol": "libggml-cpu-armv8.6_1.so:_ZL43ggml_backend_cpu_kleidiai_buffer_set_tensorP19ggml_backend_bufferP11ggml_tensorPKvmm",
          "samples": 19659,
-         "share": 0.2174
+         "share": 0.1843
         },
         {
          "symbol": "libggml-cpu-armv8.2_2.so:_ZL43ggml_backend_cpu_kleidiai_buffer_set_tensorP19ggml_backend_bufferP11ggml_tensorPKvmm",
          "samples": 10734,
-         "share": 0.1187
+         "share": 0.1006
         },
         {
          "symbol": "libggml-cpu-armv8.6_1.so:kai_run_rhs_pack_nxk_qsi8cxp_qsi8cx_neon",
          "samples": 8531,
-         "share": 0.0943
+         "share": 0.08
         },
         {
          "symbol": "libc.so.6:__GI_memset",
          "samples": 8273,
-         "share": 0.0915
+         "share": 0.0776
         },
         {
          "symbol": "libc.so.6:read",
          "samples": 5756,
-         "share": 0.0637
+         "share": 0.054
         },
         {
          "symbol": "libggml-cpu-armv8.2_2.so:kai_run_rhs_pack_nxk_qsi8cxp_qsi8cx_neon",
          "samples": 3898,
-         "share": 0.0431
+         "share": 0.0366
         },
         {
          "symbol": "libc.so.6:pthread_cond_signal",
          "samples": 3854,
-         "share": 0.0426
+         "share": 0.0361
         },
         {
          "symbol": "libggml-cpu-armv8.6_1.so:+0x32000",
          "samples": 3269,
-         "share": 0.0362
+         "share": 0.0307
         },
         {
          "symbol": "libc.so.6:__lll_lock_wake",
          "samples": 3078,
-         "share": 0.034
+         "share": 0.0289
         },
         {
          "symbol": "libc.so.6:pwrite",
          "samples": 2896,
-         "share": 0.032
+         "share": 0.0272
         },
         {
          "symbol": "libm.so.6:lroundf",
          "samples": 2856,
-         "share": 0.0316
+         "share": 0.0268
         },
         {
          "symbol": "libc.so.6:__futex_abstimed_wait_cancelable64",
          "samples": 1829,
-         "share": 0.0202
+         "share": 0.0171
         },
         {
          "symbol": "libggml-cpu-armv8.2_2.so:+0x32000",
          "samples": 1650,
-         "share": 0.0182
+         "share": 0.0155
         },
         {
          "symbol": "libc.so.6:__memcpy_sve",
          "samples": 1580,
-         "share": 0.0175
+         "share": 0.0148
         },
         {
          "symbol": "libggml-cpu-armv8.6_2.so:_ZL43ggml_backend_cpu_kleidiai_buffer_set_tensorP19ggml_backend_bufferP11ggml_tensorPKvmm",
          "samples": 1476,
-         "share": 0.0163
+         "share": 0.0138
         },
         {
          "symbol": "libc.so.6:__lll_lock_wait",
          "samples": 1346,
-         "share": 0.0149
+         "share": 0.0126
         },
         {
          "symbol": "libpython3.12.so.1.0:_PyEval_EvalFrameDefault",
          "samples": 1097,
-         "share": 0.0121
+         "share": 0.0103
         },
         {
          "symbol": "libc.so.6:malloc",
          "samples": 811,
-         "share": 0.009
+         "share": 0.0076
         },
         {
          "symbol": "libc.so.6:bcmp",
          "samples": 654,
-         "share": 0.0072
+         "share": 0.0061
         },
         {
          "symbol": "libc.so.6:poll",
          "samples": 617,
-         "share": 0.0068
+         "share": 0.0058
         }
        ],
        "by_library": [
         {
          "library": "libc.so.6",
          "samples": 35683,
-         "share": 0.3361
+         "share": 0.3346
         },
         {
          "library": "libggml-cpu-armv8.6_1.so",
          "samples": 32294,
-         "share": 0.3042
+         "share": 0.3028
         },
         {
          "library": "libggml-cpu-armv8.2_2.so",
          "samples": 16599,
-         "share": 0.1563
+         "share": 0.1556
         },
         {
          "library": "libpython3.12.so.1.0",
          "samples": 7288,
-         "share": 0.0686
+         "share": 0.0683
         },
         {
          "library": "libm.so.6",
          "samples": 2863,
-         "share": 0.027
+         "share": 0.0268
         },
         {
          "library": "tokenizers.abi3.so",
          "samples": 2471,
-         "share": 0.0233
+         "share": 0.0232
         },
         {
          "library": "libcrypto.so.3.5.7",
          "samples": 2281,
-         "share": 0.0215
+         "share": 0.0214
         },
         {
          "library": "libllama.so.0.7.0",
          "samples": 2235,
-         "share": 0.0211
+         "share": 0.021
         },
         {
          "library": "libggml-cpu-armv8.6_2.so",
          "samples": 2225,
-         "share": 0.021
+         "share": 0.0209
         },
         {
          "library": "libstdc++.so.6.0.33",
          "samples": 698,
-         "share": 0.0066
+         "share": 0.0065
         },
         {
          "library": "libssl.so.3.5.7",
@@ -19248,62 +20049,62 @@
         {
          "edge": "libggml-cpu-armv8.6_1.so:_ZL43ggml_backend_cpu_kleidiai_buffer_set_tensorP19ggml_backend_bufferP11ggml_tensorPKvmm -> libggml-cpu-armv8.6_1.so:_ZL43ggml_backend_cpu_kleidiai_buffer_set_tensorP19ggml_backend_bufferP11ggml_tensorPKvmm",
          "samples": 19653,
-         "share": 0.2564
+         "share": 0.1843
         },
         {
          "edge": "libggml-cpu-armv8.2_2.so:_ZL43ggml_backend_cpu_kleidiai_buffer_set_tensorP19ggml_backend_bufferP11ggml_tensorPKvmm -> libggml-cpu-armv8.2_2.so:_ZL43ggml_backend_cpu_kleidiai_buffer_set_tensorP19ggml_backend_bufferP11ggml_tensorPKvmm",
          "samples": 10734,
-         "share": 0.14
+         "share": 0.1006
         },
         {
          "edge": "libggml-cpu-armv8.6_1.so:kai_run_rhs_pack_nxk_qsi8cxp_qsi8cx_neon -> libggml-cpu-armv8.6_1.so:kai_run_rhs_pack_nxk_qsi8cxp_qsi8cx_neon",
          "samples": 8531,
-         "share": 0.1113
+         "share": 0.08
         },
         {
          "edge": "libc.so.6:read -> libc.so.6:read",
          "samples": 4995,
-         "share": 0.0652
+         "share": 0.0468
         },
         {
          "edge": "libggml-cpu-armv8.2_2.so:kai_run_rhs_pack_nxk_qsi8cxp_qsi8cx_neon -> libggml-cpu-armv8.2_2.so:kai_run_rhs_pack_nxk_qsi8cxp_qsi8cx_neon",
          "samples": 3898,
-         "share": 0.0509
+         "share": 0.0366
         },
         {
          "edge": "libpython3.12.so.1.0:PyEval_SaveThread -> libc.so.6:pthread_cond_signal",
          "samples": 3852,
-         "share": 0.0503
+         "share": 0.0361
         },
         {
          "edge": "libggml-cpu-armv8.6_1.so:_ZL43ggml_backend_cpu_kleidiai_buffer_set_tensorP19ggml_backend_bufferP11ggml_tensorPKvmm -> libggml-cpu-armv8.6_1.so:+0x32000",
          "samples": 3267,
-         "share": 0.0426
+         "share": 0.0306
         },
         {
          "edge": "libggml-cpu-armv8.6_1.so:kai_run_rhs_pack_nxk_qsi8cxp_qsi8cx_neon -> libc.so.6:__GI_memset",
          "samples": 3091,
-         "share": 0.0403
+         "share": 0.029
         },
         {
          "edge": "libc.so.6:__pthread_mutex_unlock_usercnt -> libc.so.6:__lll_lock_wake",
          "samples": 3078,
-         "share": 0.0402
+         "share": 0.0289
         },
         {
          "edge": "libc.so.6:pwrite -> libc.so.6:pwrite",
          "samples": 2896,
-         "share": 0.0378
+         "share": 0.0272
         },
         {
          "edge": "libggml-cpu-armv8.6_1.so:_ZL43ggml_backend_cpu_kleidiai_buffer_set_tensorP19ggml_backend_bufferP11ggml_tensorPKvmm -> libm.so.6:lroundf",
          "samples": 1964,
-         "share": 0.0256
+         "share": 0.0184
         },
         {
          "edge": "libc.so.6:__futex_abstimed_wait_cancelable64 -> libc.so.6:__futex_abstimed_wait_cancelable64",
          "samples": 1798,
-         "share": 0.0235
+         "share": 0.0169
         }
        ]
       },
@@ -19406,7 +20207,7 @@
         {
          "symbol": "libggml-cpu-armv8.6_1.so:kai_kernel_matmul_clamp_f32_qai8dxp4x8_qsi8cxp4x8_16x4_neon_i8mm",
          "samples": 14435,
-         "share": 0.3735
+         "share": 0.3734
         },
         {
          "symbol": "libggml-cpu-armv8.2_2.so:kai_run_matmul_clamp_f32_qai8dxp4x4_qsi8cxp4x4_16x4_neon_dotprod",
@@ -19570,62 +20371,62 @@
         {
          "edge": "libggml-cpu-armv8.6_1.so:kai_run_matmul_clamp_f32_qai8dxp4x8_qsi8cxp4x8_16x4_neon_i8mm -> libggml-cpu-armv8.6_1.so:kai_kernel_matmul_clamp_f32_qai8dxp4x8_qsi8cxp4x8_16x4_neon_i8mm",
          "samples": 14435,
-         "share": 0.4077
+         "share": 0.3734
         },
         {
          "edge": "libggml-cpu-armv8.2_2.so:_ZN4ggml3cpu8kleidiai13tensor_traits18compute_forward_qxEP19ggml_compute_paramsP11ggml_tensor.isra.0 -> libggml-cpu-armv8.2_2.so:kai_run_matmul_clamp_f32_qai8dxp4x4_qsi8cxp4x4_16x4_neon_dotprod",
          "samples": 5097,
-         "share": 0.144
+         "share": 0.1319
         },
         {
          "edge": "? -> libggml-cpu-armv8.6_1.so:_ZL46ggml_compute_forward_gated_delta_net_one_chunkPK19ggml_compute_paramsP11ggml_tensorll",
          "samples": 2165,
-         "share": 0.0612
+         "share": 0.056
         },
         {
          "edge": "? -> libggml-cpu-armv8.6_1.so:ggml_vec_dot_f32",
          "samples": 2058,
-         "share": 0.0581
+         "share": 0.0532
         },
         {
          "edge": "? -> libggml-cpu-armv8.6_1.so:ggml_compute_forward_fwht",
          "samples": 1470,
-         "share": 0.0415
+         "share": 0.038
         },
         {
          "edge": "libggml-cpu-armv8.6_1.so:ggml_graph_compute_thread.isra.0 -> libgomp.so.1:+0x27000",
          "samples": 1395,
-         "share": 0.0394
+         "share": 0.0361
         },
         {
          "edge": "libllama.so.0.7.0:_ZN14llama_kv_cache5clearEb -> libc.so.6:__GI_memset",
          "samples": 1130,
-         "share": 0.0319
+         "share": 0.0292
         },
         {
          "edge": "libllama.so.0.7.0:_ZN22llama_memory_recurrent5clearEb -> libc.so.6:__GI_memset",
          "samples": 1043,
-         "share": 0.0295
+         "share": 0.027
         },
         {
          "edge": "? -> libggml-cpu-armv8.6_1.so:ggml_compute_forward_ssm_conv",
          "samples": 665,
-         "share": 0.0188
+         "share": 0.0172
         },
         {
          "edge": "libggml-cpu-armv8.2_2.so:_ZL46ggml_compute_forward_gated_delta_net_one_chunkPK19ggml_compute_paramsP11ggml_tensorll -> libggml-cpu-armv8.2_2.so:_ZL46ggml_compute_forward_gated_delta_net_one_chunkPK19ggml_compute_paramsP11ggml_tensorll",
          "samples": 526,
-         "share": 0.0149
+         "share": 0.0136
         },
         {
          "edge": "? -> libggml-cpu-armv8.6_1.so:kai_run_lhs_quant_pack_qai8dxp_f32",
          "samples": 501,
-         "share": 0.0142
+         "share": 0.013
         },
         {
          "edge": "? -> libggml-cpu-armv8.6_1.so:ggml_compute_forward_rms_norm_mul_fused",
          "samples": 389,
-         "share": 0.011
+         "share": 0.0101
         }
        ]
       },
@@ -19764,62 +20565,62 @@
         {
          "edge": "libc.so.6:send -> libc.so.6:send",
          "samples": 9,
-         "share": 0.1475
+         "share": 0.1406
         },
         {
          "edge": "libc.so.6:open -> libc.so.6:open",
          "samples": 5,
-         "share": 0.082
+         "share": 0.0781
         },
         {
          "edge": "libc.so.6:poll -> libc.so.6:poll",
          "samples": 4,
-         "share": 0.0656
+         "share": 0.0625
         },
         {
          "edge": "tokenizers.abi3.so:_RNvMNtNtNtNtCs7HaW2mv5hwE_3std3sys4sync7condvar5futexNtB2_7Condvar4wait -> libc.so.6:syscall",
          "samples": 4,
-         "share": 0.0656
+         "share": 0.0625
         },
         {
          "edge": "? -> libpython3.12.so.1.0:_PyEval_EvalFrameDefault",
          "samples": 2,
-         "share": 0.0328
+         "share": 0.0312
         },
         {
          "edge": "libpython3.12.so.1.0:PyThread_get_thread_native_id -> libc.so.6:syscall",
          "samples": 2,
-         "share": 0.0328
+         "share": 0.0312
         },
         {
          "edge": "libc.so.6:__futex_abstimed_wait_cancelable64 -> libc.so.6:__futex_abstimed_wait_cancelable64",
          "samples": 2,
-         "share": 0.0328
+         "share": 0.0312
         },
         {
          "edge": "libc.so.6:_int_malloc -> libc.so.6:unlink_chunk.constprop.0",
          "samples": 1,
-         "share": 0.0164
+         "share": 0.0156
         },
         {
          "edge": "libpython3.12.so.1.0:_PyStack_UnpackDict -> libpython3.12.so.1.0:_PyStack_UnpackDict",
          "samples": 1,
-         "share": 0.0164
+         "share": 0.0156
         },
         {
          "edge": "runtime_client.cpython-312-aarch64-linux-gnu.so:Curl_is_absolute_url -> runtime_client.cpython-312-aarch64-linux-gnu.so:Curl_isalnum",
          "samples": 1,
-         "share": 0.0164
+         "share": 0.0156
         },
         {
          "edge": "libpython3.12.so.1.0:_PyType_Lookup -> libpython3.12.so.1.0:_PyType_Lookup",
          "samples": 1,
-         "share": 0.0164
+         "share": 0.0156
         },
         {
          "edge": "runtime_client.cpython-312-aarch64-linux-gnu.so:dprintf_formatf -> runtime_client.cpython-312-aarch64-linux-gnu.so:dprintf_formatf",
          "samples": 1,
-         "share": 0.0164
+         "share": 0.0156
         }
        ]
       }
@@ -19902,7 +20703,7 @@
         {
          "symbol": "libggml-cpu-armv8.2_2.so:kai_run_matmul_clamp_f32_qai8dxp4x4_qsi8cxp4x4_16x4_neon_dotprod",
          "samples": 4787,
-         "share": 0.6054
+         "share": 0.6053
         },
         {
          "symbol": "libggml-cpu-armv8.2_2.so:_ZL46ggml_compute_forward_gated_delta_net_one_chunkPK19ggml_compute_paramsP11ggml_tensorll",
@@ -20061,62 +20862,62 @@
         {
          "edge": "libggml-cpu-armv8.2_2.so:_ZN4ggml3cpu8kleidiai13tensor_traits18compute_forward_qxEP19ggml_compute_paramsP11ggml_tensor.isra.0 -> libggml-cpu-armv8.2_2.so:kai_run_matmul_clamp_f32_qai8dxp4x4_qsi8cxp4x4_16x4_neon_dotprod",
          "samples": 4787,
-         "share": 0.6663
+         "share": 0.6053
         },
         {
          "edge": "libggml-cpu-armv8.2_2.so:_ZL46ggml_compute_forward_gated_delta_net_one_chunkPK19ggml_compute_paramsP11ggml_tensorll -> libggml-cpu-armv8.2_2.so:_ZL46ggml_compute_forward_gated_delta_net_one_chunkPK19ggml_compute_paramsP11ggml_tensorll",
          "samples": 507,
-         "share": 0.0706
+         "share": 0.0641
         },
         {
          "edge": "libggml-cpu-armv8.2_2.so:ggml_graph_compute_thread.isra.0 -> libgomp.so.1:+0x27000",
          "samples": 351,
-         "share": 0.0489
+         "share": 0.0444
         },
         {
          "edge": "? -> libggml-cpu-armv8.2_2.so:ggml_compute_forward_fwht",
          "samples": 240,
-         "share": 0.0334
+         "share": 0.0303
         },
         {
          "edge": "libggml-cpu-armv8.2_2.so:ggml_compute_forward_mul_mat -> libggml-cpu-armv8.2_2.so:ggml_vec_dot_f32",
          "samples": 230,
-         "share": 0.032
+         "share": 0.0291
         },
         {
          "edge": "? -> libggml-cpu-armv8.2_2.so:kai_run_lhs_quant_pack_qai8dxp_f32",
          "samples": 214,
-         "share": 0.0298
+         "share": 0.0271
         },
         {
          "edge": "? -> libggml-cpu-armv8.2_2.so:_ZN12_GLOBAL__N_18tinyBLASILi4E13__Float32x4_tS1_fffE9gemm_blocILi4ELi6EEEvll",
          "samples": 150,
-         "share": 0.0209
+         "share": 0.019
         },
         {
          "edge": "? -> libggml-cpu-armv8.2_2.so:ggml_compute_forward_ssm_conv",
          "samples": 107,
-         "share": 0.0149
+         "share": 0.0135
         },
         {
          "edge": "? -> libggml-cpu-armv8.2_2.so:ggml_compute_forward_concat",
          "samples": 93,
-         "share": 0.0129
+         "share": 0.0118
         },
         {
          "edge": "libggml-cpu-armv8.2_2.so:_ZN4ggml3cpu8kleidiai13tensor_traits18compute_forward_qxEP19ggml_compute_paramsP11ggml_tensor.isra.0 -> libgomp.so.1:+0x27000",
          "samples": 89,
-         "share": 0.0124
+         "share": 0.0113
         },
         {
          "edge": "libggml-cpu-armv8.2_2.so:ggml_compute_forward_rms_norm_mul_fused -> libggml-cpu-armv8.2_2.so:ggml_compute_forward_rms_norm_mul_fused",
          "samples": 80,
-         "share": 0.0111
+         "share": 0.0101
         },
         {
          "edge": "libggml-cpu-armv8.2_2.so:ggml_compute_forward_glu -> libggml-cpu-armv8.2_2.so:ggml_vec_swiglu_f32",
          "samples": 60,
-         "share": 0.0084
+         "share": 0.0076
         }
        ]
       }
@@ -20264,62 +21065,62 @@
         {
          "edge": "libc.so.6:send -> libc.so.6:send",
          "samples": 9,
-         "share": 0.1698
+         "share": 0.1667
         },
         {
          "edge": "libc.so.6:poll -> libc.so.6:poll",
          "samples": 4,
-         "share": 0.0755
+         "share": 0.0741
         },
         {
          "edge": "tokenizers.abi3.so:_RNvMNtNtNtNtCs7HaW2mv5hwE_3std3sys4sync7condvar5futexNtB2_7Condvar4wait -> libc.so.6:syscall",
          "samples": 4,
-         "share": 0.0755
+         "share": 0.0741
         },
         {
          "edge": "libc.so.6:open -> libc.so.6:open",
          "samples": 2,
-         "share": 0.0377
+         "share": 0.037
         },
         {
          "edge": "libpython3.12.so.1.0:PyThread_get_thread_native_id -> libc.so.6:syscall",
          "samples": 2,
-         "share": 0.0377
+         "share": 0.037
         },
         {
          "edge": "libc.so.6:__futex_abstimed_wait_cancelable64 -> libc.so.6:__futex_abstimed_wait_cancelable64",
          "samples": 2,
-         "share": 0.0377
+         "share": 0.037
         },
         {
          "edge": "libc.so.6:_int_malloc -> libc.so.6:unlink_chunk.constprop.0",
          "samples": 1,
-         "share": 0.0189
+         "share": 0.0185
         },
         {
          "edge": "libpython3.12.so.1.0:_PyStack_UnpackDict -> libpython3.12.so.1.0:_PyStack_UnpackDict",
          "samples": 1,
-         "share": 0.0189
+         "share": 0.0185
         },
         {
          "edge": "runtime_client.cpython-312-aarch64-linux-gnu.so:Curl_is_absolute_url -> runtime_client.cpython-312-aarch64-linux-gnu.so:Curl_isalnum",
          "samples": 1,
-         "share": 0.0189
+         "share": 0.0185
         },
         {
          "edge": "libpython3.12.so.1.0:_PyType_Lookup -> libpython3.12.so.1.0:_PyType_Lookup",
          "samples": 1,
-         "share": 0.0189
+         "share": 0.0185
         },
         {
          "edge": "runtime_client.cpython-312-aarch64-linux-gnu.so:dprintf_formatf -> runtime_client.cpython-312-aarch64-linux-gnu.so:dprintf_formatf",
          "samples": 1,
-         "share": 0.0189
+         "share": 0.0185
         },
         {
          "edge": "libpython3.12.so.1.0:dict_dealloc -> libpython3.12.so.1.0:dict_dealloc",
          "samples": 1,
-         "share": 0.0189
+         "share": 0.0185
         }
        ]
       },
@@ -20493,62 +21294,580 @@
         {
          "edge": "libggml-cpu-armv8.6_1.so:kai_run_matmul_clamp_f32_qai8dxp4x8_qsi8cxp4x8_16x4_neon_i8mm -> libggml-cpu-armv8.6_1.so:kai_kernel_matmul_clamp_f32_qai8dxp4x8_qsi8cxp4x8_16x4_neon_i8mm",
          "samples": 13220,
-         "share": 0.5459
+         "share": 0.497
         },
         {
          "edge": "? -> libggml-cpu-armv8.6_1.so:_ZL46ggml_compute_forward_gated_delta_net_one_chunkPK19ggml_compute_paramsP11ggml_tensorll",
          "samples": 2055,
-         "share": 0.0849
+         "share": 0.0773
         },
         {
          "edge": "? -> libggml-cpu-armv8.6_1.so:ggml_vec_dot_f32",
          "samples": 1979,
-         "share": 0.0817
+         "share": 0.0744
         },
         {
          "edge": "? -> libggml-cpu-armv8.6_1.so:ggml_compute_forward_fwht",
          "samples": 1375,
-         "share": 0.0568
+         "share": 0.0517
         },
         {
          "edge": "libggml-cpu-armv8.6_1.so:ggml_graph_compute_thread.isra.0 -> libgomp.so.1:+0x27000",
          "samples": 1297,
-         "share": 0.0536
+         "share": 0.0488
         },
         {
          "edge": "? -> libggml-cpu-armv8.6_1.so:ggml_compute_forward_ssm_conv",
          "samples": 638,
-         "share": 0.0263
+         "share": 0.024
         },
         {
          "edge": "? -> libggml-cpu-armv8.6_1.so:kai_run_lhs_quant_pack_qai8dxp_f32",
          "samples": 480,
-         "share": 0.0198
+         "share": 0.018
         },
         {
          "edge": "? -> libggml-cpu-armv8.6_1.so:ggml_compute_forward_rms_norm_mul_fused",
          "samples": 366,
-         "share": 0.0151
+         "share": 0.0138
         },
         {
          "edge": "libllama.so.0.7.0:_ZN14llama_kv_cache5clearEb -> libc.so.6:__GI_memset",
          "samples": 288,
-         "share": 0.0119
+         "share": 0.0108
         },
         {
          "edge": "libggml-cpu-armv8.6_1.so:ggml_compute_forward_unary -> libggml-cpu-armv8.6_1.so:ggml_vec_silu_f32",
          "samples": 260,
-         "share": 0.0107
+         "share": 0.0098
         },
         {
          "edge": "libllama.so.0.7.0:_ZN22llama_memory_recurrent5clearEb -> libc.so.6:__GI_memset",
          "samples": 233,
-         "share": 0.0096
+         "share": 0.0088
         },
         {
          "edge": "libggml-cpu-armv8.6_1.so:ggml_compute_forward_glu -> libggml-cpu-armv8.6_1.so:ggml_vec_swiglu_f32",
          "samples": 228,
-         "share": 0.0094
+         "share": 0.0086
+        }
+       ]
+      }
+     }
+    },
+    "sampler_invoke_restore_0xd0c": {
+     "records": 6,
+     "samples": 590,
+     "dropped": 0,
+     "cpu_s": 21.655,
+     "effective_hz_per_cpu_s": 27.2,
+     "phases": {
+      "invoke": {
+       "samples": 589,
+       "top_self": [
+        {
+         "symbol": "libc.so.6:__GI_memset",
+         "samples": 246,
+         "share": 0.4177
+        },
+        {
+         "symbol": "libggml-cpu-armv8.2_2.so:kai_run_matmul_clamp_f32_qai8dxp4x4_qsi8cxp4x4_16x4_neon_dotprod",
+         "samples": 236,
+         "share": 0.4007
+        },
+        {
+         "symbol": "libgomp.so.1:+0x27000",
+         "samples": 22,
+         "share": 0.0374
+        },
+        {
+         "symbol": "libggml-cpu-armv8.2_2.so:ggml_compute_forward_concat",
+         "samples": 19,
+         "share": 0.0323
+        },
+        {
+         "symbol": "libggml-cpu-armv8.2_2.so:_ZL46ggml_compute_forward_gated_delta_net_one_chunkPK19ggml_compute_paramsP11ggml_tensorll",
+         "samples": 10,
+         "share": 0.017
+        },
+        {
+         "symbol": "libggml-cpu-armv8.2_2.so:ggml_compute_forward_fwht",
+         "samples": 8,
+         "share": 0.0136
+        },
+        {
+         "symbol": "libggml-cpu-armv8.2_2.so:kai_run_lhs_quant_pack_qai8dxp_f32",
+         "samples": 7,
+         "share": 0.0119
+        },
+        {
+         "symbol": "libggml-cpu-armv8.2_2.so:ggml_vec_dot_f32",
+         "samples": 6,
+         "share": 0.0102
+        },
+        {
+         "symbol": "libggml-cpu-armv8.2_2.so:_ZN12_GLOBAL__N_18tinyBLASILi4E13__Float32x4_tS1_fffE9gemm_blocILi4ELi6EEEvll",
+         "samples": 5,
+         "share": 0.0085
+        },
+        {
+         "symbol": "libc.so.6:__memcpy_simd",
+         "samples": 4,
+         "share": 0.0068
+        },
+        {
+         "symbol": "libggml-cpu-armv8.2_2.so:ggml_compute_forward_ssm_conv",
+         "samples": 4,
+         "share": 0.0068
+        },
+        {
+         "symbol": "libscipy_openblas64_-f552eb69.so:+0x5c0000",
+         "samples": 4,
+         "share": 0.0068
+        },
+        {
+         "symbol": "libggml-cpu-armv8.2_2.so:ggml_compute_forward_rms_norm_mul_fused",
+         "samples": 3,
+         "share": 0.0051
+        },
+        {
+         "symbol": "libggml-cpu-armv8.2_2.so:ggml_compute_forward_mul",
+         "samples": 2,
+         "share": 0.0034
+        },
+        {
+         "symbol": "libggml-cpu-armv8.2_2.so:ggml_vec_swiglu_f32",
+         "samples": 2,
+         "share": 0.0034
+        },
+        {
+         "symbol": "libscipy_openblas64_-f552eb69.so:+0x5c3000",
+         "samples": 2,
+         "share": 0.0034
+        },
+        {
+         "symbol": "_multiarray_umath.cpython-312-aarch64-linux-gnu.so:DOUBLE_divide",
+         "samples": 1,
+         "share": 0.0017
+        },
+        {
+         "symbol": "libggml-cpu-armv8.2_2.so:ggml_compute_forward_scale",
+         "samples": 1,
+         "share": 0.0017
+        },
+        {
+         "symbol": "tokenizers.abi3.so:_RNvMs5_NtNtNtCs3TajAmz62SW_10tokenizers6models3bpe5modelNtB5_3BPE10merge_word",
+         "samples": 1,
+         "share": 0.0017
+        },
+        {
+         "symbol": "libggml-cpu-armv8.2_2.so:ggml_compute_forward_rms_norm",
+         "samples": 1,
+         "share": 0.0017
+        }
+       ],
+       "by_library": [
+        {
+         "library": "libggml-cpu-armv8.2_2.so",
+         "samples": 306,
+         "share": 0.5195
+        },
+        {
+         "library": "libc.so.6",
+         "samples": 250,
+         "share": 0.4244
+        },
+        {
+         "library": "libgomp.so.1",
+         "samples": 22,
+         "share": 0.0374
+        },
+        {
+         "library": "libscipy_openblas64_-f552eb69.so",
+         "samples": 7,
+         "share": 0.0119
+        },
+        {
+         "library": "_multiarray_umath.cpython-312-aarch64-linux-gnu.so",
+         "samples": 1,
+         "share": 0.0017
+        },
+        {
+         "library": "tokenizers.abi3.so",
+         "samples": 1,
+         "share": 0.0017
+        },
+        {
+         "library": "libm.so.6",
+         "samples": 1,
+         "share": 0.0017
+        },
+        {
+         "library": "libggml-base.so.0.27.0",
+         "samples": 1,
+         "share": 0.0017
+        }
+       ],
+       "top_caller_edges": [
+        {
+         "edge": "libggml-cpu-armv8.2_2.so:_ZN4ggml3cpu8kleidiai13tensor_traits18compute_forward_qxEP19ggml_compute_paramsP11ggml_tensor.isra.0 -> libggml-cpu-armv8.2_2.so:kai_run_matmul_clamp_f32_qai8dxp4x4_qsi8cxp4x4_16x4_neon_dotprod",
+         "samples": 236,
+         "share": 0.4007
+        },
+        {
+         "edge": "libllama.so.0.7.0:_ZN22llama_memory_recurrent5clearEb -> libc.so.6:__GI_memset",
+         "samples": 124,
+         "share": 0.2105
+        },
+        {
+         "edge": "libllama.so.0.7.0:_ZN14llama_kv_cache5clearEb -> libc.so.6:__GI_memset",
+         "samples": 121,
+         "share": 0.2054
+        },
+        {
+         "edge": "libggml-cpu-armv8.2_2.so:ggml_graph_compute_thread.isra.0 -> libgomp.so.1:+0x27000",
+         "samples": 16,
+         "share": 0.0272
+        },
+        {
+         "edge": "libggml-cpu-armv8.2_2.so:_ZL46ggml_compute_forward_gated_delta_net_one_chunkPK19ggml_compute_paramsP11ggml_tensorll -> libggml-cpu-armv8.2_2.so:_ZL46ggml_compute_forward_gated_delta_net_one_chunkPK19ggml_compute_paramsP11ggml_tensorll",
+         "samples": 10,
+         "share": 0.017
+        },
+        {
+         "edge": "? -> libggml-cpu-armv8.2_2.so:ggml_compute_forward_fwht",
+         "samples": 8,
+         "share": 0.0136
+        },
+        {
+         "edge": "? -> libggml-cpu-armv8.2_2.so:kai_run_lhs_quant_pack_qai8dxp_f32",
+         "samples": 7,
+         "share": 0.0119
+        },
+        {
+         "edge": "libggml-cpu-armv8.2_2.so:ggml_compute_forward_mul_mat -> libggml-cpu-armv8.2_2.so:ggml_vec_dot_f32",
+         "samples": 6,
+         "share": 0.0102
+        },
+        {
+         "edge": "? -> libggml-cpu-armv8.2_2.so:_ZN12_GLOBAL__N_18tinyBLASILi4E13__Float32x4_tS1_fffE9gemm_blocILi4ELi6EEEvll",
+         "samples": 5,
+         "share": 0.0085
+        },
+        {
+         "edge": "libggml-cpu-armv8.2_2.so:_ZN4ggml3cpu8kleidiai13tensor_traits18compute_forward_qxEP19ggml_compute_paramsP11ggml_tensor.isra.0 -> libgomp.so.1:+0x27000",
+         "samples": 5,
+         "share": 0.0085
+        },
+        {
+         "edge": "? -> libggml-cpu-armv8.2_2.so:ggml_compute_forward_ssm_conv",
+         "samples": 4,
+         "share": 0.0068
+        },
+        {
+         "edge": "libggml-cpu-armv8.2_2.so:ggml_compute_forward_rms_norm_mul_fused -> libggml-cpu-armv8.2_2.so:ggml_compute_forward_rms_norm_mul_fused",
+         "samples": 3,
+         "share": 0.0051
+        }
+       ]
+      },
+      "untagged": {
+       "samples": 1,
+       "top_self": [
+        {
+         "symbol": "libc.so.6:_int_malloc",
+         "samples": 1,
+         "share": 1.0
+        }
+       ],
+       "by_library": [
+        {
+         "library": "libc.so.6",
+         "samples": 1,
+         "share": 1.0
+        }
+       ],
+       "top_caller_edges": []
+      }
+     }
+    },
+    "sampler_invoke_restore_0xd40": {
+     "records": 44,
+     "samples": 2543,
+     "dropped": 0,
+     "cpu_s": 89.933,
+     "effective_hz_per_cpu_s": 28.3,
+     "phases": {
+      "invoke": {
+       "samples": 2538,
+       "top_self": [
+        {
+         "symbol": "libc.so.6:__GI_memset",
+         "samples": 1279,
+         "share": 0.5039
+        },
+        {
+         "symbol": "libggml-cpu-armv8.6_1.so:kai_kernel_matmul_clamp_f32_qai8dxp4x8_qsi8cxp4x8_16x4_neon_i8mm",
+         "samples": 888,
+         "share": 0.3499
+        },
+        {
+         "symbol": "libgomp.so.1:+0x27000",
+         "samples": 59,
+         "share": 0.0232
+        },
+        {
+         "symbol": "libggml-cpu-armv8.6_1.so:ggml_compute_forward_fwht",
+         "samples": 52,
+         "share": 0.0205
+        },
+        {
+         "symbol": "libggml-cpu-armv8.6_1.so:ggml_compute_forward_concat",
+         "samples": 42,
+         "share": 0.0165
+        },
+        {
+         "symbol": "libggml-cpu-armv8.6_1.so:ggml_vec_dot_f32",
+         "samples": 28,
+         "share": 0.011
+        },
+        {
+         "symbol": "libggml-cpu-armv8.6_1.so:_ZL46ggml_compute_forward_gated_delta_net_one_chunkPK19ggml_compute_paramsP11ggml_tensorll",
+         "samples": 25,
+         "share": 0.0099
+        },
+        {
+         "symbol": "libscipy_openblas64_-f552eb69.so:dgemv_t_NEOVERSEV1",
+         "samples": 21,
+         "share": 0.0083
+        },
+        {
+         "symbol": "libscipy_openblas64_-f552eb69.so:dgemm_incopy_NEOVERSEV1",
+         "samples": 15,
+         "share": 0.0059
+        },
+        {
+         "symbol": "libggml-cpu-armv8.6_1.so:ggml_compute_forward_rms_norm_mul_fused",
+         "samples": 13,
+         "share": 0.0051
+        },
+        {
+         "symbol": "libggml-cpu-armv8.6_1.so:ggml_vec_swiglu_f32",
+         "samples": 10,
+         "share": 0.0039
+        },
+        {
+         "symbol": "libc.so.6:syscall",
+         "samples": 8,
+         "share": 0.0032
+        },
+        {
+         "symbol": "libggml-cpu-armv8.6_1.so:ggml_compute_forward_get_rows",
+         "samples": 8,
+         "share": 0.0032
+        },
+        {
+         "symbol": "libggml-cpu-armv8.6_1.so:ggml_compute_forward_ssm_conv",
+         "samples": 7,
+         "share": 0.0028
+        },
+        {
+         "symbol": "libggml-cpu-armv8.6_1.so:ggml_compute_forward_add_non_quantized",
+         "samples": 6,
+         "share": 0.0024
+        },
+        {
+         "symbol": "libggml-cpu-armv8.6_1.so:kai_run_lhs_quant_pack_qai8dxp_f32",
+         "samples": 6,
+         "share": 0.0024
+        },
+        {
+         "symbol": "libggml-cpu-armv8.6_1.so:ggml_compute_forward_mul",
+         "samples": 6,
+         "share": 0.0024
+        },
+        {
+         "symbol": "libc.so.6:__memcpy_sve",
+         "samples": 6,
+         "share": 0.0024
+        },
+        {
+         "symbol": "libggml-cpu-armv8.6_1.so:_ZN4ggml3cpu8kleidiai13tensor_traits18compute_forward_qxEP19ggml_compute_paramsP11ggml_tensor.isra.0",
+         "samples": 5,
+         "share": 0.002
+        },
+        {
+         "symbol": "tokenizers.abi3.so:_RINvXs0_NtNtNtCs7z6u5Op6t72_4core4iter8adapters3mapINtB6_3MapINtNtB8_3zip3ZipIBO_INtNtNtBc_5slice4iter4IterNtNtNtNtCs3TajAmz62SW_10tokenizers6models3bpe4word6SymbolENCNvMs3_B1J_NtB",
+         "samples": 3,
+         "share": 0.0012
+        }
+       ],
+       "by_library": [
+        {
+         "library": "libc.so.6",
+         "samples": 1295,
+         "share": 0.5102
+        },
+        {
+         "library": "libggml-cpu-armv8.6_1.so",
+         "samples": 1112,
+         "share": 0.4381
+        },
+        {
+         "library": "libgomp.so.1",
+         "samples": 59,
+         "share": 0.0232
+        },
+        {
+         "library": "libscipy_openblas64_-f552eb69.so",
+         "samples": 38,
+         "share": 0.015
+        },
+        {
+         "library": "tokenizers.abi3.so",
+         "samples": 11,
+         "share": 0.0043
+        },
+        {
+         "library": "libpython3.12.so.1.0",
+         "samples": 9,
+         "share": 0.0035
+        },
+        {
+         "library": "libllama.so.0.7.0",
+         "samples": 7,
+         "share": 0.0028
+        },
+        {
+         "library": "libggml-base.so.0.27.0",
+         "samples": 4,
+         "share": 0.0016
+        },
+        {
+         "library": "libm.so.6",
+         "samples": 2,
+         "share": 0.0008
+        },
+        {
+         "library": "_pydantic_core.cpython-312-aarch64-linux-gnu.so",
+         "samples": 1,
+         "share": 0.0004
+        }
+       ],
+       "top_caller_edges": [
+        {
+         "edge": "libggml-cpu-armv8.6_1.so:kai_run_matmul_clamp_f32_qai8dxp4x8_qsi8cxp4x8_16x4_neon_i8mm -> libggml-cpu-armv8.6_1.so:kai_kernel_matmul_clamp_f32_qai8dxp4x8_qsi8cxp4x8_16x4_neon_i8mm",
+         "samples": 888,
+         "share": 0.3499
+        },
+        {
+         "edge": "libllama.so.0.7.0:_ZN14llama_kv_cache5clearEb -> libc.so.6:__GI_memset",
+         "samples": 651,
+         "share": 0.2565
+        },
+        {
+         "edge": "libllama.so.0.7.0:_ZN22llama_memory_recurrent5clearEb -> libc.so.6:__GI_memset",
+         "samples": 628,
+         "share": 0.2474
+        },
+        {
+         "edge": "? -> libggml-cpu-armv8.6_1.so:ggml_compute_forward_fwht",
+         "samples": 52,
+         "share": 0.0205
+        },
+        {
+         "edge": "libggml-cpu-armv8.6_1.so:ggml_graph_compute_thread.isra.0 -> libgomp.so.1:+0x27000",
+         "samples": 51,
+         "share": 0.0201
+        },
+        {
+         "edge": "? -> libggml-cpu-armv8.6_1.so:ggml_vec_dot_f32",
+         "samples": 27,
+         "share": 0.0106
+        },
+        {
+         "edge": "? -> libggml-cpu-armv8.6_1.so:_ZL46ggml_compute_forward_gated_delta_net_one_chunkPK19ggml_compute_paramsP11ggml_tensorll",
+         "samples": 25,
+         "share": 0.0099
+        },
+        {
+         "edge": "? -> libscipy_openblas64_-f552eb69.so:dgemv_t_NEOVERSEV1",
+         "samples": 21,
+         "share": 0.0083
+        },
+        {
+         "edge": "? -> libscipy_openblas64_-f552eb69.so:dgemm_incopy_NEOVERSEV1",
+         "samples": 15,
+         "share": 0.0059
+        },
+        {
+         "edge": "? -> libggml-cpu-armv8.6_1.so:ggml_compute_forward_rms_norm_mul_fused",
+         "samples": 11,
+         "share": 0.0043
+        },
+        {
+         "edge": "libggml-cpu-armv8.6_1.so:ggml_compute_forward_glu -> libggml-cpu-armv8.6_1.so:ggml_vec_swiglu_f32",
+         "samples": 10,
+         "share": 0.0039
+        },
+        {
+         "edge": "libgomp.so.1:+0x27000 -> libc.so.6:syscall",
+         "samples": 8,
+         "share": 0.0032
+        }
+       ]
+      },
+      "untagged": {
+       "samples": 5,
+       "top_self": [
+        {
+         "symbol": "libc.so.6:open",
+         "samples": 2,
+         "share": 0.4
+        },
+        {
+         "symbol": "libpython3.12.so.1.0:initialize_locals",
+         "samples": 1,
+         "share": 0.2
+        },
+        {
+         "symbol": "libpython3.12.so.1.0:_PyEval_EvalFrameDefault",
+         "samples": 1,
+         "share": 0.2
+        },
+        {
+         "symbol": "libpython3.12.so.1.0:binary_iop1",
+         "samples": 1,
+         "share": 0.2
+        }
+       ],
+       "by_library": [
+        {
+         "library": "libpython3.12.so.1.0",
+         "samples": 3,
+         "share": 0.6
+        },
+        {
+         "library": "libc.so.6",
+         "samples": 2,
+         "share": 0.4
+        }
+       ],
+       "top_caller_edges": [
+        {
+         "edge": "libc.so.6:open -> libc.so.6:open",
+         "samples": 2,
+         "share": 0.4
+        },
+        {
+         "edge": "? -> libpython3.12.so.1.0:initialize_locals",
+         "samples": 1,
+         "share": 0.2
+        },
+        {
+         "edge": "libpython3.12.so.1.0:PyNumber_InPlaceAdd -> libpython3.12.so.1.0:binary_iop1",
+         "samples": 1,
+         "share": 0.2
         }
        ]
       }
@@ -22561,24 +23880,79 @@
   ]
  },
  "hot_spots": {
+  "phase_source_arm": "none",
   "by_phase_baseline": [
+   {
+    "phase": "weight_download",
+    "class": "cold",
+    "p50_s": 24.972442,
+    "share_of_first_request": 0.6942
+   },
+   {
+    "phase": "model_load_mmap",
+    "class": "cold",
+    "p50_s": 8.394066,
+    "share_of_first_request": 0.2333
+   },
+   {
+    "phase": "assets_load",
+    "class": "cold",
+    "p50_s": 0.94698,
+    "share_of_first_request": 0.0263
+   },
+   {
+    "phase": "imports",
+    "class": "cold",
+    "p50_s": 0.726224,
+    "share_of_first_request": 0.0202
+   },
+   {
+    "phase": "context_init",
+    "class": "cold",
+    "p50_s": 0.332197,
+    "share_of_first_request": 0.0092
+   },
+   {
+    "phase": "warmup_inference",
+    "class": "cold",
+    "p50_s": 0.247428,
+    "share_of_first_request": 0.0069
+   },
    {
     "phase": "first_request_inference",
     "class": "cold",
-    "p50_s": 0.23824,
+    "p50_s": 0.23759,
     "share_of_first_request": 0.0066
+   },
+   {
+    "phase": "runtime_to_import",
+    "class": "cold",
+    "p50_s": 0.0835,
+    "share_of_first_request": 0.0023
+   },
+   {
+    "phase": "ggml_backend_load",
+    "class": "cold",
+    "p50_s": 0.033019,
+    "share_of_first_request": 0.0009
    },
    {
     "phase": "report_restore_duration",
     "class": "restore",
-    "p50_s": 3.29611,
-    "share_of_first_request": 0.8269
+    "p50_s": 3.22704,
+    "share_of_first_request": 0.8247
    },
    {
     "phase": "first_request_inference",
     "class": "restore",
-    "p50_s": 0.67927,
-    "share_of_first_request": 0.1704
+    "p50_s": 0.67633,
+    "share_of_first_request": 0.1728
+   },
+   {
+    "phase": "restore_to_invoke",
+    "class": "restore",
+    "p50_s": 0.011393,
+    "share_of_first_request": 0.0029
    }
   ]
  },

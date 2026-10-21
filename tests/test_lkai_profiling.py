@@ -433,7 +433,8 @@ def test_paired_warm_by_request_removes_request_mix():
     rows = [_prow("rep", 0, "warm", 250, rid="short"), _prow("rep", 0, "warm", 1750, rid="long"),
             _prow("x", 0, "warm", 275, rid="short"), *[_prow("x", 0, "warm", 1925, rid="long")] * 5]
     w = sp.paired_warm_by_request(rows, "x")
-    assert w == {"cells": 2, "median_pct": 10.0, "min_pct": 10.0, "max_pct": 10.0, "pct_by_cell": [10.0, 10.0]}
+    assert w == {"cells": 2, "median_pct": 10.0, "min_pct": 10.0, "max_pct": 10.0, "pct_by_cell": [10.0, 10.0],
+                 "pct_by_round": [10.0]}
 
 
 def test_profile_extracts_split_warm_sampler_tables_by_cpu_part(tmp_path):
@@ -623,3 +624,50 @@ def test_build_script_hashes_every_repository_file_it_packages_and_pins_the_whee
     assert copied <= sources, copied - sources  # nothing from the repo is packaged without a source hash
     assert re.search(r"^PYSPY_SHA256=[0-9a-f]{64}$", src, re.M)  # pinned, not an optional override
     assert "${PYSPY_SHA256" not in src
+
+
+def test_warm_by_request_verdict_tests_rounds_not_correlated_cells():
+    """25 cells from 5 rounds are 5 environments: the test unit is the round."""
+    import summarize_prof as sp
+
+    def w(by_round):
+        return {"warm.Duration.by_request": {"pct_by_cell": [x for x in by_round for _ in range(5)],
+                                             "pct_by_round": by_round}}
+
+    v = sp.null_verdicts({"rep2": w([-2.0, 1.0, 3.0, -1.0, 0.5]), "x": w([5.0, 6.0, 4.0, 7.0, 5.5])})
+    cell = v["x"]["warm.Duration.by_request"]
+    assert cell["n_arm"] == cell["n_null"] == 5 and cell["p"] == round(2 / 252, 4)
+    assert cell["verdict"] == "measurable" and cell["null_max_abs"] == 3.0
+
+
+@pytest.mark.parametrize("run,extra", [("20261020T231634Z", []), ("20261020T124451Z", ["--superseded-by",
+                                                                                         "20261020T231634Z"])])
+def test_committed_results_regenerate_from_committed_evidence(tmp_path, run, extra):
+    """Each committed results.json is what summarize_prof.py makes of the committed, redacted run directory, its
+    prof-manifest.json and its meta copy (the commit binding is re-verified for the current run)."""
+    d = PROF / "results" / run
+    if not (d / "invocations.jsonl.gz").exists():
+        pytest.skip("run evidence not present")
+    if subprocess.run(["git", "-C", str(PROF), "rev-parse", "--verify", "-q", "0eabd60^{commit}"],
+                      capture_output=True).returncode:
+        pytest.skip("experiment commit not in this clone")
+    work = tmp_path / run
+    shutil.copytree(d, work)
+    with gzip.open(work / "invocations.jsonl.gz") as f:
+        (work / "invocations.jsonl").write_bytes(f.read())
+    with gzip.open(work / "xray.jsonl.gz") as f:
+        (work / "xray.jsonl").write_bytes(f.read())
+    (work / "results.json").unlink()
+    want = json.loads((d / "results.json").read_text())
+    commit = want["commits"]["experiment"]
+    subprocess.run([sys.executable, str(PROF / "summarize_prof.py"), str(work),
+                    "--reference", str(ROOT / "baseline" / "reference" / "outputs.json"),
+                    "--baseline-commit", want["commits"]["baseline"], "--meta", str(d / "meta.json"),
+                    "--applicability", str(d / "applicability.json"), "--offline", str(PROF / "results" / "offline"),
+                    "--probe", str(PROF / "results" / "lambda-probe" / "q1.json"), "--experiment-commit", commit,
+                    "--prof-manifest", str(d / "prof-manifest.json"), *extra], check=True, capture_output=True)
+    got = json.loads((work / "results.json").read_text())
+    got["artifacts"]["invocations"] = "invocations.jsonl.gz"  # stage_run.sh points the link at the .gz
+    for k in ("profiler_overhead_paired", "profiles", "hot_spots", "restore_evidence", "correctness_by_arm",
+              "deployment", "conclusion", "status"):
+        assert got.get(k) == want.get(k), k

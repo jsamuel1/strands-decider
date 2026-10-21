@@ -1,0 +1,14 @@
+{
+ "schema": "lkai-prof-build/1",
+ "base_zip_sha256": "26eb2651e8915f8ad09eae899feff583a448de6b8d2bc4943bccabb66cae189b",
+ "prof_zip_sha256": "81422a88e74b49dcfd5fd1ae08e9a348fce34b2cfd0591d20201e9b8865d85a7",
+ "telemetry_layer_sha256": "d983311787f78308403132af006e1f039658d1df6ba87d52a6dc3bf8924df5ea",
+ "pyspy_wheel_sha256": "142887e984a4e541071c99a4401ff8c3770f255d329dbd0f64e8c1dd51882cce",
+ "added": {
+  "bin/py-spy": "d33e743ff7962b4aeefaa34ee87ae1b35e047967f983d660c5335602cb44fba5",
+  "lib/liblkaisamp.so": "251f15064ae7551b32802349e4ba4e4c905ecdd8d14aac2bb6d9d1b7fa0218d7",
+  "lkai_probe.py": "87bd3969c219c7b63885b88e11b2977178fce76459437fbdbfe7aebe1b80eeff",
+  "lkai_prof.py": "9bc4aa0431fbf8c0eb0f9becb4a18ae13335f508aceec5e2121e3df53da82bc6",
+  "lkai_symbolise.py": "93b5ed0f97ada4cc1618a6626c049a7741ffe5a6464ae54bae4a3945c2373102"
+ }
+}

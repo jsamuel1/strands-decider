@@ -1,0 +1,32 @@
+{
+ "schema": "lkai-prof-build/2",
+ "base_zip_sha256": "26eb2651e8915f8ad09eae899feff583a448de6b8d2bc4943bccabb66cae189b",
+ "prof_zip_sha256": "89d7998ea7548de10ee6f5b39f87c09eb790e9fce8ede0b709b84ac1d24de969",
+ "telemetry_layer_sha256": "af5da0bcc15f19b12e56cd24262f4091c09bcca56afb4f8eb0f2a798fa6a1787",
+ "pyspy_wheel_sha256": "142887e984a4e541071c99a4401ff8c3770f255d329dbd0f64e8c1dd51882cce",
+ "pyspy_wheel": "py_spy-0.4.2-py2.py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",
+ "build_image": "public.ecr.aws/lambda/python@sha256:37fe9ca4183c36ec57e4c5eabb8893cd9fbc9c0f3053b903d9a57eb2bd6bafcc",
+ "source_commit": "0eabd60fd11f6183faa8ac908d138724b63d1eca",
+ "sources": {
+  "lkai_prof.py": "a7ca328d13556defd51781ea96274b5f1ac315d02c1e045949ff26cbc91bea0c",
+  "lkai_probe.py": "87bd3969c219c7b63885b88e11b2977178fce76459437fbdbfe7aebe1b80eeff",
+  "lkai_symbolise.py": "5384bf96f02bf14c4ef2b58d0e22c1be92cee9c0ec537326b62f90591dc3ae46",
+  "lkaisamp.c": "c1e6012483dc15f03dd327c99ccec36fc724613763ba3dc64806589efe897d47",
+  "extensions/lkai-telemetry": "c92e536fe985c63ee4295821aed56e7c13d15cedcb4a688280b4bebdb947bf36"
+ },
+ "built_from": {
+  "lkai_prof.py": "lkai_prof.py",
+  "lkai_probe.py": "lkai_probe.py",
+  "lkai_symbolise.py": "lkai_symbolise.py",
+  "lib/liblkaisamp.so": "lkaisamp.c",
+  "bin/py-spy": "pyspy_wheel",
+  "telemetry-layer.zip": "extensions/lkai-telemetry"
+ },
+ "added": {
+  "bin/py-spy": "d33e743ff7962b4aeefaa34ee87ae1b35e047967f983d660c5335602cb44fba5",
+  "lib/liblkaisamp.so": "251f15064ae7551b32802349e4ba4e4c905ecdd8d14aac2bb6d9d1b7fa0218d7",
+  "lkai_probe.py": "87bd3969c219c7b63885b88e11b2977178fce76459437fbdbfe7aebe1b80eeff",
+  "lkai_prof.py": "a7ca328d13556defd51781ea96274b5f1ac315d02c1e045949ff26cbc91bea0c",
+  "lkai_symbolise.py": "5384bf96f02bf14c4ef2b58d0e22c1be92cee9c0ec537326b62f90591dc3ae46"
+ }
+}

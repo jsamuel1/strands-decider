@@ -84,12 +84,19 @@ def paired_warm_by_request(rows: list[dict], arm: str, ctrl: str = "rep", cpu: s
     for r in ok:
         per[(r["arm"], r["round"], r.get("request_id"))].append(r["report"]["Duration"])
     cells = sorted({k[1:] for k in per})
-    pct = [100 * (statistics.median(per[(arm, *c)]) / statistics.median(per[(ctrl, *c)]) - 1) for c in cells
-           if per.get((arm, *c)) and per.get((ctrl, *c))]
-    if not pct:
+    pc = [(c, 100 * (statistics.median(per[(arm, *c)]) / statistics.median(per[(ctrl, *c)]) - 1)) for c in cells
+          if per.get((arm, *c)) and per.get((ctrl, *c))]
+    if not pc:
         return {}
+    pct = [x for _, x in pc]
+    # The cells of one round share one environment per arm, so they are not independent: the round (the mean of its
+    # cells) is the unit the verdict tests, as for every other metric.
+    by_round: dict = defaultdict(list)
+    for (rnd, _rid), x in pc:
+        by_round[rnd].append(x)
     return {"cells": len(pct), "median_pct": round(statistics.median(pct), 2), "min_pct": round(min(pct), 2),
-            "max_pct": round(max(pct), 2), "pct_by_cell": [round(x, 3) for x in pct]}
+            "max_pct": round(max(pct), 2), "pct_by_cell": [round(x, 3) for x in pct],
+            "pct_by_round": [round(statistics.fmean(by_round[k]), 3) for k in sorted(by_round)]}
 
 
 def permutation_p(a: list[float], b: list[float], n_perm: int = 20000, seed: int = 0) -> float | None:
@@ -121,9 +128,10 @@ def null_verdicts(paired: dict, null_arm: str = NULL_ARM, alpha: float = 0.05) -
     """Judge every arm (X-Ray and the phase timers included) against the same-code null: `null_arm` is a second
     function byte-identical to the control, so its per-round deltas against the control are what a zero-cost arm
     looks like. Per metric, an arm's per-round deltas (warm: its per-(round, request) percentages) are tested against
-    the null's with an exact two-sided permutation test on the mean. `measurable` needs p < alpha AND |mean| beyond
-    the null's largest |delta|; `not measurable` otherwise; `insufficient` when either side has under 2 values. The
-    null arm itself is never judged against itself."""
+    the null's with an exact two-sided permutation test on the mean. Warm per-request percentages are tested as their
+    per-round means, since a round's cells share its environments. `measurable` needs p < alpha AND |mean| beyond
+    the null's largest |per-round value|; `not measurable` otherwise; `insufficient` when either side has under 2
+    values. The null arm itself is never judged against itself."""
     nul = paired.get(null_arm) or {}
     out: dict = {}
     for arm, cells in paired.items():
@@ -132,7 +140,7 @@ def null_verdicts(paired: dict, null_arm: str = NULL_ARM, alpha: float = 0.05) -
         v: dict = {}
         for key, cell in cells.items():
             if key == "warm.Duration.by_request":
-                a, b, unit = cell.get("pct_by_cell") or [], (nul.get(key) or {}).get("pct_by_cell") or [], "pct"
+                a, b, unit = cell.get("pct_by_round") or [], (nul.get(key) or {}).get("pct_by_round") or [], "pct"
             else:
                 a, b, unit = cell.get("delta_ms_by_round") or [], (nul.get(key) or {}).get("delta_ms_by_round") or [], "ms"
             p = permutation_p(a, b)
@@ -215,6 +223,9 @@ def profile_extracts(run: str, cond: dict) -> dict:
             r["_class"], r["_cpu"] = cls.get((r["_stream"], r.get("n")), (None, None))
         warm_invs = [r for r in invs if r["_class"] == "warm"]
         warm_by_cpu = {c: [r for r in warm_invs if r["_cpu"] == c] for c in sorted({r["_cpu"] for r in warm_invs}, key=str)}
+        # The first invocation after a SnapStart restore, per CPU part (its forward differs from a warm one).
+        rest_invs = [r for r in invs if r["_class"] == "restore"]
+        rest_by_cpu = {c: [r for r in rest_invs if r["_cpu"] == c] for c in sorted({r["_cpu"] for r in rest_invs}, key=str)}
         if any("top" in r for r in recs):  # cProfile
             def cp(rs, sub=None):
                 rs = [r for r in rs if isinstance(r.get("top"), (dict, list))]
@@ -243,6 +254,7 @@ def profile_extracts(run: str, cond: dict) -> dict:
                 }
         if any("sampler" in r for r in recs):
             groups = [("init", inits), ("invoke", invs)] + [(f"invoke_warm_{c}", rs) for c, rs in warm_by_cpu.items()]
+            groups += [(f"invoke_restore_{c}", rs) for c, rs in rest_by_cpu.items()]
             for kind, rs in groups:
                 sm = [r["sampler"] for r in rs if isinstance(r.get("sampler"), dict)]
                 ph = defaultdict(list)
@@ -384,6 +396,8 @@ def main() -> None:
     ap.add_argument("--experiment-commit", help="commit whose profiling/ files the deployed prof.zip carries (checked "
                     "by sha256 against the build's prof-manifest.json when --prof-manifest is given)")
     ap.add_argument("--prof-manifest", help="build_prof_zip.sh's prof-manifest.json")
+    ap.add_argument("--superseded-by", help="regenerate a withdrawn run (no rep2 null, a pre-provenance manifest): its "
+                    "overhead verdicts are withheld and its provenance recorded as unverifiable, never passed")
     a = ap.parse_args()
     meta = json.load(open(a.meta))
     res = s1.summarize(a.run, a.reference, a.baseline_commit, meta)
@@ -398,24 +412,34 @@ def main() -> None:
         if not a.experiment_commit:
             sys.exit("--prof-manifest needs --experiment-commit to bind it")
         res["deployment"]["prof_zip"] = pm
-        res["deployment"]["prof_zip_provenance"] = verify_prof_manifest(pm, a.experiment_commit)
+        if a.superseded_by and "sources" not in pm:
+            res["deployment"]["prof_zip_provenance"] = {
+                "result": "unverifiable", "commit": a.experiment_commit,
+                "reason": "lkai-prof-build/1 manifest: no source hashes for lkaisamp.c or the Telemetry extension, and "
+                          "no pinned py-spy wheel; only the copied .py files can be compared"}
+        else:
+            res["deployment"]["prof_zip_provenance"] = verify_prof_manifest(pm, a.experiment_commit)
         # Every deployed function must run the bytes the manifest names (bench.py checked CodeSha256 at run start).
         for arm, f in cond["functions"].items():
             ok = {pm["prof_zip_sha256"], pm["base_zip_sha256"]}
             if f.get("expected_code_sha256") not in ok:
                 sys.exit(f"{arm}: deployed code {f.get('expected_code_sha256')} is neither prof.zip nor P1's zip")
             if f.get("layers") and f.get("expected_layer_sha256") != pm["telemetry_layer_sha256"]:
+                if a.superseded_by and "sources" not in pm:
+                    continue  # recorded above as unverifiable: that run predates layer hash recording
                 sys.exit(f"{arm}: its layer is not the manifest's telemetry-layer.zip")
     res["primary_arm"] = "rep"
     res["profiler_overhead"] = {arm: overhead_vs(rows, arm) for arm in cond["arms"] if arm != "rep"}
     paired = {arm: paired_rounds(rows, arm) for arm in cond["arms"] if arm != "rep"}
     for arm in paired:
         paired[arm]["warm.Duration.by_request"] = paired_warm_by_request(rows, arm)
-    if NULL_ARM not in paired:
+    if NULL_ARM not in paired and not a.superseded_by:
         sys.exit(f"no {NULL_ARM} arm: overhead needs a same-code null (deploy_arms.py deploys it)")
     rest = restore_evidence(rows, cond["arms"])
     res["restore_evidence"] = rest
-    verdicts = null_verdicts(paired)
+    verdicts = null_verdicts(paired) if NULL_ARM in paired else {
+        arm: {k: {"verdict": "withheld", "reason": f"no {NULL_ARM} null in this run"} for k in cells}
+        for arm, cells in paired.items()}
     if not rest["usable"]:
         for v in verdicts.values():
             for k in list(v):
@@ -427,14 +451,19 @@ def main() -> None:
                   "then mean/min/max over the rounds. Warm also per (round, request) as a percentage. Null: "
                   f"{NULL_ARM}, a second function byte-identical to rep, so {NULL_ARM} - rep is what zero cost looks "
                   "like. Each arm (xray and none included) is judged against that null by an exact two-sided "
-                  "permutation test on the mean of its per-round deltas (warm: per-cell %), alpha 0.05, and must "
-                  "also exceed the null's largest |delta| to be called measurable",
+                  "permutation test on the mean of its per-round deltas (warm by request: per-round mean %), alpha "
+                  "0.05, and must also exceed the null's largest |per-round value| to be called measurable",
         "cpu_part": "0xd40",
         "null_arm": NULL_ARM,
         "noise_floor_ms": noise_floor(paired),
         "verdicts": verdicts,
         "arms": paired,
     }
+    if a.superseded_by:
+        res["superseded_by"] = a.superseded_by
+        res["profiler_overhead_paired"]["withdrawn"] = (
+            f"superseded by run {a.superseded_by}: this run reused one Lambda client across SnapStart waits (restore "
+            "cells contaminated by client read timeouts) and has no same-code null arm")
     res.pop("instrumentation_overhead", None)
     res["profiles"] = {"lambda": profile_extracts(a.run, cond)}
     if a.offline:
@@ -454,7 +483,9 @@ def main() -> None:
     res["artifacts"].update({"xray": "xray.jsonl.gz", "xray_summary": "xray-summary.json",
                              "applicability": "applicability.json", "offline_summary": "offline-summary.json",
                              "readme": "README.md"})
-    res["hot_spots"] = {"by_phase_baseline": init_phase_shares(res["phases"]["rep"])}
+    # The phase ranking needs P1's phase records: `rep` runs with LKAI_PHASES=0 and has none, so it reads `none`
+    # (P1's timers, which the null test above finds no measurable cost for).
+    res["hot_spots"] = {"phase_source_arm": "none", "by_phase_baseline": init_phase_shares(res["phases"]["none"])}
     # Correctness per arm: every arm must answer exactly as the baseline (a profiler must not change results).
     if a.reference:
         ref = json.load(open(a.reference))["outputs"]

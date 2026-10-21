@@ -1,3 +1,11 @@
+> **SUPERSEDED by run `20261020T231634Z` (see `../../README.md`). The overhead table, the restore conclusions and
+> the "first restore wave" section below are withdrawn.** This run kept one Lambda client across the SnapStart
+> waits: its 45 restore "stalls" were client read timeouts that never reached Lambda, not a platform finding, and
+> they left the `rep` restore control with one valid Graviton3 sample in rounds 0, 2 and 4. Its noise floor was the
+> X-Ray arm itself. The hot-spot shares below were computed over the retained top-N rows and overstate each share;
+> `results.json` here was regenerated with full denominators (for example `buffer_set_tensor` 29.9%, `rhs_pack`
+> 11.7% of init CPU samples) and with every overhead verdict withheld. The applicability matrix is unchanged.
+
 # lambda-kleidiai P3: profiler applicability and overhead on the P1 baseline
 
 Which profilers work inside the P1 Lambda (python3.12, arm64, 10,240 MB, SnapStart), what each one costs, and where
