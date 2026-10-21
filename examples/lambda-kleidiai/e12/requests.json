@@ -1,0 +1,177 @@
+{
+ "description": "E12 stress requests, added to P1's five. wide-16q is the widest fork the deployment runs (N_SEQ=17: the state plus 16 question sequences) over a long state, so it writes far more K/V cells and recurrent rows than any other request. The short requests after it in a shuffled order then run on cells it left behind. short-1q and short-1q-b are single-question requests (the dec_eval path, one sequence); pair-2q is a two-question fork.",
+ "requests": [
+  {
+   "id": "wide-16q",
+   "request": {
+    "state": "Ticket 0: the customer reports that order 1000 was charged twice, the second charge appeared three days after the first, support already issued one refund, and the invoice portal still lists both charges. Ticket 1: the customer reports that order 1007 was charged twice, the second charge appeared three days after the first, support already issued one refund, and the invoice portal still lists both charges. Ticket 2: the customer reports that order 1014 was charged twice, the second charge appeared three days after the first, support already issued one refund, and the invoice portal still lists both charges. Ticket 3: the customer reports that order 1021 was charged twice, the second charge appeared three days after the first, support already issued one refund, and the invoice portal still lists both charges. Ticket 4: the customer reports that order 1028 was charged twice, the second charge appeared three days after the first, support already issued one refund, and the invoice portal still lists both charges. Ticket 5: the customer reports that order 1035 was charged twice, the second charge appeared three days after the first, support already issued one refund, and the invoice portal still lists both charges. Ticket 6: the customer reports that order 1042 was charged twice, the second charge appeared three days after the first, support already issued one refund, and the invoice portal still lists both charges. Ticket 7: the customer reports that order 1049 was charged twice, the second charge appeared three days after the first, support already issued one refund, and the invoice portal still lists both charges. Ticket 8: the customer reports that order 1056 was charged twice, the second charge appeared three days after the first, support already issued one refund, and the invoice portal still lists both charges. Ticket 9: the customer reports that order 1063 was charged twice, the second charge appeared three days after the first, support already issued one refund, and the invoice portal still lists both charges. Ticket 10: the customer reports that order 1070 was charged twice, the second charge appeared three days after the first, support already issued one refund, and the invoice portal still lists both charges. Ticket 11: the customer reports that order 1077 was charged twice, the second charge appeared three days after the first, support already issued one refund, and the invoice portal still lists both charges. Ticket 12: the customer reports that order 1084 was charged twice, the second charge appeared three days after the first, support already issued one refund, and the invoice portal still lists both charges. Ticket 13: the customer reports that order 1091 was charged twice, the second charge appeared three days after the first, support already issued one refund, and the invoice portal still lists both charges. Ticket 14: the customer reports that order 1098 was charged twice, the second charge appeared three days after the first, support already issued one refund, and the invoice portal still lists both charges. Ticket 15: the customer reports that order 1105 was charged twice, the second charge appeared three days after the first, support already issued one refund, and the invoice portal still lists both charges. Ticket 16: the customer reports that order 1112 was charged twice, the second charge appeared three days after the first, support already issued one refund, and the invoice portal still lists both charges. Ticket 17: the customer reports that order 1119 was charged twice, the second charge appeared three days after the first, support already issued one refund, and the invoice portal still lists both charges. Ticket 18: the customer reports that order 1126 was charged twice, the second charge appeared three days after the first, support already issued one refund, and the invoice portal still lists both charges. Ticket 19: the customer reports that order 1133 was charged twice, the second charge appeared three days after the first, support already issued one refund, and the invoice portal still lists both charges. Ticket 20: the customer reports that order 1140 was charged twice, the second charge appeared three days after the first, support already issued one refund, and the invoice portal still lists both charges. Ticket 21: the customer reports that order 1147 was charged twice, the second charge appeared three days after the first, support already issued one refund, and the invoice portal still lists both charges. Ticket 22: the customer reports that order 1154 was charged twice, the second charge appeared three days after the first, support already issued one refund, and the invoice portal still lists both charges. Ticket 23: the customer reports that order 1161 was charged twice, the second charge appeared three days after the first, support already issued one refund, and the invoice portal still lists both charges. Ticket 24: the customer reports that order 1168 was charged twice, the second charge appeared three days after the first, support already issued one refund, and the invoice portal still lists both charges. Ticket 25: the customer reports that order 1175 was charged twice, the second charge appeared three days after the first, support already issued one refund, and the invoice portal still lists both charges. Ticket 26: the customer reports that order 1182 was charged twice, the second charge appeared three days after the first, support already issued one refund, and the invoice portal still lists both charges. Ticket 27: the customer reports that order 1189 was charged twice, the second charge appeared three days after the first, support already issued one refund, and the invoice portal still lists both charges. Ticket 28: the customer reports that order 1196 was charged twice, the second charge appeared three days after the first, support already issued one refund, and the invoice portal still lists both charges. Ticket 29: the customer reports that order 1203 was charged twice, the second charge appeared three days after the first, support already issued one refund, and the invoice portal still lists both charges. Ticket 30: the customer reports that order 1210 was charged twice, the second charge appeared three days after the first, support already issued one refund, and the invoice portal still lists both charges. Ticket 31: the customer reports that order 1217 was charged twice, the second charge appeared three days after the first, support already issued one refund, and the invoice portal still lists both charges. Ticket 32: the customer reports that order 1224 was charged twice, the second charge appeared three days after the first, support already issued one refund, and the invoice portal still lists both charges. Ticket 33: the customer reports that order 1231 was charged twice, the second charge appeared three days after the first, support already issued one refund, and the invoice portal still lists both charges. Ticket 34: the customer reports that order 1238 was charged twice, the second charge appeared three days after the first, support already issued one refund, and the invoice portal still lists both charges. Ticket 35: the customer reports that order 1245 was charged twice, the second charge appeared three days after the first, support already issued one refund, and the invoice portal still lists both charges. Ticket 36: the customer reports that order 1252 was charged twice, the second charge appeared three days after the first, support already issued one refund, and the invoice portal still lists both charges. Ticket 37: the customer reports that order 1259 was charged twice, the second charge appeared three days after the first, support already issued one refund, and the invoice portal still lists both charges. Ticket 38: the customer reports that order 1266 was charged twice, the second charge appeared three days after the first, support already issued one refund, and the invoice portal still lists both charges. Ticket 39: the customer reports that order 1273 was charged twice, the second charge appeared three days after the first, support already issued one refund, and the invoice portal still lists both charges. ",
+    "questions": {
+     "q00": {
+      "type": "noul",
+      "instructions": "Does ticket 0 need a manager?"
+     },
+     "q01": {
+      "type": "choice",
+      "instructions": "Route ticket 1.",
+      "criteria": {
+       "billing": "payment or invoice",
+       "technical": "product defect",
+       "account": "login"
+      }
+     },
+     "q02": {
+      "type": "score",
+      "instructions": "How upset is the writer of ticket 2?",
+      "criteria": [
+       "calm",
+       "annoyed",
+       "angry",
+       "furious"
+      ]
+     },
+     "q03": {
+      "type": "noul",
+      "instructions": "Does ticket 3 need a manager?"
+     },
+     "q04": {
+      "type": "choice",
+      "instructions": "Route ticket 4.",
+      "criteria": {
+       "billing": "payment or invoice",
+       "technical": "product defect",
+       "account": "login"
+      }
+     },
+     "q05": {
+      "type": "score",
+      "instructions": "How upset is the writer of ticket 5?",
+      "criteria": [
+       "calm",
+       "annoyed",
+       "angry",
+       "furious"
+      ]
+     },
+     "q06": {
+      "type": "noul",
+      "instructions": "Does ticket 6 need a manager?"
+     },
+     "q07": {
+      "type": "choice",
+      "instructions": "Route ticket 7.",
+      "criteria": {
+       "billing": "payment or invoice",
+       "technical": "product defect",
+       "account": "login"
+      }
+     },
+     "q08": {
+      "type": "score",
+      "instructions": "How upset is the writer of ticket 8?",
+      "criteria": [
+       "calm",
+       "annoyed",
+       "angry",
+       "furious"
+      ]
+     },
+     "q09": {
+      "type": "noul",
+      "instructions": "Does ticket 9 need a manager?"
+     },
+     "q10": {
+      "type": "choice",
+      "instructions": "Route ticket 10.",
+      "criteria": {
+       "billing": "payment or invoice",
+       "technical": "product defect",
+       "account": "login"
+      }
+     },
+     "q11": {
+      "type": "score",
+      "instructions": "How upset is the writer of ticket 11?",
+      "criteria": [
+       "calm",
+       "annoyed",
+       "angry",
+       "furious"
+      ]
+     },
+     "q12": {
+      "type": "noul",
+      "instructions": "Does ticket 12 need a manager?"
+     },
+     "q13": {
+      "type": "choice",
+      "instructions": "Route ticket 13.",
+      "criteria": {
+       "billing": "payment or invoice",
+       "technical": "product defect",
+       "account": "login"
+      }
+     },
+     "q14": {
+      "type": "score",
+      "instructions": "How upset is the writer of ticket 14?",
+      "criteria": [
+       "calm",
+       "annoyed",
+       "angry",
+       "furious"
+      ]
+     },
+     "q15": {
+      "type": "noul",
+      "instructions": "Does ticket 15 need a manager?"
+     }
+    }
+   }
+  },
+  {
+   "id": "short-1q",
+   "request": {
+    "state": "Is the sky green?",
+    "questions": {
+     "q": {
+      "type": "noul",
+      "instructions": "Is it true?"
+     }
+    }
+   }
+  },
+  {
+   "id": "short-1q-b",
+   "request": {
+    "state": "Water boils at 100 C at sea level.",
+    "questions": {
+     "q": {
+      "type": "noul",
+      "instructions": "Is it true?"
+     }
+    }
+   }
+  },
+  {
+   "id": "pair-2q",
+   "request": {
+    "state": "My parcel never arrived and nobody answers the phone.",
+    "questions": {
+     "u": {
+      "type": "noul",
+      "instructions": "Is the writer upset?"
+     },
+     "t": {
+      "type": "choice",
+      "instructions": "Route it.",
+      "criteria": {
+       "shipping": "delivery",
+       "billing": "money",
+       "tech": "device"
+      }
+     }
+    }
+   }
+  }
+ ]
+}

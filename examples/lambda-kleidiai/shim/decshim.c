@@ -14,6 +14,7 @@ typedef struct {
     struct llama_batch batch;
     int n_embd;
     int n_ctx;
+    bool clear_data;
 } dec_t;
 
 static void quiet(enum ggml_log_level level, const char * text, void * ud) {
@@ -117,10 +118,21 @@ void * dec_load_seq(const char * path, int n_threads, int n_ctx, int use_mmap, i
     d->n_embd = llama_model_n_embd(model);
     d->n_ctx = n_ctx;
     d->batch = llama_batch_init(n_ctx, 0, 1);
+    // E12: DEC_CLEAR_DATA=0 resets only the cache metadata between requests (llama_memory_clear(mem, false)) and
+    // leaves the K/V and recurrent buffers as the last request wrote them. Unset or any other value keeps the
+    // baseline, which also zeroes every buffer byte. Metadata-only is enough at llama.cpp f74e2fa6a: the KQ mask
+    // gives every empty attention cell -INFINITY, so a stale K/V row has weight 0, and the recurrent cache zeroes one
+    // state row in the graph (build_rs: rs_z, scale by 0) and copies it into every cell a sequence starts in.
+    const char * cd = getenv("DEC_CLEAR_DATA");
+    d->clear_data = !(cd && strcmp(cd, "0") == 0);
     return d;
 }
 
 int dec_n_embd(void * h) { return ((dec_t *) h)->n_embd; }
+
+// 1 if dec_eval / dec_eval_fork zero the cache buffers before each request (the baseline), 0 if they reset only the
+// cache metadata (DEC_CLEAR_DATA=0).
+int dec_clear_data(void * h) { return ((dec_t *) h)->clear_data ? 1 : 0; }
 
 int dec_set_threads(void * h, int n_threads) {
     llama_set_n_threads(((dec_t *) h)->ctx, n_threads, n_threads);
@@ -133,7 +145,7 @@ int dec_eval(void * h, const int32_t * toks, int n, const int32_t * out_pos, int
     if (n <= 0 || n > d->n_ctx) {
         return -2;
     }
-    llama_memory_clear(llama_get_memory(d->ctx), true);
+    llama_memory_clear(llama_get_memory(d->ctx), d->clear_data);
     struct llama_batch b = d->batch;
     b.n_tokens = n;
     for (int i = 0; i < n; i++) {
@@ -181,7 +193,7 @@ int dec_eval_fork(void * h, const int32_t * state, int n_state, const int32_t * 
         return -2;
     }
     llama_memory_t mem = llama_get_memory(d->ctx);
-    llama_memory_clear(mem, true);
+    llama_memory_clear(mem, d->clear_data);
     struct llama_batch b = d->batch;
     b.n_tokens = n_state;
     for (int i = 0; i < n_state; i++) {
