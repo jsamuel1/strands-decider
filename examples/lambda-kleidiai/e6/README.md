@@ -100,8 +100,10 @@ versions this run published count. All 12 records (6 per arm) are linked: 0 miss
 | 0xd0c | 0.838 s | 0.408 s | −0.429 s | 0.022 s | 3 / 3 |
 
 Both deltas exceed the control spread (`negative-beyond-control-variation`), so the snapshot-phase outcome is
-comparable across parts. The earlier pooled figure (0.665 → 0.332 s) mixed both parts; P1's
-`phases.<arm>.restore.snapshot_init` block is still that pooled distribution and is not the host-attributed result.
+comparable across parts. `unassessed_conflicts` is empty; if a sparse known part had the opposite observed sign,
+the outcome would be `host-conditioned`, not comparable. The earlier pooled figure (0.665 → 0.332 s) mixed both
+parts; P1's `phases.<arm>.restore.snapshot_init` block is still that pooled distribution and is not the
+host-attributed result.
 
 - The 0xd0c and 0xd4f parts show the same `imports` halving: −0.479 s (n = 5 / 3) and −0.291 s (n = 6 / 5).
 - On 0xd0c the cold first request is −0.69 s [−1.17, −0.32], but the sample is small, and on 0xd4f it is +0.05 s.
@@ -151,8 +153,9 @@ observations' within-cell range and persists that cell's outcome (`within-contro
 control observations). Each CPU part's outcome is aggregated from those stored cell outcomes, and `cell_outcomes`
 counts them, so a mixed part shows which cells drove it. On 0xd40, all 6 cold-import cells are
 `negative-beyond-control-variation`. The 0xd0c/0xd4f cells have one control observation each, so they are stored as
-`unassessed` supporting rows; their observed deltas have the same sign. Unmatched cells are also explicit. No
-Graviton generation is claimed:
+`unassessed` supporting rows; their observed deltas have the same sign. `unassessed_conflicts` is therefore empty;
+an opposite observed sign on either sparse part would block comparability as `host-conditioned`. Unmatched cells
+are also explicit. No Graviton generation is claimed:
 the parts and features are reported as read.
 
 The change removes CPU work (bytecode compilation), so a fixed-host run would only repeat the offline proxy below. The

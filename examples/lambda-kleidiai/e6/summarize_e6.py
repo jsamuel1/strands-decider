@@ -308,7 +308,7 @@ def host_variability_analysis(rows: list[dict]) -> dict:
     if imports_comparable and imports_outcome == "negative-beyond-control-variation":
         reason = (
             "every assessed cell has a negative delta whose absolute size exceeds its control within-cell "
-            "spread; sparse CPU parts are listed as unassessed"
+            "spread; sparse CPU parts are unassessed and have no opposite observed sign"
         )
     elif imports_comparable and imports_outcome == "within-control-variation":
         reason = (
@@ -319,7 +319,8 @@ def host_variability_analysis(rows: list[dict]) -> dict:
         reason = "no shared known-CPU cells have enough control observations to estimate within-cell spread"
     else:
         reason = (
-            "CPU parts have different or indeterminate outcomes after control-variation adjustment"
+            "CPU parts have different or indeterminate outcomes after control-variation adjustment, or a sparse "
+            "part contradicts the assessed directional sign"
         )
     unknown_import_rows = unknown_cpu_rows["cold_imports"]
     return {
@@ -551,7 +552,8 @@ def snapshot_host_analysis(run: str, cond: dict) -> dict:
         "streams. Only streams of versions this run published count. A stream with no known part is missing, one "
         "with more than one distinct part is ambiguous; neither is a comparison stratum. Within each CPU part, "
         "the pyc-minus-ctl median delta across published versions is judged against the range of ctl's "
-        "per-version values (cell_outcome); a part with fewer than two control inits is unassessed.",
+        "per-version values (cell_outcome); a part with fewer than two control inits is unassessed, and an "
+        "opposite observed sign on such a sparse part blocks a comparable directional outcome.",
         "limits": [
             "snapshot inits run inside publish_version, so this is publish time, not a request-path latency",
             "only the CPU part is observable for a snapshot init (the engine's init log line); variant, revision, "
