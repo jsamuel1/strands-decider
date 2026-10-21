@@ -1,0 +1,11 @@
+Linux a6c5aa2d8f51 6.1.188-233.386.amzn2023.aarch64 #1 SMP Fri Sep 25 01:46:44 UTC 2026 aarch64 aarch64 aarch64 GNU/Linux
+CPU implementer	: 0x41
+CPU variant	: 0x1
+CPU part	: 0xd40
+CPU revision	: 1
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm paca pacg dcpodp svei8mm svebf16 i8mm bf16 dgh rng
+16
+max 100000
+Python 3.12.15
+cpus 6-11
+13.05 11.98 12.34 7/1033 64

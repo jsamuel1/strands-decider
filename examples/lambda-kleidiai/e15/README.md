@@ -105,7 +105,51 @@ next op.
 
 ## Phase 2
 
-Not started: the candidate, the correctness tolerance and Lambda spend need the operator's decision (see the card).
+Operator decisions, 2026-10-21:
+- Probe candidates A and B offline, then pick one for Lambda.
+- Tolerance against P1's reference for the same CPU part: max |Δprobability| ≤ 0.02 and 0 choice flips.
+- Lambda runs go in P1's account, us-east-2, with function names `lkai-89cf-*`.
+
+### Offline probe of candidates A and B (OFFLINE, NOT LAMBDA)
+
+[`patch_candidates.py`](patch_candidates.py) builds both candidates into one set of `libggml-cpu-*.so`. Each is off
+unless its runtime switch is set:
+
+- **A**: llamafile tinyBLAS F32 sgemm for F32 × F32 `MUL_MAT` in the SVE / i8mm variants, the path upstream compiles
+  out. Quantised types keep their own path, and non-SVE variants are unchanged.
+- **B**: a row-blocked GATED_DELTA_NET for the baseline's single-pass case. Each block of 16 state rows runs over all
+  tokens while resident in L1, and threads get `H × n_seqs × S_v/16` work items instead of `H × n_seqs`. Every element
+  sees the same operations in the same order.
+
+The DevSpace is shared. Other cards' offline jobs pinned CPUs 0–5 (94–98% busy) during this probe. Two
+sequential-arm attempts (`probe.sh`) gave ctl totals of 241 s and 41–66 s against Phase 1's 38.4 s. Their timings
+are discarded; their answers are still used, because the arithmetic does not depend on timing.
+
+[`paired_drive.py`](paired_drive.py) (run by [`paired.sh`](paired.sh)) loads the engine once on CPUs 6–11 (2–6%
+busy before the run, system loadavg about 11 from the other cards). It switches arms per request (ctl, A, B) in a
+rotating order, so drift from other tenants hits every arm alike and cancels in the per-request paired difference.
+The result has 10 passes × 5 requests = 50 pairs per arm, with bootstrap 95% intervals of the median.
+
+| Arm | Median paired change per warm request vs ctl | 95% CI | Correctness vs P1 `0xd40` reference |
+|---|---|---|---|
+| A (F32 sgemm) | **−1.88%** | −2.10% to −1.64% | max \|Δ\| 0.0101 over 29 values, 0 flips (within tolerance); same in all 5 runs of A |
+| B (row-blocked GDN) | −0.19% | −0.52% to −0.09% | bit-identical |
+
+Per request, A's median is −1.6% to −2.4% on all five, and its interval excludes 0 on four (`cracked-screen-2q`:
+−2.1% to +0.6%). ctl with the candidate library (switches off) gives answers bit-identical to P1's libraries
+(`bitcheck-*.json`). Results: [`results/offline-paired-20261021T1105Z/`](results/offline-paired-20261021T1105Z/).
+
+Why B gives so little: the per-node table times GATED_DELTA_NET at 22.5 ms of a 233 ms forward, but the kernel is
+already the single-pass NEON one. Row blocking changes cache residency and the thread split. It does not change the
+work, and on this host the state does not appear to be bandwidth-bound.
+
+Why A is smaller than the 5.4% KQV share: tinyBLAS takes KQV only. KQ's src1 (Q, permuted) is not contiguous, so KQ
+stays on `ggml_vec_dot_f32`. The gain is about a third of KQV's time. The arithmetic now goes through tinyBLAS's
+FMA tiles instead of a per-row dot product, so outputs change within the tolerance.
+
+Scope note: the shipped zip's portable libraries also serve other part IDs. On `0xd0c` (`armv8.2_2`, no SVE),
+llamafile is already on, so A changes nothing there. On `0xd4f` (`armv8.6_2`), A applies as on `0xd40`. It is not
+measured on either.
 
 ## Reproduce (Phase 1)
 
@@ -115,4 +159,6 @@ git fetch https://github.com/jsamuel1/strands-decider lkai/89cf-nonmatmul-ops &&
 # with llama/patch_llama.py applied
 E15_WORK=/tmp/e15work bash examples/lambda-kleidiai/e15/nodeprof.sh examples/lambda-kleidiai/baseline/build out/
 python examples/lambda-kleidiai/e15/summarize_nodeprof.py out/ --json out/table.json --md out/table.md
+# Phase 2 offline probe (pick 6 idle CPUs on a shared host)
+E15_CPUS=6-11 E15_WORK=/tmp/e15work bash examples/lambda-kleidiai/e15/paired.sh examples/lambda-kleidiai/baseline/build paired/ 10
 ```

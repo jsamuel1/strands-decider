@@ -21,6 +21,7 @@ def _load(name: str):
 
 summ = _load("summarize_nodeprof")
 patch = _load("patch_nodeprof")
+cand = _load("patch_candidates")
 
 
 def test_parse_key_reads_fused_count_and_flags():
@@ -144,3 +145,59 @@ def test_patch_refuses_a_moved_anchor(tmp_path):
     c.write_text(_fake_cpu_c().replace(patch.BARRIER_OLD, ""))
     with pytest.raises(AssertionError, match="anchor not unique"):
         patch.patch(tmp_path)
+
+
+def _fake_tree(tmp_path: Path) -> Path:
+    cpu = tmp_path / "ggml/src/ggml-cpu"
+    cpu.mkdir(parents=True)
+    (cpu / "ggml-cpu.c").write_text(
+        "#include <x>\n"
+        + cand.A_UNDEF_OLD
+        + "void mm(void) {\n"
+        + cand.A_GEMM1_OLD
+        + "    }\n"
+        + cand.A_GEMM2_OLD
+        + "    }\n}\n"
+    )
+    (cpu / "ops.cpp").write_text(
+        "// strands-decider prefill patch: scalar-gate, single-snapshot heads in one pass\n"
+        + cand.B_FN_ANCHOR
+        + "    const ggml_compute_params * params, ggml_tensor * dst) {\n"
+        + cand.B_DISPATCH_OLD
+        + "    while (1) {\n"
+        + cand.B_CALL_OLD
+        + "    }\n}\n"
+    )
+    return tmp_path
+
+
+def test_candidate_a_gates_only_f32_sgemm_calls(tmp_path):
+    root = _fake_tree(tmp_path)
+    cand.patch_a(root)
+    s = (root / "ggml/src/ggml-cpu/ggml-cpu.c").read_text()
+    assert cand.A_GEMM1_NEW in s and cand.A_GEMM2_NEW in s
+    assert "#undef GGML_USE_LLAMAFILE" not in s
+    assert "src0->type == GGML_TYPE_F32" in s and 'getenv("LKAI_E15_A")' in s
+    # non-SVE builds keep upstream behaviour: the gate compiles to 1
+    assert "#define lkai_sgemm_ok(src0) 1" in s
+    with pytest.raises(AssertionError, match="A already applied"):
+        cand.patch_a(root)
+
+
+def test_candidate_b_dispatches_rowblock_and_keeps_baseline_kernel(tmp_path):
+    root = _fake_tree(tmp_path)
+    cand.patch_b(root)
+    s = (root / "ggml/src/ggml-cpu/ops.cpp").read_text()
+    assert s.index("lkai_gdn_rowblock(const ggml_compute_params") < s.index(cand.B_FN_ANCHOR)
+    assert "ggml_compute_forward_gated_delta_net_one_chunk(params, dst, ir0, ir1);" in s
+    assert 'getenv("LKAI_E15_B")' in s
+    with pytest.raises(AssertionError, match="B already applied"):
+        cand.patch_b(root)
+
+
+def test_candidate_b_needs_the_baseline_gdn_patch(tmp_path):
+    root = _fake_tree(tmp_path)
+    ops = root / "ggml/src/ggml-cpu/ops.cpp"
+    ops.write_text(ops.read_text().replace("strands-decider prefill patch", "upstream"))
+    with pytest.raises(AssertionError, match=r"needs patch_llama\.py gdn"):
+        cand.patch_b(root)

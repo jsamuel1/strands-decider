@@ -1,0 +1,685 @@
+{
+ "schema": "lkai-e15-paired/1",
+ "evidence": "OFFLINE, NOT LAMBDA: arms toggled per request in one process on another host",
+ "host": {
+  "label": "0xd40 ip-10-0-5-180 (offline, Lambda image, CPUs 6-11) paired",
+  "machine": "aarch64",
+  "kernel": "6.1.188-233.386.amzn2023.aarch64",
+  "cpu_part": "0xd40",
+  "affinity": [
+   6,
+   7,
+   8,
+   9,
+   10,
+   11
+  ],
+  "loadavg_before": "11.09 11.59 12.19 9/1062 89",
+  "loadavg_after": "11.10 11.52 12.09 2/1065 100"
+ },
+ "shim_init": {
+  "cpu_part": "0xd40",
+  "ggml_cpu": [
+   "libggml-cpu-armv8.2_3.so",
+   "libggml-cpu-armv8.6_1.so"
+  ],
+  "threads": 6,
+  "ubatch": "512",
+  "kv": "f32",
+  "unrotate": false,
+  "n_ctx": 16384,
+  "n_seq": 17
+ },
+ "threads": 6,
+ "passes": 10,
+ "arms": [
+  "ctl",
+  "A",
+  "B"
+ ],
+ "gdn_rows": 16,
+ "wall_s": 117.67,
+ "latency_s": {
+  "ctl": {
+   "ticket-route-1q": [
+    0.248905,
+    0.250189,
+    0.252525,
+    0.251433,
+    0.24915,
+    0.260642,
+    0.269027,
+    0.24832,
+    0.248233,
+    0.249198
+   ],
+   "payouts-3q": [
+    0.578386,
+    0.591734,
+    0.577868,
+    0.57538,
+    0.575982,
+    0.585643,
+    0.582801,
+    0.584738,
+    0.576942,
+    0.578172
+   ],
+   "cracked-screen-2q": [
+    0.461063,
+    0.452163,
+    0.45229,
+    0.453323,
+    0.450359,
+    0.452898,
+    0.45234,
+    0.449556,
+    0.446824,
+    0.443963
+   ],
+   "agent-action-guard-2q": [
+    0.876278,
+    0.881465,
+    0.876104,
+    0.88063,
+    0.877724,
+    0.907471,
+    0.878049,
+    0.875037,
+    0.889077,
+    0.867034
+   ],
+   "incident-review-4q": [
+    1.807483,
+    1.794783,
+    1.781982,
+    1.841653,
+    1.794198,
+    1.779402,
+    1.771184,
+    1.806131,
+    1.785122,
+    1.763243
+   ]
+  },
+  "A": {
+   "ticket-route-1q": [
+    0.243519,
+    0.245412,
+    0.24917,
+    0.245,
+    0.245672,
+    0.247434,
+    0.24671,
+    0.248632,
+    0.24503,
+    0.245017
+   ],
+   "payouts-3q": [
+    0.569403,
+    0.620363,
+    0.584778,
+    0.564644,
+    0.566859,
+    0.563922,
+    0.574906,
+    0.572699,
+    0.564887,
+    0.572523
+   ],
+   "cracked-screen-2q": [
+    0.44496,
+    0.442732,
+    0.443723,
+    0.465338,
+    0.443146,
+    0.446514,
+    0.440853,
+    0.461246,
+    0.439461,
+    0.438826
+   ],
+   "agent-action-guard-2q": [
+    0.858633,
+    0.865209,
+    0.864083,
+    0.861796,
+    0.859272,
+    0.865123,
+    0.863315,
+    0.856643,
+    0.854366,
+    0.851679
+   ],
+   "incident-review-4q": [
+    1.791369,
+    1.74541,
+    1.748656,
+    1.739541,
+    1.728194,
+    1.783528,
+    1.731208,
+    1.729566,
+    1.746539,
+    1.718726
+   ]
+  },
+  "B": {
+   "ticket-route-1q": [
+    0.250715,
+    0.253054,
+    0.252605,
+    0.248119,
+    0.249533,
+    0.248494,
+    0.25015,
+    0.249075,
+    0.248191,
+    0.248728
+   ],
+   "payouts-3q": [
+    0.575429,
+    0.579296,
+    0.580652,
+    0.57638,
+    0.582505,
+    0.577579,
+    0.580075,
+    0.575259,
+    0.582422,
+    0.57729
+   ],
+   "cracked-screen-2q": [
+    0.447511,
+    0.451728,
+    0.448113,
+    0.444882,
+    0.447612,
+    0.450289,
+    0.451759,
+    0.45009,
+    0.445271,
+    0.450147
+   ],
+   "agent-action-guard-2q": [
+    0.875488,
+    0.881878,
+    0.884286,
+    0.872925,
+    0.876916,
+    0.875733,
+    0.873798,
+    0.871828,
+    0.876094,
+    0.865457
+   ],
+   "incident-review-4q": [
+    1.798488,
+    1.806691,
+    1.785077,
+    1.781793,
+    1.774686,
+    1.768687,
+    1.775051,
+    1.770986,
+    1.783123,
+    1.760245
+   ]
+  }
+ },
+ "paired": {
+  "A": {
+   "per_request": {
+    "ticket-route-1q": {
+     "median_delta_s": -0.00448,
+     "median_rel": -0.01794,
+     "ci95_rel": [
+      -0.03616,
+      -0.01329
+     ]
+    },
+    "payouts-3q": {
+     "median_delta_s": -0.00905,
+     "median_rel": -0.01569,
+     "ci95_rel": [
+      -0.02059,
+      -0.00079
+     ]
+    },
+    "cracked-screen-2q": {
+     "median_delta_s": -0.00729,
+     "median_rel": -0.01625,
+     "ci95_rel": [
+      -0.02094,
+      0.00595
+     ]
+    },
+    "agent-action-guard-2q": {
+     "median_delta_s": -0.01802,
+     "median_rel": -0.02058,
+     "ci95_rel": [
+      -0.03003,
+      -0.01771
+     ]
+    },
+    "incident-review-4q": {
+     "median_delta_s": -0.04225,
+     "median_rel": -0.02391,
+     "ci95_rel": [
+      -0.03679,
+      -0.01526
+     ]
+    }
+   },
+   "median_rel_all": -0.01882,
+   "ci95_rel_all": [
+    -0.02102,
+    -0.0164
+   ],
+   "n_pairs": 50
+  },
+  "B": {
+   "per_request": {
+    "ticket-route-1q": {
+     "median_delta_s": 2e-05,
+     "median_rel": 7e-05,
+     "ci95_rel": [
+      -0.02425,
+      0.0044
+     ]
+    },
+    "payouts-3q": {
+     "median_delta_s": -0.0018,
+     "median_rel": -0.0031,
+     "ci95_rel": [
+      -0.01377,
+      0.00653
+     ]
+    },
+    "cracked-screen-2q": {
+     "median_delta_s": -0.00208,
+     "median_rel": -0.00462,
+     "ci95_rel": [
+      -0.01236,
+      -5e-05
+     ]
+    },
+    "agent-action-guard-2q": {
+     "median_delta_s": -0.00239,
+     "median_rel": -0.00274,
+     "ci95_rel": [
+      -0.00972,
+      -0.00023
+     ]
+    },
+    "incident-review-4q": {
+     "median_delta_s": -0.006,
+     "median_rel": -0.00334,
+     "ci95_rel": [
+      -0.01222,
+      0.00174
+     ]
+    }
+   },
+   "median_rel_all": -0.00185,
+   "ci95_rel_all": [
+    -0.00522,
+    -0.00092
+   ],
+   "n_pairs": 50
+  }
+ },
+ "answers": {
+  "ctl": {
+   "ticket-route-1q": {
+    "q": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": 0.9622,
+      "technical": 0.0314,
+      "account": 0.0064
+     },
+     "confidence": 0.9433
+    }
+   },
+   "payouts-3q": {
+    "is_urgent": {
+     "type": "noul",
+     "noul": 0.8582
+    },
+    "team": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": 0.7658,
+      "sales": 0.1236,
+      "retail": 0.1106
+     },
+     "confidence": 0.6487
+    },
+    "frustration": {
+     "type": "score",
+     "score": 1.0346,
+     "legend": {
+      "0": "calm",
+      "1": "frustrated",
+      "2": "depressed"
+     },
+     "probabilities": {
+      "0": 0.1945,
+      "1": 0.5764,
+      "2": 0.2291
+     },
+     "confidence": 0.512
+    }
+   },
+   "cracked-screen-2q": {
+    "q": {
+     "type": "choice",
+     "choice": "refunds",
+     "probabilities": {
+      "refunds": 0.6614,
+      "shipping": 0.1216,
+      "tech": 0.217
+     },
+     "confidence": 0.492
+    },
+    "u": {
+     "type": "noul",
+     "noul": 0.6251
+    }
+   },
+   "agent-action-guard-2q": {
+    "safe": {
+     "type": "noul",
+     "noul": 0.2744
+    },
+    "action": {
+     "type": "choice",
+     "choice": "proceed",
+     "probabilities": {
+      "proceed": 0.6325,
+      "revise": 0.2444,
+      "ask": 0.1231
+     },
+     "confidence": 0.4488
+    }
+   },
+   "incident-review-4q": {
+    "root_cause": {
+     "type": "choice",
+     "choice": "retries",
+     "probabilities": {
+      "retries": 0.5538,
+      "freeze": 0.3546,
+      "alarm": 0.0191,
+      "capacity": 0.0724
+     },
+     "confidence": 0.4051
+    },
+    "severity": {
+     "type": "score",
+     "score": 2.3033,
+     "legend": {
+      "0": "negligible",
+      "1": "minor",
+      "2": "moderate",
+      "3": "major",
+      "4": "critical"
+     },
+     "probabilities": {
+      "0": 0.1037,
+      "1": 0.1626,
+      "2": 0.2673,
+      "3": 0.2597,
+      "4": 0.2068
+     },
+     "confidence": 0.4432
+    },
+    "test_gap": {
+     "type": "noul",
+     "noul": 0.3864
+    },
+    "runbook": {
+     "type": "noul",
+     "noul": 0.8827
+    }
+   }
+  },
+  "A": {
+   "ticket-route-1q": {
+    "q": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": 0.9634,
+      "technical": 0.0305,
+      "account": 0.0061
+     },
+     "confidence": 0.9451
+    }
+   },
+   "payouts-3q": {
+    "is_urgent": {
+     "type": "noul",
+     "noul": 0.8612
+    },
+    "team": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": 0.7671,
+      "sales": 0.1243,
+      "retail": 0.1086
+     },
+     "confidence": 0.6506
+    },
+    "frustration": {
+     "type": "score",
+     "score": 1.0336,
+     "legend": {
+      "0": "calm",
+      "1": "frustrated",
+      "2": "depressed"
+     },
+     "probabilities": {
+      "0": 0.1956,
+      "1": 0.5751,
+      "2": 0.2293
+     },
+     "confidence": 0.5104
+    }
+   },
+   "cracked-screen-2q": {
+    "q": {
+     "type": "choice",
+     "choice": "refunds",
+     "probabilities": {
+      "refunds": 0.661,
+      "shipping": 0.1254,
+      "tech": 0.2136
+     },
+     "confidence": 0.4915
+    },
+    "u": {
+     "type": "noul",
+     "noul": 0.6247
+    }
+   },
+   "agent-action-guard-2q": {
+    "safe": {
+     "type": "noul",
+     "noul": 0.266
+    },
+    "action": {
+     "type": "choice",
+     "choice": "proceed",
+     "probabilities": {
+      "proceed": 0.628,
+      "revise": 0.2475,
+      "ask": 0.1245
+     },
+     "confidence": 0.4419
+    }
+   },
+   "incident-review-4q": {
+    "root_cause": {
+     "type": "choice",
+     "choice": "retries",
+     "probabilities": {
+      "retries": 0.5631,
+      "freeze": 0.3461,
+      "alarm": 0.0193,
+      "capacity": 0.0715
+     },
+     "confidence": 0.4174
+    },
+    "severity": {
+     "type": "score",
+     "score": 2.3011,
+     "legend": {
+      "0": "negligible",
+      "1": "minor",
+      "2": "moderate",
+      "3": "major",
+      "4": "critical"
+     },
+     "probabilities": {
+      "0": 0.1043,
+      "1": 0.1635,
+      "2": 0.2661,
+      "3": 0.2587,
+      "4": 0.2073
+     },
+     "confidence": 0.4418
+    },
+    "test_gap": {
+     "type": "noul",
+     "noul": 0.3763
+    },
+    "runbook": {
+     "type": "noul",
+     "noul": 0.8823
+    }
+   }
+  },
+  "B": {
+   "ticket-route-1q": {
+    "q": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": 0.9622,
+      "technical": 0.0314,
+      "account": 0.0064
+     },
+     "confidence": 0.9433
+    }
+   },
+   "payouts-3q": {
+    "is_urgent": {
+     "type": "noul",
+     "noul": 0.8582
+    },
+    "team": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": 0.7658,
+      "sales": 0.1236,
+      "retail": 0.1106
+     },
+     "confidence": 0.6487
+    },
+    "frustration": {
+     "type": "score",
+     "score": 1.0346,
+     "legend": {
+      "0": "calm",
+      "1": "frustrated",
+      "2": "depressed"
+     },
+     "probabilities": {
+      "0": 0.1945,
+      "1": 0.5764,
+      "2": 0.2291
+     },
+     "confidence": 0.512
+    }
+   },
+   "cracked-screen-2q": {
+    "q": {
+     "type": "choice",
+     "choice": "refunds",
+     "probabilities": {
+      "refunds": 0.6614,
+      "shipping": 0.1216,
+      "tech": 0.217
+     },
+     "confidence": 0.492
+    },
+    "u": {
+     "type": "noul",
+     "noul": 0.6251
+    }
+   },
+   "agent-action-guard-2q": {
+    "safe": {
+     "type": "noul",
+     "noul": 0.2744
+    },
+    "action": {
+     "type": "choice",
+     "choice": "proceed",
+     "probabilities": {
+      "proceed": 0.6325,
+      "revise": 0.2444,
+      "ask": 0.1231
+     },
+     "confidence": 0.4488
+    }
+   },
+   "incident-review-4q": {
+    "root_cause": {
+     "type": "choice",
+     "choice": "retries",
+     "probabilities": {
+      "retries": 0.5538,
+      "freeze": 0.3546,
+      "alarm": 0.0191,
+      "capacity": 0.0724
+     },
+     "confidence": 0.4051
+    },
+    "severity": {
+     "type": "score",
+     "score": 2.3033,
+     "legend": {
+      "0": "negligible",
+      "1": "minor",
+      "2": "moderate",
+      "3": "major",
+      "4": "critical"
+     },
+     "probabilities": {
+      "0": 0.1037,
+      "1": 0.1626,
+      "2": 0.2673,
+      "3": 0.2597,
+      "4": 0.2068
+     },
+     "confidence": 0.4432
+    },
+    "test_gap": {
+     "type": "noul",
+     "noul": 0.3864
+    },
+    "runbook": {
+     "type": "noul",
+     "noul": 0.8827
+    }
+   }
+  }
+ }
+}
