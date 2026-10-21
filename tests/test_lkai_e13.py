@@ -11,6 +11,7 @@ import importlib
 import importlib.util
 import json
 import os
+import statistics
 import struct
 import sys
 import types
@@ -256,3 +257,183 @@ def test_wrapper_names_no_cpu_generation(entry):
     src = open(os.path.join(E13, "e13_entry.py")).read()
     for word in ("Graviton2", "Graviton3", "Graviton4", "Neoverse"):
         assert word not in src
+
+
+# --- the summary -------------------------------------------------------------------------------------------------
+
+import summarize_e13 as s13  # noqa: E402
+
+REQS = ["a", "b", "c", "d", "e"]
+BASE_MS = {"a": 250, "b": 400, "c": 600, "d": 1000, "e": 1750}
+
+
+def _warm(arm, rnd, rid, ms, cpu="0xd40", cpu_s=2.0):
+    return {
+        "arm": arm,
+        "round": rnd,
+        "request_id": rid,
+        "expected_class": "warm",
+        "observed_class": "warm",
+        "class_mismatch": False,
+        "error": None,
+        "cpu_part": cpu,
+        "report": {"Duration": ms},
+        "latency_ms": ms - 5,
+        "answers": {"q": {"choice": "x"}},
+        "lkai": {"e13_inv": {"utime_s": cpu_s, "stime_s": 0.1, "nvcsw": 10, "nivcsw": 1}},
+    }
+
+
+def _rows(effect_pct: dict[str, float], rounds=6, n=10, cpu="0xd40", jitter=0.002, seed=1):
+    import random as _r
+
+    g = _r.Random(seed)
+    rows = []
+    for rnd in range(rounds):
+        drift = 1 + 0.05 * (rnd % 3)  # round-to-round drift, shared by every arm in the round
+        for rid in REQS:
+            for arm, pct in effect_pct.items():
+                for _ in range(n):
+                    ms = BASE_MS[rid] * drift * (1 + pct / 100) * (1 + g.uniform(-jitter, jitter))
+                    rows.append(_warm(arm, rnd, rid, ms, cpu))
+    return rows
+
+
+def test_paired_warm_detects_a_consistent_speedup_despite_round_drift():
+    rows = _rows({"ctl": 0, "passive": -4})
+    wp = s13.paired_by_request(rows, "passive", s13.WARM_KEYS["report_duration"], "0xd40")
+    assert wp["cells"] == 30 and wp["rounds_below_zero"] == 6
+    assert -4.5 < wp["mean_round_pct"] < -3.5
+    assert wp["sign_flip_p"] == wp["min_attainable_p"] == round(2 / 64, 5)
+    null = s13.control_null(rows, s13.WARM_KEYS["report_duration"], "0xd40")
+    assert null["max_abs_round_pct"] < 1
+    assert s13.warm_verdict(wp, null) == "faster"
+
+
+def test_paired_warm_null_effect_is_no_change():
+    rows = _rows({"ctl": 0, "spin30k": 0}, jitter=0.03)
+    wp = s13.paired_by_request(rows, "spin30k", s13.WARM_KEYS["report_duration"], "0xd40")
+    null = s13.control_null(rows, s13.WARM_KEYS["report_duration"], "0xd40")
+    assert s13.warm_verdict(wp, null) == "no-change"
+
+
+def test_pooled_cpu_mix_cannot_create_an_effect():
+    """ctl lands mostly on the slow part, the arm mostly on the fast part: a pooled comparison would call the arm
+    faster. Within each part there is no effect, so the paired verdict must be no-change on both."""
+    slow = [
+        r | {"report": {"Duration": r["report"]["Duration"] * 1.8}}
+        for r in _rows({"ctl": 0, "active": 0}, cpu="0xd0c", jitter=0.03, seed=2)
+    ]
+    fast = _rows({"ctl": 0, "active": 0}, cpu="0xd40", jitter=0.03, seed=3)
+    rows = [r for r in slow if r["arm"] == "ctl"] + [r for r in slow if r["arm"] == "active"][::5]
+    rows += [r for r in fast if r["arm"] == "active"] + [r for r in fast if r["arm"] == "ctl"][::5]
+    for cpu in ("0xd0c", "0xd40"):
+        wp = s13.paired_by_request(rows, "active", s13.WARM_KEYS["report_duration"], cpu)
+        null = s13.control_null(rows, s13.WARM_KEYS["report_duration"], cpu)
+        assert s13.warm_verdict(wp, null) in ("no-change", "insufficient")
+    pooled_ctl = statistics.median(r["report"]["Duration"] for r in rows if r["arm"] == "ctl")
+    pooled_arm = statistics.median(r["report"]["Duration"] for r in rows if r["arm"] == "active")
+    assert pooled_arm < 0.8 * pooled_ctl  # what a pooled comparison would wrongly report
+
+
+def test_rows_without_cpu_part_are_never_compared():
+    rows = _rows({"ctl": 0, "passive": -4}, cpu=None)
+    assert s13.analyse(rows, "passive")["warm_paired"]["report_duration"] == {}
+    hv = s13.host_variability(rows, {"passive": s13.analyse(rows, "passive")})
+    assert hv["unknown"]["rows_without_cpu_part"]["passive:warm"] == len(rows) // 2
+
+
+def test_status_regressed_when_warm_is_slower():
+    rows = _rows({"ctl": 0, "active": +6})
+    ana = s13.analyse(rows, "active")
+    assert ana["warm_paired"]["report_duration"]["0xd40"]["verdict"] == "slower"
+    assert s13.status_of(ana, 0, {"compared": 1, "bit_identical": 1}) == "regressed"
+
+
+def test_status_inconclusive_when_an_answer_differs():
+    rows = _rows({"ctl": 0, "passive": -4})
+    rows[-1]["answers"] = {"q": {"choice": "y"}}
+    ana = s13.analyse(rows, "passive")
+    assert ana["arm_agreement"]["bit_identical"] == ana["arm_agreement"]["compared"] - 1
+    assert s13.status_of(ana, 0, {"compared": 1, "bit_identical": 1}) == "inconclusive"
+
+
+def test_sign_flip_p_floor():
+    assert s13.sign_flip_p([1.0, 2.0, 3.0, 4.0, 5.0]) == round(2 / 32, 5)
+    assert s13.sign_flip_p([1.0]) is None
+    assert s13.sign_flip_p([1.0, -1.0]) == 1.0
+
+
+def test_spincount_reads_libgomp_display(tmp_path):
+    import gzip as _gz
+
+    (tmp_path / "logs").mkdir()
+    with _gz.open(tmp_path / "logs" / "lkai-e13-active.jsonl.gz", "wt") as f:
+        for m in ("[host] OMP_WAIT_POLICY = 'ACTIVE'", "[host] GOMP_SPINCOUNT = '30000000000'"):
+            f.write(json.dumps({"timestamp": 0, "logStreamName": "s", "message": m}) + "\n")
+    cond = {
+        "functions": {
+            "active": {"FunctionName": "lkai-e13-active"},
+            "ctl": {"FunctionName": "lkai-e13-ctl"},
+        }
+    }
+    out = s13.spincount(str(tmp_path), cond)
+    assert out["active"] == {"gomp_spincount": {"30000000000": 1}, "omp_wait_policy": {"ACTIVE": 1}}
+    assert out["ctl"] == {"gomp_spincount": {}, "omp_wait_policy": {}}
+
+
+def test_expected_spincounts_match_libgomp_defaults():
+    assert e13deploy.EXPECTED_SPINCOUNT == {
+        "ctl": 300000,
+        "passive": 0,
+        "spin30k": 30000,
+        "active": 30000000000,
+    }
+
+
+def test_underpowered_part_is_not_a_verdict():
+    rows = _rows({"ctl": 0, "passive": -4}, rounds=4)
+    wp = s13.paired_by_request(rows, "passive", s13.WARM_KEYS["report_duration"], "0xd40")
+    assert wp["min_attainable_p"] == 0.125
+    assert s13.warm_verdict(wp, {"max_abs_round_pct": 0.1}) == "underpowered"
+
+
+def test_improved_needs_no_contrary_sign_on_an_underpowered_part():
+    rows = _rows({"ctl": 0, "passive": -4}) + _rows(
+        {"ctl": 0, "passive": +4}, rounds=3, cpu="0xd0c", seed=9
+    )
+    ana = s13.analyse(rows, "passive")
+    assert ana["warm_paired"]["report_duration"]["0xd40"]["verdict"] == "faster"
+    assert ana["warm_paired"]["report_duration"]["0xd0c"]["verdict"] == "underpowered"
+    assert s13.status_of(ana, 0, {"compared": 1, "bit_identical": 1}) == "no-change"
+    agree = _rows({"ctl": 0, "passive": -4}) + _rows(
+        {"ctl": 0, "passive": -4}, rounds=3, cpu="0xd0c", seed=9
+    )
+    assert (
+        s13.status_of(s13.analyse(agree, "passive"), 0, {"compared": 1, "bit_identical": 1})
+        == "improved"
+    )
+
+
+def test_client_error_is_transport_only_without_an_unmatched_report():
+    rows = _rows({"ctl": 0, "passive": -4}, rounds=2, n=1)
+    for i, r in enumerate(rows):
+        r["log_tail"] = f"REPORT RequestId: id-{i}\tDuration: 1 ms"
+    err = {"arm": "passive", "round": 1, "wave": "warm", "error": "client:SSLError", "detail": ""}
+    ids = {"passive": {f"id-{i}" for i, r in enumerate(rows) if r["arm"] == "passive"}}
+    k = s13.error_kinds([err], rows, ids)
+    assert (k["client_transport_errors"], k["function_errors"]) == (1, 0)
+    ids["passive"].add("ran-but-lost")  # Lambda ran something the client never saw
+    k = s13.error_kinds([err], rows, ids)
+    assert (k["client_transport_errors"], k["function_errors"]) == (0, 1)
+    fn = err | {"error": "Unhandled"}
+    assert s13.error_kinds([fn], rows, {"passive": set()})["function_errors"] == 1
+
+
+def test_between_arms_uses_shared_rounds():
+    rows = _rows({"ctl": 0, "passive": -4, "spin30k": -5})
+    per = {a: s13.analyse(rows, a) for a in ("passive", "spin30k")}
+    d = s13.between_arms(per, "spin30k", "passive")
+    assert len(d["rounds"]) == 6 and d["rounds_below_zero"] == 6
+    assert -1.2 < d["mean_pp"] < -0.8
+    assert s13.between_arms(per, "spin30k", "active") is None
