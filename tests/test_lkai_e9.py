@@ -182,3 +182,86 @@ def test_trailer_layout_matches_the_c_struct():
     assert "char     magic[8];" in src and "uint32_t nr, kr, sr, reserved;" in src
     assert "uint64_t n, k, payload_bytes, zero[2];" in src and "sizeof(e9_trailer) == 64" in src
     assert P.TRAILER_BYTES == 8 + 4 * 4 + 3 * 8 + 16
+
+
+def _summarize_mod(monkeypatch):
+    import importlib
+    import importlib.util
+    import types
+
+    if not (importlib.util.find_spec("boto3") and importlib.util.find_spec("botocore")):
+        exc = types.ModuleType("botocore.exceptions")
+        exc.ClientError = type("ClientError", (Exception,), {})
+        cfg = types.ModuleType("botocore.config")
+        cfg.Config = lambda **kw: None
+        boto3 = types.ModuleType("boto3")
+        boto3.Session = lambda **kw: None
+        for name, mod in {
+            "boto3": boto3,
+            "botocore": types.ModuleType("botocore"),
+            "botocore.exceptions": exc,
+            "botocore.config": cfg,
+        }.items():
+            monkeypatch.setitem(sys.modules, name, mod)
+    for m in ("deploy", "deploy_e9", "summarize_e9"):
+        monkeypatch.delitem(sys.modules, m, raising=False)
+    monkeypatch.syspath_prepend(os.path.join(os.path.dirname(E9), "baseline"))
+    return importlib.import_module("summarize_e9")
+
+
+def test_load_paths_counts_environments_by_arm_part_and_path(tmp_path: Path, monkeypatch):
+    import gzip
+    import json
+
+    S = _summarize_mod(monkeypatch)
+    rows = [
+        {
+            "arm": "e9",
+            "cpu_part": "0xd40",
+            "lkai": {"env_id": "a"},
+            "log_tail": "E9KAI repack nr=4 kr=8\nE9KAI adopt nr=4 kr=8\n",
+        },
+        {
+            "arm": "e9",
+            "cpu_part": "0xd40",
+            "lkai": {"env_id": "a"},
+            "log_tail": "",
+        },  # same env, warm
+        {
+            "arm": "e9",
+            "cpu_part": "0xd0c",
+            "lkai": {"env_id": "b"},
+            "log_tail": "E9KAI convert nr=4 kr=4\nE9KAI repack nr=4 kr=4\n",
+        },
+        {"arm": "base", "cpu_part": "0xd40", "lkai": {"env_id": "c"}, "log_tail": "no e9 lines"},
+    ]
+    (tmp_path / "logs").mkdir()
+    with gzip.open(tmp_path / "logs" / "lkai-f1ee-e9.jsonl.gz", "wt") as fh:
+        for m in ("E9KAI adopt nr=4 kr=8", "E9KAI adopt nr=4 kr=8", "other"):
+            fh.write(json.dumps({"message": m, "logStreamName": "s"}) + "\n")
+    lp = S.load_paths(rows, str(tmp_path))
+    assert lp["environments"] == {
+        "e9:0xd0c:convert kr=4+repack kr=4": 1,
+        "e9:0xd40:adopt kr=8+repack kr=8": 1,
+    }
+    assert lp["cloudwatch_lines"] == {"lkai-f1ee-e9": {"adopt kr=8": 2}}
+
+
+def test_bench_checks_each_arms_own_zip():
+    src = open(os.path.join(os.path.dirname(E9), "baseline", "bench.py")).read()
+    assert (
+        'st.get("zip_sha256_by_arm", {}).get(arm, st["manifest"]["function_zip"]["sha256"])' in src
+    )
+    assert "new_invoke_client" in src  # I1's fresh client per wave
+
+
+def test_deploy_arms_differ_in_zip_and_weights_only(monkeypatch):
+    S = _summarize_mod(monkeypatch)
+    import importlib
+
+    D = importlib.import_module("deploy_e9")
+    assert D.ARMS == {
+        "base": ("base-function.zip", "s2b-h512-Q8_0.gguf"),
+        "e9": ("function.zip", "s2b-h512-Q8_0-e9kr8.gguf"),
+    }
+    assert S.compare_arms.__defaults__ == ("e9", "base")

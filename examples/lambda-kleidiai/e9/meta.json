@@ -1,0 +1,16 @@
+{
+ "experiment_id": "E9-prepacked",
+ "status": "pending",
+ "hypothesis": "The pinned loader repacks every Q8_0 matmul weight into KleidiAI's layout at load (dequantize, per-row requantize to int8, kai_run_rhs_pack_nxk_qsi8cxp_qsi8cx_neon): about 6 s of the ~8.4 s cold model_load_mmap. Doing that packing at build time and shipping the packed bytes in place of each tensor's Q8_0 bytes (they are smaller, so file size and offsets are unchanged) should cut cold model_load_mmap, the cold first request and the snapshot init by about 4.8 s (offline fixed-host: 8.06 -> 3.21 s), with no extra download time and bit-identical answers. Restore and warm should not change.",
+ "changed_variable": {
+  "name": "when KleidiAI weight packing happens",
+  "baseline": "at load: P1's zip (26eb2651...) and GGUF s2b-h512-Q8_0.gguf (8dbb8872...); every Q8_0 matmul weight repacked in llama_model_load_from_file",
+  "experiment": "at build time: s2b-h512-Q8_0-e9kr8.gguf (183137fb...), 194 Q8_0 tensors holding KleidiAI qsi8cxp payloads (nr=4, kr=8), +128 bytes; E9's zip adds patch_e9.py to the loader (adopt when the layout matches the selected kernel, convert on a dot-product host). token_embd.weight and its tied output-head repack are unchanged (E7's variable)"
+ },
+ "conclusion": null,
+ "reproduce": [
+  "git fetch https://github.com/jsamuel1/strands-decider lkai/f1ee-prepacked && git checkout FETCH_HEAD",
+  "AWS_PROFILE=<profile> examples/lambda-kleidiai/e9/run.sh <run-id>",
+  "examples/lambda-kleidiai/e9/offline.sh <P1 build> examples/lambda-kleidiai/e9/build <out> 3"
+ ]
+}
