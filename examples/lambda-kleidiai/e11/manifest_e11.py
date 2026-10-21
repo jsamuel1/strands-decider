@@ -69,6 +69,18 @@ def e11_dirty() -> list[str]:
     return out
 
 
+def zip_assets_sha256(zip_path: str) -> dict:
+    """sha256 of every file under assets/ in the zip, as the deployed function reads it."""
+    import zipfile
+
+    out = {}
+    with zipfile.ZipFile(zip_path) as z:
+        for n in sorted(z.namelist()):
+            if n.startswith("assets/") and not n.endswith("/"):
+                out[n.split("/", 1)[1]] = hashlib.sha256(z.read(n)).hexdigest()
+    return out
+
+
 def build_manifest(
     p1_manifest: dict, zip_path: str, dirty_p1: list[str], dirty_e11: list[str], commit: str
 ) -> dict:
@@ -85,6 +97,7 @@ def build_manifest(
             "inputs_sha256": None,
         },
         "patch_memfdrel_sha256": sha256(os.path.join(HERE, "patch_memfdrel.py")),
+        "assets_sha256": zip_assets_sha256(zip_path),
         "model": p1_manifest["model"],
         "llama_cpp": dict(
             p1_manifest["llama_cpp"],

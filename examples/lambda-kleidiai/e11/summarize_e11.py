@@ -149,6 +149,7 @@ def cells(rows: list[dict], cls: str, f) -> dict:
             continue
         mo, mr = statistics.median(v[CONTROL]), statistics.median(v[EXPERIMENT])
         d = mr - mo
+        q = statistics.quantiles(v[CONTROL], n=4) if len(v[CONTROL]) >= 4 else None
         shared.append(
             {
                 "round": rnd,
@@ -159,6 +160,7 @@ def cells(rows: list[dict], cls: str, f) -> dict:
                 "control_spread": round(max(v[CONTROL]) - min(v[CONTROL]), 6)
                 if len(v[CONTROL]) >= 2
                 else None,
+                "control_iqr": round(q[2] - q[0], 6) if q else None,
                 "delta": round(d, 6),
                 "ratio": round(mr / mo, 6) if mo else None,
                 "sign": "negative" if d < 0 else "positive" if d > 0 else "zero",
@@ -192,6 +194,18 @@ def part_outcome(cs: list[dict]) -> dict:
     else:
         outcome = "mixed-or-overlapping-control-variation"
     ds = [c["delta"] for c in cs]
+    # Sensitivity, added after the first run was seen and labelled as such: the off arm's within-cell range is set
+    # by its slowest restore (one outlier makes a 6 s range in a 10-sample cell), so the same test against the
+    # interquartile range is reported beside it. The pre-registered outcome above stays the primary one.
+    iq = [c for c in cs if c.get("control_iqr") is not None]
+    iq_outs = {
+        "within"
+        if abs(c["delta"]) <= c["control_iqr"]
+        else "negative"
+        if c["delta"] < 0
+        else "positive"
+        for c in iq
+    }
     return {
         "shared_cell_count": len(cs),
         "assessed_cell_count": len(assessed),
@@ -199,7 +213,30 @@ def part_outcome(cs: list[dict]) -> dict:
         "delta_range": [min(ds), max(ds)] if ds else None,
         "delta_signs": sorted({c["sign"] for c in cs}),
         "outcome": outcome,
+        "post_hoc_iqr_outcome": (
+            "insufficient"
+            if not iq
+            else f"{next(iter(iq_outs))}-beyond-control-iqr"
+            if len(iq_outs) == 1 and "within" not in iq_outs
+            else "within-control-iqr"
+            if iq_outs == {"within"}
+            else "mixed"
+        ),
     }
+
+
+def sign_test(cs: list[dict]) -> dict:
+    """Exact two-sided sign test over shared cells (each cell one paired observation; zero deltas dropped)."""
+    from math import comb
+
+    neg = sum(c["delta"] < 0 for c in cs)
+    pos = sum(c["delta"] > 0 for c in cs)
+    n = neg + pos
+    if n == 0:
+        return {"cells": 0, "negative": 0, "positive": 0, "p_two_sided": None}
+    k = min(neg, pos)
+    p = min(1.0, 2 * sum(comb(n, i) for i in range(k + 1)) / 2**n)
+    return {"cells": n, "negative": neg, "positive": pos, "p_two_sided": round(p, 6)}
 
 
 def host_variability(rows: list[dict], cond: dict) -> dict:
@@ -230,6 +267,10 @@ def host_variability(rows: list[dict], cond: dict) -> dict:
             else ("unassessed" if not assessed else "host-conditioned-or-mixed"),
             "unassessed_cpu_parts": sorted(set(outs) - set(assessed)),
             "unknown_cpu_rows": m["unknown_cpu_rows"],
+            "post_hoc_iqr_by_cpu_part": {
+                cpu: p["post_hoc_iqr_outcome"] for cpu, p in m["by_cpu_part"].items()
+            },
+            "sign_test_over_shared_cells": sign_test(m["shared_cells"]),
         }
     return {
         "schema": "lkai-host-variability/1",
@@ -482,6 +523,35 @@ def fmt(res: dict) -> dict:
     return out
 
 
+def with_assets(run: str) -> None:
+    """Runs whose manifest predates manifest_e11's assets_sha256 (20261021T103834Z): fill it from the deployed zip's
+    assets, which are P1's (verified by sha256 when the run was summarized), so P1's summarize can read it."""
+    path = os.path.join(run, "conditions.json")
+    cond = json.load(open(path))
+    m = cond["build_manifest"]
+    if "assets_sha256" in m:
+        return
+    z = os.path.join(HERE, "build", "function.zip")
+    import hashlib
+    import zipfile
+
+    h = hashlib.sha256(open(z, "rb").read()).hexdigest()
+    if h != m["function_zip"]["sha256"]:
+        sys.exit(
+            f"{z} is not the deployed zip ({h} vs {m['function_zip']['sha256']}); cannot fill assets_sha256"
+        )
+    with zipfile.ZipFile(z) as zf:
+        m["assets_sha256"] = {
+            n.split("/", 1)[1]: hashlib.sha256(zf.read(n)).hexdigest()
+            for n in sorted(zf.namelist())
+            if n.startswith("assets/") and not n.endswith("/")
+        }
+    m["assets_sha256_note"] = (
+        "filled by summarize_e11 from the deployed function.zip (sha256 checked)"
+    )
+    json.dump(cond, open(path, "w"), indent=1)
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("run")
@@ -492,6 +562,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--out", required=True)
     a = ap.parse_args(argv)
     meta = json.load(open(a.meta))
+    with_assets(a.run)
     p1.ARM_PHASES = {
         CONTROL: "1",
         EXPERIMENT: "1",
@@ -503,6 +574,12 @@ def main(argv: list[str] | None = None) -> int:
     res["primary_arm"] = EXPERIMENT
     res["commits"]["experiment"] = cond["build_manifest"]["repo_commit"]
     res["commits"]["p1_build"] = cond["build_manifest"].get("p1")
+    if cond["build_manifest"].get("schema") == "lkai-e11-manifest/1":
+        # P1's summarize labels any manifest other than its own /2 as /1 (tracked files only). E11's ran
+        # buildcache.dirty (tracked, untracked and deleted inputs) plus the e11/ inputs (manifest_e11.py).
+        res["commits"]["provenance_check"] = (
+            "all executable inputs vs commit (buildcache.dirty) plus e11/ inputs (manifest_e11.e11_dirty)"
+        )
     res["deployment"]["environment"] = {
         arm: cond["functions"][arm]["environment"] for arm in cond["arms"]
     }

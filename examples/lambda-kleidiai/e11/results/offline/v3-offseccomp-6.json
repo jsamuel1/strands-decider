@@ -1,0 +1,442 @@
+{
+ "answers": {
+  "agent-action-guard-2q": {
+   "action": {
+    "choice": "proceed",
+    "confidence": 0.4488,
+    "probabilities": {
+     "ask": 0.1231,
+     "proceed": 0.6325,
+     "revise": 0.2444
+    },
+    "type": "choice"
+   },
+   "safe": {
+    "noul": 0.2744,
+    "type": "noul"
+   }
+  },
+  "cracked-screen-2q": {
+   "q": {
+    "choice": "refunds",
+    "confidence": 0.492,
+    "probabilities": {
+     "refunds": 0.6614,
+     "shipping": 0.1216,
+     "tech": 0.217
+    },
+    "type": "choice"
+   },
+   "u": {
+    "noul": 0.6251,
+    "type": "noul"
+   }
+  },
+  "incident-review-4q": {
+   "root_cause": {
+    "choice": "retries",
+    "confidence": 0.4051,
+    "probabilities": {
+     "alarm": 0.0191,
+     "capacity": 0.0724,
+     "freeze": 0.3546,
+     "retries": 0.5538
+    },
+    "type": "choice"
+   },
+   "runbook": {
+    "noul": 0.8827,
+    "type": "noul"
+   },
+   "severity": {
+    "confidence": 0.4432,
+    "legend": {
+     "0": "negligible",
+     "1": "minor",
+     "2": "moderate",
+     "3": "major",
+     "4": "critical"
+    },
+    "probabilities": {
+     "0": 0.1037,
+     "1": 0.1626,
+     "2": 0.2673,
+     "3": 0.2597,
+     "4": 0.2068
+    },
+    "score": 2.3033,
+    "type": "score"
+   },
+   "test_gap": {
+    "noul": 0.3864,
+    "type": "noul"
+   }
+  },
+  "payouts-3q": {
+   "frustration": {
+    "confidence": 0.512,
+    "legend": {
+     "0": "calm",
+     "1": "frustrated",
+     "2": "depressed"
+    },
+    "probabilities": {
+     "0": 0.1945,
+     "1": 0.5764,
+     "2": 0.2291
+    },
+    "score": 1.0346,
+    "type": "score"
+   },
+   "is_urgent": {
+    "noul": 0.8582,
+    "type": "noul"
+   },
+   "team": {
+    "choice": "billing",
+    "confidence": 0.6487,
+    "probabilities": {
+     "billing": 0.7658,
+     "retail": 0.1106,
+     "sales": 0.1236
+    },
+    "type": "choice"
+   }
+  },
+  "ticket-route-1q": {
+   "q": {
+    "choice": "billing",
+    "confidence": 0.9433,
+    "probabilities": {
+     "account": 0.0064,
+     "billing": 0.9622,
+     "technical": 0.0314
+    },
+    "type": "choice"
+   }
+  }
+ },
+ "gguf": "s2b-h512-Q8_0.gguf",
+ "gguf_bytes": 2076712416,
+ "host": {
+  "cgroup": {
+   "cpu.max": "max 100000",
+   "cpuset.cpus.effective": "0-5",
+   "memory.max": "unknown"
+  },
+  "cpu": {
+   "architecture": "8",
+   "features": "fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm paca pacg dcpodp svei8mm svebf16 i8mm bf16 dgh rng",
+   "implementer": "0x41",
+   "part": "0xd40",
+   "processors": 16,
+   "revision": "1",
+   "variant": "0x1"
+  },
+  "execution_env": "unknown",
+  "hwcap": "0xcfffffff",
+  "hwcap2": "0x1f201",
+  "init_type": "unknown",
+  "kernel": "6.1.188-233.386.amzn2023.aarch64",
+  "memory_mb": "unknown",
+  "os_cpu_count": 16,
+  "python": "3.12.15",
+  "sched_affinity": 6
+ },
+ "init_info": {
+  "cpu_part": "0xd40",
+  "ggml_cpu": [
+   "libggml-cpu-armv8.2_3.so",
+   "libggml-cpu-armv8.6_1.so"
+  ],
+  "kv": "f32",
+  "n_ctx": 16384,
+  "n_seq": 17,
+  "threads": 6,
+  "ubatch": "512",
+  "unrotate": false
+ },
+ "latency_s": {
+  "agent-action-guard-2q": 5.4456,
+  "cracked-screen-2q": 4.1404,
+  "incident-review-4q": 10.5729,
+  "payouts-3q": 4.858,
+  "ticket-route-1q": 1.6746
+ },
+ "load_engine_s": 8.75,
+ "mem_after_load": {
+  "cgroup_memory_current": "unknown",
+  "cgroup_memory_stat": {
+   "anon": "unknown",
+   "file": "unknown",
+   "file_mapped": "unknown",
+   "shmem": "unknown"
+  },
+  "meminfo_kb": {
+   "AnonPages": 13768540,
+   "Cached": 20991608,
+   "MemAvailable": 21031500,
+   "MemFree": 3537772,
+   "MemTotal": 40315808,
+   "Shmem": 4100816
+  },
+  "smaps_rollup_kb": {
+   "00400000-ffffe0b21000 ---p 00000000 00": 0,
+   "AnonHugePages": 20480,
+   "Anonymous": 2911568,
+   "FilePmdMapped": 0,
+   "LazyFree": 0,
+   "Locked": 0,
+   "Private_Clean": 84,
+   "Private_Dirty": 4886024,
+   "Private_Hugetlb": 0,
+   "Pss": 4888050,
+   "Pss_Anon": 2911568,
+   "Pss_Dirty": 4886024,
+   "Pss_File": 22322,
+   "Pss_Shmem": 1954160,
+   "Referenced": 4896648,
+   "Rss": 4896796,
+   "Shared_Clean": 10688,
+   "Shared_Dirty": 0,
+   "Shared_Hugetlb": 0,
+   "ShmemPmdMapped": 0,
+   "Swap": 0,
+   "SwapPss": 0
+  },
+  "status_kb": {
+   "RssAnon": 2910784,
+   "RssFile": 31068,
+   "RssShmem": 1954160,
+   "VmHWM": 4928644,
+   "VmRSS": 4896012,
+   "VmSwap": 0
+  }
+ },
+ "mem_after_memfd": {
+  "cgroup_memory_current": "unknown",
+  "cgroup_memory_stat": {
+   "anon": "unknown",
+   "file": "unknown",
+   "file_mapped": "unknown",
+   "shmem": "unknown"
+  },
+  "meminfo_kb": {
+   "AnonPages": 10555172,
+   "Cached": 20970528,
+   "MemAvailable": 24259708,
+   "MemFree": 6787568,
+   "MemTotal": 40315808,
+   "Shmem": 4100668
+  },
+  "smaps_rollup_kb": {
+   "00400000-ffffe0b21000 ---p 00000000 00": 0,
+   "AnonHugePages": 0,
+   "Anonymous": 5592,
+   "FilePmdMapped": 0,
+   "LazyFree": 0,
+   "Locked": 0,
+   "Private_Clean": 64,
+   "Private_Dirty": 5592,
+   "Private_Hugetlb": 0,
+   "Pss": 6769,
+   "Pss_Anon": 5592,
+   "Pss_Dirty": 5592,
+   "Pss_File": 1177,
+   "Pss_Shmem": 0,
+   "Referenced": 11920,
+   "Rss": 11920,
+   "Shared_Clean": 6264,
+   "Shared_Dirty": 0,
+   "Shared_Hugetlb": 0,
+   "ShmemPmdMapped": 0,
+   "Swap": 0,
+   "SwapPss": 0
+  },
+  "status_kb": {
+   "RssAnon": 5592,
+   "RssFile": 6328,
+   "RssShmem": 0,
+   "VmHWM": 142928,
+   "VmRSS": 11920,
+   "VmSwap": 0
+  }
+ },
+ "mem_after_requests": {
+  "cgroup_memory_current": "unknown",
+  "cgroup_memory_stat": {
+   "anon": "unknown",
+   "file": "unknown",
+   "file_mapped": "unknown",
+   "shmem": "unknown"
+  },
+  "meminfo_kb": {
+   "AnonPages": 14209884,
+   "Cached": 21852432,
+   "MemAvailable": 20585788,
+   "MemFree": 2149556,
+   "MemTotal": 40315808,
+   "Shmem": 4100816
+  },
+  "smaps_rollup_kb": {
+   "00400000-ffffe0b21000 ---p 00000000 00": 0,
+   "AnonHugePages": 22528,
+   "Anonymous": 2948340,
+   "FilePmdMapped": 0,
+   "LazyFree": 0,
+   "Locked": 0,
+   "Private_Clean": 20552,
+   "Private_Dirty": 4902500,
+   "Private_Hugetlb": 0,
+   "Pss": 4924966,
+   "Pss_Anon": 2948340,
+   "Pss_Dirty": 4902500,
+   "Pss_File": 22466,
+   "Pss_Shmem": 1954160,
+   "Referenced": 4933620,
+   "Rss": 4933760,
+   "Shared_Clean": 10708,
+   "Shared_Dirty": 0,
+   "Shared_Hugetlb": 0,
+   "ShmemPmdMapped": 0,
+   "Swap": 0,
+   "SwapPss": 0
+  },
+  "status_kb": {
+   "RssAnon": 2947168,
+   "RssFile": 31196,
+   "RssShmem": 1954160,
+   "VmHWM": 4932524,
+   "VmRSS": 4932524,
+   "VmSwap": 0
+  }
+ },
+ "mem_start": {
+  "cgroup_memory_current": "unknown",
+  "cgroup_memory_stat": {
+   "anon": "unknown",
+   "file": "unknown",
+   "file_mapped": "unknown",
+   "shmem": "unknown"
+  },
+  "meminfo_kb": {
+   "AnonPages": 10526108,
+   "Cached": 18928328,
+   "MemAvailable": 26321312,
+   "MemFree": 8865500,
+   "MemTotal": 40315808,
+   "Shmem": 2072776
+  },
+  "smaps_rollup_kb": {
+   "00400000-ffffe0b21000 ---p 00000000 00": 0,
+   "AnonHugePages": 0,
+   "Anonymous": 5592,
+   "FilePmdMapped": 0,
+   "LazyFree": 0,
+   "Locked": 0,
+   "Private_Clean": 64,
+   "Private_Dirty": 5592,
+   "Private_Hugetlb": 0,
+   "Pss": 6769,
+   "Pss_Anon": 5592,
+   "Pss_Dirty": 5592,
+   "Pss_File": 1177,
+   "Pss_Shmem": 0,
+   "Referenced": 11920,
+   "Rss": 11920,
+   "Shared_Clean": 6264,
+   "Shared_Dirty": 0,
+   "Shared_Hugetlb": 0,
+   "ShmemPmdMapped": 0,
+   "Swap": 0,
+   "SwapPss": 0
+  },
+  "status_kb": {
+   "RssAnon": 5576,
+   "RssFile": 5980,
+   "RssShmem": 0,
+   "VmHWM": 11556,
+   "VmRSS": 11556,
+   "VmSwap": 0
+  }
+ },
+ "memfd_copy_s": 1.27,
+ "memfd_mappings_after_load": {
+  "entries": [
+   {
+    "AnonHugePages": 0,
+    "Anonymous": 0,
+    "FilePmdMapped": 0,
+    "KernelPageSize": 4,
+    "LazyFree": 0,
+    "Locked": 0,
+    "MMUPageSize": 4,
+    "Private_Clean": 0,
+    "Private_Dirty": 1954156,
+    "Private_Hugetlb": 0,
+    "Pss": 1954156,
+    "Pss_Dirty": 1954156,
+    "Referenced": 1954156,
+    "Rss": 1954156,
+    "Shared_Clean": 0,
+    "Shared_Dirty": 0,
+    "Shared_Hugetlb": 0,
+    "ShmemPmdMapped": 0,
+    "Size": 1954156,
+    "Swap": 0,
+    "SwapPss": 0,
+    "THPeligible": 0,
+    "path": "/memfd:s2b-h512-Q8_0.gguf (deleted)",
+    "range": "ffff21d56000-ffff991b1000"
+   },
+   {
+    "AnonHugePages": 0,
+    "Anonymous": 0,
+    "FilePmdMapped": 0,
+    "KernelPageSize": 4,
+    "LazyFree": 0,
+    "Locked": 0,
+    "MMUPageSize": 4,
+    "Private_Clean": 0,
+    "Private_Dirty": 4,
+    "Private_Hugetlb": 0,
+    "Pss": 4,
+    "Pss_Dirty": 4,
+    "Referenced": 4,
+    "Rss": 4,
+    "Shared_Clean": 0,
+    "Shared_Dirty": 0,
+    "Shared_Hugetlb": 0,
+    "ShmemPmdMapped": 0,
+    "Size": 4,
+    "Swap": 0,
+    "SwapPss": 0,
+    "THPeligible": 0,
+    "path": "/memfd:s2b-h512-Q8_0.gguf (deleted)",
+    "range": "ffff9cf5a000-ffff9cf5b000"
+   }
+  ],
+  "summary": {
+   "Private_Clean_kb": 0,
+   "Private_Dirty_kb": 1954160,
+   "Rss_kb": 1954160,
+   "Shared_Clean_kb": 0,
+   "Shared_Dirty_kb": 0,
+   "Size_kb": 1954160,
+   "entries": 2
+  }
+ },
+ "memfd_resident_after_copy": "PermissionError: errno 1",
+ "memfd_resident_after_load": "PermissionError: errno 1",
+ "platform": "Linux-6.1.188-233.386.amzn2023.aarch64-aarch64-with-glibc2.34",
+ "release": {
+  "errno": 0,
+  "files": 0,
+  "kept_bytes": 0,
+  "ranges": 0,
+  "ranges_via_madvise_remove": 0,
+  "release_us": 0,
+  "released_bytes": 0
+ },
+ "release_flag": ""
+}

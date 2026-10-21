@@ -1,0 +1,235 @@
+{
+ "gguf": "s2b-h512-Q8_0.gguf",
+ "gguf_bytes": 2076712416,
+ "host": {
+  "cgroup": {
+   "cpu.max": "max 100000",
+   "cpuset.cpus.effective": "0-5",
+   "memory.max": "unknown"
+  },
+  "cpu": {
+   "architecture": "8",
+   "features": "fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm paca pacg dcpodp svei8mm svebf16 i8mm bf16 dgh rng",
+   "implementer": "0x41",
+   "part": "0xd40",
+   "processors": 16,
+   "revision": "1",
+   "variant": "0x1"
+  },
+  "execution_env": "unknown",
+  "hwcap": "0xcfffffff",
+  "hwcap2": "0x1f201",
+  "init_type": "unknown",
+  "kernel": "6.1.188-233.386.amzn2023.aarch64",
+  "memory_mb": "unknown",
+  "os_cpu_count": 16,
+  "python": "3.12.15",
+  "sched_affinity": 6
+ },
+ "init_info": {
+  "cpu_part": "0xd40",
+  "ggml_cpu": [
+   "libggml-cpu-armv8.2_3.so",
+   "libggml-cpu-armv8.6_1.so"
+  ],
+  "kv": "f32",
+  "n_ctx": 16384,
+  "n_seq": 17,
+  "threads": 6,
+  "ubatch": "512",
+  "unrotate": false
+ },
+ "load_engine_s": 8.932,
+ "mem_after_load": {
+  "cgroup_memory_current": "unknown",
+  "cgroup_memory_stat": {
+   "anon": "unknown",
+   "file": "unknown",
+   "file_mapped": "unknown",
+   "shmem": "unknown"
+  },
+  "smaps_rollup_kb": {
+   "00400000-ffffd01d8000 ---p 00000000 00": 0,
+   "AnonHugePages": 20480,
+   "Anonymous": 2911484,
+   "FilePmdMapped": 0,
+   "LazyFree": 0,
+   "Locked": 0,
+   "Private_Clean": 7760,
+   "Private_Dirty": 4885840,
+   "Private_Hugetlb": 0,
+   "Pss": 4894117,
+   "Pss_Anon": 2911484,
+   "Pss_Dirty": 4885840,
+   "Pss_File": 28473,
+   "Pss_Shmem": 1954160,
+   "Referenced": 4895936,
+   "Rss": 4896592,
+   "Shared_Clean": 2992,
+   "Shared_Dirty": 0,
+   "Shared_Hugetlb": 0,
+   "ShmemPmdMapped": 0,
+   "Swap": 0,
+   "SwapPss": 0
+  },
+  "status_kb": {
+   "RssAnon": 2910872,
+   "RssFile": 30884,
+   "RssShmem": 1954160,
+   "VmHWM": 4928516,
+   "VmRSS": 4895916,
+   "VmSwap": 0
+  }
+ },
+ "mem_after_memfd": {
+  "cgroup_memory_current": "unknown",
+  "cgroup_memory_stat": {
+   "anon": "unknown",
+   "file": "unknown",
+   "file_mapped": "unknown",
+   "shmem": "unknown"
+  },
+  "smaps_rollup_kb": {
+   "00400000-ffffd01d8000 ---p 00000000 00": 0,
+   "AnonHugePages": 0,
+   "Anonymous": 5380,
+   "FilePmdMapped": 0,
+   "LazyFree": 0,
+   "Locked": 0,
+   "Private_Clean": 4604,
+   "Private_Dirty": 5380,
+   "Private_Hugetlb": 0,
+   "Pss": 10024,
+   "Pss_Anon": 5380,
+   "Pss_Dirty": 5380,
+   "Pss_File": 4644,
+   "Pss_Shmem": 0,
+   "Referenced": 11536,
+   "Rss": 11672,
+   "Shared_Clean": 1688,
+   "Shared_Dirty": 0,
+   "Shared_Hugetlb": 0,
+   "ShmemPmdMapped": 0,
+   "Swap": 0,
+   "SwapPss": 0
+  },
+  "status_kb": {
+   "RssAnon": 5380,
+   "RssFile": 6292,
+   "RssShmem": 0,
+   "VmHWM": 142680,
+   "VmRSS": 11672,
+   "VmSwap": 0
+  }
+ },
+ "mem_start": {
+  "cgroup_memory_current": "unknown",
+  "cgroup_memory_stat": {
+   "anon": "unknown",
+   "file": "unknown",
+   "file_mapped": "unknown",
+   "shmem": "unknown"
+  },
+  "smaps_rollup_kb": {
+   "00400000-ffffd01d8000 ---p 00000000 00": 0,
+   "AnonHugePages": 0,
+   "Anonymous": 5380,
+   "FilePmdMapped": 0,
+   "LazyFree": 0,
+   "Locked": 0,
+   "Private_Clean": 4604,
+   "Private_Dirty": 5380,
+   "Private_Hugetlb": 0,
+   "Pss": 10015,
+   "Pss_Anon": 5380,
+   "Pss_Dirty": 5380,
+   "Pss_File": 4635,
+   "Pss_Shmem": 0,
+   "Referenced": 11520,
+   "Rss": 11656,
+   "Shared_Clean": 1672,
+   "Shared_Dirty": 0,
+   "Shared_Hugetlb": 0,
+   "ShmemPmdMapped": 0,
+   "Swap": 0,
+   "SwapPss": 0
+  },
+  "status_kb": {
+   "RssAnon": 5360,
+   "RssFile": 5928,
+   "RssShmem": 0,
+   "VmHWM": 11288,
+   "VmRSS": 11288,
+   "VmSwap": 0
+  }
+ },
+ "memfd_copy_s": 1.387,
+ "memfd_mappings_after_load": {
+  "entries": [
+   {
+    "AnonHugePages": 0,
+    "Anonymous": 0,
+    "FilePmdMapped": 0,
+    "KernelPageSize": 4,
+    "LazyFree": 0,
+    "Locked": 0,
+    "MMUPageSize": 4,
+    "Private_Clean": 0,
+    "Private_Dirty": 1954156,
+    "Private_Hugetlb": 0,
+    "Pss": 1954156,
+    "Pss_Dirty": 1954156,
+    "Referenced": 1954156,
+    "Rss": 1954156,
+    "Shared_Clean": 0,
+    "Shared_Dirty": 0,
+    "Shared_Hugetlb": 0,
+    "ShmemPmdMapped": 0,
+    "Size": 1954156,
+    "Swap": 0,
+    "SwapPss": 0,
+    "THPeligible": 0,
+    "path": "/memfd:s2b-h512-Q8_0.gguf (deleted)",
+    "range": "ffff1ea35000-ffff95e90000"
+   },
+   {
+    "AnonHugePages": 0,
+    "Anonymous": 0,
+    "FilePmdMapped": 0,
+    "KernelPageSize": 4,
+    "LazyFree": 0,
+    "Locked": 0,
+    "MMUPageSize": 4,
+    "Private_Clean": 0,
+    "Private_Dirty": 4,
+    "Private_Hugetlb": 0,
+    "Pss": 4,
+    "Pss_Dirty": 4,
+    "Referenced": 4,
+    "Rss": 4,
+    "Shared_Clean": 0,
+    "Shared_Dirty": 0,
+    "Shared_Hugetlb": 0,
+    "ShmemPmdMapped": 0,
+    "Size": 4,
+    "Swap": 0,
+    "SwapPss": 0,
+    "THPeligible": 0,
+    "path": "/memfd:s2b-h512-Q8_0.gguf (deleted)",
+    "range": "ffff99c39000-ffff99c3a000"
+   }
+  ],
+  "summary": {
+   "Private_Clean_kb": 0,
+   "Private_Dirty_kb": 1954160,
+   "Rss_kb": 1954160,
+   "Shared_Clean_kb": 0,
+   "Shared_Dirty_kb": 0,
+   "Size_kb": 1954160,
+   "entries": 2
+  }
+ },
+ "memfd_resident_after_copy": 2076712960,
+ "memfd_resident_after_load": 2076712960,
+ "platform": "Linux-6.1.188-233.386.amzn2023.aarch64-aarch64-with-glibc2.34"
+}

@@ -1,0 +1,48 @@
+{
+ "schema": "lkai-e11-manifest/1",
+ "repo_commit": "e4325aae18f713cc114ac806e195b4bea6a7a02a",
+ "dirty_inputs": [],
+ "repo_dirty": false,
+ "function_zip": {
+  "bytes": 51959267,
+  "sha256": "7aaa1ff0c5fe156d9bf919f3b6c1a1874171c3be130056befff1d061b5e291e1",
+  "handler": "e11_entry.handler",
+  "source_commit": "e4325aae18f713cc114ac806e195b4bea6a7a02a",
+  "inputs_sha256": null
+ },
+ "patch_memfdrel_sha256": "5774f33f9a7c12b36d6cd16bc9830830f7c7df6c2fba56fdef4e0323c99afeac",
+ "model": {
+  "id": "StrandsAgents/strands-decider-2B-qwen3.5-v1-2610",
+  "revision": "216d1ccb46a9e9b036eb9187b248db98480f77d4",
+  "format": "GGUF Q8_0",
+  "transform": "LoRA merged fp32 (weights/merge_export.py), H512 Hadamard fold (weights/fold_hadamard.py --block 512)",
+  "merge_report": {
+   "merged": 186,
+   "scale": 2.0,
+   "unpaired_adapter": [],
+   "base_revision": "b1485b2fa6dfa1287294f269f5fb618e03d52d7c",
+   "checkpoint": "/hf/hub/models--StrandsAgents--strands-decider-2B-qwen3.5-v1-2610/snapshots/216d1ccb46a9e9b036eb9187b248db98480f77d4"
+  },
+  "gguf_bytes": 2076712416,
+  "gguf_sha256": "8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e"
+ },
+ "llama_cpp": {
+  "commit": "f74e2fa6a31cc33ab4ee4ae516641cfe62df3924",
+  "patches": "llama/patch_llama.py (prefill,gdn,kskip,sme) + e11/patch_memfdrel.py (dormant: LKAI_RELEASE_MEMFD=1)",
+  "flags": "GGML_NATIVE=OFF GGML_BACKEND_DL=ON GGML_CPU_ALL_VARIANTS=ON GGML_CPU_KLEIDIAI=ON"
+ },
+ "p1": {
+  "repo_commit": "4412b31988ba112dd27ad850830689f33c07e78a",
+  "schema": "lkai-build-manifest/1",
+  "function_zip_sha256": "26eb2651e8915f8ad09eae899feff583a448de6b8d2bc4943bccabb66cae189b",
+  "gguf_sha256": "8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e"
+ },
+ "images": {
+  "lambda_build": "public.ecr.aws/lambda/python@sha256:37fe9ca4183c36ec57e4c5eabb8893cd9fbc9c0f3053b903d9a57eb2bd6bafcc",
+  "weights": "python@sha256:5560e9ab8709f459489e5b8aa696eda8a07ef821e14bb122be62d91234bfa98b"
+ },
+ "toolchain": [
+  "gcc (GCC) 11.5.0 20240719 (Red Hat 11.5.0-5)",
+  "Python 3.12.15"
+ ]
+}

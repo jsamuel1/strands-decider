@@ -318,6 +318,13 @@ def test_delta_and_agreement_and_status():
     assert summ.status_of(res) == "inconclusive"
 
 
+def test_sign_test_over_cells():
+    cs = [{"delta": -1.0}] * 8
+    assert summ.sign_test(cs) == {"cells": 8, "negative": 8, "positive": 0, "p_two_sided": 0.007812}
+    assert summ.sign_test([{"delta": 1.0}, {"delta": -1.0}, {"delta": 0.0}])["p_two_sided"] == 1.0
+    assert summ.sign_test([])["p_two_sided"] is None
+
+
 def test_client_timeouts_are_counted_by_arm_and_wave():
     rows = [
         _row("off", 0, "0xd40", 3200, err="client:ReadTimeoutError"),
