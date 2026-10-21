@@ -17,6 +17,11 @@ request after a restore took 0.68 s against 0.24 s warm. E12 owns that hot spot.
   in every order tried. 0 errors, 0 class mismatches, 0 `client:ReadTimeoutError` in 1,320 invocations.
 - Cost of the run: $2.99 at list prices (ceiling $10). Most of it is the SnapStart cache 3-hour minimum.
 
+**Scope: Lambda only.** The result applies to Lambda with SnapStart, not to SageMaker-hosted models (operator scope
+note, 2026-10-21). The saving is the first touch of cache memory restored from a SnapStart snapshot. The warm effect
+on its own is not established. No SageMaker deployment was measured here, and none of these numbers should be used
+for one.
+
 ## What the clear does, and why the zeroing is not needed
 
 `shim/decshim.c` calls `llama_memory_clear(mem, true)` before every request (`dec_eval` and `dec_eval_fork`). At
@@ -141,6 +146,7 @@ See `meta.json` → `reproduce`. `offline_run.sh` and `build_shim.sh` need an ar
 
 ## Limits
 
+- Lambda only: not applicable to SageMaker-hosted models, and not measured there (see Scope above).
 - One region (us-east-2), one memory size (10,240 MB). The 0xd0c restore cells are small (6 / 9 environments) and
   0xd4f drew no restores.
 - The warm first-touch explanation is an inference. The warm order on Lambda is fixed, so "first to reach" and

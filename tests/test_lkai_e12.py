@@ -464,3 +464,12 @@ def test_meta_conclusion_names_no_generation_and_cites_template_fields():
     assert "Graviton" not in t
     assert "{restore_report_duration_0xd40_d" in m["conclusion_template"]
     assert m["changed_variable"]["baseline"] and m["changed_variable"]["experiment"]
+
+
+def test_conclusion_is_scoped_to_lambda_not_sagemaker():
+    """Operator scope note: the restore saving is SnapStart memory, so the result does not carry to SageMaker."""
+    m = json.load(open(os.path.join(E12, "meta.json")))
+    assert "not to SageMaker-hosted models" in m["conclusion_template"]
+    assert "Lambda SnapStart deployments" in m["conclusion_template"]
+    readme = open(os.path.join(E12, "README.md")).read()
+    assert "**Scope: Lambda only.**" in readme
