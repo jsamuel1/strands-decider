@@ -271,7 +271,9 @@ def host_variability(rows: list[dict], status: str, pooled: dict | None = None) 
         mix[r["arm"]][r["expected_class"]][part] += 1
         for m in _GGML_RE.finditer(r.get("log_tail") or ""):
             ggml[m.group(1)][f"{m.group(2)} threads={m.group(3)}"] += 1
-    parts = sorted({p for a in mix.values() for c in a.values() for p in c})
+    # Missing CPU identity is evidence of an unknown host, not a host stratum that can clear comparability.
+    # Keep it in cpu_part_mix for completeness, but never compare rows merely because both lack identity.
+    parts = sorted({p for a in mix.values() for c in a.values() for p in c if p != "unknown"})
     within: dict = {}
     for name, (a, b) in CONTRASTS.items():
         within[name] = {}

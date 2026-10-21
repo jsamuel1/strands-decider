@@ -583,6 +583,23 @@ def test_host_variability_skips_parts_below_min_samples():
     assert hv["cpu_part_mix"]["xz"]["cold"] == {"0xaaa": 3, "0xccc": 1}
 
 
+def test_host_variability_missing_cpu_parts_stay_unknown():
+    import summarize_e1
+
+    rows = [
+        _row(arm, rnd, "cold", dl=DL[arm] + 0.1 * i, cpu=None)
+        for rnd in range(3)
+        for arm in ("gp", "xz")
+        for i in range(3)
+    ]
+    cmp = {n: summarize_e1.contrast(rows, a, b) for n, (a, b) in summarize_e1.CONTRASTS.items()}
+    hv = summarize_e1.host_variability(rows, "improved", cmp)
+    assert hv["cpu_part_mix"]["gp"]["cold"] == {"unknown": 9}
+    assert hv["headline_status_by_cpu_part"] == {}
+    assert hv["within_cpu_part"]["bucket_type_no_vpc"] == {}
+    assert hv["verdict"].startswith("unknown")
+
+
 def test_s3_costs_priced_by_bucket_type(tmp_path):
     import summarize_e1
 
