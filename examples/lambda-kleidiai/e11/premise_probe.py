@@ -55,9 +55,12 @@ def to_memfd(path: str) -> int:
     return fd
 
 
-def memfd_resident(fd: int) -> int:
-    """Bytes of the memfd's pages that are resident (mincore over a temporary shared view)."""
-    return memstat.fd_resident_bytes(fd, os.fstat(fd).st_size)
+def memfd_resident(fd: int) -> int | str:
+    """Bytes of the memfd's pages that are resident (mincore over a temporary shared view), or why not."""
+    try:
+        return memstat.fd_resident_bytes(fd, os.fstat(fd).st_size)
+    except OSError as e:
+        return f"{type(e).__name__}: errno {e.errno}"
 
 
 res: dict = {
@@ -91,19 +94,7 @@ res["memfd_mappings_after_load"] = memstat.mappings_of(f"/memfd:{os.path.basenam
 res["memfd_resident_after_load"] = memfd_resident(fd)
 res["init_info"] = shim.init_info
 res["release_flag"] = os.environ.get("LKAI_RELEASE_MEMFD", "")
-try:
-    arr = (ctypes.c_int64 * 6).in_dll(
-        ctypes.CDLL(os.path.join(pkg, "lib", "libllama.so")), "lkai_memfd_release_stats"
-    )
-    res["release"] = dict(
-        zip(
-            ("released_bytes", "kept_bytes", "release_us", "errno", "ranges", "files"),
-            list(arr),
-            strict=True,
-        )
-    )
-except ValueError:
-    res["release"] = "absent (P1 zip)"
+res["release"] = memstat.release_stats(os.path.join(pkg, "lib", "libllama.so"))
 if reqs_path:
     answers, lat = {}, {}
     for r in json.load(open(reqs_path))["requests"]:
@@ -114,14 +105,15 @@ if reqs_path:
     res["mem_after_requests"] = memstat.snapshot()
 res["platform"] = platform.platform()
 json.dump(res, open(out, "w"), indent=1, sort_keys=True)
-a, b = res["mem_after_load"]["status_kb"], res["memfd_resident_after_load"]
+a, b = res["mem_after_load"], res["memfd_resident_after_load"]
 print(
     json.dumps(
         {
-            "VmRSS_kb": a.get("VmRSS"),
-            "RssAnon_kb": a.get("RssAnon"),
-            "RssShmem_kb": a.get("RssShmem"),
-            "memfd_resident_MiB": round(b / 2**20, 1),
+            "VmRSS_kb": a["status_kb"].get("VmRSS"),
+            "RssAnon_kb": a["status_kb"].get("RssAnon"),
+            "RssShmem_kb": a["status_kb"].get("RssShmem"),
+            "meminfo_Shmem_kb": a["meminfo_kb"].get("Shmem"),
+            "memfd_resident_MiB": round(b / 2**20, 1) if isinstance(b, int) else b,
             "mapped": res["memfd_mappings_after_load"]["summary"],
             "release": res["release"],
             "load_engine_s": res["load_engine_s"],

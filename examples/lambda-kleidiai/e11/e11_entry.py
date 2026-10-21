@@ -17,7 +17,6 @@ engine latency P1 records does not include it. A field that cannot be read is "u
 
 from __future__ import annotations
 
-import ctypes
 import json
 import os
 import sys
@@ -35,27 +34,27 @@ META = hostmeta.collect() | {
 import lkai_entry  # noqa: E402  (P1's instrumented entry: its clock starts at its own import)
 import loader  # noqa: E402  (PR #77's loader: it keeps the memfd in loader._fds)
 
-_STAT_KEYS = ("released_bytes", "kept_bytes", "release_us", "errno", "ranges", "files")
-
 
 def release_stats() -> dict | str:
     task = os.environ.get("LAMBDA_TASK_ROOT", "/var/task")
-    try:
-        lib = ctypes.CDLL(os.path.join(task, "lib", "libllama.so"))
-        arr = (ctypes.c_int64 * len(_STAT_KEYS)).in_dll(lib, "lkai_memfd_release_stats")
-    except (OSError, ValueError):
-        return UNKNOWN
-    return dict(zip(_STAT_KEYS, list(arr), strict=True))
+    return memstat.release_stats(os.path.join(task, "lib", "libllama.so"))
 
 
 def memfd_state() -> dict:
+    """Size of each weight memfd and, where mincore is allowed, its resident bytes (Lambda refuses mincore: EPERM;
+    the sandbox's /proc/meminfo Shmem in `mem` is then the memfd gauge)."""
     out = {}
     for fd in getattr(loader, "_fds", []):
         try:
             size = os.fstat(fd).st_size
-            out[str(fd)] = {"size": size, "resident_bytes": memstat.fd_resident_bytes(fd, size)}
         except OSError as e:
             out[str(fd)] = {"error": f"{type(e).__name__}: {e}"}
+            continue
+        out[str(fd)] = {"size": size}
+        try:
+            out[str(fd)]["resident_bytes"] = memstat.fd_resident_bytes(fd, size)
+        except OSError as e:
+            out[str(fd)]["resident_bytes"] = f"{type(e).__name__}: errno {e.errno}"
     return out
 
 

@@ -1,6 +1,7 @@
 """Memory accounting for E11, standard library only (runs in the Lambda function and in the offline probe).
 
-snapshot()     /proc/self/status memory fields and /proc/self/smaps_rollup, in kB, plus the cgroup's memory.current
+snapshot()     /proc/self/status memory fields, /proc/meminfo (MemTotal, Shmem, ...) and /proc/self/smaps_rollup, in
+               kB, plus the cgroup's memory.current
                and memory.stat shmem/anon/file where the sandbox exposes them. Unreadable values are "unknown".
 mappings_of()  the /proc/self/smaps entries whose path matches (the memfd's mapping): count, Size and Rss in kB.
 fd_resident_bytes() resident bytes of a file (the memfd), by mincore(2) over a temporary view.
@@ -12,7 +13,30 @@ import ctypes
 import mmap
 
 UNKNOWN = "unknown"
+# lkai_memfd_release_stats (e11/patch_memfdrel.py), in slot order.
+RELEASE_STAT_KEYS = (
+    "released_bytes",
+    "kept_bytes",
+    "release_us",
+    "errno",
+    "ranges",
+    "files",
+    "ranges_via_madvise_remove",
+)
+
+
+def release_stats(libllama_path: str) -> dict | str:
+    """The loader's release record, or 'absent' for a libllama without the patch."""
+    try:
+        lib = ctypes.CDLL(libllama_path)
+        arr = (ctypes.c_int64 * len(RELEASE_STAT_KEYS)).in_dll(lib, "lkai_memfd_release_stats")
+    except (OSError, ValueError):
+        return "absent"
+    return dict(zip(RELEASE_STAT_KEYS, list(arr), strict=True))
+
+
 STATUS_KEYS = ("VmRSS", "VmHWM", "RssAnon", "RssFile", "RssShmem", "VmSwap")
+MEMINFO_KEYS = ("MemTotal", "MemFree", "MemAvailable", "Shmem", "Cached", "AnonPages")
 
 
 def _read(path: str) -> str | None:
@@ -52,6 +76,9 @@ def snapshot() -> dict:
     cur = _read("/sys/fs/cgroup/memory.current")
     return {
         "status_kb": parse_kb_fields(_read("/proc/self/status"), STATUS_KEYS),
+        # /proc/meminfo inside the Lambda sandbox is the sandbox's own: Shmem counts the memfd's pages whether or not
+        # any process maps them, which RssShmem (mapped pages only) does not.
+        "meminfo_kb": parse_kb_fields(_read("/proc/meminfo"), MEMINFO_KEYS),
         "smaps_rollup_kb": parse_kb_fields(_read("/proc/self/smaps_rollup")) or UNKNOWN,
         "cgroup_memory_current": int(cur) if cur and cur.strip().isdigit() else UNKNOWN,
         "cgroup_memory_stat": parse_memory_stat(_read("/sys/fs/cgroup/memory.stat")),

@@ -49,7 +49,7 @@ def test_patch_applies_every_edit_once_and_refuses_reapplication(tmp_path):
     h = (tmp_path / "src/llama-model-loader.h").read_text()
     c = (tmp_path / "src/llama-model-loader.cpp").read_text()
     assert h.count("mmaps_alias;") == 1
-    assert c.count("lkai_memfd_release_stats[6] = {") == 1
+    assert c.count("lkai_memfd_release_stats[7] = {") == 1
     assert (
         c.count("mmaps_alias[weight->idx].emplace_back(weight->offs, weight->offs + n_size);") == 1
     )
@@ -60,6 +60,16 @@ def test_patch_applies_every_edit_once_and_refuses_reapplication(tmp_path):
     )
     rel = c[c.index('getenv("LKAI_RELEASE_MEMFD")') :]
     assert rel.index("unmap_fragment(r.first, r.second)") < rel.index("FALLOC_FL_PUNCH_HOLE")
+    # Lambda refuses fallocate (EPERM): the release falls back to MADV_REMOVE on a temporary writable view
+    assert (
+        rel.index("FALLOC_FL_PUNCH_HOLE")
+        < rel.index("errno == EPERM")
+        < rel.index("madvise(v, r.second - r.first, MADV_REMOVE)")
+        < rel.index("lkai_memfd_release_stats[6] = via_madvise")
+    )
+    # the stats layout the readers use matches the slots the patch writes
+    assert len(memstat.RELEASE_STAT_KEYS) == 7
+    assert all(f"lkai_memfd_release_stats[{i}]" in rel for i in range(7))
     with pytest.raises(SystemExit, match="already carries"):
         patch.apply(tmp_path)
 

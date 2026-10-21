@@ -1,0 +1,8 @@
+{
+ "comment": "E11 offline check: allow everything except fallocate and mincore, which return EPERM as Lambda's sandbox does (e11/results/syscall-probe). docker run --security-opt seccomp=e11/lambda_like_seccomp.json",
+ "defaultAction": "SCMP_ACT_ALLOW",
+ "architectures": ["SCMP_ARCH_AARCH64"],
+ "syscalls": [
+  {"names": ["fallocate", "mincore"], "action": "SCMP_ACT_ERRNO", "errnoRet": 1}
+ ]
+}

@@ -28,12 +28,13 @@ H_NEW = H_OLD + (
 
 INC_OLD = "#include <unordered_set>\n"
 INC_NEW = INC_OLD + (
-    "\n#ifdef __linux__\n#include <cstdio>\n#include <cstdlib>\n#include <fcntl.h>\n#include <linux/falloc.h>\n"
-    "#include <unistd.h>\n#endif\n\n"
+    "\n#ifdef __linux__\n#include <cerrno>\n#include <cstdio>\n#include <cstdlib>\n#include <fcntl.h>\n#include <linux/falloc.h>\n"
+    "#include <sys/mman.h>\n#include <unistd.h>\n#endif\n\n"
     "// strands-decider memfdrel patch: {released bytes, kept bytes, microseconds, errno of the first failure,\n"
-    "// ranges released, files}. All zero until a load runs with LKAI_RELEASE_MEMFD=1.\n"
-    'extern "C" __attribute__((visibility("default"))) int64_t lkai_memfd_release_stats[6];\n'
-    "int64_t lkai_memfd_release_stats[6] = {0, 0, 0, 0, 0, 0};\n"
+    "// ranges released, files, ranges released by the madvise(MADV_REMOVE) fallback}. All zero until a load runs\n"
+    "// with LKAI_RELEASE_MEMFD=1.\n"
+    'extern "C" __attribute__((visibility("default"))) int64_t lkai_memfd_release_stats[7];\n'
+    "int64_t lkai_memfd_release_stats[7] = {0, 0, 0, 0, 0, 0, 0};\n"
 )
 
 ALIAS_OLD = (
@@ -64,7 +65,7 @@ REL_NEW = (
         if (use_mmap && lkai_rel && lkai_rel[0] == '1') {
             const int64_t t0 = ggml_time_us();
             const size_t page = (size_t) sysconf(_SC_PAGESIZE);
-            int64_t released = 0, kept = 0, err = 0, n_ranges = 0;
+            int64_t released = 0, kept = 0, err = 0, n_ranges = 0, via_madvise = 0;
             for (uint32_t idx = 0; idx < mappings.size(); idx++) {
                 auto & mapping = mappings.at(idx);
                 const size_t size = mapping->size();
@@ -100,11 +101,27 @@ REL_NEW = (
                 }
                 int64_t file_released = 0;
                 for (const auto & r : drop) {
-                    mapping->unmap_fragment(r.first, r.second);  // a stray read now faults
+                    mapping->unmap_fragment(r.first, r.second);  // a stray read through llama's view now faults
                     const size_t len = std::min(r.second, size) - r.first;
-                    if (fallocate(wfd, FALLOC_FL_PUNCH_HOLE | FALLOC_FL_KEEP_SIZE, (off_t) r.first, (off_t) len) != 0) {
+                    // Punch the hole. Lambda's seccomp filter refuses fallocate (EPERM; e11/syscall_probe.py), so
+                    // fall back to madvise(MADV_REMOVE) on a temporary writable shared view, which frees the same
+                    // shmem backing pages. The view is unmapped at once; nothing reads through it.
+                    bool done = fallocate(wfd, FALLOC_FL_PUNCH_HOLE | FALLOC_FL_KEEP_SIZE, (off_t) r.first,
+                                          (off_t) len) == 0;
+                    if (!done && (errno == EPERM || errno == ENOSYS || errno == EOPNOTSUPP)) {
+                        void * v = mmap(NULL, r.second - r.first, PROT_READ | PROT_WRITE, MAP_SHARED, wfd,
+                                        (off_t) r.first);
+                        if (v != MAP_FAILED) {
+                            done = madvise(v, r.second - r.first, MADV_REMOVE) == 0;
+                            if (done) {
+                                via_madvise++;
+                            }
+                            munmap(v, r.second - r.first);
+                        }
+                    }
+                    if (!done) {
                         err = err ? err : errno;
-                        LLAMA_LOG_WARN("%s: LKAI_RELEASE_MEMFD: fallocate: %s\n", __func__, strerror(errno));
+                        LLAMA_LOG_WARN("%s: LKAI_RELEASE_MEMFD: release: %s\n", __func__, strerror(errno));
                         continue;
                     }
                     file_released += (int64_t) len;
@@ -120,6 +137,7 @@ REL_NEW = (
             lkai_memfd_release_stats[3] = err;
             lkai_memfd_release_stats[4] = n_ranges;
             lkai_memfd_release_stats[5] = (int64_t) mappings.size();
+            lkai_memfd_release_stats[6] = via_madvise;
         }
 #endif
 """

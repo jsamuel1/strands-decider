@@ -271,16 +271,16 @@ def _mem_summary(recs: list[dict]) -> dict | None:
         xs = [x for x in xs if isinstance(x, (int, float)) and not isinstance(x, bool)]
         return p1.dist(xs, unit="MB") if xs else None
 
-    def st(k):
+    def st(k, block="status_kb"):
         def get(r):
-            v = r["mem"]["status_kb"].get(k)
+            v = (r["mem"].get(block) or {}).get(k)
             return v / 1024 if isinstance(v, int) else None
 
         return get
 
     def memfd_res(r):
         v = [x.get("resident_bytes") for x in (r.get("memfd") or {}).values()]
-        v = [x for x in v if isinstance(x, int)]
+        v = [x for x in v if isinstance(x, int) and not isinstance(x, bool)]
         return sum(v) / 2**20 if v else None
 
     rel = [r.get("release") for r in recs if isinstance(r.get("release"), dict)]
@@ -289,7 +289,12 @@ def _mem_summary(recs: list[dict]) -> dict | None:
         "VmRSS": field(st("VmRSS")),
         "RssAnon": field(st("RssAnon")),
         "RssShmem": field(st("RssShmem")),
+        "meminfo_Shmem": field(st("Shmem", "meminfo_kb")),
+        "meminfo_MemAvailable": field(st("MemAvailable", "meminfo_kb")),
         "memfd_resident": field(memfd_res),
+        "release_ranges_via_madvise_remove": sorted(
+            Counter(x.get("ranges_via_madvise_remove") for x in rel).items(), key=str
+        ),
         "release_released_bytes": sorted(Counter(x["released_bytes"] for x in rel).items()),
         "release_kept_bytes": sorted(Counter(x["kept_bytes"] for x in rel).items()),
         "release_errno": sorted(Counter(x["errno"] for x in rel).items()),
@@ -312,9 +317,11 @@ def memory(rows: list[dict], snaps_raw: dict) -> dict:
             ),
         }
     out["note"] = (
-        "MB = MiB of /proc/self/status (kB/1024) and of the memfd's mincore-resident pages. "
-        "before_snapshot is the state SnapStart captures; first_invoke_restored is the same process "
-        "image after restore, measured after P1's handler returned."
+        "MB = MiB of /proc/self/status, of the sandbox's /proc/meminfo, and (offline only; Lambda refuses mincore "
+        "with EPERM) of the memfd's resident pages. RssShmem counts only mapped shmem; meminfo Shmem counts the "
+        "memfd's pages whether mapped or not, so it is the gauge of what the snapshot holds. before_snapshot is "
+        "the state SnapStart captures; first_invoke_restored is the restored image, measured after P1's handler "
+        "returned."
     )
     return out
 
