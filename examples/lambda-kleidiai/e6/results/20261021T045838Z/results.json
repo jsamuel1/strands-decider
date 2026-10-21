@@ -5572,7 +5572,8 @@
        "control_spread": 0.035037,
        "delta": -0.355825,
        "ratio": 0.496538,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "negative-beyond-control-variation"
       },
       {
        "round": 1,
@@ -5598,7 +5599,8 @@
        "control_spread": null,
        "delta": -0.487336,
        "ratio": 0.474545,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "unassessed"
       },
       {
        "round": 1,
@@ -5624,7 +5626,8 @@
        "control_spread": 0.039266,
        "delta": -0.381274,
        "ratio": 0.47214,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "negative-beyond-control-variation"
       },
       {
        "round": 1,
@@ -5650,7 +5653,8 @@
        "control_spread": null,
        "delta": -0.31176,
        "ratio": 0.468041,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "unassessed"
       },
       {
        "round": 2,
@@ -5676,7 +5680,8 @@
        "control_spread": 0.080467,
        "delta": -0.385696,
        "ratio": 0.472278,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "negative-beyond-control-variation"
       },
       {
        "round": 3,
@@ -5702,7 +5707,8 @@
        "control_spread": 0.029656,
        "delta": -0.379021,
        "ratio": 0.47736,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "negative-beyond-control-variation"
       },
       {
        "round": 3,
@@ -5728,7 +5734,8 @@
        "control_spread": null,
        "delta": -0.289803,
        "ratio": 0.490049,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "unassessed"
       },
       {
        "round": 4,
@@ -5754,7 +5761,8 @@
        "control_spread": null,
        "delta": -0.46808,
        "ratio": 0.489862,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "unassessed"
       },
       {
        "round": 4,
@@ -5780,7 +5788,8 @@
        "control_spread": 0.024624,
        "delta": -0.371437,
        "ratio": 0.481747,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "negative-beyond-control-variation"
       },
       {
        "round": 4,
@@ -5806,7 +5815,8 @@
        "control_spread": null,
        "delta": -0.285026,
        "ratio": 0.487014,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "unassessed"
       },
       {
        "round": 5,
@@ -5832,7 +5842,8 @@
        "control_spread": 0.041705,
        "delta": -0.367136,
        "ratio": 0.485664,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "negative-beyond-control-variation"
       },
       {
        "round": 5,
@@ -5858,7 +5869,8 @@
        "control_spread": null,
        "delta": -0.296955,
        "ratio": 0.477541,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "unassessed"
       }
      ],
      "missing_cells": [
@@ -5926,6 +5938,9 @@
         "negative"
        ],
        "effect_abs_floor": 0.46808,
+       "cell_outcomes": {
+        "unassessed": 2
+       },
        "outcome": "insufficient-control-cell-spread"
       },
       "0xd40": {
@@ -5944,6 +5959,9 @@
         "negative"
        ],
        "effect_abs_floor": 0.355825,
+       "cell_outcomes": {
+        "negative-beyond-control-variation": 6
+       },
        "outcome": "negative-beyond-control-variation"
       },
       "0xd4f": {
@@ -5976,6 +5994,9 @@
         "negative"
        ],
        "effect_abs_floor": 0.285026,
+       "cell_outcomes": {
+        "unassessed": 4
+       },
        "outcome": "insufficient-control-cell-spread"
       }
      }
@@ -6007,7 +6028,8 @@
        "control_spread": 0.49119,
        "delta": 0.0311,
        "ratio": 1.000865,
-       "sign": "positive"
+       "sign": "positive",
+       "outcome": "within-control-variation"
       },
       {
        "round": 1,
@@ -6033,7 +6055,8 @@
        "control_spread": null,
        "delta": -0.8222,
        "ratio": 0.983084,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "unassessed"
       },
       {
        "round": 1,
@@ -6059,7 +6082,8 @@
        "control_spread": 0.41627,
        "delta": 0.061095,
        "ratio": 1.001701,
-       "sign": "positive"
+       "sign": "positive",
+       "outcome": "within-control-variation"
       },
       {
        "round": 1,
@@ -6085,7 +6109,8 @@
        "control_spread": null,
        "delta": -0.39022,
        "ratio": 0.988718,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "unassessed"
       },
       {
        "round": 2,
@@ -6111,7 +6136,8 @@
        "control_spread": 0.75172,
        "delta": 0.093675,
        "ratio": 1.002605,
-       "sign": "positive"
+       "sign": "positive",
+       "outcome": "within-control-variation"
       },
       {
        "round": 3,
@@ -6137,7 +6163,8 @@
        "control_spread": 0.51606,
        "delta": -0.17721,
        "ratio": 0.995088,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "within-control-variation"
       },
       {
        "round": 3,
@@ -6163,7 +6190,8 @@
        "control_spread": null,
        "delta": 0.13763,
        "ratio": 1.004007,
-       "sign": "positive"
+       "sign": "positive",
+       "outcome": "unassessed"
       },
       {
        "round": 4,
@@ -6189,7 +6217,8 @@
        "control_spread": null,
        "delta": -0.99898,
        "ratio": 0.979578,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "unassessed"
       },
       {
        "round": 4,
@@ -6215,7 +6244,8 @@
        "control_spread": 40.19212,
        "delta": -0.107435,
        "ratio": 0.997022,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "within-control-variation"
       },
       {
        "round": 4,
@@ -6241,7 +6271,8 @@
        "control_spread": null,
        "delta": 0.40694,
        "ratio": 1.011863,
-       "sign": "positive"
+       "sign": "positive",
+       "outcome": "unassessed"
       },
       {
        "round": 5,
@@ -6267,7 +6298,8 @@
        "control_spread": 0.54131,
        "delta": 0.030785,
        "ratio": 1.000855,
-       "sign": "positive"
+       "sign": "positive",
+       "outcome": "within-control-variation"
       },
       {
        "round": 5,
@@ -6293,7 +6325,8 @@
        "control_spread": null,
        "delta": -0.064635,
        "ratio": 0.998132,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "unassessed"
       }
      ],
      "missing_cells": [
@@ -6361,6 +6394,9 @@
         "negative"
        ],
        "effect_abs_floor": 0.8222,
+       "cell_outcomes": {
+        "unassessed": 2
+       },
        "outcome": "insufficient-control-cell-spread"
       },
       "0xd40": {
@@ -6380,6 +6416,9 @@
         "positive"
        ],
        "effect_abs_floor": 0.030785,
+       "cell_outcomes": {
+        "within-control-variation": 6
+       },
        "outcome": "within-control-variation"
       },
       "0xd4f": {
@@ -6413,6 +6452,9 @@
         "positive"
        ],
        "effect_abs_floor": 0.064635,
+       "cell_outcomes": {
+        "unassessed": 4
+       },
        "outcome": "insufficient-control-cell-spread"
       }
      }
@@ -6444,7 +6486,8 @@
        "control_spread": 1.43781,
        "delta": -0.079245,
        "ratio": 0.980119,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "within-control-variation"
       },
       {
        "round": 101,
@@ -6470,7 +6513,8 @@
        "control_spread": 0.2386,
        "delta": -0.0279,
        "ratio": 0.992895,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "within-control-variation"
       },
       {
        "round": 102,
@@ -6496,7 +6540,8 @@
        "control_spread": 0.42973,
        "delta": -0.03932,
        "ratio": 0.989769,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "within-control-variation"
       }
      ],
      "missing_cells": [
@@ -6534,6 +6579,9 @@
         "negative"
        ],
        "effect_abs_floor": 0.0279,
+       "cell_outcomes": {
+        "within-control-variation": 3
+       },
        "outcome": "within-control-variation"
       }
      }
@@ -6565,7 +6613,8 @@
        "control_spread": 1.52793,
        "delta": 0.00824,
        "ratio": 1.013645,
-       "sign": "positive"
+       "sign": "positive",
+       "outcome": "within-control-variation"
       },
       {
        "round": 1,
@@ -6591,7 +6640,8 @@
        "control_spread": 3.02315,
        "delta": 0.03262,
        "ratio": 1.028925,
-       "sign": "positive"
+       "sign": "positive",
+       "outcome": "within-control-variation"
       },
       {
        "round": 1,
@@ -6617,7 +6667,8 @@
        "control_spread": 1.5322,
        "delta": 0.02305,
        "ratio": 1.038303,
-       "sign": "positive"
+       "sign": "positive",
+       "outcome": "within-control-variation"
       },
       {
        "round": 1,
@@ -6643,7 +6694,8 @@
        "control_spread": 1.27124,
        "delta": -0.01,
        "ratio": 0.981588,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "within-control-variation"
       },
       {
        "round": 2,
@@ -6669,7 +6721,8 @@
        "control_spread": 1.53827,
        "delta": 0.006765,
        "ratio": 1.011057,
-       "sign": "positive"
+       "sign": "positive",
+       "outcome": "within-control-variation"
       },
       {
        "round": 3,
@@ -6695,7 +6748,8 @@
        "control_spread": 1.548,
        "delta": -0.00289,
        "ratio": 0.995293,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "within-control-variation"
       },
       {
        "round": 3,
@@ -6721,7 +6775,8 @@
        "control_spread": 1.30079,
        "delta": 0.00533,
        "ratio": 1.010124,
-       "sign": "positive"
+       "sign": "positive",
+       "outcome": "within-control-variation"
       },
       {
        "round": 4,
@@ -6747,7 +6802,8 @@
        "control_spread": 3.04131,
        "delta": -0.00842,
        "ratio": 0.992506,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "within-control-variation"
       },
       {
        "round": 4,
@@ -6773,7 +6829,8 @@
        "control_spread": 1.54236,
        "delta": 0.008855,
        "ratio": 1.01457,
-       "sign": "positive"
+       "sign": "positive",
+       "outcome": "within-control-variation"
       },
       {
        "round": 4,
@@ -6799,7 +6856,8 @@
        "control_spread": 1.33164,
        "delta": -0.0121,
        "ratio": 0.977927,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "within-control-variation"
       },
       {
        "round": 5,
@@ -6825,7 +6883,8 @@
        "control_spread": 1.54085,
        "delta": 0.0103,
        "ratio": 1.01695,
-       "sign": "positive"
+       "sign": "positive",
+       "outcome": "within-control-variation"
       },
       {
        "round": 5,
@@ -6851,7 +6910,8 @@
        "control_spread": 1.3407,
        "delta": -0.004495,
        "ratio": 0.991909,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "within-control-variation"
       },
       {
        "round": 100,
@@ -6877,7 +6937,8 @@
        "control_spread": 0.00926,
        "delta": -0.00342,
        "ratio": 0.986127,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "within-control-variation"
       },
       {
        "round": 101,
@@ -6903,7 +6964,8 @@
        "control_spread": 0.09172,
        "delta": -0.000745,
        "ratio": 0.998886,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "within-control-variation"
       },
       {
        "round": 102,
@@ -6929,7 +6991,8 @@
        "control_spread": 0.15461,
        "delta": 0.00625,
        "ratio": 1.013216,
-       "sign": "positive"
+       "sign": "positive",
+       "outcome": "within-control-variation"
       }
      ],
      "missing_cells": [
@@ -7008,6 +7071,9 @@
         "positive"
        ],
        "effect_abs_floor": 0.00842,
+       "cell_outcomes": {
+        "within-control-variation": 2
+       },
        "outcome": "within-control-variation"
       },
       "0xd40": {
@@ -7027,6 +7093,9 @@
         "positive"
        ],
        "effect_abs_floor": 0.000745,
+       "cell_outcomes": {
+        "within-control-variation": 9
+       },
        "outcome": "within-control-variation"
       },
       "0xd4f": {
@@ -7046,6 +7115,9 @@
         "positive"
        ],
        "effect_abs_floor": 0.004495,
+       "cell_outcomes": {
+        "within-control-variation": 4
+       },
        "outcome": "within-control-variation"
       }
      }
@@ -7078,7 +7150,7 @@
     "cgroup memory limit"
    ]
   },
-  "method": "Within each observed CPU part, compare arm medians in each round. Arms are sequential waves whose first position alternates by round; this is alternation, not within-round interleaving. A directional effect must exceed the control observations' within-cell range in every assessed shared cell; deltas inside that range support a null outcome even if their signs vary. A cell with fewer than two control observations has no spread estimate and is explicitly unassessed. Missing-arm cells and rows without CPU identity are listed but never treated as comparable strata.",
+  "method": "Within each observed CPU part, compare arm medians in each round. Arms are sequential waves whose first position alternates by round; this is alternation, not within-round interleaving. A directional effect must exceed the control observations' within-cell range in every assessed shared cell; deltas inside that range support a null outcome even if their signs vary. Every shared cell persists its own outcome (within-control-variation, negative- or positive-beyond-control-variation, or unassessed), and each CPU part's outcome is aggregated from those persisted cell outcomes. A cell with fewer than two control observations has no spread estimate and is explicitly unassessed. Missing-arm cells and rows without CPU identity are listed but never treated as comparable strata.",
   "assessment": {
    "primary_effect": {
     "metric": "cold_imports",

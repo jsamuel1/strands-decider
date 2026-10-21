@@ -136,26 +136,31 @@ def delta(rows: list[dict], cls: str, keys: dict) -> dict:
     return out
 
 
+UNASSESSED_CELL = "unassessed"
+
+
+def cell_outcome(delta: float, control_spread: float | None) -> str:
+    """One shared cell's outcome: its delta against the control observations' within-cell range."""
+    if control_spread is None:
+        return UNASSESSED_CELL
+    if abs(delta) <= control_spread:
+        return "within-control-variation"
+    if delta < 0:
+        return "negative-beyond-control-variation"
+    return "positive-beyond-control-variation"
+
+
 def _part_variability(cells: list[dict]) -> dict:
-    """Classify one CPU part using each cell's control within-cell spread as margin."""
+    """Aggregate one CPU part from the outcome persisted on each of its shared cells."""
     deltas = [c["delta"] for c in cells]
     signs = sorted({c["sign"] for c in cells})
-    assessed = [c for c in cells if c["control_spread"] is not None]
+    assessed = [c for c in cells if c["outcome"] != UNASSESSED_CELL]
     unassessed = [
         {"round": c["round"], "reason": "fewer than two control observations"}
         for c in cells
-        if c["control_spread"] is None
+        if c["outcome"] == UNASSESSED_CELL
     ]
-    cell_outcomes = []
-    for cell in assessed:
-        spread = cell["control_spread"]
-        change = cell["delta"]
-        if abs(change) <= spread:
-            cell_outcomes.append("within-control-variation")
-        elif change < -spread:
-            cell_outcomes.append("negative-beyond-control-variation")
-        else:
-            cell_outcomes.append("positive-beyond-control-variation")
+    cell_outcomes = [c["outcome"] for c in assessed]
     if not assessed:
         outcome = "insufficient-control-cell-spread"
     elif len(set(cell_outcomes)) == 1:
@@ -177,6 +182,7 @@ def _part_variability(cells: list[dict]) -> dict:
         "delta_range": [min(deltas), max(deltas)],
         "delta_signs": signs,
         "effect_abs_floor": min(abs(d) for d in deltas),
+        "cell_outcomes": dict(sorted(Counter(c["outcome"] for c in cells).items())),
         "outcome": outcome,
     }
 
@@ -185,8 +191,10 @@ def host_variability_analysis(rows: list[dict]) -> dict:
     """Primary metrics by shared (round, observed CPU part) cell.
 
     Arms run as sequential waves. Their order alternates by round, so this controls
-    round drift and CPU identity but is not within-round interleaving. A per-part
-    outcome compares every cell delta with that part's control round-median span.
+    round drift and CPU identity but is not within-round interleaving. Each shared cell
+    persists its own outcome (its delta against its control within-cell range, or
+    `unassessed` without two control observations); the per-part outcome is aggregated
+    from those persisted cell outcomes.
     """
     specs = {
         "cold_imports": ("cold", COLD_KEYS["imports"]),
@@ -228,6 +236,7 @@ def host_variability_analysis(rows: list[dict]) -> dict:
             ctl, pyc = values[CONTROL], values[EXPERIMENT]
             ctl_median, pyc_median = statistics.median(ctl), statistics.median(pyc)
             change = pyc_median - ctl_median
+            spread = round(max(ctl) - min(ctl), 6) if len(ctl) >= 2 else None
             cell = {
                 "round": rnd,
                 "cpu_part": cpu,
@@ -237,10 +246,11 @@ def host_variability_analysis(rows: list[dict]) -> dict:
                     CONTROL: [round(min(ctl), 6), round(max(ctl), 6)],
                     EXPERIMENT: [round(min(pyc), 6), round(max(pyc), 6)],
                 },
-                "control_spread": round(max(ctl) - min(ctl), 6) if len(ctl) >= 2 else None,
+                "control_spread": spread,
                 "delta": round(change, 6),
                 "ratio": round(pyc_median / ctl_median, 6) if ctl_median else None,
                 "sign": "negative" if change < 0 else "positive" if change > 0 else "zero",
+                "outcome": cell_outcome(round(change, 6), spread),
             }
             shared.append(cell)
             by_part[cpu].append(cell)
@@ -298,7 +308,7 @@ def host_variability_analysis(rows: list[dict]) -> dict:
         )
     elif imports_comparable and imports_outcome == "within-control-variation":
         reason = (
-            "every observed CPU part stays within its control round-median span; sign variation is a "
+            "every assessed cell stays within its control within-cell spread; sign variation is a "
             "limitation, not a directional effect"
         )
     elif not assessed_outcomes:
@@ -321,8 +331,11 @@ def host_variability_analysis(rows: list[dict]) -> dict:
         "method": "Within each observed CPU part, compare arm medians in each round. Arms are sequential waves "
         "whose first position alternates by round; this is alternation, not within-round interleaving. A "
         "directional effect must exceed the control observations' within-cell range in every assessed shared "
-        "cell; deltas inside that range support a null outcome even if their signs vary. A cell with fewer than "
-        "two control observations has no spread estimate and is explicitly unassessed. Missing-arm cells and rows "
+        "cell; deltas inside that range support a null outcome even if their signs vary. Every shared cell "
+        "persists its own outcome (within-control-variation, negative- or positive-beyond-control-variation, or "
+        "unassessed), and each CPU part's outcome is aggregated from those persisted cell outcomes. A cell with "
+        "fewer than two control observations has no spread estimate and is explicitly unassessed. Missing-arm "
+        "cells and rows "
         "without CPU identity are listed but never treated as comparable strata.",
         "assessment": {
             "primary_effect": {

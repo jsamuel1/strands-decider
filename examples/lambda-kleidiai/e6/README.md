@@ -94,8 +94,8 @@ Run `results/20261021T045838Z/`:
 - On 0xd0c the cold first request is −0.69 s [−1.17, −0.32], but the sample is small, and on 0xd4f it is +0.05 s.
   That does not add up to a consistent first-request gain.
 - Every aggregate delta is matched by CPU part. The CIs bootstrap over environments. For the targeted `imports`
-  phase, all 6 shared 0xd40 round/part cells are below zero. Sparse 0xd0c and 0xd4f rows form 4 more shared cells,
-  also below zero, plus 5 unmatched cells that are listed but not compared in `host_variability`.
+  phase, all 6 shared 0xd40 round/part cells are below zero. Sparse 0xd0c and 0xd4f rows form 6 more shared cells
+  (2 and 4), also below zero, plus 5 unmatched cells that are listed but not compared in `host_variability`.
 
 Why the S3 download looks slower on pyc:
 - The wrapper's bytecode check adds 9 ms (pyc) to 12 ms (ctl) after P1's timers have stopped, so it does not explain
@@ -133,9 +133,13 @@ Three CPU identities appeared on both arms:
 All environments reported 6 CPUs, kernel 5.10.255 and Python 3.12.14. Aggregate comparisons are made within one
 part. `results.json` → `host_variability` records every primary metric per shared `(round, CPU part)` cell,
 including per-arm counts, medians, ranges, delta, ratio and sign. It compares `|delta|` with the control
-observations' within-cell range. On 0xd40, every cold-import delta is negative and larger than that margin.
-The one-sample 0xd0c/0xd4f cells have no spread estimate, so they remain explicit unassessed supporting rows;
-their observed deltas have the same sign. Unmatched cells are also explicit. No Graviton generation is claimed:
+observations' within-cell range and persists that cell's outcome (`within-control-variation`,
+`negative-beyond-control-variation`, `positive-beyond-control-variation`, or `unassessed` with fewer than two
+control observations). Each CPU part's outcome is aggregated from those stored cell outcomes, and `cell_outcomes`
+counts them, so a mixed part shows which cells drove it. On 0xd40, all 6 cold-import cells are
+`negative-beyond-control-variation`. The 0xd0c/0xd4f cells have one control observation each, so they are stored as
+`unassessed` supporting rows; their observed deltas have the same sign. Unmatched cells are also explicit. No
+Graviton generation is claimed:
 the parts and features are reported as read.
 
 The change removes CPU work (bytecode compilation), so a fixed-host run would only repeat the offline proxy below. The

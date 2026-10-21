@@ -413,6 +413,7 @@ def test_host_variability_analysis_records_shared_and_missing_cells():
     h = s.host_variability_analysis(rows)
     imports = h["observed"]["primary_metrics"]["cold_imports"]
     assert [cell["delta"] for cell in imports["shared_cells"]] == [-0.35, -0.38]
+    assert [cell["outcome"] for cell in imports["shared_cells"]] == ["unassessed", "unassessed"]
     assert imports["by_cpu_part"]["0xd40"] == {
         "shared_cell_count": 2,
         "assessed_cell_count": 0,
@@ -424,6 +425,7 @@ def test_host_variability_analysis_records_shared_and_missing_cells():
         "delta_range": [-0.38, -0.35],
         "delta_signs": ["negative"],
         "effect_abs_floor": 0.35,
+        "cell_outcomes": {"unassessed": 2},
         "outcome": "insufficient-control-cell-spread",
     }
     assert imports["missing_cells"] == [
@@ -566,6 +568,89 @@ def test_host_variability_sparse_opposite_sign_part_blocks_comparability():
     effect = s.host_variability_analysis(rows)["assessment"]["primary_effect"]
     assert effect["comparable"] is False
     assert effect["unassessed_conflicts"] == ["0xd0c"]
+
+
+def test_host_variability_persists_each_cell_outcome():
+    s = _summ()
+    rows = [
+        # round 0: delta -0.36 beyond control spread 0.02
+        _row("ctl", "cold", 0, imports=0.70),
+        _row("ctl", "cold", 0, imports=0.72),
+        _row("pyc", "cold", 0, imports=0.35),
+        # round 1: delta +0.01 inside control spread 0.10
+        _row("ctl", "cold", 1, imports=0.70),
+        _row("ctl", "cold", 1, imports=0.80),
+        _row("pyc", "cold", 1, imports=0.76),
+        # round 2: delta +0.30 beyond control spread 0.02
+        _row("ctl", "cold", 2, imports=0.70),
+        _row("ctl", "cold", 2, imports=0.72),
+        _row("pyc", "cold", 2, imports=1.01),
+        # round 3: one control observation, no spread estimate
+        _row("ctl", "cold", 3, imports=0.70),
+        _row("pyc", "cold", 3, imports=0.35),
+    ]
+    h = s.host_variability_analysis(rows)
+    imports = h["observed"]["primary_metrics"]["cold_imports"]
+    assert [(c["round"], c["outcome"]) for c in imports["shared_cells"]] == [
+        (0, "negative-beyond-control-variation"),
+        (1, "within-control-variation"),
+        (2, "positive-beyond-control-variation"),
+        (3, "unassessed"),
+    ]
+    part = imports["by_cpu_part"]["0xd40"]
+    # a consumer can see which cells drove the mixed part outcome
+    assert part["cell_outcomes"] == {
+        "negative-beyond-control-variation": 1,
+        "positive-beyond-control-variation": 1,
+        "unassessed": 1,
+        "within-control-variation": 1,
+    }
+    assert part["outcome"] == "mixed-or-overlapping-control-variation"
+    assert part["assessed_cell_count"] == 3
+    assert part["unassessed_cells"] == [
+        {"round": 3, "reason": "fewer than two control observations"}
+    ]
+    assert h["assessment"]["primary_effect"]["comparable"] is False
+    # every primary metric's cells carry an outcome, not only imports
+    for metric in h["observed"]["primary_metrics"].values():
+        assert all("outcome" in c for c in metric["shared_cells"])
+
+
+def test_cell_outcome_boundaries():
+    s = _summ()
+    assert s.cell_outcome(-0.1, None) == "unassessed"
+    assert s.cell_outcome(-0.1, 0.1) == "within-control-variation"
+    assert s.cell_outcome(0.1, 0.1) == "within-control-variation"
+    assert s.cell_outcome(0.0, 0.0) == "within-control-variation"
+    assert s.cell_outcome(-0.11, 0.1) == "negative-beyond-control-variation"
+    assert s.cell_outcome(0.11, 0.1) == "positive-beyond-control-variation"
+
+
+def test_part_outcome_aggregates_from_persisted_cell_outcomes():
+    s = _summ()
+
+    def cell(rnd, d, spread, outcome):
+        sign = "negative" if d < 0 else "positive"
+        return {
+            "round": rnd,
+            "delta": d,
+            "sign": sign,
+            "control_spread": spread,
+            "outcome": outcome,
+        }
+
+    # the aggregate reads each cell's stored outcome, so the persisted cells and the part agree
+    part = s._part_variability(
+        [
+            cell(0, -0.3, 0.02, "negative-beyond-control-variation"),
+            cell(1, -0.3, 0.02, "within-control-variation"),
+        ]
+    )
+    assert part["outcome"] == "mixed-or-overlapping-control-variation"
+    assert part["cell_outcomes"] == {
+        "negative-beyond-control-variation": 1,
+        "within-control-variation": 1,
+    }
 
 
 def test_status_follows_the_headlines_not_the_targeted_phase():
