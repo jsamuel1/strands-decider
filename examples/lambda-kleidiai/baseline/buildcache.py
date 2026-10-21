@@ -77,6 +77,7 @@ INPUTS = {
         "examples/lambda-kleidiai/snapstart",
         "examples/lambda-kleidiai/baseline/lkai_entry.py",
         "examples/lambda-kleidiai/baseline/phases.py",
+        "examples/lambda-kleidiai/baseline/hostinfo.py",
         "examples/lambda-kleidiai/baseline/container_build.sh",
         "examples/lambda/app",
         "src/strands_decider",

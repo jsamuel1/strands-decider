@@ -18,6 +18,12 @@ Phases (seconds, CLOCK_MONOTONIC):
 Per invocation: start class (cold / restore / warm), the wait for a background load, the handler
 total, PR #77's in-function engine latency (latency_ms) and, after a restore, the gap between the
 after-restore hook and the first invocation. Lambda's REPORT line is left untouched.
+
+Host identity (hostinfo.snapshot, H1): read once at init and again after every restore. The full record rides on
+that environment's first invoke RESPONSE as `lkai.host`, with the invocation context's log stream name, so a row
+names the CPU identity, features, HWCAPs, cores, cgroup limits and kernel of the environment that served it. Log
+lines carry only `host_fingerprint` (the 4 KB log tail must keep its START line); the snapshot-building init's full
+record rides on `before_snapshot`, which no tail holds. Only the instrumented arm reads it; REPORT-only is unchanged.
 """
 
 # ruff: noqa: SLF001
@@ -34,6 +40,8 @@ os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
 import phases  # noqa: E402
 
 ON = phases.enabled()
+if ON:
+    import hostinfo
 
 if not ON:
     import app
@@ -48,7 +56,7 @@ else:
     _rt = phases.runtime_to_import_s()
     if _rt is not None:
         REC.init["runtime_to_import"] = _rt
-    _state = {"n": 0, "env_id": uuid.uuid4().hex[:12]}
+    _state = {"n": 0, "env_id": uuid.uuid4().hex[:12], "host": hostinfo.snapshot()}
 
     with REC.phase("imports"):
         import engine as _eng
@@ -114,7 +122,13 @@ else:
     REC.add("import_total", REC.since_t0())
 
     def _before_snapshot():
-        REC.emit("before_snapshot", env_id=_state["env_id"], init=REC.init, counters=REC.counters)
+        REC.emit(
+            "before_snapshot",
+            env_id=_state["env_id"],
+            init=REC.init,
+            counters=REC.counters,
+            host=_state["host"],
+        )
 
     def _after_restore():
         REC.restored = True
@@ -123,7 +137,16 @@ else:
         _state["env_id"] = uuid.uuid4().hex[
             :12
         ]  # every restored copy starts as its own environment
-        REC.emit("after_restore", env_id=_state["env_id"], cpu_part=_pr77._cpu_part())
+        # A restored copy may run on another host than the one that built its snapshot: read it again. The log
+        # line carries only the fingerprint: bench.py keeps a 4 KB log tail, and a full record could push the
+        # invocation's START line out of it. The full record rides on the first invoke's response.
+        _state["host"] = hostinfo.snapshot()
+        REC.emit(
+            "after_restore",
+            env_id=_state["env_id"],
+            cpu_part=_pr77._cpu_part(),
+            host_fingerprint=_state["host"]["fingerprint"],
+        )
 
     try:
         from snapshot_restore_py import register_after_restore, register_before_snapshot
@@ -165,7 +188,15 @@ else:
         if n == 1:
             rec["init"] = dict(REC.init)
             rec["counters"] = dict(REC.counters)
+            rec["host_fingerprint"] = _state["host"]["fingerprint"]
         REC.emit("invoke", **rec)
         if isinstance(out, dict) and "statusCode" not in out:
+            # Response only (see _after_restore): bench.py stores it as the row's lkai.host.
+            if n == 1:
+                rec = {
+                    **rec,
+                    "host": _state["host"],
+                    "log_stream": getattr(context, "log_stream_name", None),
+                }
             out["lkai"] = rec
         return out

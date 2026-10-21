@@ -35,7 +35,7 @@ nm -D $P/lib/libdecshim.so | grep -q dec_load_phases_ns || { echo "FATAL: decshi
 # PR #77's handler and loader, the snapstart engine/app/eval mode, the baseline entry point.
 cp /lambda/app/handler.py /lambda/app/loader.py $P/
 cp /recipe/snapstart/engine.py /recipe/snapstart/app.py /recipe/snapstart/eval_np.py $P/
-cp /recipe/baseline/lkai_entry.py /recipe/baseline/phases.py $P/
+cp /recipe/baseline/lkai_entry.py /recipe/baseline/phases.py /recipe/baseline/hostinfo.py $P/
 cp /assets/tokenizer.json /assets/head.safetensors /assets/head_config.json $P/assets/
 cp /pkgsrc/__init__.py /pkgsrc/schema.py /pkgsrc/prompting.py /pkgsrc/hidden_engine.py $P/strands_decider/
 python3.12 -m pip install -q --root-user-action=ignore --no-compile --only-binary=:all: --target $P \
@@ -50,7 +50,7 @@ for so in $P/lib/*.so*; do
 done
 # Importing the handler would load the model: check imports and syntax instead.
 (cd /tmp && PYTHONPATH=$P LD_LIBRARY_PATH=$P/lib python3.12 -c "
-import ast, ctypes, engine, loader, phases, pydantic, numpy, tokenizers, strands_decider.hidden_engine
+import ast, ctypes, engine, loader, phases, hostinfo, pydantic, numpy, tokenizers, strands_decider.hidden_engine
 for f in ('handler.py', 'app.py', 'lkai_entry.py'):
     ast.parse(open('$P/' + f).read())
 ctypes.CDLL('$P/lib/libdecshim.so').dec_load_phases_ns
