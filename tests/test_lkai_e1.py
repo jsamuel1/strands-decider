@@ -623,6 +623,177 @@ def test_host_variability_comparable_verdict_names_unassessed_unknown_rows():
     assert "unassessed" not in hv_all_known["verdict"]
 
 
+def _cell_rows(spec, arms=("xz", "gp")):
+    """spec: {(round, cpu_part): (a_values, b_values)} -> cold rows for the headline arms."""
+    a, b = arms
+    return [
+        _row(arm, rnd, "cold", dl=v, cpu=part)
+        for (rnd, part), (xa, xb) in spec.items()
+        for arm, xs in ((a, xa), (b, xb))
+        for v in xs
+    ]
+
+
+def test_cells_all_directional_with_pooled_sign_are_comparable():
+    import summarize_e1
+
+    rows = _cell_rows({(r, "0xd40"): ([24.0, 24.1], [25.0, 25.2]) for r in range(3)})
+    ca = summarize_e1.cell_assessment(rows, "xz", "gp", "improved")
+    assert [c["outcome"] for c in ca["cells"]] == ["directional"] * 3
+    c0 = ca["cells"][0]
+    assert c0["n"] == [2, 2] and c0["control_within_cell_spread_s"] == pytest.approx(0.2)
+    assert c0["delta_p50_s"] == pytest.approx(-1.05) and c0["sign"] == -1
+    assert ca["assessment"] == "comparable" and ca["rerun"].startswith("not needed")
+
+
+def test_cells_all_in_band_are_null_even_with_varying_signs():
+    import summarize_e1
+
+    rows = _cell_rows(
+        {
+            (0, "0xd40"): ([24.9], [24.5, 25.5]),  # -0.1 inside a 1.0 s spread
+            (1, "0xd40"): ([25.2], [24.5, 25.5]),  # +0.2 inside it
+        }
+    )
+    ca = summarize_e1.cell_assessment(rows, "xz", "gp", "improved")
+    assert ca["in_band_cells"] == 2 and ca["directional_cells"] == 0
+    assert ca["by_cpu_part"]["0xd40"]["observed_signs"] == [-1, 1]
+    assert ca["assessment"] == "null" and ca["rerun"].startswith("not needed for a null")
+    hv = summarize_e1.host_variability(rows, "improved", {})
+    assert hv["verdict"].startswith("null within hosts")
+    assert "pooled 'improved' is not supported within hosts" in hv["verdict"]
+
+
+def test_cells_host_conditioned_flip_is_confounded():
+    import summarize_e1
+
+    rows = _cell_rows(
+        {
+            **{(r, "0xaaa"): ([24.0, 24.1], [25.0, 25.1]) for r in range(2)},
+            **{(r, "0xbbb"): ([26.0, 26.1], [25.0, 25.1]) for r in range(2)},
+        }
+    )
+    ca = summarize_e1.cell_assessment(rows, "xz", "gp", "improved")
+    assert ca["by_cpu_part"]["0xaaa"]["directional_signs"] == [-1]
+    assert ca["by_cpu_part"]["0xbbb"]["directional_signs"] == [1]
+    assert ca["assessment"] == "confounded" and ca["rerun"].startswith("needed")
+    hv = summarize_e1.host_variability(rows, "improved", {})
+    assert hv["verdict"].startswith("confounded") and "rerun needed" in hv["verdict"]
+
+
+def test_cells_all_unknown_cpu_form_no_cell():
+    import summarize_e1
+
+    rows = _cell_rows({(r, None): ([24.0, 24.1], [25.0, 25.2]) for r in range(3)})
+    ca = summarize_e1.cell_assessment(rows, "xz", "gp", "improved")
+    assert ca["cells"] == [] and ca["assessment"] == "unknown"
+    hv = summarize_e1.host_variability(rows, "improved", {})
+    assert hv["verdict"].startswith("unknown") and "unassessed (xz 6, gp 6)" in hv["verdict"]
+
+
+def test_cells_mixed_known_and_unknown_cpu():
+    import summarize_e1
+
+    rows = _cell_rows(
+        {
+            (0, "0xd40"): ([24.0, 24.1], [25.0, 25.2]),  # directional
+            (1, "0xd40"): ([24.9], [23.0, 27.0]),  # in-band: 4 s control spread
+            (0, None): ([30.0], [20.0]),  # no CPU part: never a cell
+        }
+    )
+    ca = summarize_e1.cell_assessment(rows, "xz", "gp", "improved")
+    assert [(c["round"], c["outcome"]) for c in ca["cells"]] == [(0, "directional"), (1, "in-band")]
+    assert ca["assessment"] == "mixed" and not ca["rerun"].startswith("not needed")
+    hv = summarize_e1.host_variability(rows, "improved", {})
+    assert hv["verdict"].startswith("mixed") and "no sign flip" in hv["verdict"]
+    assert "unassessed (xz 1, gp 1)" in hv["verdict"]
+
+
+def test_cells_one_control_sample_is_unassessed_but_keeps_its_sign():
+    import summarize_e1
+
+    rows = _cell_rows(
+        {
+            (0, "0xd40"): ([24.0, 24.1], [25.0, 25.2]),
+            (0, "0xd0c"): ([23.0, 23.2], [25.0]),  # one control sample: no spread
+        }
+    )
+    ca = summarize_e1.cell_assessment(rows, "xz", "gp", "improved")
+    sparse = next(c for c in ca["cells"] if c["cpu_part"] == "0xd0c")
+    assert sparse["outcome"] == "unassessed" and sparse["control_within_cell_spread_s"] is None
+    assert sparse["sign"] == -1
+    assert ca["assessed_cells"] == 1 and ca["unassessed_cells"] == 1
+    assert ca["sparse_cpu_parts_same_sign"] == ["0xd0c"]
+    # a sparse same-sign part does not block the directional conclusion, but it is named
+    assert ca["assessment"] == "comparable"
+    hv = summarize_e1.host_variability(rows, "improved", {})
+    assert "sparse CPU parts with the pooled sign, unassessed: ['0xd0c']" in hv["verdict"]
+
+
+def test_cells_sparse_part_with_opposite_sign_blocks_a_directional_conclusion():
+    import summarize_e1
+
+    rows = _cell_rows(
+        {
+            (0, "0xd40"): ([24.0, 24.1], [25.0, 25.2]),
+            (0, "0xd0c"): ([27.0], [25.0]),  # unassessable, but slower
+        }
+    )
+    ca = summarize_e1.cell_assessment(rows, "xz", "gp", "improved")
+    assert ca["sparse_cpu_parts_opposite_sign"] == ["0xd0c"]
+    assert ca["assessment"] == "confounded"
+
+
+def test_cells_only_unassessed_cells_are_unknown():
+    import summarize_e1
+
+    rows = _cell_rows({(r, "0xd40"): ([24.0], [25.0]) for r in range(3)})
+    ca = summarize_e1.cell_assessment(rows, "xz", "gp", "improved")
+    assert ca["unassessed_cells"] == 3 and ca["assessment"] == "unknown"
+
+
+def test_host_variability_states_sequential_alternating_order_not_interleaving(tmp_path):
+    import summarize_e1
+
+    hv = summarize_e1.summarize_e1(_run(tmp_path), None, None, {})["e1"]["host_variability"]
+    order = hv["method"]["harness_order"]
+    assert order.startswith("alternating round order")
+    assert "not interleaving within a round" in order and "time-within-round" in order
+    # bench.py runs one arm's wave after another and reverses the order on odd rounds
+    bench = open(os.path.join(E1, "..", "baseline", "bench.py")).read()
+    assert "order = arms if rnd % 2 == 0 else arms[::-1]" in bench
+    assert 'for arm in order:\n                recs = b.wave(arm, "$LATEST", rnd, "cold")' in bench
+    # so no committed prose may call the arms interleaved; only the explicit negations are allowed
+    negations = ("not interleaving within a round", "not within-round interleaving")
+    for f in (
+        "README.md",
+        "meta.json",
+        os.path.join("results", "20261020T1235Z-e1", "results.json"),
+    ):
+        text = open(os.path.join(E1, f)).read().lower()
+        for n in negations:
+            text = text.replace(n, "")
+        assert "interleav" not in text, f
+        assert "shared time window" not in text, f
+
+
+def test_committed_run_headline_cells_are_mixed_and_prose_does_not_claim_comparable():
+    res = json.load(open(os.path.join(E1, "results", "20261020T1235Z-e1", "results.json")))
+    meta = json.load(open(os.path.join(E1, "meta.json")))
+    hv = res["e1"]["host_variability"]
+    head = hv["cells"]["bucket_type_no_vpc"]
+    assert hv["assessment"] == head["assessment"] == "mixed"
+    assert (head["directional_cells"], head["in_band_cells"], head["unassessed_cells"]) == (6, 1, 5)
+    band = [(c["round"], c["cpu_part"]) for c in head["cells"] if c["outcome"] == "in-band"]
+    assert band == [(3, "0xd40")]
+    assert {c["sign"] for c in head["cells"]} == {-1}
+    assert hv["cells"]["bucket_type_vpc_same_az"]["assessment"] == "null"
+    assert res["conclusion"] == meta["conclusion"]
+    for text in (meta["conclusion"], meta["host_variability"]["rerun"]):
+        assert "no rerun was needed" not in text.lower() and "not needed" not in text.lower()
+    assert "'mixed'" in meta["conclusion"] and "time-within-round" in meta["conclusion"]
+
+
 def _snap_logs(tmp_path, streams):
     """streams: {arm: [(stream, [cpu parts in its init lines], env_id or None, weight_download), ...]}."""
     (tmp_path / "logs").mkdir()

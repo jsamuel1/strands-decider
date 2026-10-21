@@ -258,6 +258,13 @@ HOST_UNKNOWN = [
     "Availability Zone of non-VPC execution environments (gp, xz)",
 ]
 MIN_PER_PART = 3  # per arm and class, for a within-part median to be reported
+CELL_MEASURE = "cold.weight_download"  # the headline measure, assessed per (round, CPU part) cell
+HARNESS_ORDER = (
+    "alternating round order: within a round the arms run as sequential waves (cold, then restore, then warm, "
+    "one arm after another), and the arm order is reversed on odd rounds (baseline/bench.py). This is not "
+    "interleaving within a round: it balances arm order and round-level drift across rounds, but drift over "
+    "the minutes inside one round (time-within-round) is not controlled and remains a limitation"
+)
 _GGML_RE = re.compile(r"init cpu_part=(\S+) ggml_cpu=(\S+) threads=(\d+)")
 _CPU_RE = re.compile(r"init cpu_part=(\S+)")
 
@@ -396,15 +403,200 @@ def snapshot_host_variability(snap_hosts: dict[str, list[dict]], fn_of: dict[str
     }
 
 
+def _sign(x: float) -> int:
+    return (x > 0) - (x < 0)
+
+
+def cell_assessment(
+    rows: list[dict], a: str, b: str, status: str, measure: str = CELL_MEASURE
+) -> dict:
+    """a - b within every shared (round, CPU part) cell, judged against the control arm's spread in that cell.
+
+    A cell is shared when both arms have at least one sample with that round and recorded CPU part. Its outcome is
+    `directional` when |delta of medians| exceeds the control (b) arm's within-cell range, `in-band` when it does
+    not, and `unassessed` when b has fewer than two samples (no spread estimate). An unassessed cell never
+    establishes comparability; its observed sign is kept as supporting evidence. Rows without a CPU part form no
+    cell. A CPU part with no assessable cell is sparse: an observed sign opposite to the pooled status blocks a
+    directional conclusion, a same sign is a named limitation.
+
+    Assessment: `confounded` (directional cells disagree in sign or oppose the pooled status, or a sparse part shows
+    the opposite sign), `null` (every assessed cell in-band), `comparable` (every assessed cell directional with the
+    pooled status's sign), `mixed` (directional and in-band cells, no flip), `unknown` (no assessable cell)."""
+    cls, name = measure.split(".", 1)
+    f = MEASURES[cls][name]
+    vals: dict = defaultdict(lambda: ([], []))
+    for side, arm in ((0, a), (1, b)):
+        for r in _ok(rows, arm, cls):
+            if not r.get("cpu_part") or (v := f(r)) is None:
+                continue
+            vals[(r["round"], str(r["cpu_part"]))][side].append(v)
+    expected = {"improved": -1, "regressed": 1}.get(status, 0)
+    cells = []
+    for (rnd, part), (xa, xb) in sorted(vals.items()):
+        if not xa or not xb:
+            continue
+        ma, mb = statistics.median(xa), statistics.median(xb)
+        d = ma - mb
+        spread = max(xb) - min(xb) if len(xb) >= 2 else None
+        outcome = (
+            "unassessed" if spread is None else ("directional" if abs(d) > spread else "in-band")
+        )
+        cells.append(
+            {
+                "round": rnd,
+                "cpu_part": part,
+                "n": [len(xa), len(xb)],
+                "a_p50": round(ma, 6),
+                "b_p50": round(mb, 6),
+                "delta_p50_s": round(d, 6),
+                "ratio": round(ma / mb, 6) if mb else None,
+                "a_range_s": round(max(xa) - min(xa), 6),
+                "control_within_cell_spread_s": round(spread, 6) if spread is not None else None,
+                "sign": _sign(d),
+                "outcome": outcome,
+            }
+        )
+    by_part: dict = {}
+    for part in sorted({c["cpu_part"] for c in cells}):
+        cs = [c for c in cells if c["cpu_part"] == part]
+        cnt = {
+            o: sum(c["outcome"] == o for c in cs) for o in ("directional", "in-band", "unassessed")
+        }
+        by_part[part] = {
+            "cells": len(cs),
+            **cnt,
+            "directional_signs": sorted({c["sign"] for c in cs if c["outcome"] == "directional"}),
+            "observed_signs": sorted({c["sign"] for c in cs}),
+            "delta_p50_s_range": [
+                min(c["delta_p50_s"] for c in cs),
+                max(c["delta_p50_s"] for c in cs),
+            ],
+            "sparse": cnt["directional"] + cnt["in-band"] == 0,
+        }
+    assessed = [c for c in cells if c["outcome"] != "unassessed"]
+    dir_signs = {c["sign"] for c in assessed if c["outcome"] == "directional"}
+    sparse = {p: v for p, v in by_part.items() if v["sparse"]}
+    sparse_opposite = sorted(
+        p for p, v in sparse.items() if expected and -expected in v["observed_signs"]
+    )
+    sparse_same = sorted(p for p in sparse if p not in sparse_opposite)
+    opposite_unassessed = [
+        (c["round"], c["cpu_part"])
+        for c in cells
+        if c["outcome"] == "unassessed"
+        and expected
+        and c["sign"] == -expected
+        and c["cpu_part"] not in sparse
+    ]
+    n_dir = sum(c["outcome"] == "directional" for c in assessed)
+    n_band = len(assessed) - n_dir
+    if not assessed:
+        assessment = "unknown"
+    elif len(dir_signs) > 1 or (expected and dir_signs and expected not in dir_signs):
+        assessment = "confounded"
+    elif sparse_opposite:
+        assessment = "confounded"
+    elif n_dir == 0:
+        assessment = "null"
+    elif not expected:
+        # Within-host effects that the pooled no-change does not show, all one sign: partial, not a flip.
+        assessment = "mixed"
+    elif n_band == 0 and expected and dir_signs == {expected}:
+        assessment = "comparable"
+    else:
+        assessment = "mixed"
+    rerun = {
+        "comparable": "not needed: every assessed cell moves with the pooled status beyond the control's "
+        "within-cell spread",
+        "null": "not needed for a null decision: every assessed cell is within the control's within-cell spread",
+        "mixed": "needed to support a directional status within hosts, or state this as a limitation",
+        "confounded": "needed: the effect depends on the CPU part",
+        "unknown": "needed: no cell has a control spread estimate",
+    }[assessment]
+    return {
+        "a": a,
+        "b": b,
+        "measure": measure,
+        "pooled_status": status,
+        "cells": cells,
+        "by_cpu_part": by_part,
+        "assessed_cells": len(assessed),
+        "directional_cells": n_dir,
+        "in_band_cells": n_band,
+        "unassessed_cells": len(cells) - len(assessed),
+        "sparse_cpu_parts_same_sign": sparse_same,
+        "sparse_cpu_parts_opposite_sign": sparse_opposite,
+        "opposite_sign_unassessed_cells": [list(x) for x in opposite_unassessed],
+        "assessment": assessment,
+        "rerun": rerun,
+    }
+
+
+def _cell_verdict(ca: dict, unassessed_rows: dict[str, int]) -> str:
+    """One sentence from a headline cell assessment, naming every limitation it carries."""
+    s, st = ca["assessment"], ca["pooled_status"]
+    dirs = [c for c in ca["cells"] if c["outcome"] == "directional"]
+    band = [c for c in ca["cells"] if c["outcome"] == "in-band"]
+    fmt = lambda cs: ", ".join(f"r{c['round']}/{c['cpu_part']}" for c in cs)  # noqa: E731
+    if s == "unknown":
+        v = "unknown: no shared (round, CPU part) cell has two or more control samples"
+    elif s == "confounded":
+        by_sign = {
+            p: v["directional_signs"]
+            for p, v in ca["by_cpu_part"].items()
+            if v["directional_signs"]
+        }
+        v = (
+            f"confounded: within (round, CPU part) cells the effect is not the pooled '{st}' everywhere "
+            f"(directional signs by CPU part {by_sign}; sparse parts with the opposite sign "
+            f"{ca['sparse_cpu_parts_opposite_sign']}); report per part; rerun needed"
+        )
+    elif s == "null":
+        v = (
+            f"null within hosts: all {ca['assessed_cells']} assessed cells are within the control's within-cell "
+            f"spread ({fmt(band)})"
+        )
+        if st != "no-change":
+            v += f"; the pooled '{st}' is not supported within hosts"
+    elif s == "comparable":
+        v = (
+            f"comparable: all {ca['assessed_cells']} assessed cells move with the pooled '{st}' beyond the control's "
+            f"within-cell spread ({fmt(dirs)})"
+        )
+    else:
+        v = (
+            f"mixed: {len(dirs)} assessed cells are directional (sign {sorted({c['sign'] for c in dirs})}; pooled "
+            f"'{st}') ({fmt(dirs)}) and {len(band)} are within the control's within-cell spread ({fmt(band)}); no "
+            "sign flip. The within-host evidence does not hold in every cell, which is a limitation; rerun not "
+            "performed"
+        )
+    if ca["sparse_cpu_parts_same_sign"] and s != "confounded":
+        v += f"; sparse CPU parts with the pooled sign, unassessed: {ca['sparse_cpu_parts_same_sign']}"
+    if ca["unassessed_cells"]:
+        v += f"; {ca['unassessed_cells']} shared cells have fewer than 2 control samples and are unassessed"
+    if ca["opposite_sign_unassessed_cells"]:
+        v += "; unassessed cells with the opposite observed sign: " + ", ".join(
+            f"r{r}/{p}" for r, p in ca["opposite_sign_unassessed_cells"]
+        )
+    if any(unassessed_rows.values()):
+        v += (
+            "; cold samples without a recorded CPU part are unassessed ("
+            + ", ".join(f"{a} {n}" for a, n in unassessed_rows.items())
+            + ")"
+        )
+    return v
+
+
 def host_variability(
     rows: list[dict],
     status: str,
     pooled: dict | None = None,
     snapshot: dict | None = None,
 ) -> dict:
-    """Is the comparison confounded by which CPU each environment landed on? Mix per arm and class, every contrast
-    within each CPU part both arms ran on (MIN_PER_PART samples each), the headline status on that split, and every
-    pooled measure whose status (same rule as the headline) no CPU part reproduces."""
+    """Is the comparison confounded by which CPU each environment landed on? Mix per arm and class; the headline
+    measure judged within every shared (round, CPU part) cell against the control's within-cell spread (the
+    verdict); every contrast pooled within each CPU part (descriptive); and every pooled measure whose status no
+    CPU part reproduces."""
     mix: dict = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
     ggml: dict = defaultdict(lambda: defaultdict(int))
     for r in rows:
@@ -427,31 +619,23 @@ def host_variability(
             if kept:
                 within[name][part] = kept
     head = HEADLINE
+    # Descriptive only: the status rule on rounds pooled within a part. The verdict comes from the cells below.
     per_part_status = {}
     for part, c in within[head].items():
-        if "cold.weight_download" in c:
+        if CELL_MEASURE in c:
             per_part_status[part] = decide({head: c})[0]
-    agree = [p for p, s in per_part_status.items() if s == status]
+    cells = {}
+    for name, (a, b) in CONTRASTS.items():
+        c = (pooled or {}).get(name, {}).get(CELL_MEASURE)
+        st = (
+            status
+            if name == head
+            else (_status(c) if isinstance(c, dict) and "per_round_delta_s" in c else "no-change")
+        )
+        cells[name] = cell_assessment(rows, a, b, st)
     # Headline cold samples with no recorded CPU part were not assessed; a verdict must say so, not absorb them.
     unassessed = {a: mix.get(a, {}).get("cold", {}).get("unknown", 0) for a in CONTRASTS[head]}
-    if per_part_status and len(agree) == len(per_part_status):
-        verdict = (
-            f"comparable: the headline status '{status}' holds within every CPU part with at least "
-            f"{MIN_PER_PART} cold samples per arm ({', '.join(sorted(per_part_status))})"
-        )
-        if any(unassessed.values()):
-            verdict += (
-                "; cold samples without a recorded CPU part are unassessed ("
-                + ", ".join(f"{a} {n}" for a, n in unassessed.items())
-                + ")"
-            )
-    elif per_part_status:
-        verdict = (
-            f"confounded: the headline status '{status}' differs within CPU part(s) "
-            f"{sorted(set(per_part_status) - set(agree))}; report per part"
-        )
-    else:
-        verdict = "unknown: no CPU part has enough cold samples on both headline arms"
+    verdict = _cell_verdict(cells[head], unassessed)
     # A pooled change that no CPU part shows on its own comes from the arms' different CPU mixes.
     mix_confounded = []
     for name, measures in (pooled or {}).items():
@@ -488,6 +672,16 @@ def host_variability(
         "cpu_part_mix": {
             a: {c: dict(sorted(v.items())) for c, v in cl.items()} for a, cl in mix.items()
         },
+        "method": {
+            "harness_order": HARNESS_ORDER,
+            "verdict_basis": f"{CELL_MEASURE} of the headline contrast within each shared (round, CPU part) "
+            "cell: directional when |delta of medians| > the control arm's within-cell range, in-band "
+            "otherwise, unassessed with fewer than 2 control samples",
+            "within_cpu_part": "descriptive: rounds pooled within a CPU part; not the verdict basis",
+        },
+        "cells": cells,
+        "assessment": cells[head]["assessment"],
+        "rerun": cells[head]["rerun"],
         "within_cpu_part": within,
         "headline_status_by_cpu_part": per_part_status,
         "min_samples_per_arm": MIN_PER_PART,

@@ -10419,7 +10419,7 @@
   "git fetch https://github.com/jsamuel1/strands-decider lkai/d654-s3-express && git checkout <commit of this file>",
   "AWS_PROFILE=<profile> SOURCE=s3://<bucket holding P1's weights/ and code/ objects> examples/lambda-kleidiai/e1-s3-express/run_e1.sh <run-id>"
  ],
- "conclusion": "Small download gain without a VPC; none when the AZ is held fixed; more expensive. Not recommended. Run 20261020T1235Z-e1: 4 arms interleaved over 5 rounds; 2,400 invocations, 0 errors, 0 class mismatches. Correctness: the GGUF sha256 8dbb8872 was read back identical from both buckets, and all 2,400 answers are bit-identical to P1's reference (0 choice flips). No VPC (xz - gp, the headline): cold weight_download p50 24.20 vs 24.95 s (-0.76 s, -3.0%), faster in 5/5 rounds; the control arm's per-round range is 0.18 s. p95 24.31 vs 25.19 s; p99 24.36 vs 28.56 s; 81.9 vs 79.4 MiB/s. Snapshot-init download p50 23.84 vs 24.92 s (n=10 each). Cold first request total -0.72 s (35.17 vs 35.89 s, -2.0%). Same AZ in a use2-az1 VPC subnet (xzv - gpv): weight_download 25.11 vs 25.10 s (+0.07%), 3/5 rounds: no effect. Both VPC arms ran at ~79 MiB/s, so the ~80 MiB/s per-environment ceiling (32 Python threads into a memfd) holds whichever bucket serves the bytes, and Express's lower first-byte latency does not show. The no-VPC gain is therefore not explained by AZ locality. It may come from the zonal endpoint's network path, and it is the only contrast that improved. VPC confound: gpv - gp +0.14 s download and +0.14 s cold first request (Init Duration unchanged); xzv - xz +0.92 s. Compute unchanged: model_load_mmap -0.001 s and first_request_inference +0.000 s (xz - gp). Warm and restore show no bucket effect: by the same status rule every pooled warm and restore contrast is no-change, and warm inference on CPU part 0xd40 is 0.615-0.624 s on every arm. Restores read no weights. Cost per 1,000 cold starts (Lambda duration + S3): gp $4.96, xz $6.14 (+24%). S3's share is $0.013 vs $1.25 because Express charges $0.0006/GB retrieval on 2.08 GB per download; the 0.76 s saved is worth ~$0.05 of Lambda duration per 1,000. Storage costs $0.23/month for xz vs $0.05 for gp. This run cost $4.91, mostly the SnapStart cache 3-hour minimum. A first attempt (20261020T1130Z-e1) was aborted in round 0: stale pooled HTTPS connections in the benchmark client caused 900 s read timeouts on 10 restore invokes that never reached Lambda. bench_e1.py opens a fresh client per wave. Status 'improved' comes from the pre-registered rule on the headline contrast alone. The same-AZ null result and the cost increase mean it should not be adopted. Host variability (assessed 2026-10-21 from the recorded data, no rerun): each invocation recorded its /proc/cpuinfo 'CPU part' and the ggml CPU variant it loaded; three parts appeared (0xd40 on 171 of 200 cold starts, 0xd4f on 17, 0xd0c on 12), and the mix differed by arm (on cold starts only gp and xz drew 0xd0c; xzv never did, in any class). Recomputed within each CPU part, the headline stays 'improved' on all three parts (xz - gp cold weight_download: 0xd40 -0.71 s, 39 vs 41 samples, 5/5 rounds; 0xd4f -0.84 s, 4 vs 4; 0xd0c -1.29 s, 7 vs 5), the same-AZ contrast stays null on 0xd40 (+0.02 s), and no pooled contrast changes status because of the CPU mix (e1.host_variability). Snapshot inits (the download behind every restore) were checked the same way from the saved logs: all 56 before_snapshot records carry an env_id and exactly one CPU part in their own log stream, and every arm drew 0xd40 and 0xd0c equally (gp and xz 5 + 5, gpv and xzv 9 + 9). Within each part, xz - gp snapshot weight_download is -0.70 s (0xd40) and -1.21 s (0xd0c), the pooled sign; xzv - gpv stays within +/-0.07 s; with 5-9 records per arm and part this supports the direction only (e1.host_variability.snapshot_init). The conclusion does not depend on which CPU an environment landed on, so no rerun was needed. Not recorded by this run, so unknown: CPU implementer/variant/revision, feature flags and HWCAPs, core count, cgroup limits, kernel release, and the AZ of non-VPC environments. CPU part values are reported as recorded and are not mapped to a processor generation.",
+ "conclusion": "Small download gain without a VPC; none when the AZ is held fixed; more expensive. Not recommended. Run 20261020T1235Z-e1: 4 arms over 5 rounds, run as sequential arm waves within each round with the arm order reversed on odd rounds (alternating round order, not within-round interleaving); 2,400 invocations, 0 errors, 0 class mismatches. Correctness: the GGUF sha256 8dbb8872 was read back identical from both buckets, and all 2,400 answers are bit-identical to P1's reference (0 choice flips). No VPC (xz - gp, the headline): cold weight_download p50 24.20 vs 24.95 s (-0.76 s, -3.0%), faster in 5/5 rounds; the control arm's per-round range is 0.18 s. p95 24.31 vs 25.19 s; p99 24.36 vs 28.56 s; 81.9 vs 79.4 MiB/s. Snapshot-init download p50 23.84 vs 24.92 s (n=10 each). Cold first request total -0.72 s (35.17 vs 35.89 s, -2.0%). Same AZ in a use2-az1 VPC subnet (xzv - gpv): weight_download 25.11 vs 25.10 s (+0.07%), 3/5 rounds: no effect. Both VPC arms ran at ~79 MiB/s, so the ~80 MiB/s per-environment ceiling (32 Python threads into a memfd) holds whichever bucket serves the bytes, and Express's lower first-byte latency does not show. The no-VPC gain is therefore not explained by AZ locality. It may come from the zonal endpoint's network path, and it is the only contrast that improved. VPC confound: gpv - gp +0.14 s download and +0.14 s cold first request (Init Duration unchanged); xzv - xz +0.92 s. Compute unchanged: model_load_mmap -0.001 s and first_request_inference +0.000 s (xz - gp). Warm and restore show no bucket effect: by the same status rule every pooled warm and restore contrast is no-change, and warm inference on CPU part 0xd40 is 0.615-0.624 s on every arm. Restores read no weights. Cost per 1,000 cold starts (Lambda duration + S3): gp $4.96, xz $6.14 (+24%). S3's share is $0.013 vs $1.25 because Express charges $0.0006/GB retrieval on 2.08 GB per download; the 0.76 s saved is worth ~$0.05 of Lambda duration per 1,000. Storage costs $0.23/month for xz vs $0.05 for gp. This run cost $4.91, mostly the SnapStart cache 3-hour minimum. A first attempt (20261020T1130Z-e1) was aborted in round 0: stale pooled HTTPS connections in the benchmark client caused 900 s read timeouts on 10 restore invokes that never reached Lambda. bench_e1.py opens a fresh client per wave. Status 'improved' comes from the pre-registered rule on the headline contrast alone. The same-AZ null result and the cost increase mean it should not be adopted. Host variability (assessed 2026-10-21 from the recorded data, no rerun): each invocation recorded its /proc/cpuinfo 'CPU part' and the ggml CPU variant it loaded; three parts appeared (0xd40 on 171 of 200 cold starts, 0xd4f on 17, 0xd0c on 12), and the mix differed by arm (on cold starts only gp and xz drew 0xd0c; xzv never did, in any class). The verdict is judged per shared (round, CPU part) cell (e1.host_variability.cells): the headline xz - gp cold weight_download median delta counts as directional only when its magnitude exceeds the gp arm's own within-cell range, and a cell with fewer than 2 gp samples is unassessed. Of 12 shared headline cells, 6 are directional and all faster (r0, r1, r2, r4 on 0xd40, -0.66 to -0.77 s against gp spreads of 0.30-0.47 s; r1 on 0xd4f; r4 on 0xd0c, -1.02 s against 0.54 s), 1 is in-band (r3 on 0xd40: -0.64 s inside a 3.92 s gp spread caused by one slow gp start), and 5 are unassessed (0xd0c r0, r1, r3 and 0xd4f r3, r4, each with one gp sample); every unassessed cell is also faster. No cell shows a sign flip, so the assessment is 'mixed': the direction is consistent within hosts, but the within-cell margin does not hold in every cell, and that is a limitation of the 'improved' status. The same-AZ contrast (xzv - gpv) is null in every assessed cell (0 directional, 6 in-band). Descriptively, pooling rounds within a part, the headline is faster on all three parts (0xd40 -0.71 s, 39 vs 41 samples; 0xd4f -0.84 s, 4 vs 4; 0xd0c -1.29 s, 7 vs 5), and no pooled contrast changes status because of the CPU mix. Snapshot inits (the download behind every restore) were checked the same way from the saved logs: all 56 before_snapshot records carry an env_id and exactly one CPU part in their own log stream, and every arm drew 0xd40 and 0xd0c equally (gp and xz 5 + 5, gpv and xzv 9 + 9). Within each part, xz - gp snapshot weight_download is -0.70 s (0xd40) and -1.21 s (0xd0c), the pooled sign; xzv - gpv stays within +/-0.07 s; with 5-9 records per arm and part this supports the direction only (e1.host_variability.snapshot_init). No rerun was performed. A rerun could at most firm up a ~0.7 s 'improved' headline that the same-AZ null and the +24% cost already override, so the 'not recommended' conclusion does not depend on it; the mixed within-host result is stated as a limitation instead. The harness runs the arms one wave after another inside a round, so drift over the minutes within a round (time-within-round) is not controlled; alternating the order across rounds balances arm order and round-level drift only. Not recorded by this run, so unknown: CPU implementer/variant/revision, feature flags and HWCAPs, core count, cgroup limits, kernel release, and the AZ of non-VPC environments. CPU part values are reported as recorded and are not mapped to a processor generation.",
  "primary_arm": "xz",
  "e1": {
   "headline_contrast": "bucket_type_no_vpc",
@@ -11450,6 +11450,768 @@
      }
     }
    },
+   "method": {
+    "harness_order": "alternating round order: within a round the arms run as sequential waves (cold, then restore, then warm, one arm after another), and the arm order is reversed on odd rounds (baseline/bench.py). This is not interleaving within a round: it balances arm order and round-level drift across rounds, but drift over the minutes inside one round (time-within-round) is not controlled and remains a limitation",
+    "verdict_basis": "cold.weight_download of the headline contrast within each shared (round, CPU part) cell: directional when |delta of medians| > the control arm's within-cell range, in-band otherwise, unassessed with fewer than 2 control samples",
+    "within_cpu_part": "descriptive: rounds pooled within a CPU part; not the verdict basis"
+   },
+   "cells": {
+    "bucket_type_no_vpc": {
+     "a": "xz",
+     "b": "gp",
+     "measure": "cold.weight_download",
+     "pooled_status": "improved",
+     "cells": [
+      {
+       "round": 0,
+       "cpu_part": "0xd0c",
+       "n": [
+        1,
+        1
+       ],
+       "a_p50": 23.850196,
+       "b_p50": 25.049202,
+       "delta_p50_s": -1.199006,
+       "ratio": 0.952134,
+       "a_range_s": 0.0,
+       "control_within_cell_spread_s": null,
+       "sign": -1,
+       "outcome": "unassessed"
+      },
+      {
+       "round": 0,
+       "cpu_part": "0xd40",
+       "n": [
+        8,
+        9
+       ],
+       "a_p50": 24.254272,
+       "b_p50": 24.910611,
+       "delta_p50_s": -0.656339,
+       "ratio": 0.973652,
+       "a_range_s": 0.331885,
+       "control_within_cell_spread_s": 0.303587,
+       "sign": -1,
+       "outcome": "directional"
+      },
+      {
+       "round": 1,
+       "cpu_part": "0xd0c",
+       "n": [
+        2,
+        1
+       ],
+       "a_p50": 23.849963,
+       "b_p50": 25.179015,
+       "delta_p50_s": -1.329052,
+       "ratio": 0.947216,
+       "a_range_s": 0.072601,
+       "control_within_cell_spread_s": null,
+       "sign": -1,
+       "outcome": "unassessed"
+      },
+      {
+       "round": 1,
+       "cpu_part": "0xd40",
+       "n": [
+        7,
+        7
+       ],
+       "a_p50": 24.171344,
+       "b_p50": 24.945207,
+       "delta_p50_s": -0.773863,
+       "ratio": 0.968977,
+       "a_range_s": 0.114614,
+       "control_within_cell_spread_s": 0.314874,
+       "sign": -1,
+       "outcome": "directional"
+      },
+      {
+       "round": 1,
+       "cpu_part": "0xd4f",
+       "n": [
+        1,
+        2
+       ],
+       "a_p50": 24.071032,
+       "b_p50": 25.134464,
+       "delta_p50_s": -1.063433,
+       "ratio": 0.95769,
+       "a_range_s": 0.0,
+       "control_within_cell_spread_s": 0.119501,
+       "sign": -1,
+       "outcome": "directional"
+      },
+      {
+       "round": 2,
+       "cpu_part": "0xd40",
+       "n": [
+        10,
+        10
+       ],
+       "a_p50": 24.262189,
+       "b_p50": 24.981428,
+       "delta_p50_s": -0.71924,
+       "ratio": 0.971209,
+       "a_range_s": 0.178733,
+       "control_within_cell_spread_s": 0.472062,
+       "sign": -1,
+       "outcome": "directional"
+      },
+      {
+       "round": 3,
+       "cpu_part": "0xd0c",
+       "n": [
+        2,
+        1
+       ],
+       "a_p50": 23.921348,
+       "b_p50": 25.160611,
+       "delta_p50_s": -1.239263,
+       "ratio": 0.950746,
+       "a_range_s": 0.094588,
+       "control_within_cell_spread_s": null,
+       "sign": -1,
+       "outcome": "unassessed"
+      },
+      {
+       "round": 3,
+       "cpu_part": "0xd40",
+       "n": [
+        7,
+        8
+       ],
+       "a_p50": 24.19493,
+       "b_p50": 24.838155,
+       "delta_p50_s": -0.643225,
+       "ratio": 0.974103,
+       "a_range_s": 0.203091,
+       "control_within_cell_spread_s": 3.920323,
+       "sign": -1,
+       "outcome": "in-band"
+      },
+      {
+       "round": 3,
+       "cpu_part": "0xd4f",
+       "n": [
+        1,
+        1
+       ],
+       "a_p50": 23.93609,
+       "b_p50": 24.616121,
+       "delta_p50_s": -0.680031,
+       "ratio": 0.972375,
+       "a_range_s": 0.0,
+       "control_within_cell_spread_s": null,
+       "sign": -1,
+       "outcome": "unassessed"
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd0c",
+       "n": [
+        2,
+        2
+       ],
+       "a_p50": 23.90379,
+       "b_p50": 24.926147,
+       "delta_p50_s": -1.022357,
+       "ratio": 0.958985,
+       "a_range_s": 0.066945,
+       "control_within_cell_spread_s": 0.54428,
+       "sign": -1,
+       "outcome": "directional"
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd40",
+       "n": [
+        7,
+        7
+       ],
+       "a_p50": 24.264876,
+       "b_p50": 24.929783,
+       "delta_p50_s": -0.664907,
+       "ratio": 0.973329,
+       "a_range_s": 0.101451,
+       "control_within_cell_spread_s": 0.350321,
+       "sign": -1,
+       "outcome": "directional"
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd4f",
+       "n": [
+        1,
+        1
+       ],
+       "a_p50": 24.142517,
+       "b_p50": 24.793192,
+       "delta_p50_s": -0.650675,
+       "ratio": 0.973756,
+       "a_range_s": 0.0,
+       "control_within_cell_spread_s": null,
+       "sign": -1,
+       "outcome": "unassessed"
+      }
+     ],
+     "by_cpu_part": {
+      "0xd0c": {
+       "cells": 4,
+       "directional": 1,
+       "in-band": 0,
+       "unassessed": 3,
+       "directional_signs": [
+        -1
+       ],
+       "observed_signs": [
+        -1
+       ],
+       "delta_p50_s_range": [
+        -1.329052,
+        -1.022357
+       ],
+       "sparse": false
+      },
+      "0xd40": {
+       "cells": 5,
+       "directional": 4,
+       "in-band": 1,
+       "unassessed": 0,
+       "directional_signs": [
+        -1
+       ],
+       "observed_signs": [
+        -1
+       ],
+       "delta_p50_s_range": [
+        -0.773863,
+        -0.643225
+       ],
+       "sparse": false
+      },
+      "0xd4f": {
+       "cells": 3,
+       "directional": 1,
+       "in-band": 0,
+       "unassessed": 2,
+       "directional_signs": [
+        -1
+       ],
+       "observed_signs": [
+        -1
+       ],
+       "delta_p50_s_range": [
+        -1.063433,
+        -0.650675
+       ],
+       "sparse": false
+      }
+     },
+     "assessed_cells": 7,
+     "directional_cells": 6,
+     "in_band_cells": 1,
+     "unassessed_cells": 5,
+     "sparse_cpu_parts_same_sign": [],
+     "sparse_cpu_parts_opposite_sign": [],
+     "opposite_sign_unassessed_cells": [],
+     "assessment": "mixed",
+     "rerun": "needed to support a directional status within hosts, or state this as a limitation"
+    },
+    "bucket_type_vpc_same_az": {
+     "a": "xzv",
+     "b": "gpv",
+     "measure": "cold.weight_download",
+     "pooled_status": "no-change",
+     "cells": [
+      {
+       "round": 0,
+       "cpu_part": "0xd40",
+       "n": [
+        8,
+        9
+       ],
+       "a_p50": 25.162528,
+       "b_p50": 25.147526,
+       "delta_p50_s": 0.015002,
+       "ratio": 1.000597,
+       "a_range_s": 0.16439,
+       "control_within_cell_spread_s": 0.172751,
+       "sign": 1,
+       "outcome": "in-band"
+      },
+      {
+       "round": 0,
+       "cpu_part": "0xd4f",
+       "n": [
+        2,
+        1
+       ],
+       "a_p50": 25.332545,
+       "b_p50": 25.258669,
+       "delta_p50_s": 0.073876,
+       "ratio": 1.002925,
+       "a_range_s": 0.002274,
+       "control_within_cell_spread_s": null,
+       "sign": 1,
+       "outcome": "unassessed"
+      },
+      {
+       "round": 1,
+       "cpu_part": "0xd40",
+       "n": [
+        10,
+        10
+       ],
+       "a_p50": 25.134397,
+       "b_p50": 25.087691,
+       "delta_p50_s": 0.046706,
+       "ratio": 1.001862,
+       "a_range_s": 0.147883,
+       "control_within_cell_spread_s": 0.199519,
+       "sign": 1,
+       "outcome": "in-band"
+      },
+      {
+       "round": 2,
+       "cpu_part": "0xd40",
+       "n": [
+        9,
+        7
+       ],
+       "a_p50": 25.0647,
+       "b_p50": 25.0717,
+       "delta_p50_s": -0.007,
+       "ratio": 0.999721,
+       "a_range_s": 0.147615,
+       "control_within_cell_spread_s": 0.146089,
+       "sign": -1,
+       "outcome": "in-band"
+      },
+      {
+       "round": 2,
+       "cpu_part": "0xd4f",
+       "n": [
+        1,
+        3
+       ],
+       "a_p50": 25.208903,
+       "b_p50": 25.26979,
+       "delta_p50_s": -0.060887,
+       "ratio": 0.997591,
+       "a_range_s": 0.0,
+       "control_within_cell_spread_s": 0.105734,
+       "sign": -1,
+       "outcome": "in-band"
+      },
+      {
+       "round": 3,
+       "cpu_part": "0xd40",
+       "n": [
+        10,
+        10
+       ],
+       "a_p50": 25.004721,
+       "b_p50": 25.042496,
+       "delta_p50_s": -0.037775,
+       "ratio": 0.998492,
+       "a_range_s": 0.119718,
+       "control_within_cell_spread_s": 0.421005,
+       "sign": -1,
+       "outcome": "in-band"
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd40",
+       "n": [
+        9,
+        9
+       ],
+       "a_p50": 25.118887,
+       "b_p50": 25.144851,
+       "delta_p50_s": -0.025964,
+       "ratio": 0.998967,
+       "a_range_s": 0.153905,
+       "control_within_cell_spread_s": 4.051538,
+       "sign": -1,
+       "outcome": "in-band"
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd4f",
+       "n": [
+        1,
+        1
+       ],
+       "a_p50": 25.321779,
+       "b_p50": 34.19261,
+       "delta_p50_s": -8.870831,
+       "ratio": 0.740563,
+       "a_range_s": 0.0,
+       "control_within_cell_spread_s": null,
+       "sign": -1,
+       "outcome": "unassessed"
+      }
+     ],
+     "by_cpu_part": {
+      "0xd40": {
+       "cells": 5,
+       "directional": 0,
+       "in-band": 5,
+       "unassessed": 0,
+       "directional_signs": [],
+       "observed_signs": [
+        -1,
+        1
+       ],
+       "delta_p50_s_range": [
+        -0.037775,
+        0.046706
+       ],
+       "sparse": false
+      },
+      "0xd4f": {
+       "cells": 3,
+       "directional": 0,
+       "in-band": 1,
+       "unassessed": 2,
+       "directional_signs": [],
+       "observed_signs": [
+        -1,
+        1
+       ],
+       "delta_p50_s_range": [
+        -8.870831,
+        0.073876
+       ],
+       "sparse": false
+      }
+     },
+     "assessed_cells": 6,
+     "directional_cells": 0,
+     "in_band_cells": 6,
+     "unassessed_cells": 2,
+     "sparse_cpu_parts_same_sign": [],
+     "sparse_cpu_parts_opposite_sign": [],
+     "opposite_sign_unassessed_cells": [],
+     "assessment": "null",
+     "rerun": "not needed for a null decision: every assessed cell is within the control's within-cell spread"
+    },
+    "vpc_confound_gp": {
+     "a": "gpv",
+     "b": "gp",
+     "measure": "cold.weight_download",
+     "pooled_status": "no-change",
+     "cells": [
+      {
+       "round": 0,
+       "cpu_part": "0xd40",
+       "n": [
+        9,
+        9
+       ],
+       "a_p50": 25.147526,
+       "b_p50": 24.910611,
+       "delta_p50_s": 0.236915,
+       "ratio": 1.009511,
+       "a_range_s": 0.172751,
+       "control_within_cell_spread_s": 0.303587,
+       "sign": 1,
+       "outcome": "in-band"
+      },
+      {
+       "round": 1,
+       "cpu_part": "0xd40",
+       "n": [
+        10,
+        7
+       ],
+       "a_p50": 25.087691,
+       "b_p50": 24.945207,
+       "delta_p50_s": 0.142484,
+       "ratio": 1.005712,
+       "a_range_s": 0.199519,
+       "control_within_cell_spread_s": 0.314874,
+       "sign": 1,
+       "outcome": "in-band"
+      },
+      {
+       "round": 2,
+       "cpu_part": "0xd40",
+       "n": [
+        7,
+        10
+       ],
+       "a_p50": 25.0717,
+       "b_p50": 24.981428,
+       "delta_p50_s": 0.090272,
+       "ratio": 1.003614,
+       "a_range_s": 0.146089,
+       "control_within_cell_spread_s": 0.472062,
+       "sign": 1,
+       "outcome": "in-band"
+      },
+      {
+       "round": 3,
+       "cpu_part": "0xd40",
+       "n": [
+        10,
+        8
+       ],
+       "a_p50": 25.042496,
+       "b_p50": 24.838155,
+       "delta_p50_s": 0.204341,
+       "ratio": 1.008227,
+       "a_range_s": 0.421005,
+       "control_within_cell_spread_s": 3.920323,
+       "sign": 1,
+       "outcome": "in-band"
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd40",
+       "n": [
+        9,
+        7
+       ],
+       "a_p50": 25.144851,
+       "b_p50": 24.929783,
+       "delta_p50_s": 0.215068,
+       "ratio": 1.008627,
+       "a_range_s": 4.051538,
+       "control_within_cell_spread_s": 0.350321,
+       "sign": 1,
+       "outcome": "in-band"
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd4f",
+       "n": [
+        1,
+        1
+       ],
+       "a_p50": 34.19261,
+       "b_p50": 24.793192,
+       "delta_p50_s": 9.399418,
+       "ratio": 1.379113,
+       "a_range_s": 0.0,
+       "control_within_cell_spread_s": null,
+       "sign": 1,
+       "outcome": "unassessed"
+      }
+     ],
+     "by_cpu_part": {
+      "0xd40": {
+       "cells": 5,
+       "directional": 0,
+       "in-band": 5,
+       "unassessed": 0,
+       "directional_signs": [],
+       "observed_signs": [
+        1
+       ],
+       "delta_p50_s_range": [
+        0.090272,
+        0.236915
+       ],
+       "sparse": false
+      },
+      "0xd4f": {
+       "cells": 1,
+       "directional": 0,
+       "in-band": 0,
+       "unassessed": 1,
+       "directional_signs": [],
+       "observed_signs": [
+        1
+       ],
+       "delta_p50_s_range": [
+        9.399418,
+        9.399418
+       ],
+       "sparse": true
+      }
+     },
+     "assessed_cells": 5,
+     "directional_cells": 0,
+     "in_band_cells": 5,
+     "unassessed_cells": 1,
+     "sparse_cpu_parts_same_sign": [
+      "0xd4f"
+     ],
+     "sparse_cpu_parts_opposite_sign": [],
+     "opposite_sign_unassessed_cells": [],
+     "assessment": "null",
+     "rerun": "not needed for a null decision: every assessed cell is within the control's within-cell spread"
+    },
+    "vpc_confound_xz": {
+     "a": "xzv",
+     "b": "xz",
+     "measure": "cold.weight_download",
+     "pooled_status": "regressed",
+     "cells": [
+      {
+       "round": 0,
+       "cpu_part": "0xd40",
+       "n": [
+        8,
+        8
+       ],
+       "a_p50": 25.162528,
+       "b_p50": 24.254272,
+       "delta_p50_s": 0.908256,
+       "ratio": 1.037447,
+       "a_range_s": 0.16439,
+       "control_within_cell_spread_s": 0.331885,
+       "sign": 1,
+       "outcome": "directional"
+      },
+      {
+       "round": 0,
+       "cpu_part": "0xd4f",
+       "n": [
+        2,
+        1
+       ],
+       "a_p50": 25.332545,
+       "b_p50": 24.113686,
+       "delta_p50_s": 1.218859,
+       "ratio": 1.050546,
+       "a_range_s": 0.002274,
+       "control_within_cell_spread_s": null,
+       "sign": 1,
+       "outcome": "unassessed"
+      },
+      {
+       "round": 1,
+       "cpu_part": "0xd40",
+       "n": [
+        10,
+        7
+       ],
+       "a_p50": 25.134397,
+       "b_p50": 24.171344,
+       "delta_p50_s": 0.963053,
+       "ratio": 1.039843,
+       "a_range_s": 0.147883,
+       "control_within_cell_spread_s": 0.114614,
+       "sign": 1,
+       "outcome": "directional"
+      },
+      {
+       "round": 2,
+       "cpu_part": "0xd40",
+       "n": [
+        9,
+        10
+       ],
+       "a_p50": 25.0647,
+       "b_p50": 24.262189,
+       "delta_p50_s": 0.802511,
+       "ratio": 1.033077,
+       "a_range_s": 0.147615,
+       "control_within_cell_spread_s": 0.178733,
+       "sign": 1,
+       "outcome": "directional"
+      },
+      {
+       "round": 3,
+       "cpu_part": "0xd40",
+       "n": [
+        10,
+        7
+       ],
+       "a_p50": 25.004721,
+       "b_p50": 24.19493,
+       "delta_p50_s": 0.809791,
+       "ratio": 1.033469,
+       "a_range_s": 0.119718,
+       "control_within_cell_spread_s": 0.203091,
+       "sign": 1,
+       "outcome": "directional"
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd40",
+       "n": [
+        9,
+        7
+       ],
+       "a_p50": 25.118887,
+       "b_p50": 24.264876,
+       "delta_p50_s": 0.854011,
+       "ratio": 1.035195,
+       "a_range_s": 0.153905,
+       "control_within_cell_spread_s": 0.101451,
+       "sign": 1,
+       "outcome": "directional"
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd4f",
+       "n": [
+        1,
+        1
+       ],
+       "a_p50": 25.321779,
+       "b_p50": 24.142517,
+       "delta_p50_s": 1.179262,
+       "ratio": 1.048846,
+       "a_range_s": 0.0,
+       "control_within_cell_spread_s": null,
+       "sign": 1,
+       "outcome": "unassessed"
+      }
+     ],
+     "by_cpu_part": {
+      "0xd40": {
+       "cells": 5,
+       "directional": 5,
+       "in-band": 0,
+       "unassessed": 0,
+       "directional_signs": [
+        1
+       ],
+       "observed_signs": [
+        1
+       ],
+       "delta_p50_s_range": [
+        0.802511,
+        0.963053
+       ],
+       "sparse": false
+      },
+      "0xd4f": {
+       "cells": 2,
+       "directional": 0,
+       "in-band": 0,
+       "unassessed": 2,
+       "directional_signs": [],
+       "observed_signs": [
+        1
+       ],
+       "delta_p50_s_range": [
+        1.179262,
+        1.218859
+       ],
+       "sparse": true
+      }
+     },
+     "assessed_cells": 5,
+     "directional_cells": 5,
+     "in_band_cells": 0,
+     "unassessed_cells": 2,
+     "sparse_cpu_parts_same_sign": [
+      "0xd4f"
+     ],
+     "sparse_cpu_parts_opposite_sign": [],
+     "opposite_sign_unassessed_cells": [],
+     "assessment": "comparable",
+     "rerun": "not needed: every assessed cell moves with the pooled status beyond the control's within-cell spread"
+    }
+   },
+   "assessment": "mixed",
+   "rerun": "needed to support a directional status within hosts, or state this as a limitation",
    "within_cpu_part": {
     "bucket_type_no_vpc": {
      "0xd0c": {
@@ -12981,7 +13743,7 @@
    },
    "min_samples_per_arm": 3,
    "pooled_mix_confounded": [],
-   "verdict": "comparable: the headline status 'improved' holds within every CPU part with at least 3 cold samples per arm (0xd0c, 0xd40, 0xd4f)",
+   "verdict": "mixed: 6 assessed cells are directional (sign [-1]; pooled 'improved') (r0/0xd40, r1/0xd40, r1/0xd4f, r2/0xd40, r4/0xd0c, r4/0xd40) and 1 are within the control's within-cell spread (r3/0xd40); no sign flip. The within-host evidence does not hold in every cell, which is a limitation; rerun not performed; 5 shared cells have fewer than 2 control samples and are unassessed",
    "snapshot_init": {
     "source": "before_snapshot records in logs/<function>.jsonl.gz; CPU part from the engine init line in the same log stream; env_id from the record; version from the stream name",
     "by_arm": {

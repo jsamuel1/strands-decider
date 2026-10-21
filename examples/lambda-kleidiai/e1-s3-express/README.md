@@ -20,7 +20,10 @@ instead. Knobs: `REGION` (us-east-2), `AZ_ID` (use2-az1), `ROUNDS` (5), `CONCURR
 
 A Lambda function outside a VPC has no fixed Availability Zone, so a directory bucket in one AZ is same-AZ for only
 some execution environments, and which ones is not observable. A VPC-attached function fixes the AZ but adds its own
-network setup to the cold start. E1 therefore runs both factors, all four arms interleaved in every round:
+network setup to the cold start. E1 therefore runs both factors, all four arms in every round. Within a round the
+arms run as sequential waves (each arm's cold wave, then each arm's restore wave, then warm passes), and the arm
+order is reversed on odd rounds (`../baseline/bench.py`). That alternating round order balances arm order and
+round-level drift, but drift within a round (time-within-round) is not controlled and is a limitation:
 
 | Arm | Weights bucket | Network |
 |---|---|---|
@@ -78,9 +81,16 @@ Lambda chooses the host for each execution environment, and E1 cannot control th
 `summarize_e1.py` writes `e1.host_variability`:
 
 - `cpu_part_mix`: invocations per arm, class and CPU part.
-- `within_cpu_part`: every contrast recomputed inside each CPU part both arms ran on, with at least 3 samples per arm.
-- `headline_status_by_cpu_part` and `verdict`: the status rule applied within each part. The verdict is
-  `comparable` when every part agrees with the pooled status and `confounded` when any part disagrees.
+- `cells`, `assessment`, `rerun` and `verdict`: the verdict basis. For every contrast, cold `weight_download` is
+  compared inside each shared `(round, CPU part)` cell with per-arm `n`, medians, delta, ratio, sign, and the
+  control arm's within-cell range. A cell is `directional` when |delta| exceeds that range, `in-band` when it does
+  not, and `unassessed` with fewer than 2 control samples. Rows without a CPU part form no cell. The assessment is
+  `comparable` (every assessed cell directional with the pooled sign), `null` (every assessed cell in-band),
+  `mixed` (directional and in-band cells, no flip), `confounded` (directional cells of both signs, or against the
+  pooled sign, or a CPU part with only unassessed cells showing the opposite sign) or `unknown` (no assessable cell).
+- `method`: the harness order (alternating round order, not within-round interleaving) and the verdict basis.
+- `within_cpu_part` and `headline_status_by_cpu_part`: descriptive only. Every contrast recomputed with rounds
+  pooled inside each CPU part both arms ran on (at least 3 samples per arm), and the status rule on that pool.
 - `pooled_mix_confounded`: pooled measures that pass the status rule while no CPU part does, meaning the arms'
   different CPU mixes produced the change.
 - `unknown`: what the run did not record. That covers CPU implementer, variant and revision, feature flags and
@@ -96,10 +106,16 @@ Lambda chooses the host for each execution environment, and E1 cannot control th
 CPU part values are reported as recorded and are not mapped to a processor generation.
 
 Run 20261020T1235Z-e1 saw three CPU parts: 0xd40 on 171 of 200 cold starts, 0xd4f on 17 and 0xd0c on 12. The
-headline is `improved` within all three parts. Within 0xd40, xz − gp cold `weight_download` is −0.71 s, faster
-in 5/5 rounds. The same-AZ contrast stays null on 0xd40. `pooled_mix_confounded` is empty, so the CPU mix does
-not change any conclusion and the run was not repeated. H1's fixed-host EC2 baseline isolates CPU and memory
-effects, but E1's variable is the network path, so it does not apply.
+headline (xz − gp) has 12 shared cells. Six are directional and faster: rounds 0, 1, 2 and 4 on 0xd40 (−0.66 to
+−0.77 s against gp ranges of 0.30 to 0.47 s), round 1 on 0xd4f and round 4 on 0xd0c (−1.02 s against 0.54 s).
+One is in-band: round 3 on 0xd40, −0.64 s inside a 3.92 s gp range. Five have a single gp sample and are
+unassessed; all five are also faster. No cell flips sign, so the assessment is `mixed`: the direction holds
+within hosts, but the margin does not hold in every cell. The same-AZ contrast (xzv − gpv) is in-band in all 6
+assessed cells (`null`). `pooled_mix_confounded` is empty.
+
+No rerun was performed. The mixed headline is a stated limitation of the `improved` status. It does not affect the
+"not recommended" conclusion, which rests on the same-AZ null and the cost increase. H1's fixed-host EC2 baseline
+isolates CPU and memory effects, but E1's variable is the network path, so it does not apply.
 
 The 56 snapshot inits all recorded an `env_id` and exactly one CPU part per stream. Every arm drew 0xd40 and
 0xd0c in equal numbers (gp and xz 5 + 5, gpv and xzv 9 + 9), so the snapshot contrasts compare identical CPU
