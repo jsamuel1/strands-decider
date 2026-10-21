@@ -18,6 +18,10 @@ import time
 pkg, gguf, reqs, ref_path, out = sys.argv[1:6]
 sys.path.insert(0, pkg)
 os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
+# P1's deployed function environment (deploy.py; the same defaults as profiling/offline_drive.py). Without them the
+# engine runs a different KV type, ubatch and sequence count, and its numbers are not comparable with the reference.
+for _k, _v in (("DEC_KV", "f32"), ("DEC_UBATCH", "512"), ("N_SEQ", "17")):
+    os.environ.setdefault(_k, _v)
 threads = int(os.environ.get("THREADS", "6"))
 
 libc = ctypes.CDLL("libc.so.6", use_errno=True)
