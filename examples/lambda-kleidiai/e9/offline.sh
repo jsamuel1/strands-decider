@@ -19,8 +19,8 @@ IMG=$(sed -n 's/^LAMBDA_IMAGE=//p' "$BASE/build.sh")
 for z in p1 e9; do
   rm -rf "$OUT/pkg-$z" && mkdir -p "$OUT/pkg-$z"
 done
-python3 -c "import zipfile,sys; zipfile.ZipFile(sys.argv[1]).extractall(sys.argv[2])" "$PB/function.zip" "$OUT/pkg-p1"
-python3 -c "import zipfile,sys; zipfile.ZipFile(sys.argv[1]).extractall(sys.argv[2])" "$EB/function.zip" "$OUT/pkg-e9"
+unzip -q "$PB/function.zip" -d "$OUT/pkg-p1"  # unzip, not zipfile: the zip stores libllama.so.0 etc. as symlinks
+unzip -q "$EB/function.zip" -d "$OUT/pkg-e9"
 chmod -R a+rX "$OUT"
 mkdir -p "$OUT/dump" && chmod 777 "$OUT/dump" "$OUT"
 probe() {  # probe <name> <pkg> <gguf path under /m> <repeat> [extra docker args]
