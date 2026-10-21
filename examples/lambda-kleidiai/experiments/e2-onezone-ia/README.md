@@ -144,12 +144,20 @@ from the part number and timings, and was removed.
 
 - The arms were interleaved by round, and both drew the same part mix within one or two cold starts per part (table
   above). The snapshot inits that seeded every restore ran on the same parts on both arms.
-- The primary metric, cold `weight_download`, does not depend on the CPU part in this run. Pooled over both arms,
+- The primary metric, cold `weight_download`, does not depend materially on the CPU part in this run. Pooled over both arms,
   its median is 24.85 s on `0xd0c` (n=4), 24.97 s on `0xd40` (n=84) and 25.15 s on `0xd4f` (n=12). Those medians
   span 1.2% end to end, against a ±2% band on the arm ratio.
+- Within each shared (round, CPU part) cell, the eight available arm comparisons have ratios from 0.994925 to
+  1.009692 and deltas from -0.127197 s to +0.241319 s. Every ratio is inside the ±2% band; signs vary across rounds,
+  so this is run timing around a null result rather than a stable storage-class direction. CPU parts absent from
+  either arm in a round have no shared-cell comparison. The complete cells are in
+  `host_variability.primary_by_round_and_cpu_part`.
 - Restricted to the dominant part `0xd40` (84 of 100 cold starts), the primary ratio is 0.9995, primary interval
   [0.997, 1.0051], round-cluster [0.9973, 1.0072]. Both lie inside the band, so the outcome is **no-change** with
   the host held fixed (`host_variability.primary_within_dominant_cpu_part`).
+- `host_variability.rerun_assessment` records **no rerun**: the dominant-part primary and cluster intervals preserve
+  the pooled no-change outcome, and every shared round/CPU-part ratio remains inside the decision band. Sparse
+  parts and changing within-round signs remain explicit limitations.
 - Correctness is compared per (request, CPU part) against P1's reference: 1,200 / 1,200 bit-identical with 0
   missing references.
 - The phases where the part mix does show (probe forward, warm inference) are compute on weights already in memory.

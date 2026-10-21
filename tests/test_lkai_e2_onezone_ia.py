@@ -495,6 +495,13 @@ def test_host_variability_reports_cpu_parts_unknowns_and_within_part_outcome(tmp
     assert w["cpu_part"] == "0xd40" and w["n"] == [18, 20]
     assert w["outcome"] == s.decide(w["ratio_ci95"]) == "no-change"
     assert w["agrees_with_primary"] is True
+    cells = h["primary_by_round_and_cpu_part"]
+    assert cells["shared_cells"] == 2
+    assert cells["ratio_range"] == [0.999601, 1.0]
+    assert cells["delta_signs"] == ["negative", "zero"]
+    assert cells["all_inside_equivalence_band"] is True
+    assert h["rerun_assessment"]["needed"] is False
+    assert h["rerun_assessment"]["decision"] == "no rerun"
 
 
 def test_host_variability_flags_a_conclusion_that_flips_within_one_cpu_part(tmp_path):
@@ -518,6 +525,27 @@ def test_host_variability_flags_a_conclusion_that_flips_within_one_cpu_part(tmp_
     assert w["cpu_part"] == "0xd40"
     assert w["outcome"] == "regressed"
     assert w["agrees_with_primary"] is False
+    assert res["host_variability"]["rerun_assessment"]["needed"] is True
+    assert res["host_variability"]["rerun_assessment"]["decision"] == "rerun affected comparison"
+
+
+def test_round_cpu_primary_records_range_signs_and_sparse_cells():
+    s = _load("summarize")
+    rows = [
+        _row("std", 0, "cold", wd=25.0, cpu="a"),
+        _row("ozia", 0, "cold", wd=24.9, cpu="a"),
+        _row("std", 1, "cold", wd=25.0, cpu="a"),
+        _row("ozia", 1, "cold", wd=25.1, cpu="a"),
+        _row("std", 0, "cold", wd=25.0, cpu="sparse"),
+    ]
+    out = s._round_cpu_primary(rows)
+    assert out["shared_cells"] == 2
+    assert out["ratio_range"] == [0.996, 1.004]
+    assert out["delta_s_range"] == [-0.1, 0.1]
+    assert out["delta_signs"] == ["negative", "positive"]
+    assert out["all_inside_equivalence_band"] is True
+    assert all(c["cpu_part"] == "a" for c in out["cells"])
+    assert "absent from either arm" in out["missing"]
 
 
 def test_committed_result_names_cpu_parts_not_generations():
@@ -526,6 +554,11 @@ def test_committed_result_names_cpu_parts_not_generations():
     h = res["host_variability"]
     assert h["primary_within_dominant_cpu_part"]["outcome"] == res["status"] == "no-change"
     assert h["observed"]["environments_with_more_than_one_cpu_part"] == 0
+    assert h["primary_by_round_and_cpu_part"]["shared_cells"] == 8
+    assert h["primary_by_round_and_cpu_part"]["ratio_range"] == [0.994925, 1.009692]
+    assert h["primary_by_round_and_cpu_part"]["delta_signs"] == ["negative", "positive"]
+    assert h["primary_by_round_and_cpu_part"]["all_inside_equivalence_band"] is True
+    assert h["rerun_assessment"]["needed"] is False
     for p in (
         os.path.join(base, "results.json"),
         os.path.join(base, "meta.json"),

@@ -321,6 +321,60 @@ def _round_cv(rows: list[dict], cls: str, f) -> dict | None:
     }
 
 
+def _round_cpu_primary(rows: list[dict]) -> dict:
+    """Cold weight-download comparison within each shared (round, CPU part) cell."""
+    cells: list[dict] = []
+    rounds = sorted({r["round"] for r in rows}, key=str)
+    parts = sorted({str(r.get("cpu_part")) for r in rows}, key=str)
+    for cpu in parts:
+        for rnd in rounds:
+            vals = {
+                arm: _values(
+                    [
+                        r
+                        for r in rows
+                        if r["arm"] == arm and r["round"] == rnd and str(r.get("cpu_part")) == cpu
+                    ],
+                    "cold",
+                    "weight_download",
+                )
+                for arm in ARMS
+            }
+            if not vals["std"] or not vals["ozia"]:
+                continue
+            std = statistics.median(vals["std"])
+            ozia = statistics.median(vals["ozia"])
+            ratio = ozia / std
+            cells.append(
+                {
+                    "round": rnd,
+                    "cpu_part": cpu,
+                    "n": [len(vals["std"]), len(vals["ozia"])],
+                    "std_median_s": round(std, 6),
+                    "ozia_median_s": round(ozia, 6),
+                    "delta_s": round(ozia - std, 6),
+                    "ratio": round(ratio, 6),
+                    "inside_equivalence_band": DECISION["equivalence_band"][0]
+                    <= ratio
+                    <= DECISION["equivalence_band"][1],
+                }
+            )
+    ratios = [c["ratio"] for c in cells]
+    deltas = [c["delta_s"] for c in cells]
+    signs = sorted({"negative" if d < 0 else "positive" if d > 0 else "zero" for d in deltas})
+    return {
+        "metric": "cold weight_download median, ozia/std, within shared (round, CPU part)",
+        "cells": cells,
+        "shared_cells": len(cells),
+        "ratio_range": [min(ratios), max(ratios)] if ratios else None,
+        "delta_s_range": [min(deltas), max(deltas)] if deltas else None,
+        "delta_signs": signs,
+        "all_inside_equivalence_band": bool(cells)
+        and all(c["inside_equivalence_band"] for c in cells),
+        "missing": "CPU parts absent from either arm in a round have no shared-cell comparison",
+    }
+
+
 def host_variability(run: str, cond: dict, rows: list[dict], cmp_: dict) -> dict:
     """Host identity observed per invocation, what was not observed, and whether the host mix can move the result."""
     by_arm = {a: [r for r in rows if r["arm"] == a] for a in ARMS}
@@ -353,8 +407,17 @@ def host_variability(run: str, cond: dict, rows: list[dict], cmp_: dict) -> dict
         }
         for a in ARMS
     }
+    round_cpu_primary = _round_cpu_primary(rows)
+    rerun_needed = not (
+        wd.get("n")
+        and decide(wd.get("ratio_ci95")) == cmp_.get("outcome")
+        and decide(wd.get("ratio_ci95_round_cluster")) == cmp_.get("outcome")
+        and round_cpu_primary["all_inside_equivalence_band"]
+    )
     return {
         "identity_field": "cpu_part: the /proc/cpuinfo 'CPU part' line read by the handler in each environment",
+        "method": "compare the primary metric within CPU part and within shared (round, CPU part) cells; retain "
+        "the pre-registered pooled result and paired round-cluster sensitivity",
         "observed": {
             "cpu_part_by_arm_and_class": counts,
             "execution_environments": len(envs),
@@ -384,6 +447,16 @@ def host_variability(run: str, cond: dict, rows: list[dict], cmp_: dict) -> dict
             "outcome_round_cluster": decide(wd.get("ratio_ci95_round_cluster")),
             "agrees_with_primary": decide(wd.get("ratio_ci95")) == cmp_.get("outcome")
             and decide(wd.get("ratio_ci95_round_cluster")) == cmp_.get("outcome"),
+        },
+        "primary_by_round_and_cpu_part": round_cpu_primary,
+        "rerun_assessment": {
+            "needed": rerun_needed,
+            "decision": "no rerun" if not rerun_needed else "rerun affected comparison",
+            "reason": "dominant-part primary and cluster intervals agree with the pooled no-change outcome, and "
+            "every shared round/CPU-part cell is inside the +/-2% band"
+            if not rerun_needed
+            else "host-conditioned evidence does not preserve the pooled outcome and equivalence band",
+            "limitation": "within-round signs may vary and sparse CPU parts have few or no shared cells",
         },
         "warm_round_cv": warm_cv,
     }
