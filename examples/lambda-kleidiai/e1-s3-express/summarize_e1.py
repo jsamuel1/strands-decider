@@ -289,11 +289,19 @@ def host_variability(rows: list[dict], status: str, pooled: dict | None = None) 
         if "cold.weight_download" in c:
             per_part_status[part] = decide({head: c})[0]
     agree = [p for p, s in per_part_status.items() if s == status]
+    # Headline cold samples with no recorded CPU part were not assessed; a verdict must say so, not absorb them.
+    unassessed = {a: mix.get(a, {}).get("cold", {}).get("unknown", 0) for a in CONTRASTS[head]}
     if per_part_status and len(agree) == len(per_part_status):
         verdict = (
             f"comparable: the headline status '{status}' holds within every CPU part with at least "
             f"{MIN_PER_PART} cold samples per arm ({', '.join(sorted(per_part_status))})"
         )
+        if any(unassessed.values()):
+            verdict += (
+                "; cold samples without a recorded CPU part are unassessed ("
+                + ", ".join(f"{a} {n}" for a, n in unassessed.items())
+                + ")"
+            )
     elif per_part_status:
         verdict = (
             f"confounded: the headline status '{status}' differs within CPU part(s) "

@@ -600,6 +600,29 @@ def test_host_variability_missing_cpu_parts_stay_unknown():
     assert hv["verdict"].startswith("unknown")
 
 
+def test_host_variability_comparable_verdict_names_unassessed_unknown_rows():
+    import summarize_e1
+
+    known = [_row(a, r, "cold", dl=DL[a], cpu="0xd40") for r in range(3) for a in ("gp", "xz")]
+    known += [
+        _row(a, r, "cold", dl=DL[a] + 0.1, cpu="0xd40") for r in range(3) for a in ("gp", "xz")
+    ]
+    known += [
+        _row(a, r, "cold", dl=DL[a] + 0.2, cpu="0xd40") for r in range(3) for a in ("gp", "xz")
+    ]
+    missing = [_row("gp", r, "cold", dl=DL["gp"], cpu=None) for r in range(2)]
+    rows = known + missing
+    cmp = {n: summarize_e1.contrast(rows, a, b) for n, (a, b) in summarize_e1.CONTRASTS.items()}
+    hv = summarize_e1.host_variability(rows, "improved", cmp)
+    assert hv["cpu_part_mix"]["gp"]["cold"]["unknown"] == 2
+    assert "unknown" not in hv["within_cpu_part"]["bucket_type_no_vpc"]
+    assert hv["verdict"].startswith("comparable")
+    assert "unassessed (xz 0, gp 2)" in hv["verdict"]
+
+    hv_all_known = summarize_e1.host_variability(known, "improved", cmp)
+    assert "unassessed" not in hv_all_known["verdict"]
+
+
 def test_s3_costs_priced_by_bucket_type(tmp_path):
     import summarize_e1
 
