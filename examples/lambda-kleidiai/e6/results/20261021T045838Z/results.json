@@ -7507,8 +7507,9 @@
      "0xd40": "negative-beyond-control-variation"
     },
     "unassessed_cpu_parts": [],
+    "unassessed_conflicts": [],
     "unmatched_cpu_parts": [],
-    "reason": "every assessed CPU part has the same outcome against its control spread across published versions; missing, ambiguous and unpublished records are excluded and counted"
+    "reason": "every assessed CPU part has the same outcome against its control spread across published versions; sparse CPU parts have no opposite-sign observation; missing, ambiguous and unpublished records are excluded and counted"
    },
    "method": "Each before_snapshot record is bound to the CPU part named by the `decider.engine init cpu_part=` line in its own log stream (one stream = one execution environment); binding never crosses streams. Only streams of versions this run published count. A stream with no known part is missing, one with more than one distinct part is ambiguous; neither is a comparison stratum. Within each CPU part, the pyc-minus-ctl median delta across published versions is judged against the range of ctl's per-version values (cell_outcome); a part with fewer than two control inits is unassessed.",
    "limits": [

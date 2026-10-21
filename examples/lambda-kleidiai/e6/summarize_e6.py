@@ -502,6 +502,18 @@ def snapshot_host_analysis(run: str, cond: dict) -> dict:
     assessed = {cpu: p["outcome"] for cpu, p in imports.items() if p["outcome"] != UNASSESSED_CELL}
     unassessed = sorted(set(imports) - set(assessed))
     comparable = bool(assessed) and len(set(assessed.values())) == 1
+    assessed_outcome = next(iter(set(assessed.values()))) if comparable else None
+    directional_sign = {
+        "negative-beyond-control-variation": "negative",
+        "positive-beyond-control-variation": "positive",
+    }.get(assessed_outcome)
+    unassessed_conflicts = [
+        cpu
+        for cpu in unassessed
+        if directional_sign and imports[cpu]["sign"] not in (directional_sign, "zero")
+    ]
+    if unassessed_conflicts:
+        comparable = False
     if not imports:
         outcome = "unassessed"
         reason = "no CPU part has a linked snapshot-init record on both arms"
@@ -509,14 +521,15 @@ def snapshot_host_analysis(run: str, cond: dict) -> dict:
         outcome = "unassessed"
         reason = "no shared CPU part has two control snapshot inits to estimate spread"
     elif comparable:
-        outcome = next(iter(assessed.values()))
+        outcome = assessed_outcome
         reason = (
             "every assessed CPU part has the same outcome against its control spread across published versions; "
-            "missing, ambiguous and unpublished records are excluded and counted"
+            "sparse CPU parts have no opposite-sign observation; missing, ambiguous and unpublished records are "
+            "excluded and counted"
         )
     else:
         outcome = "host-conditioned"
-        reason = "CPU parts disagree after control-spread adjustment"
+        reason = "CPU parts disagree after control-spread adjustment or a sparse part has an opposite observed sign"
     return {
         "schema": "lkai-snapshot-host-variability/1",
         "accounting": accounting,
@@ -529,6 +542,7 @@ def snapshot_host_analysis(run: str, cond: dict) -> dict:
             "outcome": outcome,
             "by_cpu_part": {cpu: p["outcome"] for cpu, p in imports.items()},
             "unassessed_cpu_parts": unassessed,
+            "unassessed_conflicts": unassessed_conflicts,
             "unmatched_cpu_parts": metrics["imports"]["unmatched_cpu_parts"],
             "reason": reason,
         },

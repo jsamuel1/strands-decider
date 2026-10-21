@@ -826,6 +826,35 @@ def test_snapshot_parts_that_disagree_are_host_conditioned(tmp_path):
     assert h["assessment"]["outcome"] == "host-conditioned"
 
 
+@pytest.mark.parametrize(
+    ("sparse_pyc", "comparable", "conflicts"),
+    [(0.40, True, []), (1.10, False, ["0xd0c"])],
+)
+def test_snapshot_sparse_parts_must_not_contradict_direction(
+    tmp_path, sparse_pyc, comparable, conflicts
+):
+    s = _summ()
+    streams = {
+        "ctl": {
+            "2026/10/21/[1]a": _snap_msgs("0xd40", 0.66),
+            "2026/10/21/[2]b": _snap_msgs("0xd40", 0.67),
+            "2026/10/21/[1]c": _snap_msgs("0xd0c", 0.90),
+        },
+        "pyc": {
+            "2026/10/21/[1]d": _snap_msgs("0xd40", 0.33),
+            "2026/10/21/[2]e": _snap_msgs("0xd40", 0.32),
+            "2026/10/21/[1]f": _snap_msgs("0xd0c", sparse_pyc),
+        },
+    }
+    h = s.snapshot_host_analysis(*_snap_run(tmp_path, streams))
+    assert h["assessment"]["unassessed_cpu_parts"] == ["0xd0c"]
+    assert h["assessment"]["unassessed_conflicts"] == conflicts
+    assert h["assessment"]["comparable"] is comparable
+    assert h["assessment"]["outcome"] == (
+        "negative-beyond-control-variation" if comparable else "host-conditioned"
+    )
+
+
 def test_status_follows_the_headlines_not_the_targeted_phase():
     s = _summ()
     null = (-0.1, 0.1)
