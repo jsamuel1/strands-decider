@@ -22,8 +22,19 @@ LLAMA_REV=$(sed -n 's/^LLAMA_REV=//p' "$BASE/build.sh")
 PUB=$BASE/results/20261020T080835Z/build-manifest.json
 GGUF_SHA=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['model']['gguf_sha256'])" "$PUB")
 [ "$(uname -m)" = aarch64 ] || { echo "build.sh needs an arm64 host (got $(uname -m))"; exit 1; }
-# The manifest names a commit: refuse a tree whose E7 or baseline inputs differ from it (E7_ALLOW_DIRTY=1 for iteration).
-DIRTY=$(git -C "$REPO" status --porcelain --untracked-files=all -- examples/lambda-kleidiai src/strands_decider examples/lambda | grep -v '/build/' || true)
+# The manifest names a commit: refuse a tree whose E7 or baseline inputs differ from it (E7_ALLOW_DIRTY=1 for
+# iteration). P1's buildcache.dirty covers P1's keyed and harness inputs; E7_SOURCES adds this directory's files.
+E7_SOURCES="examples/lambda-kleidiai/e7/patch_skip_output.py examples/lambda-kleidiai/e7/e7_entry.py
+examples/lambda-kleidiai/e7/e7_host.py examples/lambda-kleidiai/e7/build.sh examples/lambda-kleidiai/e7/deploy_e7.py
+examples/lambda-kleidiai/e7/bench_e7.py examples/lambda-kleidiai/e7/summarize_e7.py"
+DIRTY=$(python3 - "$REPO" "$BASE" $E7_SOURCES <<'EOF'
+import sys
+sys.path.insert(0, sys.argv[2])
+import buildcache
+for line in buildcache.dirty(sys.argv[1], extra=buildcache.UNKEYED_SOURCES + sys.argv[3:]):
+    print(line)
+EOF
+)
 if [ -n "$DIRTY" ] && [ "${E7_ALLOW_DIRTY:-}" != 1 ]; then
   echo "E7 build inputs differ from HEAD (commit them, or E7_ALLOW_DIRTY=1 for a non-deployable build):" >&2
   echo "$DIRTY" >&2
@@ -73,7 +84,8 @@ def sha(p):
     return h.hexdigest()
 git = lambda *a: subprocess.run(["git", "-C", repo, *a], capture_output=True, text=True).stdout.strip()
 m = json.load(open(os.path.join(pb, "manifest.json")))
-m["schema"] = "lkai-e7-build-manifest/1"
+m["schema"] = "lkai-build-manifest/2"  # P1's shape and dirty-input check, so P1's deploy/bench gates apply
+m["e7_manifest"] = "lkai-e7-build-manifest/1"
 m["p1_build_repo_commit"] = m.get("repo_commit")
 m["repo_commit"] = git("rev-parse", "HEAD")
 m["dirty_inputs"] = [l for l in dirty.splitlines() if l]

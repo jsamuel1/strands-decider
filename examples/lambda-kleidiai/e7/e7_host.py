@@ -100,7 +100,6 @@ def host_metadata() -> dict:
         "execution_env": os.environ.get("AWS_EXECUTION_ENV", UNKNOWN),
         "init_type": os.environ.get("AWS_LAMBDA_INITIALIZATION_TYPE", UNKNOWN),
         "memory_mb": os.environ.get("AWS_LAMBDA_FUNCTION_MEMORY_SIZE", UNKNOWN),
-        "e7_arm": os.environ.get("E7_ARM", UNKNOWN),
         "skip_env": os.environ.get("LKAI_SKIP_TIED_OUTPUT", "unset"),
     }
 
