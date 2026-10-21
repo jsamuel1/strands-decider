@@ -27,14 +27,19 @@ GGUF_SHA=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['mode
 E7_SOURCES="examples/lambda-kleidiai/e7/patch_skip_output.py examples/lambda-kleidiai/e7/e7_entry.py
 examples/lambda-kleidiai/e7/e7_host.py examples/lambda-kleidiai/e7/build.sh examples/lambda-kleidiai/e7/deploy_e7.py
 examples/lambda-kleidiai/e7/bench_e7.py examples/lambda-kleidiai/e7/summarize_e7.py"
-DIRTY=$(python3 - "$REPO" "$BASE" $E7_SOURCES <<'EOF'
+# P1's buildcache needs Python 3.10+ and git; the build host may have neither, so it runs in P1's pinned weights
+# image (PY_IMAGE) against a read-only mount of the repository.
+PY_IMAGE=$(sed -n 's/^PY_IMAGE=//p' "$BASE/build.sh")
+DIRTY=$(docker run -i --rm --platform linux/arm64 -v "$REPO:/repo:ro" -e GIT_CONFIG_COUNT=1 \
+  -e GIT_CONFIG_KEY_0=safe.directory -e GIT_CONFIG_VALUE_0='*' --entrypoint python3 "$PY_IMAGE" - /repo \
+  /repo/examples/lambda-kleidiai/baseline $E7_SOURCES <<'EOF'
 import sys
 sys.path.insert(0, sys.argv[2])
 import buildcache
 for line in buildcache.dirty(sys.argv[1], extra=buildcache.UNKEYED_SOURCES + sys.argv[3:]):
     print(line)
 EOF
-)
+) || { echo "dirty-input check failed"; exit 1; }
 if [ -n "$DIRTY" ] && [ "${E7_ALLOW_DIRTY:-}" != 1 ]; then
   echo "E7 build inputs differ from HEAD (commit them, or E7_ALLOW_DIRTY=1 for a non-deployable build):" >&2
   echo "$DIRTY" >&2
