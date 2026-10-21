@@ -43,7 +43,7 @@ involved. Each arm has its own function and its own clients, and all 20 arms run
 Run `20261021T044949Z`, us-east-2, from the same client host as P3. Raw data is in `results/20261021T044949Z/`:
 `conditions.json` (with `lambda_side`), `invocations.jsonl.gz`, `tcp_samples.jsonl.gz` and `urllib3.log.gz`.
 It is published to the P2 dashboard as `I1-restore-stall/20261021T044949Z`
-(<https://artifactory.amazon.dev/view/lambda-kleidiai-experiments-results>, version 28; store
+(<https://artifactory.amazon.dev/view/lambda-kleidiai-experiments-results>, version 28, corrected in place as version 33; store
 `s3://strands-decider-lkai-results-apse2/runs/I1-restore-stall/20261021T044949Z/`). Its status is `failed`
 because the record has no model phases by design (P2's schema requires them for every other status); the
 investigation itself found the cause. The record's experiment commit is `5764b9e`, the tested code.
