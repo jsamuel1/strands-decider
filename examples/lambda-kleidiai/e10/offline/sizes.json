@@ -1,0 +1,118 @@
+{
+ "schema": "lkai-e10-sizes/1",
+ "source": "llama.cpp f74e2fa6a load log (offline_probe.py), checked against the closed-form sizes: attention K+V = 24576 B per cell (6 layers x 2 heads x 256 x f32 x 2); recurrent state = 343425024 B (18 GDN layers x 17 seqs, independent of n_ctx)",
+ "sizes": {
+  "512": {
+   "attention_kv_bytes": 12582912,
+   "attention_kv_mib": 12.0,
+   "recurrent_state_bytes": 343425024,
+   "recurrent_state_mib": 327.52,
+   "compute_buffer_mib": 95.95,
+   "output_buffer_mib": 16.24,
+   "cleared_per_request_bytes": 356007936,
+   "kv_log": "llama_kv_cache: size =   12.00 MiB (   512 cells,   6 layers, 17/1 seqs), K (f32):    6.00 MiB, V (f32):    6.00 MiB",
+   "rs_log": "llama_memory_recurrent: size =  327.52 MiB (    17 cells,  24 layers, 17 seqs  0 rs_seq), R (f32):   21.52 MiB, S (f32):  306.00 MiB, P (f32):    0.00 MiB"
+  },
+  "1024": {
+   "attention_kv_bytes": 25165824,
+   "attention_kv_mib": 24.0,
+   "recurrent_state_bytes": 343425024,
+   "recurrent_state_mib": 327.52,
+   "compute_buffer_mib": 96.98,
+   "output_buffer_mib": 16.24,
+   "cleared_per_request_bytes": 368590848,
+   "kv_log": "llama_kv_cache: size =   24.00 MiB (  1024 cells,   6 layers, 17/1 seqs), K (f32):   12.00 MiB, V (f32):   12.00 MiB",
+   "rs_log": "llama_memory_recurrent: size =  327.52 MiB (    17 cells,  24 layers, 17 seqs  0 rs_seq), R (f32):   21.52 MiB, S (f32):  306.00 MiB, P (f32):    0.00 MiB"
+  },
+  "2048": {
+   "attention_kv_bytes": 50331648,
+   "attention_kv_mib": 48.0,
+   "recurrent_state_bytes": 343425024,
+   "recurrent_state_mib": 327.52,
+   "compute_buffer_mib": 99.03,
+   "output_buffer_mib": 16.24,
+   "cleared_per_request_bytes": 393756672,
+   "kv_log": "llama_kv_cache: size =   48.00 MiB (  2048 cells,   6 layers, 17/1 seqs), K (f32):   24.00 MiB, V (f32):   24.00 MiB",
+   "rs_log": "llama_memory_recurrent: size =  327.52 MiB (    17 cells,  24 layers, 17 seqs  0 rs_seq), R (f32):   21.52 MiB, S (f32):  306.00 MiB, P (f32):    0.00 MiB"
+  },
+  "4096": {
+   "attention_kv_bytes": 100663296,
+   "attention_kv_mib": 96.0,
+   "recurrent_state_bytes": 343425024,
+   "recurrent_state_mib": 327.52,
+   "compute_buffer_mib": 105.01,
+   "output_buffer_mib": 16.24,
+   "cleared_per_request_bytes": 444088320,
+   "kv_log": "llama_kv_cache: size =   96.00 MiB (  4096 cells,   6 layers, 17/1 seqs), K (f32):   48.00 MiB, V (f32):   48.00 MiB",
+   "rs_log": "llama_memory_recurrent: size =  327.52 MiB (    17 cells,  24 layers, 17 seqs  0 rs_seq), R (f32):   21.52 MiB, S (f32):  306.00 MiB, P (f32):    0.00 MiB"
+  },
+  "8192": {
+   "attention_kv_bytes": 201326592,
+   "attention_kv_mib": 192.0,
+   "recurrent_state_bytes": 343425024,
+   "recurrent_state_mib": 327.52,
+   "compute_buffer_mib": 179.12,
+   "output_buffer_mib": 16.24,
+   "cleared_per_request_bytes": 544751616,
+   "kv_log": "llama_kv_cache: size =  192.00 MiB (  8192 cells,   6 layers, 17/1 seqs), K (f32):   96.00 MiB, V (f32):   96.00 MiB",
+   "rs_log": "llama_memory_recurrent: size =  327.52 MiB (    17 cells,  24 layers, 17 seqs  0 rs_seq), R (f32):   21.52 MiB, S (f32):  306.00 MiB, P (f32):    0.00 MiB"
+  },
+  "16384": {
+   "attention_kv_bytes": 402653184,
+   "attention_kv_mib": 384.0,
+   "recurrent_state_bytes": 343425024,
+   "recurrent_state_mib": 327.52,
+   "compute_buffer_mib": 327.34,
+   "output_buffer_mib": 16.24,
+   "cleared_per_request_bytes": 746078208,
+   "kv_log": "llama_kv_cache: size =  384.00 MiB ( 16384 cells,   6 layers, 17/1 seqs), K (f32):  192.00 MiB, V (f32):  192.00 MiB",
+   "rs_log": "llama_memory_recurrent: size =  327.52 MiB (    17 cells,  24 layers, 17 seqs  0 rs_seq), R (f32):   21.52 MiB, S (f32):  306.00 MiB, P (f32):    0.00 MiB"
+  }
+ },
+ "capacity": {
+  "rule": "a request needs n_ctx >= state + its longest question (Shim.forward_shared cuts fork groups to fit). The 4,096-token window (head_config max_length) already bounds state + longest question, so n_ctx >= 4096 refuses nothing the window admits; below 4096 a request over n_ctx gets a 422 (e10_entry.ContextTooSmall) before any decode",
+  "p1_requests": {
+   "source": "offline/ctx_need.py: P1's tokenizer and HiddenStateEngine.fit on baseline/requests.json",
+   "need": {
+    "ticket-route-1q": 83,
+    "payouts-3q": 86,
+    "cracked-screen-2q": 93,
+    "agent-action-guard-2q": 238,
+    "incident-review-4q": 379
+   },
+   "one_fork_tokens": {
+    "ticket-route-1q": 83,
+    "payouts-3q": 196,
+    "cracked-screen-2q": 147,
+    "agent-action-guard-2q": 306,
+    "incident-review-4q": 598
+   },
+   "note": "need = state + longest question (the least n_ctx that answers the request); one_fork_tokens = state + every question (the least n_ctx that answers it in one fork group, P1's path at n_ctx 16384)",
+   "refused_at": {
+    "512": [],
+    "1024": [],
+    "2048": [],
+    "4096": [],
+    "8192": [],
+    "16384": []
+   }
+  },
+  "jevbench_public_w4096": {
+   "n": 231,
+   "max": 3936,
+   "p50": 143,
+   "refused_at": {
+    "512": 64,
+    "1024": 41,
+    "2048": 36,
+    "4096": 0,
+    "8192": 0,
+    "16384": 0
+   },
+   "source": "StrandsAgents/strands-decider-2B-qwen3.5-v1-2610@216d1ccb eval/jevbench-w4096/results.jsonl (sha256 67d62b0ca3d7e6c101cc139426fe5aff6b740c3a1515b972f23449370f09644d), served at max_length 4096",
+   "note": "every JevBench public task is one question, so input_tokens = state + question = the context it needs. evaluation/jevbench.md: at 4096 no task is cut (the long_policy documents run to 3,665 tokens), so these are the untrimmed sizes"
+  },
+  "window_max_length": 4096
+ },
+ "x86_probe_note": "context_init, memory-clear and RSS figures in probe-*.json are from an x86 host (Intel Xeon 6975P-C, 16 threads) and are not Lambda numbers"
+}

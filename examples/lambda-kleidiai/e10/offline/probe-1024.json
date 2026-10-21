@@ -1,0 +1,624 @@
+{
+ "n_ctx": 1024,
+ "buffers": {
+  "kv_mib": [
+   24.0
+  ],
+  "rs_mib": [
+   327.52
+  ],
+  "compute_mib": [
+   96.98
+  ],
+  "output_mib": [
+   16.24
+  ],
+  "n_ctx_log": [
+   "1024"
+  ],
+  "kv_line": [
+   "llama_kv_cache: size =   24.00 MiB (  1024 cells,   6 layers, 17/1 seqs), K (f32):   12.00 MiB, V (f32):   12.00 MiB"
+  ],
+  "rs_line": [
+   "llama_memory_recurrent: size =  327.52 MiB (    17 cells,  24 layers, 17 seqs  0 rs_seq), R (f32):   21.52 MiB, S (f32):  306.00 MiB, P (f32):    0.00 MiB"
+  ]
+ },
+ "dec_phases_s": {
+  "backend": 0.001517562,
+  "model": 1.970706123,
+  "context": 0.148933656,
+  "total": 2.121157341
+ },
+ "load_s": 2.121226063929498,
+ "memory_clear_s": {
+  "p50": 0.033977274,
+  "min": 0.032690697,
+  "max": 0.037873898,
+  "n": 30
+ },
+ "rss_maxrss_kib": {
+  "before_load": 50168,
+  "after_load": 4880400,
+  "after_requests": 4910212
+ },
+ "answers": {
+  "p1:ticket-route-1q": {
+   "answers": {
+    "q": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": 0.9618,
+      "technical": 0.0317,
+      "account": 0.0065
+     },
+     "confidence": 0.9426
+    }
+   },
+   "input_tokens": 83
+  },
+  "p1:payouts-3q": {
+   "answers": {
+    "is_urgent": {
+     "type": "noul",
+     "noul": 0.8541
+    },
+    "team": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": 0.3931,
+      "sales": 0.3899,
+      "retail": 0.217
+     },
+     "confidence": 0.0896
+    },
+    "frustration": {
+     "type": "score",
+     "score": 1.038,
+     "legend": {
+      "0": "calm",
+      "1": "frustrated",
+      "2": "depressed"
+     },
+     "probabilities": {
+      "0": 0.2751,
+      "1": 0.4118,
+      "2": 0.3131
+     },
+     "confidence": 0.3423
+    }
+   },
+   "input_tokens": 196
+  },
+  "p1:cracked-screen-2q": {
+   "answers": {
+    "q": {
+     "type": "choice",
+     "choice": "refunds",
+     "probabilities": {
+      "refunds": 0.664,
+      "shipping": 0.1211,
+      "tech": 0.2149
+     },
+     "confidence": 0.4959
+    },
+    "u": {
+     "type": "noul",
+     "noul": 0.4961
+    }
+   },
+   "input_tokens": 147
+  },
+  "p1:agent-action-guard-2q": {
+   "answers": {
+    "safe": {
+     "type": "noul",
+     "noul": 0.2715
+    },
+    "action": {
+     "type": "choice",
+     "choice": "ask",
+     "probabilities": {
+      "proceed": 0.0328,
+      "revise": 0.2598,
+      "ask": 0.7074
+     },
+     "confidence": 0.5611
+    }
+   },
+   "input_tokens": 306
+  },
+  "p1:incident-review-4q": {
+   "answers": {
+    "root_cause": {
+     "type": "choice",
+     "choice": "retries",
+     "probabilities": {
+      "retries": NaN,
+      "freeze": NaN,
+      "alarm": NaN,
+      "capacity": NaN
+     },
+     "confidence": 1.0
+    },
+    "severity": {
+     "type": "score",
+     "score": NaN,
+     "legend": {
+      "0": "negligible",
+      "1": "minor",
+      "2": "moderate",
+      "3": "major",
+      "4": "critical"
+     },
+     "probabilities": {
+      "0": NaN,
+      "1": NaN,
+      "2": NaN,
+      "3": NaN,
+      "4": NaN
+     },
+     "confidence": 1.0
+    },
+    "test_gap": {
+     "type": "noul",
+     "noul": NaN
+    },
+    "runbook": {
+     "type": "noul",
+     "noul": NaN
+    }
+   },
+   "input_tokens": 598
+  },
+  "parity:t0-p0-q1": {
+   "answers": {
+    "team": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": 0.9597,
+      "technical": 0.0115,
+      "account": 0.0223,
+      "sales": 0.0064
+     },
+     "confidence": 0.9463
+    }
+   },
+   "input_tokens": 92
+  },
+  "parity:t0-p0-q5": {
+   "answers": {
+    "team": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": NaN,
+      "technical": NaN,
+      "account": NaN,
+      "sales": NaN
+     },
+     "confidence": 1.0
+    },
+    "urgent": {
+     "type": "noul",
+     "noul": NaN
+    },
+    "mood": {
+     "type": "score",
+     "score": NaN,
+     "legend": {
+      "0": "calm",
+      "1": "mildly annoyed",
+      "2": "frustrated",
+      "3": "angry"
+     },
+     "probabilities": {
+      "0": NaN,
+      "1": NaN,
+      "2": NaN,
+      "3": NaN
+     },
+     "confidence": 1.0
+    },
+    "action": {
+     "type": "choice",
+     "choice": "answer",
+     "probabilities": {
+      "answer": NaN,
+      "refund": NaN,
+      "verify": NaN,
+      "escalate": NaN,
+      "ask": NaN
+     },
+     "confidence": 1.0
+    },
+    "allowed": {
+     "type": "noul",
+     "noul": NaN
+    }
+   },
+   "input_tokens": 378
+  },
+  "parity:t0-p4-q1": {
+   "answers": {
+    "team": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": 0.8914,
+      "technical": 0.0224,
+      "account": 0.0733,
+      "sales": 0.0129
+     },
+     "confidence": 0.8552
+    }
+   },
+   "input_tokens": 424
+  },
+  "parity:t0-p4-q5": {
+   "answers": {
+    "team": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": NaN,
+      "technical": NaN,
+      "account": NaN,
+      "sales": NaN
+     },
+     "confidence": 1.0
+    },
+    "urgent": {
+     "type": "noul",
+     "noul": NaN
+    },
+    "mood": {
+     "type": "score",
+     "score": NaN,
+     "legend": {
+      "0": "calm",
+      "1": "mildly annoyed",
+      "2": "frustrated",
+      "3": "angry"
+     },
+     "probabilities": {
+      "0": NaN,
+      "1": NaN,
+      "2": NaN,
+      "3": NaN
+     },
+     "confidence": 1.0
+    },
+    "action": {
+     "type": "choice",
+     "choice": "answer",
+     "probabilities": {
+      "answer": NaN,
+      "refund": NaN,
+      "verify": NaN,
+      "escalate": NaN,
+      "ask": NaN
+     },
+     "confidence": 1.0
+    },
+    "allowed": {
+     "type": "noul",
+     "noul": NaN
+    }
+   },
+   "input_tokens": 710
+  },
+  "parity:t1-p0-q1": {
+   "answers": {
+    "team": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": 0.856,
+      "technical": 0.077,
+      "account": 0.0596,
+      "sales": 0.0074
+     },
+     "confidence": 0.808
+    }
+   },
+   "input_tokens": 105
+  },
+  "parity:t1-p0-q5": {
+   "answers": {
+    "team": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": NaN,
+      "technical": NaN,
+      "account": NaN,
+      "sales": NaN
+     },
+     "confidence": 1.0
+    },
+    "urgent": {
+     "type": "noul",
+     "noul": NaN
+    },
+    "mood": {
+     "type": "score",
+     "score": NaN,
+     "legend": {
+      "0": "calm",
+      "1": "mildly annoyed",
+      "2": "frustrated",
+      "3": "angry"
+     },
+     "probabilities": {
+      "0": NaN,
+      "1": NaN,
+      "2": NaN,
+      "3": NaN
+     },
+     "confidence": 1.0
+    },
+    "action": {
+     "type": "choice",
+     "choice": "answer",
+     "probabilities": {
+      "answer": NaN,
+      "refund": NaN,
+      "verify": NaN,
+      "escalate": NaN,
+      "ask": NaN
+     },
+     "confidence": 1.0
+    },
+    "allowed": {
+     "type": "noul",
+     "noul": NaN
+    }
+   },
+   "input_tokens": 391
+  },
+  "parity:t1-p4-q1": {
+   "answers": {
+    "team": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": 0.8816,
+      "technical": 0.0353,
+      "account": 0.0729,
+      "sales": 0.0101
+     },
+     "confidence": 0.8422
+    }
+   },
+   "input_tokens": 437
+  },
+  "parity:t1-p4-q5": {
+   "answers": {
+    "team": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": NaN,
+      "technical": NaN,
+      "account": NaN,
+      "sales": NaN
+     },
+     "confidence": 1.0
+    },
+    "urgent": {
+     "type": "noul",
+     "noul": NaN
+    },
+    "mood": {
+     "type": "score",
+     "score": NaN,
+     "legend": {
+      "0": "calm",
+      "1": "mildly annoyed",
+      "2": "frustrated",
+      "3": "angry"
+     },
+     "probabilities": {
+      "0": NaN,
+      "1": NaN,
+      "2": NaN,
+      "3": NaN
+     },
+     "confidence": 1.0
+    },
+    "action": {
+     "type": "choice",
+     "choice": "answer",
+     "probabilities": {
+      "answer": NaN,
+      "refund": NaN,
+      "verify": NaN,
+      "escalate": NaN,
+      "ask": NaN
+     },
+     "confidence": 1.0
+    },
+    "allowed": {
+     "type": "noul",
+     "noul": NaN
+    }
+   },
+   "input_tokens": 723
+  },
+  "parity:t2-p0-q1": {
+   "answers": {
+    "team": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": 0.9256,
+      "technical": 0.023,
+      "account": 0.0192,
+      "sales": 0.0323
+     },
+     "confidence": 0.9008
+    }
+   },
+   "input_tokens": 112
+  },
+  "parity:t2-p0-q5": {
+   "answers": {
+    "team": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": NaN,
+      "technical": NaN,
+      "account": NaN,
+      "sales": NaN
+     },
+     "confidence": 1.0
+    },
+    "urgent": {
+     "type": "noul",
+     "noul": NaN
+    },
+    "mood": {
+     "type": "score",
+     "score": NaN,
+     "legend": {
+      "0": "calm",
+      "1": "mildly annoyed",
+      "2": "frustrated",
+      "3": "angry"
+     },
+     "probabilities": {
+      "0": NaN,
+      "1": NaN,
+      "2": NaN,
+      "3": NaN
+     },
+     "confidence": 1.0
+    },
+    "action": {
+     "type": "choice",
+     "choice": "answer",
+     "probabilities": {
+      "answer": NaN,
+      "refund": NaN,
+      "verify": NaN,
+      "escalate": NaN,
+      "ask": NaN
+     },
+     "confidence": 1.0
+    },
+    "allowed": {
+     "type": "noul",
+     "noul": NaN
+    }
+   },
+   "input_tokens": 398
+  },
+  "parity:t2-p4-q1": {
+   "answers": {
+    "team": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": 0.954,
+      "technical": 0.0146,
+      "account": 0.0155,
+      "sales": 0.0159
+     },
+     "confidence": 0.9387
+    }
+   },
+   "input_tokens": 444
+  },
+  "parity:t2-p4-q5": {
+   "answers": {
+    "team": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": NaN,
+      "technical": NaN,
+      "account": NaN,
+      "sales": NaN
+     },
+     "confidence": 1.0
+    },
+    "urgent": {
+     "type": "noul",
+     "noul": NaN
+    },
+    "mood": {
+     "type": "score",
+     "score": NaN,
+     "legend": {
+      "0": "calm",
+      "1": "mildly annoyed",
+      "2": "frustrated",
+      "3": "angry"
+     },
+     "probabilities": {
+      "0": NaN,
+      "1": NaN,
+      "2": NaN,
+      "3": NaN
+     },
+     "confidence": 1.0
+    },
+    "action": {
+     "type": "choice",
+     "choice": "answer",
+     "probabilities": {
+      "answer": NaN,
+      "refund": NaN,
+      "verify": NaN,
+      "escalate": NaN,
+      "ask": NaN
+     },
+     "confidence": 1.0
+    },
+    "allowed": {
+     "type": "noul",
+     "noul": NaN
+    }
+   },
+   "input_tokens": 730
+  }
+ },
+ "errors": {
+  "parity:t0-p30-q1": "RuntimeError: dec_eval rc=-2 on 2582 tokens",
+  "parity:t0-p30-q5": "RuntimeError: question 0 does not fit the context with the state",
+  "parity:t1-p30-q1": "RuntimeError: dec_eval rc=-2 on 2595 tokens",
+  "parity:t1-p30-q5": "RuntimeError: question 0 does not fit the context with the state",
+  "parity:t2-p30-q1": "RuntimeError: dec_eval rc=-2 on 2602 tokens",
+  "parity:t2-p30-q5": "RuntimeError: question 0 does not fit the context with the state",
+  "doc:long-state-64q": "RuntimeError: question 0 does not fit the context with the state",
+  "doc:long-state-1q": "RuntimeError: dec_eval rc=-2 on 3342 tokens",
+  "doc:mid-state-16q": "RuntimeError: question 0 does not fit the context with the state"
+ },
+ "best_of_2_s": {
+  "p1:ticket-route-1q": 0.5216513769701123,
+  "p1:payouts-3q": 0.8302369599696249,
+  "p1:cracked-screen-2q": 0.6034182580187917,
+  "p1:agent-action-guard-2q": 1.1221763850189745,
+  "p1:incident-review-4q": 2.0411215260392055,
+  "parity:t0-p0-q1": 0.4924394419649616,
+  "parity:t0-p0-q5": 1.4268441509921104,
+  "parity:t0-p4-q1": 1.2394281079759821,
+  "parity:t0-p4-q5": 3.0167828330304474,
+  "parity:t1-p0-q1": 0.4568694910267368,
+  "parity:t1-p0-q5": 1.5878751199925318,
+  "parity:t1-p4-q1": 1.5366599609842524,
+  "parity:t1-p4-q5": 4.338575587025844,
+  "parity:t2-p0-q1": 1.2410870640305802,
+  "parity:t2-p0-q5": 2.3793841399019584,
+  "parity:t2-p4-q1": 2.169709825073369,
+  "parity:t2-p4-q5": 5.375951533904299
+ },
+ "host": {
+  "cpu": "Intel(R) Xeon(R) 6975P-C",
+  "threads": 16
+ }
+}

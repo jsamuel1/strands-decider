@@ -1,0 +1,1631 @@
+{
+ "n_ctx": 4096,
+ "buffers": {
+  "kv_mib": [
+   96.0
+  ],
+  "rs_mib": [
+   327.52
+  ],
+  "compute_mib": [
+   105.01
+  ],
+  "output_mib": [
+   16.24
+  ],
+  "n_ctx_log": [
+   "4096"
+  ],
+  "kv_line": [
+   "llama_kv_cache: size =   96.00 MiB (  4096 cells,   6 layers, 17/1 seqs), K (f32):   48.00 MiB, V (f32):   48.00 MiB"
+  ],
+  "rs_line": [
+   "llama_memory_recurrent: size =  327.52 MiB (    17 cells,  24 layers, 17 seqs  0 rs_seq), R (f32):   21.52 MiB, S (f32):  306.00 MiB, P (f32):    0.00 MiB"
+  ]
+ },
+ "dec_phases_s": {
+  "backend": 0.001561026,
+  "model": 2.139789149,
+  "context": 0.182097676,
+  "total": 2.323447851
+ },
+ "load_s": 2.3235760630341247,
+ "memory_clear_s": {
+  "p50": 0.0297038795,
+  "min": 0.025985032,
+  "max": 0.035612359,
+  "n": 30
+ },
+ "rss_maxrss_kib": {
+  "before_load": 50120,
+  "after_load": 4952948,
+  "after_requests": 5010880
+ },
+ "answers": {
+  "p1:ticket-route-1q": {
+   "answers": {
+    "q": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": 0.9618,
+      "technical": 0.0317,
+      "account": 0.0065
+     },
+     "confidence": 0.9426
+    }
+   },
+   "input_tokens": 83
+  },
+  "p1:payouts-3q": {
+   "answers": {
+    "is_urgent": {
+     "type": "noul",
+     "noul": 0.8541
+    },
+    "team": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": 0.3931,
+      "sales": 0.3899,
+      "retail": 0.217
+     },
+     "confidence": 0.0896
+    },
+    "frustration": {
+     "type": "score",
+     "score": 1.038,
+     "legend": {
+      "0": "calm",
+      "1": "frustrated",
+      "2": "depressed"
+     },
+     "probabilities": {
+      "0": 0.2751,
+      "1": 0.4118,
+      "2": 0.3131
+     },
+     "confidence": 0.3423
+    }
+   },
+   "input_tokens": 196
+  },
+  "p1:cracked-screen-2q": {
+   "answers": {
+    "q": {
+     "type": "choice",
+     "choice": "refunds",
+     "probabilities": {
+      "refunds": 0.664,
+      "shipping": 0.1211,
+      "tech": 0.2149
+     },
+     "confidence": 0.4959
+    },
+    "u": {
+     "type": "noul",
+     "noul": 0.4961
+    }
+   },
+   "input_tokens": 147
+  },
+  "p1:agent-action-guard-2q": {
+   "answers": {
+    "safe": {
+     "type": "noul",
+     "noul": 0.2715
+    },
+    "action": {
+     "type": "choice",
+     "choice": "ask",
+     "probabilities": {
+      "proceed": 0.0328,
+      "revise": 0.2598,
+      "ask": 0.7074
+     },
+     "confidence": 0.5611
+    }
+   },
+   "input_tokens": 306
+  },
+  "p1:incident-review-4q": {
+   "answers": {
+    "root_cause": {
+     "type": "choice",
+     "choice": "retries",
+     "probabilities": {
+      "retries": NaN,
+      "freeze": NaN,
+      "alarm": NaN,
+      "capacity": NaN
+     },
+     "confidence": 1.0
+    },
+    "severity": {
+     "type": "score",
+     "score": NaN,
+     "legend": {
+      "0": "negligible",
+      "1": "minor",
+      "2": "moderate",
+      "3": "major",
+      "4": "critical"
+     },
+     "probabilities": {
+      "0": NaN,
+      "1": NaN,
+      "2": NaN,
+      "3": NaN,
+      "4": NaN
+     },
+     "confidence": 1.0
+    },
+    "test_gap": {
+     "type": "noul",
+     "noul": NaN
+    },
+    "runbook": {
+     "type": "noul",
+     "noul": NaN
+    }
+   },
+   "input_tokens": 598
+  },
+  "parity:t0-p0-q1": {
+   "answers": {
+    "team": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": 0.9597,
+      "technical": 0.0115,
+      "account": 0.0223,
+      "sales": 0.0064
+     },
+     "confidence": 0.9463
+    }
+   },
+   "input_tokens": 92
+  },
+  "parity:t0-p0-q5": {
+   "answers": {
+    "team": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": NaN,
+      "technical": NaN,
+      "account": NaN,
+      "sales": NaN
+     },
+     "confidence": 1.0
+    },
+    "urgent": {
+     "type": "noul",
+     "noul": NaN
+    },
+    "mood": {
+     "type": "score",
+     "score": NaN,
+     "legend": {
+      "0": "calm",
+      "1": "mildly annoyed",
+      "2": "frustrated",
+      "3": "angry"
+     },
+     "probabilities": {
+      "0": NaN,
+      "1": NaN,
+      "2": NaN,
+      "3": NaN
+     },
+     "confidence": 1.0
+    },
+    "action": {
+     "type": "choice",
+     "choice": "answer",
+     "probabilities": {
+      "answer": NaN,
+      "refund": NaN,
+      "verify": NaN,
+      "escalate": NaN,
+      "ask": NaN
+     },
+     "confidence": 1.0
+    },
+    "allowed": {
+     "type": "noul",
+     "noul": NaN
+    }
+   },
+   "input_tokens": 378
+  },
+  "parity:t0-p4-q1": {
+   "answers": {
+    "team": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": 0.8914,
+      "technical": 0.0224,
+      "account": 0.0733,
+      "sales": 0.0129
+     },
+     "confidence": 0.8552
+    }
+   },
+   "input_tokens": 424
+  },
+  "parity:t0-p4-q5": {
+   "answers": {
+    "team": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": NaN,
+      "technical": NaN,
+      "account": NaN,
+      "sales": NaN
+     },
+     "confidence": 1.0
+    },
+    "urgent": {
+     "type": "noul",
+     "noul": NaN
+    },
+    "mood": {
+     "type": "score",
+     "score": NaN,
+     "legend": {
+      "0": "calm",
+      "1": "mildly annoyed",
+      "2": "frustrated",
+      "3": "angry"
+     },
+     "probabilities": {
+      "0": NaN,
+      "1": NaN,
+      "2": NaN,
+      "3": NaN
+     },
+     "confidence": 1.0
+    },
+    "action": {
+     "type": "choice",
+     "choice": "answer",
+     "probabilities": {
+      "answer": NaN,
+      "refund": NaN,
+      "verify": NaN,
+      "escalate": NaN,
+      "ask": NaN
+     },
+     "confidence": 1.0
+    },
+    "allowed": {
+     "type": "noul",
+     "noul": NaN
+    }
+   },
+   "input_tokens": 710
+  },
+  "parity:t0-p30-q1": {
+   "answers": {
+    "team": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": 0.9177,
+      "technical": 0.0172,
+      "account": 0.0546,
+      "sales": 0.0104
+     },
+     "confidence": 0.8903
+    }
+   },
+   "input_tokens": 2582
+  },
+  "parity:t0-p30-q5": {
+   "answers": {
+    "team": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": NaN,
+      "technical": NaN,
+      "account": NaN,
+      "sales": NaN
+     },
+     "confidence": 1.0
+    },
+    "urgent": {
+     "type": "noul",
+     "noul": NaN
+    },
+    "mood": {
+     "type": "score",
+     "score": NaN,
+     "legend": {
+      "0": "calm",
+      "1": "mildly annoyed",
+      "2": "frustrated",
+      "3": "angry"
+     },
+     "probabilities": {
+      "0": NaN,
+      "1": NaN,
+      "2": NaN,
+      "3": NaN
+     },
+     "confidence": 1.0
+    },
+    "action": {
+     "type": "choice",
+     "choice": "answer",
+     "probabilities": {
+      "answer": NaN,
+      "refund": NaN,
+      "verify": NaN,
+      "escalate": NaN,
+      "ask": NaN
+     },
+     "confidence": 1.0
+    },
+    "allowed": {
+     "type": "noul",
+     "noul": NaN
+    }
+   },
+   "input_tokens": 2868
+  },
+  "parity:t1-p0-q1": {
+   "answers": {
+    "team": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": 0.856,
+      "technical": 0.077,
+      "account": 0.0596,
+      "sales": 0.0074
+     },
+     "confidence": 0.808
+    }
+   },
+   "input_tokens": 105
+  },
+  "parity:t1-p0-q5": {
+   "answers": {
+    "team": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": NaN,
+      "technical": NaN,
+      "account": NaN,
+      "sales": NaN
+     },
+     "confidence": 1.0
+    },
+    "urgent": {
+     "type": "noul",
+     "noul": NaN
+    },
+    "mood": {
+     "type": "score",
+     "score": NaN,
+     "legend": {
+      "0": "calm",
+      "1": "mildly annoyed",
+      "2": "frustrated",
+      "3": "angry"
+     },
+     "probabilities": {
+      "0": NaN,
+      "1": NaN,
+      "2": NaN,
+      "3": NaN
+     },
+     "confidence": 1.0
+    },
+    "action": {
+     "type": "choice",
+     "choice": "answer",
+     "probabilities": {
+      "answer": NaN,
+      "refund": NaN,
+      "verify": NaN,
+      "escalate": NaN,
+      "ask": NaN
+     },
+     "confidence": 1.0
+    },
+    "allowed": {
+     "type": "noul",
+     "noul": NaN
+    }
+   },
+   "input_tokens": 391
+  },
+  "parity:t1-p4-q1": {
+   "answers": {
+    "team": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": 0.8816,
+      "technical": 0.0353,
+      "account": 0.0729,
+      "sales": 0.0101
+     },
+     "confidence": 0.8422
+    }
+   },
+   "input_tokens": 437
+  },
+  "parity:t1-p4-q5": {
+   "answers": {
+    "team": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": NaN,
+      "technical": NaN,
+      "account": NaN,
+      "sales": NaN
+     },
+     "confidence": 1.0
+    },
+    "urgent": {
+     "type": "noul",
+     "noul": NaN
+    },
+    "mood": {
+     "type": "score",
+     "score": NaN,
+     "legend": {
+      "0": "calm",
+      "1": "mildly annoyed",
+      "2": "frustrated",
+      "3": "angry"
+     },
+     "probabilities": {
+      "0": NaN,
+      "1": NaN,
+      "2": NaN,
+      "3": NaN
+     },
+     "confidence": 1.0
+    },
+    "action": {
+     "type": "choice",
+     "choice": "answer",
+     "probabilities": {
+      "answer": NaN,
+      "refund": NaN,
+      "verify": NaN,
+      "escalate": NaN,
+      "ask": NaN
+     },
+     "confidence": 1.0
+    },
+    "allowed": {
+     "type": "noul",
+     "noul": NaN
+    }
+   },
+   "input_tokens": 723
+  },
+  "parity:t1-p30-q1": {
+   "answers": {
+    "team": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": 0.885,
+      "technical": 0.0365,
+      "account": 0.0683,
+      "sales": 0.0102
+     },
+     "confidence": 0.8466
+    }
+   },
+   "input_tokens": 2595
+  },
+  "parity:t1-p30-q5": {
+   "answers": {
+    "team": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": NaN,
+      "technical": NaN,
+      "account": NaN,
+      "sales": NaN
+     },
+     "confidence": 1.0
+    },
+    "urgent": {
+     "type": "noul",
+     "noul": NaN
+    },
+    "mood": {
+     "type": "score",
+     "score": NaN,
+     "legend": {
+      "0": "calm",
+      "1": "mildly annoyed",
+      "2": "frustrated",
+      "3": "angry"
+     },
+     "probabilities": {
+      "0": NaN,
+      "1": NaN,
+      "2": NaN,
+      "3": NaN
+     },
+     "confidence": 1.0
+    },
+    "action": {
+     "type": "choice",
+     "choice": "answer",
+     "probabilities": {
+      "answer": NaN,
+      "refund": NaN,
+      "verify": NaN,
+      "escalate": NaN,
+      "ask": NaN
+     },
+     "confidence": 1.0
+    },
+    "allowed": {
+     "type": "noul",
+     "noul": NaN
+    }
+   },
+   "input_tokens": 2881
+  },
+  "parity:t2-p0-q1": {
+   "answers": {
+    "team": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": 0.9256,
+      "technical": 0.023,
+      "account": 0.0192,
+      "sales": 0.0323
+     },
+     "confidence": 0.9008
+    }
+   },
+   "input_tokens": 112
+  },
+  "parity:t2-p0-q5": {
+   "answers": {
+    "team": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": NaN,
+      "technical": NaN,
+      "account": NaN,
+      "sales": NaN
+     },
+     "confidence": 1.0
+    },
+    "urgent": {
+     "type": "noul",
+     "noul": NaN
+    },
+    "mood": {
+     "type": "score",
+     "score": NaN,
+     "legend": {
+      "0": "calm",
+      "1": "mildly annoyed",
+      "2": "frustrated",
+      "3": "angry"
+     },
+     "probabilities": {
+      "0": NaN,
+      "1": NaN,
+      "2": NaN,
+      "3": NaN
+     },
+     "confidence": 1.0
+    },
+    "action": {
+     "type": "choice",
+     "choice": "answer",
+     "probabilities": {
+      "answer": NaN,
+      "refund": NaN,
+      "verify": NaN,
+      "escalate": NaN,
+      "ask": NaN
+     },
+     "confidence": 1.0
+    },
+    "allowed": {
+     "type": "noul",
+     "noul": NaN
+    }
+   },
+   "input_tokens": 398
+  },
+  "parity:t2-p4-q1": {
+   "answers": {
+    "team": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": 0.954,
+      "technical": 0.0146,
+      "account": 0.0155,
+      "sales": 0.0159
+     },
+     "confidence": 0.9387
+    }
+   },
+   "input_tokens": 444
+  },
+  "parity:t2-p4-q5": {
+   "answers": {
+    "team": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": NaN,
+      "technical": NaN,
+      "account": NaN,
+      "sales": NaN
+     },
+     "confidence": 1.0
+    },
+    "urgent": {
+     "type": "noul",
+     "noul": NaN
+    },
+    "mood": {
+     "type": "score",
+     "score": NaN,
+     "legend": {
+      "0": "calm",
+      "1": "mildly annoyed",
+      "2": "frustrated",
+      "3": "angry"
+     },
+     "probabilities": {
+      "0": NaN,
+      "1": NaN,
+      "2": NaN,
+      "3": NaN
+     },
+     "confidence": 1.0
+    },
+    "action": {
+     "type": "choice",
+     "choice": "answer",
+     "probabilities": {
+      "answer": NaN,
+      "refund": NaN,
+      "verify": NaN,
+      "escalate": NaN,
+      "ask": NaN
+     },
+     "confidence": 1.0
+    },
+    "allowed": {
+     "type": "noul",
+     "noul": NaN
+    }
+   },
+   "input_tokens": 730
+  },
+  "parity:t2-p30-q1": {
+   "answers": {
+    "team": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": 0.9528,
+      "technical": 0.0136,
+      "account": 0.0143,
+      "sales": 0.0193
+     },
+     "confidence": 0.9371
+    }
+   },
+   "input_tokens": 2602
+  },
+  "parity:t2-p30-q5": {
+   "answers": {
+    "team": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": NaN,
+      "technical": NaN,
+      "account": NaN,
+      "sales": NaN
+     },
+     "confidence": 1.0
+    },
+    "urgent": {
+     "type": "noul",
+     "noul": NaN
+    },
+    "mood": {
+     "type": "score",
+     "score": NaN,
+     "legend": {
+      "0": "calm",
+      "1": "mildly annoyed",
+      "2": "frustrated",
+      "3": "angry"
+     },
+     "probabilities": {
+      "0": NaN,
+      "1": NaN,
+      "2": NaN,
+      "3": NaN
+     },
+     "confidence": 1.0
+    },
+    "action": {
+     "type": "choice",
+     "choice": "answer",
+     "probabilities": {
+      "answer": NaN,
+      "refund": NaN,
+      "verify": NaN,
+      "escalate": NaN,
+      "ask": NaN
+     },
+     "confidence": 1.0
+    },
+    "allowed": {
+     "type": "noul",
+     "noul": NaN
+    }
+   },
+   "input_tokens": 2888
+  },
+  "doc:long-state-64q": {
+   "answers": {
+    "team0": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": NaN,
+      "technical": NaN,
+      "account": NaN,
+      "sales": NaN
+     },
+     "confidence": 1.0
+    },
+    "urgent0": {
+     "type": "noul",
+     "noul": NaN
+    },
+    "mood0": {
+     "type": "score",
+     "score": NaN,
+     "legend": {
+      "0": "calm",
+      "1": "mildly annoyed",
+      "2": "frustrated",
+      "3": "angry"
+     },
+     "probabilities": {
+      "0": NaN,
+      "1": NaN,
+      "2": NaN,
+      "3": NaN
+     },
+     "confidence": 1.0
+    },
+    "action0": {
+     "type": "choice",
+     "choice": "answer",
+     "probabilities": {
+      "answer": NaN,
+      "refund": NaN,
+      "verify": NaN,
+      "escalate": NaN,
+      "ask": NaN
+     },
+     "confidence": 1.0
+    },
+    "allowed0": {
+     "type": "noul",
+     "noul": NaN
+    },
+    "team1": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": NaN,
+      "technical": NaN,
+      "account": NaN,
+      "sales": NaN
+     },
+     "confidence": 1.0
+    },
+    "urgent1": {
+     "type": "noul",
+     "noul": NaN
+    },
+    "mood1": {
+     "type": "score",
+     "score": NaN,
+     "legend": {
+      "0": "calm",
+      "1": "mildly annoyed",
+      "2": "frustrated",
+      "3": "angry"
+     },
+     "probabilities": {
+      "0": NaN,
+      "1": NaN,
+      "2": NaN,
+      "3": NaN
+     },
+     "confidence": 1.0
+    },
+    "action1": {
+     "type": "choice",
+     "choice": "answer",
+     "probabilities": {
+      "answer": NaN,
+      "refund": NaN,
+      "verify": NaN,
+      "escalate": NaN,
+      "ask": NaN
+     },
+     "confidence": 1.0
+    },
+    "allowed1": {
+     "type": "noul",
+     "noul": NaN
+    },
+    "team2": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": NaN,
+      "technical": NaN,
+      "account": NaN,
+      "sales": NaN
+     },
+     "confidence": 1.0
+    },
+    "urgent2": {
+     "type": "noul",
+     "noul": NaN
+    },
+    "mood2": {
+     "type": "score",
+     "score": NaN,
+     "legend": {
+      "0": "calm",
+      "1": "mildly annoyed",
+      "2": "frustrated",
+      "3": "angry"
+     },
+     "probabilities": {
+      "0": NaN,
+      "1": NaN,
+      "2": NaN,
+      "3": NaN
+     },
+     "confidence": 1.0
+    },
+    "action2": {
+     "type": "choice",
+     "choice": "answer",
+     "probabilities": {
+      "answer": NaN,
+      "refund": NaN,
+      "verify": NaN,
+      "escalate": NaN,
+      "ask": NaN
+     },
+     "confidence": 1.0
+    },
+    "allowed2": {
+     "type": "noul",
+     "noul": NaN
+    },
+    "team3": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": NaN,
+      "technical": NaN,
+      "account": NaN,
+      "sales": NaN
+     },
+     "confidence": 1.0
+    },
+    "urgent3": {
+     "type": "noul",
+     "noul": NaN
+    },
+    "mood3": {
+     "type": "score",
+     "score": NaN,
+     "legend": {
+      "0": "calm",
+      "1": "mildly annoyed",
+      "2": "frustrated",
+      "3": "angry"
+     },
+     "probabilities": {
+      "0": NaN,
+      "1": NaN,
+      "2": NaN,
+      "3": NaN
+     },
+     "confidence": 1.0
+    },
+    "action3": {
+     "type": "choice",
+     "choice": "answer",
+     "probabilities": {
+      "answer": NaN,
+      "refund": NaN,
+      "verify": NaN,
+      "escalate": NaN,
+      "ask": NaN
+     },
+     "confidence": 1.0
+    },
+    "allowed3": {
+     "type": "noul",
+     "noul": NaN
+    },
+    "team4": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": NaN,
+      "technical": NaN,
+      "account": NaN,
+      "sales": NaN
+     },
+     "confidence": 1.0
+    },
+    "urgent4": {
+     "type": "noul",
+     "noul": NaN
+    },
+    "mood4": {
+     "type": "score",
+     "score": NaN,
+     "legend": {
+      "0": "calm",
+      "1": "mildly annoyed",
+      "2": "frustrated",
+      "3": "angry"
+     },
+     "probabilities": {
+      "0": NaN,
+      "1": NaN,
+      "2": NaN,
+      "3": NaN
+     },
+     "confidence": 1.0
+    },
+    "action4": {
+     "type": "choice",
+     "choice": "answer",
+     "probabilities": {
+      "answer": NaN,
+      "refund": NaN,
+      "verify": NaN,
+      "escalate": NaN,
+      "ask": NaN
+     },
+     "confidence": 1.0
+    },
+    "allowed4": {
+     "type": "noul",
+     "noul": NaN
+    },
+    "team5": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": NaN,
+      "technical": NaN,
+      "account": NaN,
+      "sales": NaN
+     },
+     "confidence": 1.0
+    },
+    "urgent5": {
+     "type": "noul",
+     "noul": NaN
+    },
+    "mood5": {
+     "type": "score",
+     "score": NaN,
+     "legend": {
+      "0": "calm",
+      "1": "mildly annoyed",
+      "2": "frustrated",
+      "3": "angry"
+     },
+     "probabilities": {
+      "0": NaN,
+      "1": NaN,
+      "2": NaN,
+      "3": NaN
+     },
+     "confidence": 1.0
+    },
+    "action5": {
+     "type": "choice",
+     "choice": "answer",
+     "probabilities": {
+      "answer": NaN,
+      "refund": NaN,
+      "verify": NaN,
+      "escalate": NaN,
+      "ask": NaN
+     },
+     "confidence": 1.0
+    },
+    "allowed5": {
+     "type": "noul",
+     "noul": NaN
+    },
+    "team6": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": NaN,
+      "technical": NaN,
+      "account": NaN,
+      "sales": NaN
+     },
+     "confidence": 1.0
+    },
+    "urgent6": {
+     "type": "noul",
+     "noul": NaN
+    },
+    "mood6": {
+     "type": "score",
+     "score": NaN,
+     "legend": {
+      "0": "calm",
+      "1": "mildly annoyed",
+      "2": "frustrated",
+      "3": "angry"
+     },
+     "probabilities": {
+      "0": NaN,
+      "1": NaN,
+      "2": NaN,
+      "3": NaN
+     },
+     "confidence": 1.0
+    },
+    "action6": {
+     "type": "choice",
+     "choice": "answer",
+     "probabilities": {
+      "answer": NaN,
+      "refund": NaN,
+      "verify": NaN,
+      "escalate": NaN,
+      "ask": NaN
+     },
+     "confidence": 1.0
+    },
+    "allowed6": {
+     "type": "noul",
+     "noul": NaN
+    },
+    "team7": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": NaN,
+      "technical": NaN,
+      "account": NaN,
+      "sales": NaN
+     },
+     "confidence": 1.0
+    },
+    "urgent7": {
+     "type": "noul",
+     "noul": NaN
+    },
+    "mood7": {
+     "type": "score",
+     "score": NaN,
+     "legend": {
+      "0": "calm",
+      "1": "mildly annoyed",
+      "2": "frustrated",
+      "3": "angry"
+     },
+     "probabilities": {
+      "0": NaN,
+      "1": NaN,
+      "2": NaN,
+      "3": NaN
+     },
+     "confidence": 1.0
+    },
+    "action7": {
+     "type": "choice",
+     "choice": "answer",
+     "probabilities": {
+      "answer": NaN,
+      "refund": NaN,
+      "verify": NaN,
+      "escalate": NaN,
+      "ask": NaN
+     },
+     "confidence": 1.0
+    },
+    "allowed7": {
+     "type": "noul",
+     "noul": NaN
+    },
+    "team8": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": NaN,
+      "technical": NaN,
+      "account": NaN,
+      "sales": NaN
+     },
+     "confidence": 1.0
+    },
+    "urgent8": {
+     "type": "noul",
+     "noul": NaN
+    },
+    "mood8": {
+     "type": "score",
+     "score": NaN,
+     "legend": {
+      "0": "calm",
+      "1": "mildly annoyed",
+      "2": "frustrated",
+      "3": "angry"
+     },
+     "probabilities": {
+      "0": NaN,
+      "1": NaN,
+      "2": NaN,
+      "3": NaN
+     },
+     "confidence": 1.0
+    },
+    "action8": {
+     "type": "choice",
+     "choice": "answer",
+     "probabilities": {
+      "answer": NaN,
+      "refund": NaN,
+      "verify": NaN,
+      "escalate": NaN,
+      "ask": NaN
+     },
+     "confidence": 1.0
+    },
+    "allowed8": {
+     "type": "noul",
+     "noul": NaN
+    },
+    "team9": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": NaN,
+      "technical": NaN,
+      "account": NaN,
+      "sales": NaN
+     },
+     "confidence": 1.0
+    },
+    "urgent9": {
+     "type": "noul",
+     "noul": NaN
+    },
+    "mood9": {
+     "type": "score",
+     "score": NaN,
+     "legend": {
+      "0": "calm",
+      "1": "mildly annoyed",
+      "2": "frustrated",
+      "3": "angry"
+     },
+     "probabilities": {
+      "0": NaN,
+      "1": NaN,
+      "2": NaN,
+      "3": NaN
+     },
+     "confidence": 1.0
+    },
+    "action9": {
+     "type": "choice",
+     "choice": "answer",
+     "probabilities": {
+      "answer": NaN,
+      "refund": NaN,
+      "verify": NaN,
+      "escalate": NaN,
+      "ask": NaN
+     },
+     "confidence": 1.0
+    },
+    "allowed9": {
+     "type": "noul",
+     "noul": NaN
+    },
+    "team10": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": NaN,
+      "technical": NaN,
+      "account": NaN,
+      "sales": NaN
+     },
+     "confidence": 1.0
+    },
+    "urgent10": {
+     "type": "noul",
+     "noul": NaN
+    },
+    "mood10": {
+     "type": "score",
+     "score": NaN,
+     "legend": {
+      "0": "calm",
+      "1": "mildly annoyed",
+      "2": "frustrated",
+      "3": "angry"
+     },
+     "probabilities": {
+      "0": NaN,
+      "1": NaN,
+      "2": NaN,
+      "3": NaN
+     },
+     "confidence": 1.0
+    },
+    "action10": {
+     "type": "choice",
+     "choice": "answer",
+     "probabilities": {
+      "answer": NaN,
+      "refund": NaN,
+      "verify": NaN,
+      "escalate": NaN,
+      "ask": NaN
+     },
+     "confidence": 1.0
+    },
+    "allowed10": {
+     "type": "noul",
+     "noul": NaN
+    },
+    "team11": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": NaN,
+      "technical": NaN,
+      "account": NaN,
+      "sales": NaN
+     },
+     "confidence": 1.0
+    },
+    "urgent11": {
+     "type": "noul",
+     "noul": NaN
+    },
+    "mood11": {
+     "type": "score",
+     "score": NaN,
+     "legend": {
+      "0": "calm",
+      "1": "mildly annoyed",
+      "2": "frustrated",
+      "3": "angry"
+     },
+     "probabilities": {
+      "0": NaN,
+      "1": NaN,
+      "2": NaN,
+      "3": NaN
+     },
+     "confidence": 1.0
+    },
+    "action11": {
+     "type": "choice",
+     "choice": "answer",
+     "probabilities": {
+      "answer": NaN,
+      "refund": NaN,
+      "verify": NaN,
+      "escalate": NaN,
+      "ask": NaN
+     },
+     "confidence": 1.0
+    },
+    "allowed11": {
+     "type": "noul",
+     "noul": NaN
+    },
+    "team12": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": NaN,
+      "technical": NaN,
+      "account": NaN,
+      "sales": NaN
+     },
+     "confidence": 1.0
+    },
+    "urgent12": {
+     "type": "noul",
+     "noul": NaN
+    },
+    "mood12": {
+     "type": "score",
+     "score": NaN,
+     "legend": {
+      "0": "calm",
+      "1": "mildly annoyed",
+      "2": "frustrated",
+      "3": "angry"
+     },
+     "probabilities": {
+      "0": NaN,
+      "1": NaN,
+      "2": NaN,
+      "3": NaN
+     },
+     "confidence": 1.0
+    },
+    "action12": {
+     "type": "choice",
+     "choice": "answer",
+     "probabilities": {
+      "answer": NaN,
+      "refund": NaN,
+      "verify": NaN,
+      "escalate": NaN,
+      "ask": NaN
+     },
+     "confidence": 1.0
+    }
+   },
+   "input_tokens": 7832
+  },
+  "doc:long-state-1q": {
+   "answers": {
+    "team": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": 0.8845,
+      "technical": 0.0372,
+      "account": 0.0681,
+      "sales": 0.0103
+     },
+     "confidence": 0.846
+    }
+   },
+   "input_tokens": 3342
+  },
+  "doc:mid-state-16q": {
+   "answers": {
+    "team0": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": NaN,
+      "technical": NaN,
+      "account": NaN,
+      "sales": NaN
+     },
+     "confidence": 1.0
+    },
+    "urgent0": {
+     "type": "noul",
+     "noul": NaN
+    },
+    "mood0": {
+     "type": "score",
+     "score": NaN,
+     "legend": {
+      "0": "calm",
+      "1": "mildly annoyed",
+      "2": "frustrated",
+      "3": "angry"
+     },
+     "probabilities": {
+      "0": NaN,
+      "1": NaN,
+      "2": NaN,
+      "3": NaN
+     },
+     "confidence": 1.0
+    },
+    "action0": {
+     "type": "choice",
+     "choice": "answer",
+     "probabilities": {
+      "answer": NaN,
+      "refund": NaN,
+      "verify": NaN,
+      "escalate": NaN,
+      "ask": NaN
+     },
+     "confidence": 1.0
+    },
+    "allowed0": {
+     "type": "noul",
+     "noul": NaN
+    },
+    "team1": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": NaN,
+      "technical": NaN,
+      "account": NaN,
+      "sales": NaN
+     },
+     "confidence": 1.0
+    },
+    "urgent1": {
+     "type": "noul",
+     "noul": NaN
+    },
+    "mood1": {
+     "type": "score",
+     "score": NaN,
+     "legend": {
+      "0": "calm",
+      "1": "mildly annoyed",
+      "2": "frustrated",
+      "3": "angry"
+     },
+     "probabilities": {
+      "0": NaN,
+      "1": NaN,
+      "2": NaN,
+      "3": NaN
+     },
+     "confidence": 1.0
+    },
+    "action1": {
+     "type": "choice",
+     "choice": "answer",
+     "probabilities": {
+      "answer": NaN,
+      "refund": NaN,
+      "verify": NaN,
+      "escalate": NaN,
+      "ask": NaN
+     },
+     "confidence": 1.0
+    },
+    "allowed1": {
+     "type": "noul",
+     "noul": NaN
+    },
+    "team2": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": NaN,
+      "technical": NaN,
+      "account": NaN,
+      "sales": NaN
+     },
+     "confidence": 1.0
+    },
+    "urgent2": {
+     "type": "noul",
+     "noul": NaN
+    },
+    "mood2": {
+     "type": "score",
+     "score": NaN,
+     "legend": {
+      "0": "calm",
+      "1": "mildly annoyed",
+      "2": "frustrated",
+      "3": "angry"
+     },
+     "probabilities": {
+      "0": NaN,
+      "1": NaN,
+      "2": NaN,
+      "3": NaN
+     },
+     "confidence": 1.0
+    },
+    "action2": {
+     "type": "choice",
+     "choice": "answer",
+     "probabilities": {
+      "answer": NaN,
+      "refund": NaN,
+      "verify": NaN,
+      "escalate": NaN,
+      "ask": NaN
+     },
+     "confidence": 1.0
+    },
+    "allowed2": {
+     "type": "noul",
+     "noul": NaN
+    },
+    "team3": {
+     "type": "choice",
+     "choice": "billing",
+     "probabilities": {
+      "billing": NaN,
+      "technical": NaN,
+      "account": NaN,
+      "sales": NaN
+     },
+     "confidence": 1.0
+    }
+   },
+   "input_tokens": 2176
+  }
+ },
+ "errors": {},
+ "best_of_2_s": {
+  "p1:ticket-route-1q": 0.30871281400322914,
+  "p1:payouts-3q": 0.8245295849628747,
+  "p1:cracked-screen-2q": 0.5969553650356829,
+  "p1:agent-action-guard-2q": 0.9454934430541471,
+  "p1:incident-review-4q": 1.8093232600949705,
+  "parity:t0-p0-q1": 0.3686671210452914,
+  "parity:t0-p0-q5": 1.511680232011713,
+  "parity:t0-p4-q1": 1.3687244079774246,
+  "parity:t0-p4-q5": 2.4505697019631043,
+  "parity:t0-p30-q1": 7.448913707048632,
+  "parity:t0-p30-q5": 8.132177494000643,
+  "parity:t1-p0-q1": 0.43835307098925114,
+  "parity:t1-p0-q5": 1.310923786018975,
+  "parity:t1-p4-q1": 1.2957554690074176,
+  "parity:t1-p4-q5": 2.1097341580316424,
+  "parity:t1-p30-q1": 8.134505854104646,
+  "parity:t1-p30-q5": 8.582450156915002,
+  "parity:t2-p0-q1": 0.4176800830755383,
+  "parity:t2-p0-q5": 1.3282961320364848,
+  "parity:t2-p4-q1": 1.355171850998886,
+  "parity:t2-p4-q5": 2.702765866066329,
+  "parity:t2-p30-q1": 8.455168092041276,
+  "parity:t2-p30-q5": 9.819945830968209,
+  "doc:long-state-64q": 98.09380104299635,
+  "doc:long-state-1q": 13.608657671953551,
+  "doc:mid-state-16q": 7.463161166990176
+ },
+ "host": {
+  "cpu": "Intel(R) Xeon(R) 6975P-C",
+  "threads": 16
+ }
+}

@@ -1,0 +1,6 @@
+{
+ "source": "offline/ctx_need.py: P1's tokenizer and HiddenStateEngine.fit on baseline/requests.json",
+ "need": {"ticket-route-1q": 83, "payouts-3q": 86, "cracked-screen-2q": 93, "agent-action-guard-2q": 238, "incident-review-4q": 379},
+ "one_fork_tokens": {"ticket-route-1q": 83, "payouts-3q": 196, "cracked-screen-2q": 147, "agent-action-guard-2q": 306, "incident-review-4q": 598},
+ "note": "need = state + longest question (the least n_ctx that answers the request); one_fork_tokens = state + every question (the least n_ctx that answers it in one fork group, P1's path at n_ctx 16384)"
+}

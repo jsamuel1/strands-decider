@@ -1,0 +1,73 @@
+{
+ "payouts-3q": {
+  "state": 21,
+  "q": [
+   65,
+   47,
+   63
+  ],
+  "one_vs_two_groups": 142.07118225097656,
+  "one_vs_per_question_fork": 142.88426208496094,
+  "one_vs_plain_forward": 142.87319946289062,
+  "plain_vs_per_question_fork": 0.07779884338378906,
+  "nan": {
+   "one": false,
+   "two": false,
+   "each": false,
+   "plain": false
+  }
+ },
+ "cracked-screen-2q": {
+  "state": 28,
+  "q": [
+   54,
+   65
+  ],
+  "one_vs_two_groups": 53.5721435546875,
+  "one_vs_per_question_fork": 53.5721435546875,
+  "one_vs_plain_forward": 53.57264709472656,
+  "plain_vs_per_question_fork": 0.05508995056152344,
+  "nan": {
+   "one": false,
+   "two": false,
+   "each": false,
+   "plain": false
+  }
+ },
+ "agent-action-guard-2q": {
+  "state": 166,
+  "q": [
+   72,
+   68
+  ],
+  "one_vs_two_groups": 125.9796371459961,
+  "one_vs_per_question_fork": 125.9796371459961,
+  "one_vs_plain_forward": 126.00428009033203,
+  "plain_vs_per_question_fork": 0.06762266159057617,
+  "nan": {
+   "one": false,
+   "two": false,
+   "each": false,
+   "plain": false
+  }
+ },
+ "incident-review-4q": {
+  "state": 301,
+  "q": [
+   76,
+   78,
+   69,
+   74
+  ],
+  "one_vs_two_groups": NaN,
+  "one_vs_per_question_fork": NaN,
+  "one_vs_plain_forward": NaN,
+  "plain_vs_per_question_fork": 0.0609283447265625,
+  "nan": {
+   "one": true,
+   "two": false,
+   "each": false,
+   "plain": false
+  }
+ }
+}

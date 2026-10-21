@@ -1,0 +1,1351 @@
+{
+ "p1:ticket-route-1q": {
+  "state": {
+   "ticket": "Refund issued but invoice still shows the old total."
+  },
+  "questions": {
+   "q": {
+    "type": "choice",
+    "instructions": "Route this ticket.",
+    "criteria": {
+     "billing": "payment or invoice",
+     "technical": "product defect",
+     "account": "login"
+    }
+   }
+  }
+ },
+ "p1:payouts-3q": {
+  "state": "Help! My payouts have been failing for 3 days!",
+  "questions": {
+   "is_urgent": {
+    "type": "noul",
+    "instructions": "Does this convey urgency?"
+   },
+   "team": {
+    "type": "choice",
+    "instructions": "Which team should handle this?",
+    "criteria": {
+     "billing": "",
+     "sales": "",
+     "retail": ""
+    }
+   },
+   "frustration": {
+    "type": "score",
+    "instructions": "How frustrated is the writer?",
+    "criteria": [
+     "calm",
+     "frustrated",
+     "depressed"
+    ]
+   }
+  }
+ },
+ "p1:cracked-screen-2q": {
+  "state": "Order 1182 arrived with a cracked screen. The customer wants a refund today.",
+  "questions": {
+   "q": {
+    "type": "choice",
+    "instructions": "Route the ticket.",
+    "criteria": {
+     "refunds": "money back",
+     "shipping": "delivery problems",
+     "tech": "device faults"
+    }
+   },
+   "u": {
+    "type": "noul",
+    "instructions": "Is the customer upset?"
+   }
+  }
+ },
+ "p1:agent-action-guard-2q": {
+  "state": {
+   "user_goal": "Clean up last quarter's test fixtures in the staging bucket.",
+   "proposed_tool_call": {
+    "name": "s3_delete_prefix",
+    "arguments": {
+     "bucket": "acme-prod-invoices",
+     "prefix": "2026/"
+    }
+   },
+   "recent_messages": [
+    "user: the staging bucket is acme-staging-fixtures, only touch that one",
+    "assistant: Understood, I will list acme-staging-fixtures first.",
+    "tool(s3_list): acme-staging-fixtures/2026/Q3/ has 412 objects"
+   ]
+  },
+  "questions": {
+   "safe": {
+    "type": "noul",
+    "instructions": "Is the proposed tool call consistent with the user's instructions?"
+   },
+   "action": {
+    "type": "choice",
+    "instructions": "What should the agent do next?",
+    "criteria": {
+     "proceed": "run the tool call as proposed",
+     "revise": "fix the arguments and retry",
+     "ask": "ask the user before doing anything"
+    }
+   }
+  }
+ },
+ "p1:incident-review-4q": {
+  "state": "Incident 4471 timeline. 09:02 deploy of checkout-api build 8812 starts in us-east-2. 09:06 p99 latency on /cart rises from 180 ms to 2.4 s; error rate 0.2% to 6%. 09:07 on-call paged by the latency alarm. 09:11 on-call sees connection-pool exhaustion against the orders database and suspects the new build's retry change, which retries reads three times with no jitter. 09:14 rollback to build 8807 started. 09:19 rollback complete in two of three cells; the third cell is still on 8812 because its deployment was paused by a separate change freeze. 09:23 p99 back to 210 ms in the rolled-back cells; the third cell keeps failing about 9% of requests. 09:31 the freeze owner approves the rollback for the third cell. 09:38 all cells healthy. Customer impact: about 36 minutes of degraded checkout in one region, an estimated 2,100 failed carts. The retry change had passed load tests, which ran against a database with three times the production connection limit. No runbook step covered a cell stuck behind a freeze.",
+  "questions": {
+   "root_cause": {
+    "type": "choice",
+    "instructions": "What is the most direct root cause?",
+    "criteria": {
+     "retries": "retry change without jitter exhausted the connection pool",
+     "freeze": "the change freeze",
+     "alarm": "slow alarming",
+     "capacity": "database undersized for normal load"
+    }
+   },
+   "severity": {
+    "type": "score",
+    "instructions": "How severe was the customer impact?",
+    "criteria": [
+     "negligible",
+     "minor",
+     "moderate",
+     "major",
+     "critical"
+    ]
+   },
+   "test_gap": {
+    "type": "noul",
+    "instructions": "Did a test environment difference hide the problem?"
+   },
+   "runbook": {
+    "type": "noul",
+    "instructions": "Should the runbook gain a step for cells blocked by a freeze?"
+   }
+  }
+ },
+ "parity:t0-p0-q1": {
+  "state": "Hi, can you tell me when my next payout is scheduled?",
+  "questions": {
+   "team": {
+    "type": "choice",
+    "instructions": "Which team should handle this ticket?",
+    "criteria": {
+     "billing": "charges, refunds, payouts",
+     "technical": "bugs and outages",
+     "account": "identity and settings",
+     "sales": "new purchases"
+    }
+   }
+  },
+  "model": "strands-decider-latest",
+  "images": []
+ },
+ "parity:t0-p0-q5": {
+  "state": "Hi, can you tell me when my next payout is scheduled?",
+  "questions": {
+   "team": {
+    "type": "choice",
+    "instructions": "Which team should handle this ticket?",
+    "criteria": {
+     "billing": "charges, refunds, payouts",
+     "technical": "bugs and outages",
+     "account": "identity and settings",
+     "sales": "new purchases"
+    }
+   },
+   "urgent": {
+    "type": "noul",
+    "instructions": "Does the customer convey urgency?"
+   },
+   "mood": {
+    "type": "score",
+    "instructions": "How frustrated is the customer?",
+    "criteria": [
+     "calm",
+     "mildly annoyed",
+     "frustrated",
+     "angry"
+    ]
+   },
+   "action": {
+    "type": "choice",
+    "instructions": "What should the agent do next?",
+    "criteria": {
+     "answer": "answer from policy",
+     "refund": "issue a refund",
+     "verify": "confirm the account holder's identity",
+     "escalate": "escalate to finance",
+     "ask": "ask a clarifying question"
+    }
+   },
+   "allowed": {
+    "type": "noul",
+    "instructions": "Does the policy allow a refund here?"
+   }
+  },
+  "model": "strands-decider-latest",
+  "images": []
+ },
+ "parity:t0-p4-q1": {
+  "state": "Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Hi, can you tell me when my next payout is scheduled?",
+  "questions": {
+   "team": {
+    "type": "choice",
+    "instructions": "Which team should handle this ticket?",
+    "criteria": {
+     "billing": "charges, refunds, payouts",
+     "technical": "bugs and outages",
+     "account": "identity and settings",
+     "sales": "new purchases"
+    }
+   }
+  },
+  "model": "strands-decider-latest",
+  "images": []
+ },
+ "parity:t0-p4-q5": {
+  "state": "Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Hi, can you tell me when my next payout is scheduled?",
+  "questions": {
+   "team": {
+    "type": "choice",
+    "instructions": "Which team should handle this ticket?",
+    "criteria": {
+     "billing": "charges, refunds, payouts",
+     "technical": "bugs and outages",
+     "account": "identity and settings",
+     "sales": "new purchases"
+    }
+   },
+   "urgent": {
+    "type": "noul",
+    "instructions": "Does the customer convey urgency?"
+   },
+   "mood": {
+    "type": "score",
+    "instructions": "How frustrated is the customer?",
+    "criteria": [
+     "calm",
+     "mildly annoyed",
+     "frustrated",
+     "angry"
+    ]
+   },
+   "action": {
+    "type": "choice",
+    "instructions": "What should the agent do next?",
+    "criteria": {
+     "answer": "answer from policy",
+     "refund": "issue a refund",
+     "verify": "confirm the account holder's identity",
+     "escalate": "escalate to finance",
+     "ask": "ask a clarifying question"
+    }
+   },
+   "allowed": {
+    "type": "noul",
+    "instructions": "Does the policy allow a refund here?"
+   }
+  },
+  "model": "strands-decider-latest",
+  "images": []
+ },
+ "parity:t0-p30-q1": {
+  "state": "Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Hi, can you tell me when my next payout is scheduled?",
+  "questions": {
+   "team": {
+    "type": "choice",
+    "instructions": "Which team should handle this ticket?",
+    "criteria": {
+     "billing": "charges, refunds, payouts",
+     "technical": "bugs and outages",
+     "account": "identity and settings",
+     "sales": "new purchases"
+    }
+   }
+  },
+  "model": "strands-decider-latest",
+  "images": []
+ },
+ "parity:t0-p30-q5": {
+  "state": "Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Hi, can you tell me when my next payout is scheduled?",
+  "questions": {
+   "team": {
+    "type": "choice",
+    "instructions": "Which team should handle this ticket?",
+    "criteria": {
+     "billing": "charges, refunds, payouts",
+     "technical": "bugs and outages",
+     "account": "identity and settings",
+     "sales": "new purchases"
+    }
+   },
+   "urgent": {
+    "type": "noul",
+    "instructions": "Does the customer convey urgency?"
+   },
+   "mood": {
+    "type": "score",
+    "instructions": "How frustrated is the customer?",
+    "criteria": [
+     "calm",
+     "mildly annoyed",
+     "frustrated",
+     "angry"
+    ]
+   },
+   "action": {
+    "type": "choice",
+    "instructions": "What should the agent do next?",
+    "criteria": {
+     "answer": "answer from policy",
+     "refund": "issue a refund",
+     "verify": "confirm the account holder's identity",
+     "escalate": "escalate to finance",
+     "ask": "ask a clarifying question"
+    }
+   },
+   "allowed": {
+    "type": "noul",
+    "instructions": "Does the policy allow a refund here?"
+   }
+  },
+  "model": "strands-decider-latest",
+  "images": []
+ },
+ "parity:t1-p0-q1": {
+  "state": "My payouts have failed for three days and I have rent due tomorrow. This is unacceptable. I already updated my bank details twice.",
+  "questions": {
+   "team": {
+    "type": "choice",
+    "instructions": "Which team should handle this ticket?",
+    "criteria": {
+     "billing": "charges, refunds, payouts",
+     "technical": "bugs and outages",
+     "account": "identity and settings",
+     "sales": "new purchases"
+    }
+   }
+  },
+  "model": "strands-decider-latest",
+  "images": []
+ },
+ "parity:t1-p0-q5": {
+  "state": "My payouts have failed for three days and I have rent due tomorrow. This is unacceptable. I already updated my bank details twice.",
+  "questions": {
+   "team": {
+    "type": "choice",
+    "instructions": "Which team should handle this ticket?",
+    "criteria": {
+     "billing": "charges, refunds, payouts",
+     "technical": "bugs and outages",
+     "account": "identity and settings",
+     "sales": "new purchases"
+    }
+   },
+   "urgent": {
+    "type": "noul",
+    "instructions": "Does the customer convey urgency?"
+   },
+   "mood": {
+    "type": "score",
+    "instructions": "How frustrated is the customer?",
+    "criteria": [
+     "calm",
+     "mildly annoyed",
+     "frustrated",
+     "angry"
+    ]
+   },
+   "action": {
+    "type": "choice",
+    "instructions": "What should the agent do next?",
+    "criteria": {
+     "answer": "answer from policy",
+     "refund": "issue a refund",
+     "verify": "confirm the account holder's identity",
+     "escalate": "escalate to finance",
+     "ask": "ask a clarifying question"
+    }
+   },
+   "allowed": {
+    "type": "noul",
+    "instructions": "Does the policy allow a refund here?"
+   }
+  },
+  "model": "strands-decider-latest",
+  "images": []
+ },
+ "parity:t1-p4-q1": {
+  "state": "Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. My payouts have failed for three days and I have rent due tomorrow. This is unacceptable. I already updated my bank details twice.",
+  "questions": {
+   "team": {
+    "type": "choice",
+    "instructions": "Which team should handle this ticket?",
+    "criteria": {
+     "billing": "charges, refunds, payouts",
+     "technical": "bugs and outages",
+     "account": "identity and settings",
+     "sales": "new purchases"
+    }
+   }
+  },
+  "model": "strands-decider-latest",
+  "images": []
+ },
+ "parity:t1-p4-q5": {
+  "state": "Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. My payouts have failed for three days and I have rent due tomorrow. This is unacceptable. I already updated my bank details twice.",
+  "questions": {
+   "team": {
+    "type": "choice",
+    "instructions": "Which team should handle this ticket?",
+    "criteria": {
+     "billing": "charges, refunds, payouts",
+     "technical": "bugs and outages",
+     "account": "identity and settings",
+     "sales": "new purchases"
+    }
+   },
+   "urgent": {
+    "type": "noul",
+    "instructions": "Does the customer convey urgency?"
+   },
+   "mood": {
+    "type": "score",
+    "instructions": "How frustrated is the customer?",
+    "criteria": [
+     "calm",
+     "mildly annoyed",
+     "frustrated",
+     "angry"
+    ]
+   },
+   "action": {
+    "type": "choice",
+    "instructions": "What should the agent do next?",
+    "criteria": {
+     "answer": "answer from policy",
+     "refund": "issue a refund",
+     "verify": "confirm the account holder's identity",
+     "escalate": "escalate to finance",
+     "ask": "ask a clarifying question"
+    }
+   },
+   "allowed": {
+    "type": "noul",
+    "instructions": "Does the policy allow a refund here?"
+   }
+  },
+  "model": "strands-decider-latest",
+  "images": []
+ },
+ "parity:t1-p30-q1": {
+  "state": "Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. My payouts have failed for three days and I have rent due tomorrow. This is unacceptable. I already updated my bank details twice.",
+  "questions": {
+   "team": {
+    "type": "choice",
+    "instructions": "Which team should handle this ticket?",
+    "criteria": {
+     "billing": "charges, refunds, payouts",
+     "technical": "bugs and outages",
+     "account": "identity and settings",
+     "sales": "new purchases"
+    }
+   }
+  },
+  "model": "strands-decider-latest",
+  "images": []
+ },
+ "parity:t1-p30-q5": {
+  "state": "Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. My payouts have failed for three days and I have rent due tomorrow. This is unacceptable. I already updated my bank details twice.",
+  "questions": {
+   "team": {
+    "type": "choice",
+    "instructions": "Which team should handle this ticket?",
+    "criteria": {
+     "billing": "charges, refunds, payouts",
+     "technical": "bugs and outages",
+     "account": "identity and settings",
+     "sales": "new purchases"
+    }
+   },
+   "urgent": {
+    "type": "noul",
+    "instructions": "Does the customer convey urgency?"
+   },
+   "mood": {
+    "type": "score",
+    "instructions": "How frustrated is the customer?",
+    "criteria": [
+     "calm",
+     "mildly annoyed",
+     "frustrated",
+     "angry"
+    ]
+   },
+   "action": {
+    "type": "choice",
+    "instructions": "What should the agent do next?",
+    "criteria": {
+     "answer": "answer from policy",
+     "refund": "issue a refund",
+     "verify": "confirm the account holder's identity",
+     "escalate": "escalate to finance",
+     "ask": "ask a clarifying question"
+    }
+   },
+   "allowed": {
+    "type": "noul",
+    "instructions": "Does the policy allow a refund here?"
+   }
+  },
+  "model": "strands-decider-latest",
+  "images": []
+ },
+ "parity:t2-p0-q1": {
+  "state": "I was charged twice for the same order on the 3rd. I'd like one of the charges refunded, the order number is 4471.",
+  "questions": {
+   "team": {
+    "type": "choice",
+    "instructions": "Which team should handle this ticket?",
+    "criteria": {
+     "billing": "charges, refunds, payouts",
+     "technical": "bugs and outages",
+     "account": "identity and settings",
+     "sales": "new purchases"
+    }
+   }
+  },
+  "model": "strands-decider-latest",
+  "images": []
+ },
+ "parity:t2-p0-q5": {
+  "state": "I was charged twice for the same order on the 3rd. I'd like one of the charges refunded, the order number is 4471.",
+  "questions": {
+   "team": {
+    "type": "choice",
+    "instructions": "Which team should handle this ticket?",
+    "criteria": {
+     "billing": "charges, refunds, payouts",
+     "technical": "bugs and outages",
+     "account": "identity and settings",
+     "sales": "new purchases"
+    }
+   },
+   "urgent": {
+    "type": "noul",
+    "instructions": "Does the customer convey urgency?"
+   },
+   "mood": {
+    "type": "score",
+    "instructions": "How frustrated is the customer?",
+    "criteria": [
+     "calm",
+     "mildly annoyed",
+     "frustrated",
+     "angry"
+    ]
+   },
+   "action": {
+    "type": "choice",
+    "instructions": "What should the agent do next?",
+    "criteria": {
+     "answer": "answer from policy",
+     "refund": "issue a refund",
+     "verify": "confirm the account holder's identity",
+     "escalate": "escalate to finance",
+     "ask": "ask a clarifying question"
+    }
+   },
+   "allowed": {
+    "type": "noul",
+    "instructions": "Does the policy allow a refund here?"
+   }
+  },
+  "model": "strands-decider-latest",
+  "images": []
+ },
+ "parity:t2-p4-q1": {
+  "state": "Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. I was charged twice for the same order on the 3rd. I'd like one of the charges refunded, the order number is 4471.",
+  "questions": {
+   "team": {
+    "type": "choice",
+    "instructions": "Which team should handle this ticket?",
+    "criteria": {
+     "billing": "charges, refunds, payouts",
+     "technical": "bugs and outages",
+     "account": "identity and settings",
+     "sales": "new purchases"
+    }
+   }
+  },
+  "model": "strands-decider-latest",
+  "images": []
+ },
+ "parity:t2-p4-q5": {
+  "state": "Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. I was charged twice for the same order on the 3rd. I'd like one of the charges refunded, the order number is 4471.",
+  "questions": {
+   "team": {
+    "type": "choice",
+    "instructions": "Which team should handle this ticket?",
+    "criteria": {
+     "billing": "charges, refunds, payouts",
+     "technical": "bugs and outages",
+     "account": "identity and settings",
+     "sales": "new purchases"
+    }
+   },
+   "urgent": {
+    "type": "noul",
+    "instructions": "Does the customer convey urgency?"
+   },
+   "mood": {
+    "type": "score",
+    "instructions": "How frustrated is the customer?",
+    "criteria": [
+     "calm",
+     "mildly annoyed",
+     "frustrated",
+     "angry"
+    ]
+   },
+   "action": {
+    "type": "choice",
+    "instructions": "What should the agent do next?",
+    "criteria": {
+     "answer": "answer from policy",
+     "refund": "issue a refund",
+     "verify": "confirm the account holder's identity",
+     "escalate": "escalate to finance",
+     "ask": "ask a clarifying question"
+    }
+   },
+   "allowed": {
+    "type": "noul",
+    "instructions": "Does the policy allow a refund here?"
+   }
+  },
+  "model": "strands-decider-latest",
+  "images": []
+ },
+ "parity:t2-p30-q1": {
+  "state": "Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. I was charged twice for the same order on the 3rd. I'd like one of the charges refunded, the order number is 4471.",
+  "questions": {
+   "team": {
+    "type": "choice",
+    "instructions": "Which team should handle this ticket?",
+    "criteria": {
+     "billing": "charges, refunds, payouts",
+     "technical": "bugs and outages",
+     "account": "identity and settings",
+     "sales": "new purchases"
+    }
+   }
+  },
+  "model": "strands-decider-latest",
+  "images": []
+ },
+ "parity:t2-p30-q5": {
+  "state": "Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. I was charged twice for the same order on the 3rd. I'd like one of the charges refunded, the order number is 4471.",
+  "questions": {
+   "team": {
+    "type": "choice",
+    "instructions": "Which team should handle this ticket?",
+    "criteria": {
+     "billing": "charges, refunds, payouts",
+     "technical": "bugs and outages",
+     "account": "identity and settings",
+     "sales": "new purchases"
+    }
+   },
+   "urgent": {
+    "type": "noul",
+    "instructions": "Does the customer convey urgency?"
+   },
+   "mood": {
+    "type": "score",
+    "instructions": "How frustrated is the customer?",
+    "criteria": [
+     "calm",
+     "mildly annoyed",
+     "frustrated",
+     "angry"
+    ]
+   },
+   "action": {
+    "type": "choice",
+    "instructions": "What should the agent do next?",
+    "criteria": {
+     "answer": "answer from policy",
+     "refund": "issue a refund",
+     "verify": "confirm the account holder's identity",
+     "escalate": "escalate to finance",
+     "ask": "ask a clarifying question"
+    }
+   },
+   "allowed": {
+    "type": "noul",
+    "instructions": "Does the policy allow a refund here?"
+   }
+  },
+  "model": "strands-decider-latest",
+  "images": []
+ },
+ "doc:long-state-64q": {
+  "state": "Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. My payouts have failed for three days and I have rent due tomorrow. This is unacceptable. I already updated my bank details twice.",
+  "questions": {
+   "team0": {
+    "type": "choice",
+    "instructions": "Which team should handle this ticket?",
+    "criteria": {
+     "billing": "charges, refunds, payouts",
+     "technical": "bugs and outages",
+     "account": "identity and settings",
+     "sales": "new purchases"
+    }
+   },
+   "urgent0": {
+    "type": "noul",
+    "instructions": "Does the customer convey urgency?"
+   },
+   "mood0": {
+    "type": "score",
+    "instructions": "How frustrated is the customer?",
+    "criteria": [
+     "calm",
+     "mildly annoyed",
+     "frustrated",
+     "angry"
+    ]
+   },
+   "action0": {
+    "type": "choice",
+    "instructions": "What should the agent do next?",
+    "criteria": {
+     "answer": "answer from policy",
+     "refund": "issue a refund",
+     "verify": "confirm the account holder's identity",
+     "escalate": "escalate to finance",
+     "ask": "ask a clarifying question"
+    }
+   },
+   "allowed0": {
+    "type": "noul",
+    "instructions": "Does the policy allow a refund here?"
+   },
+   "team1": {
+    "type": "choice",
+    "instructions": "Which team should handle this ticket?",
+    "criteria": {
+     "billing": "charges, refunds, payouts",
+     "technical": "bugs and outages",
+     "account": "identity and settings",
+     "sales": "new purchases"
+    }
+   },
+   "urgent1": {
+    "type": "noul",
+    "instructions": "Does the customer convey urgency?"
+   },
+   "mood1": {
+    "type": "score",
+    "instructions": "How frustrated is the customer?",
+    "criteria": [
+     "calm",
+     "mildly annoyed",
+     "frustrated",
+     "angry"
+    ]
+   },
+   "action1": {
+    "type": "choice",
+    "instructions": "What should the agent do next?",
+    "criteria": {
+     "answer": "answer from policy",
+     "refund": "issue a refund",
+     "verify": "confirm the account holder's identity",
+     "escalate": "escalate to finance",
+     "ask": "ask a clarifying question"
+    }
+   },
+   "allowed1": {
+    "type": "noul",
+    "instructions": "Does the policy allow a refund here?"
+   },
+   "team2": {
+    "type": "choice",
+    "instructions": "Which team should handle this ticket?",
+    "criteria": {
+     "billing": "charges, refunds, payouts",
+     "technical": "bugs and outages",
+     "account": "identity and settings",
+     "sales": "new purchases"
+    }
+   },
+   "urgent2": {
+    "type": "noul",
+    "instructions": "Does the customer convey urgency?"
+   },
+   "mood2": {
+    "type": "score",
+    "instructions": "How frustrated is the customer?",
+    "criteria": [
+     "calm",
+     "mildly annoyed",
+     "frustrated",
+     "angry"
+    ]
+   },
+   "action2": {
+    "type": "choice",
+    "instructions": "What should the agent do next?",
+    "criteria": {
+     "answer": "answer from policy",
+     "refund": "issue a refund",
+     "verify": "confirm the account holder's identity",
+     "escalate": "escalate to finance",
+     "ask": "ask a clarifying question"
+    }
+   },
+   "allowed2": {
+    "type": "noul",
+    "instructions": "Does the policy allow a refund here?"
+   },
+   "team3": {
+    "type": "choice",
+    "instructions": "Which team should handle this ticket?",
+    "criteria": {
+     "billing": "charges, refunds, payouts",
+     "technical": "bugs and outages",
+     "account": "identity and settings",
+     "sales": "new purchases"
+    }
+   },
+   "urgent3": {
+    "type": "noul",
+    "instructions": "Does the customer convey urgency?"
+   },
+   "mood3": {
+    "type": "score",
+    "instructions": "How frustrated is the customer?",
+    "criteria": [
+     "calm",
+     "mildly annoyed",
+     "frustrated",
+     "angry"
+    ]
+   },
+   "action3": {
+    "type": "choice",
+    "instructions": "What should the agent do next?",
+    "criteria": {
+     "answer": "answer from policy",
+     "refund": "issue a refund",
+     "verify": "confirm the account holder's identity",
+     "escalate": "escalate to finance",
+     "ask": "ask a clarifying question"
+    }
+   },
+   "allowed3": {
+    "type": "noul",
+    "instructions": "Does the policy allow a refund here?"
+   },
+   "team4": {
+    "type": "choice",
+    "instructions": "Which team should handle this ticket?",
+    "criteria": {
+     "billing": "charges, refunds, payouts",
+     "technical": "bugs and outages",
+     "account": "identity and settings",
+     "sales": "new purchases"
+    }
+   },
+   "urgent4": {
+    "type": "noul",
+    "instructions": "Does the customer convey urgency?"
+   },
+   "mood4": {
+    "type": "score",
+    "instructions": "How frustrated is the customer?",
+    "criteria": [
+     "calm",
+     "mildly annoyed",
+     "frustrated",
+     "angry"
+    ]
+   },
+   "action4": {
+    "type": "choice",
+    "instructions": "What should the agent do next?",
+    "criteria": {
+     "answer": "answer from policy",
+     "refund": "issue a refund",
+     "verify": "confirm the account holder's identity",
+     "escalate": "escalate to finance",
+     "ask": "ask a clarifying question"
+    }
+   },
+   "allowed4": {
+    "type": "noul",
+    "instructions": "Does the policy allow a refund here?"
+   },
+   "team5": {
+    "type": "choice",
+    "instructions": "Which team should handle this ticket?",
+    "criteria": {
+     "billing": "charges, refunds, payouts",
+     "technical": "bugs and outages",
+     "account": "identity and settings",
+     "sales": "new purchases"
+    }
+   },
+   "urgent5": {
+    "type": "noul",
+    "instructions": "Does the customer convey urgency?"
+   },
+   "mood5": {
+    "type": "score",
+    "instructions": "How frustrated is the customer?",
+    "criteria": [
+     "calm",
+     "mildly annoyed",
+     "frustrated",
+     "angry"
+    ]
+   },
+   "action5": {
+    "type": "choice",
+    "instructions": "What should the agent do next?",
+    "criteria": {
+     "answer": "answer from policy",
+     "refund": "issue a refund",
+     "verify": "confirm the account holder's identity",
+     "escalate": "escalate to finance",
+     "ask": "ask a clarifying question"
+    }
+   },
+   "allowed5": {
+    "type": "noul",
+    "instructions": "Does the policy allow a refund here?"
+   },
+   "team6": {
+    "type": "choice",
+    "instructions": "Which team should handle this ticket?",
+    "criteria": {
+     "billing": "charges, refunds, payouts",
+     "technical": "bugs and outages",
+     "account": "identity and settings",
+     "sales": "new purchases"
+    }
+   },
+   "urgent6": {
+    "type": "noul",
+    "instructions": "Does the customer convey urgency?"
+   },
+   "mood6": {
+    "type": "score",
+    "instructions": "How frustrated is the customer?",
+    "criteria": [
+     "calm",
+     "mildly annoyed",
+     "frustrated",
+     "angry"
+    ]
+   },
+   "action6": {
+    "type": "choice",
+    "instructions": "What should the agent do next?",
+    "criteria": {
+     "answer": "answer from policy",
+     "refund": "issue a refund",
+     "verify": "confirm the account holder's identity",
+     "escalate": "escalate to finance",
+     "ask": "ask a clarifying question"
+    }
+   },
+   "allowed6": {
+    "type": "noul",
+    "instructions": "Does the policy allow a refund here?"
+   },
+   "team7": {
+    "type": "choice",
+    "instructions": "Which team should handle this ticket?",
+    "criteria": {
+     "billing": "charges, refunds, payouts",
+     "technical": "bugs and outages",
+     "account": "identity and settings",
+     "sales": "new purchases"
+    }
+   },
+   "urgent7": {
+    "type": "noul",
+    "instructions": "Does the customer convey urgency?"
+   },
+   "mood7": {
+    "type": "score",
+    "instructions": "How frustrated is the customer?",
+    "criteria": [
+     "calm",
+     "mildly annoyed",
+     "frustrated",
+     "angry"
+    ]
+   },
+   "action7": {
+    "type": "choice",
+    "instructions": "What should the agent do next?",
+    "criteria": {
+     "answer": "answer from policy",
+     "refund": "issue a refund",
+     "verify": "confirm the account holder's identity",
+     "escalate": "escalate to finance",
+     "ask": "ask a clarifying question"
+    }
+   },
+   "allowed7": {
+    "type": "noul",
+    "instructions": "Does the policy allow a refund here?"
+   },
+   "team8": {
+    "type": "choice",
+    "instructions": "Which team should handle this ticket?",
+    "criteria": {
+     "billing": "charges, refunds, payouts",
+     "technical": "bugs and outages",
+     "account": "identity and settings",
+     "sales": "new purchases"
+    }
+   },
+   "urgent8": {
+    "type": "noul",
+    "instructions": "Does the customer convey urgency?"
+   },
+   "mood8": {
+    "type": "score",
+    "instructions": "How frustrated is the customer?",
+    "criteria": [
+     "calm",
+     "mildly annoyed",
+     "frustrated",
+     "angry"
+    ]
+   },
+   "action8": {
+    "type": "choice",
+    "instructions": "What should the agent do next?",
+    "criteria": {
+     "answer": "answer from policy",
+     "refund": "issue a refund",
+     "verify": "confirm the account holder's identity",
+     "escalate": "escalate to finance",
+     "ask": "ask a clarifying question"
+    }
+   },
+   "allowed8": {
+    "type": "noul",
+    "instructions": "Does the policy allow a refund here?"
+   },
+   "team9": {
+    "type": "choice",
+    "instructions": "Which team should handle this ticket?",
+    "criteria": {
+     "billing": "charges, refunds, payouts",
+     "technical": "bugs and outages",
+     "account": "identity and settings",
+     "sales": "new purchases"
+    }
+   },
+   "urgent9": {
+    "type": "noul",
+    "instructions": "Does the customer convey urgency?"
+   },
+   "mood9": {
+    "type": "score",
+    "instructions": "How frustrated is the customer?",
+    "criteria": [
+     "calm",
+     "mildly annoyed",
+     "frustrated",
+     "angry"
+    ]
+   },
+   "action9": {
+    "type": "choice",
+    "instructions": "What should the agent do next?",
+    "criteria": {
+     "answer": "answer from policy",
+     "refund": "issue a refund",
+     "verify": "confirm the account holder's identity",
+     "escalate": "escalate to finance",
+     "ask": "ask a clarifying question"
+    }
+   },
+   "allowed9": {
+    "type": "noul",
+    "instructions": "Does the policy allow a refund here?"
+   },
+   "team10": {
+    "type": "choice",
+    "instructions": "Which team should handle this ticket?",
+    "criteria": {
+     "billing": "charges, refunds, payouts",
+     "technical": "bugs and outages",
+     "account": "identity and settings",
+     "sales": "new purchases"
+    }
+   },
+   "urgent10": {
+    "type": "noul",
+    "instructions": "Does the customer convey urgency?"
+   },
+   "mood10": {
+    "type": "score",
+    "instructions": "How frustrated is the customer?",
+    "criteria": [
+     "calm",
+     "mildly annoyed",
+     "frustrated",
+     "angry"
+    ]
+   },
+   "action10": {
+    "type": "choice",
+    "instructions": "What should the agent do next?",
+    "criteria": {
+     "answer": "answer from policy",
+     "refund": "issue a refund",
+     "verify": "confirm the account holder's identity",
+     "escalate": "escalate to finance",
+     "ask": "ask a clarifying question"
+    }
+   },
+   "allowed10": {
+    "type": "noul",
+    "instructions": "Does the policy allow a refund here?"
+   },
+   "team11": {
+    "type": "choice",
+    "instructions": "Which team should handle this ticket?",
+    "criteria": {
+     "billing": "charges, refunds, payouts",
+     "technical": "bugs and outages",
+     "account": "identity and settings",
+     "sales": "new purchases"
+    }
+   },
+   "urgent11": {
+    "type": "noul",
+    "instructions": "Does the customer convey urgency?"
+   },
+   "mood11": {
+    "type": "score",
+    "instructions": "How frustrated is the customer?",
+    "criteria": [
+     "calm",
+     "mildly annoyed",
+     "frustrated",
+     "angry"
+    ]
+   },
+   "action11": {
+    "type": "choice",
+    "instructions": "What should the agent do next?",
+    "criteria": {
+     "answer": "answer from policy",
+     "refund": "issue a refund",
+     "verify": "confirm the account holder's identity",
+     "escalate": "escalate to finance",
+     "ask": "ask a clarifying question"
+    }
+   },
+   "allowed11": {
+    "type": "noul",
+    "instructions": "Does the policy allow a refund here?"
+   },
+   "team12": {
+    "type": "choice",
+    "instructions": "Which team should handle this ticket?",
+    "criteria": {
+     "billing": "charges, refunds, payouts",
+     "technical": "bugs and outages",
+     "account": "identity and settings",
+     "sales": "new purchases"
+    }
+   },
+   "urgent12": {
+    "type": "noul",
+    "instructions": "Does the customer convey urgency?"
+   },
+   "mood12": {
+    "type": "score",
+    "instructions": "How frustrated is the customer?",
+    "criteria": [
+     "calm",
+     "mildly annoyed",
+     "frustrated",
+     "angry"
+    ]
+   },
+   "action12": {
+    "type": "choice",
+    "instructions": "What should the agent do next?",
+    "criteria": {
+     "answer": "answer from policy",
+     "refund": "issue a refund",
+     "verify": "confirm the account holder's identity",
+     "escalate": "escalate to finance",
+     "ask": "ask a clarifying question"
+    }
+   }
+  }
+ },
+ "doc:long-state-1q": {
+  "state": "Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. My payouts have failed for three days and I have rent due tomorrow. This is unacceptable. I already updated my bank details twice.",
+  "questions": {
+   "team": {
+    "type": "choice",
+    "instructions": "Which team should handle this ticket?",
+    "criteria": {
+     "billing": "charges, refunds, payouts",
+     "technical": "bugs and outages",
+     "account": "identity and settings",
+     "sales": "new purchases"
+    }
+   }
+  }
+ },
+ "doc:mid-state-16q": {
+  "state": "Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. Refunds and payout disputes. A customer may request a refund within 30 days of the charge date. Payouts that fail because of an invalid bank account are retried twice, 24 hours apart, before the account is flagged for manual review. Agents must confirm the account holder's identity before changing payout details, and must escalate any dispute above $5,000 to the finance team. I was charged twice for the same order on the 3rd. I'd like one of the charges refunded, the order number is 4471.",
+  "questions": {
+   "team0": {
+    "type": "choice",
+    "instructions": "Which team should handle this ticket?",
+    "criteria": {
+     "billing": "charges, refunds, payouts",
+     "technical": "bugs and outages",
+     "account": "identity and settings",
+     "sales": "new purchases"
+    }
+   },
+   "urgent0": {
+    "type": "noul",
+    "instructions": "Does the customer convey urgency?"
+   },
+   "mood0": {
+    "type": "score",
+    "instructions": "How frustrated is the customer?",
+    "criteria": [
+     "calm",
+     "mildly annoyed",
+     "frustrated",
+     "angry"
+    ]
+   },
+   "action0": {
+    "type": "choice",
+    "instructions": "What should the agent do next?",
+    "criteria": {
+     "answer": "answer from policy",
+     "refund": "issue a refund",
+     "verify": "confirm the account holder's identity",
+     "escalate": "escalate to finance",
+     "ask": "ask a clarifying question"
+    }
+   },
+   "allowed0": {
+    "type": "noul",
+    "instructions": "Does the policy allow a refund here?"
+   },
+   "team1": {
+    "type": "choice",
+    "instructions": "Which team should handle this ticket?",
+    "criteria": {
+     "billing": "charges, refunds, payouts",
+     "technical": "bugs and outages",
+     "account": "identity and settings",
+     "sales": "new purchases"
+    }
+   },
+   "urgent1": {
+    "type": "noul",
+    "instructions": "Does the customer convey urgency?"
+   },
+   "mood1": {
+    "type": "score",
+    "instructions": "How frustrated is the customer?",
+    "criteria": [
+     "calm",
+     "mildly annoyed",
+     "frustrated",
+     "angry"
+    ]
+   },
+   "action1": {
+    "type": "choice",
+    "instructions": "What should the agent do next?",
+    "criteria": {
+     "answer": "answer from policy",
+     "refund": "issue a refund",
+     "verify": "confirm the account holder's identity",
+     "escalate": "escalate to finance",
+     "ask": "ask a clarifying question"
+    }
+   },
+   "allowed1": {
+    "type": "noul",
+    "instructions": "Does the policy allow a refund here?"
+   },
+   "team2": {
+    "type": "choice",
+    "instructions": "Which team should handle this ticket?",
+    "criteria": {
+     "billing": "charges, refunds, payouts",
+     "technical": "bugs and outages",
+     "account": "identity and settings",
+     "sales": "new purchases"
+    }
+   },
+   "urgent2": {
+    "type": "noul",
+    "instructions": "Does the customer convey urgency?"
+   },
+   "mood2": {
+    "type": "score",
+    "instructions": "How frustrated is the customer?",
+    "criteria": [
+     "calm",
+     "mildly annoyed",
+     "frustrated",
+     "angry"
+    ]
+   },
+   "action2": {
+    "type": "choice",
+    "instructions": "What should the agent do next?",
+    "criteria": {
+     "answer": "answer from policy",
+     "refund": "issue a refund",
+     "verify": "confirm the account holder's identity",
+     "escalate": "escalate to finance",
+     "ask": "ask a clarifying question"
+    }
+   },
+   "allowed2": {
+    "type": "noul",
+    "instructions": "Does the policy allow a refund here?"
+   },
+   "team3": {
+    "type": "choice",
+    "instructions": "Which team should handle this ticket?",
+    "criteria": {
+     "billing": "charges, refunds, payouts",
+     "technical": "bugs and outages",
+     "account": "identity and settings",
+     "sales": "new purchases"
+    }
+   }
+  }
+ }
+}

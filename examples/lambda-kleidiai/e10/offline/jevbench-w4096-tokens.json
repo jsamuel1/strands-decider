@@ -1,0 +1,1161 @@
+{
+"source": "StrandsAgents/strands-decider-2B-qwen3.5-v1-2610@216d1ccb eval/jevbench-w4096/results.jsonl (sha256 67d62b0ca3d7e6c101cc139426fe5aff6b740c3a1515b972f23449370f09644d), served at max_length 4096",
+"note": "every JevBench public task is one question, so input_tokens = state + question = the context it needs. evaluation/jevbench.md: at 4096 no task is cut (the long_policy documents run to 3,665 tokens), so these are the untrimmed sizes",
+"tasks": [
+{
+"task_id": "original-policy-01-0",
+"family": "policy",
+"input_tokens": 125
+},
+{
+"task_id": "original-policy-01-1",
+"family": "policy",
+"input_tokens": 128
+},
+{
+"task_id": "original-policy-02-0",
+"family": "policy",
+"input_tokens": 114
+},
+{
+"task_id": "original-policy-02-1",
+"family": "policy",
+"input_tokens": 113
+},
+{
+"task_id": "original-policy-03-0",
+"family": "policy",
+"input_tokens": 116
+},
+{
+"task_id": "original-policy-03-1",
+"family": "policy",
+"input_tokens": 115
+},
+{
+"task_id": "original-policy-04-0",
+"family": "policy",
+"input_tokens": 122
+},
+{
+"task_id": "original-policy-04-1",
+"family": "policy",
+"input_tokens": 119
+},
+{
+"task_id": "original-policy-05-0",
+"family": "policy",
+"input_tokens": 126
+},
+{
+"task_id": "original-policy-05-1",
+"family": "policy",
+"input_tokens": 118
+},
+{
+"task_id": "original-policy-06-0",
+"family": "policy",
+"input_tokens": 128
+},
+{
+"task_id": "original-policy-06-1",
+"family": "policy",
+"input_tokens": 118
+},
+{
+"task_id": "original-intent-01-0",
+"family": "intent",
+"input_tokens": 113
+},
+{
+"task_id": "original-intent-01-1",
+"family": "intent",
+"input_tokens": 114
+},
+{
+"task_id": "original-intent-02-0",
+"family": "intent",
+"input_tokens": 114
+},
+{
+"task_id": "original-intent-02-1",
+"family": "intent",
+"input_tokens": 113
+},
+{
+"task_id": "original-intent-03-0",
+"family": "intent",
+"input_tokens": 115
+},
+{
+"task_id": "original-intent-03-1",
+"family": "intent",
+"input_tokens": 113
+},
+{
+"task_id": "original-intent-04-0",
+"family": "intent",
+"input_tokens": 118
+},
+{
+"task_id": "original-intent-04-1",
+"family": "intent",
+"input_tokens": 113
+},
+{
+"task_id": "original-intent-05-0",
+"family": "intent",
+"input_tokens": 113
+},
+{
+"task_id": "original-intent-05-1",
+"family": "intent",
+"input_tokens": 112
+},
+{
+"task_id": "original-intent-06-0",
+"family": "intent",
+"input_tokens": 111
+},
+{
+"task_id": "original-intent-06-1",
+"family": "intent",
+"input_tokens": 116
+},
+{
+"task_id": "original-ordinal-01-0",
+"family": "ordinal",
+"input_tokens": 131
+},
+{
+"task_id": "original-ordinal-01-1",
+"family": "ordinal",
+"input_tokens": 132
+},
+{
+"task_id": "original-ordinal-02-0",
+"family": "ordinal",
+"input_tokens": 135
+},
+{
+"task_id": "original-ordinal-02-1",
+"family": "ordinal",
+"input_tokens": 136
+},
+{
+"task_id": "original-ordinal-03-0",
+"family": "ordinal",
+"input_tokens": 132
+},
+{
+"task_id": "original-ordinal-03-1",
+"family": "ordinal",
+"input_tokens": 134
+},
+{
+"task_id": "original-ordinal-04-0",
+"family": "ordinal",
+"input_tokens": 134
+},
+{
+"task_id": "original-ordinal-04-1",
+"family": "ordinal",
+"input_tokens": 133
+},
+{
+"task_id": "original-ordinal-05-0",
+"family": "ordinal",
+"input_tokens": 137
+},
+{
+"task_id": "original-ordinal-05-1",
+"family": "ordinal",
+"input_tokens": 136
+},
+{
+"task_id": "original-ordinal-06-0",
+"family": "ordinal",
+"input_tokens": 137
+},
+{
+"task_id": "original-ordinal-06-1",
+"family": "ordinal",
+"input_tokens": 144
+},
+{
+"task_id": "original-extraction-01-0",
+"family": "extraction",
+"input_tokens": 102
+},
+{
+"task_id": "original-extraction-01-1",
+"family": "extraction",
+"input_tokens": 104
+},
+{
+"task_id": "original-extraction-02-0",
+"family": "extraction",
+"input_tokens": 105
+},
+{
+"task_id": "original-extraction-02-1",
+"family": "extraction",
+"input_tokens": 104
+},
+{
+"task_id": "original-extraction-03-0",
+"family": "extraction",
+"input_tokens": 108
+},
+{
+"task_id": "original-extraction-03-1",
+"family": "extraction",
+"input_tokens": 107
+},
+{
+"task_id": "original-extraction-04-0",
+"family": "extraction",
+"input_tokens": 105
+},
+{
+"task_id": "original-extraction-04-1",
+"family": "extraction",
+"input_tokens": 102
+},
+{
+"task_id": "original-extraction-05-0",
+"family": "extraction",
+"input_tokens": 105
+},
+{
+"task_id": "original-extraction-05-1",
+"family": "extraction",
+"input_tokens": 101
+},
+{
+"task_id": "original-extraction-06-0",
+"family": "extraction",
+"input_tokens": 105
+},
+{
+"task_id": "original-extraction-06-1",
+"family": "extraction",
+"input_tokens": 104
+},
+{
+"task_id": "original-adequacy-01-0",
+"family": "adequacy",
+"input_tokens": 107
+},
+{
+"task_id": "original-adequacy-01-1",
+"family": "adequacy",
+"input_tokens": 103
+},
+{
+"task_id": "original-adequacy-02-0",
+"family": "adequacy",
+"input_tokens": 104
+},
+{
+"task_id": "original-adequacy-02-1",
+"family": "adequacy",
+"input_tokens": 105
+},
+{
+"task_id": "original-adequacy-03-0",
+"family": "adequacy",
+"input_tokens": 107
+},
+{
+"task_id": "original-adequacy-03-1",
+"family": "adequacy",
+"input_tokens": 111
+},
+{
+"task_id": "original-adequacy-04-0",
+"family": "adequacy",
+"input_tokens": 111
+},
+{
+"task_id": "original-adequacy-04-1",
+"family": "adequacy",
+"input_tokens": 108
+},
+{
+"task_id": "original-adequacy-05-0",
+"family": "adequacy",
+"input_tokens": 100
+},
+{
+"task_id": "original-adequacy-05-1",
+"family": "adequacy",
+"input_tokens": 101
+},
+{
+"task_id": "original-adequacy-06-0",
+"family": "adequacy",
+"input_tokens": 116
+},
+{
+"task_id": "original-adequacy-06-1",
+"family": "adequacy",
+"input_tokens": 118
+},
+{
+"task_id": "original-routing-01-0",
+"family": "routing",
+"input_tokens": 143
+},
+{
+"task_id": "original-routing-01-1",
+"family": "routing",
+"input_tokens": 139
+},
+{
+"task_id": "original-routing-02-0",
+"family": "routing",
+"input_tokens": 144
+},
+{
+"task_id": "original-routing-02-1",
+"family": "routing",
+"input_tokens": 138
+},
+{
+"task_id": "original-routing-03-0",
+"family": "routing",
+"input_tokens": 143
+},
+{
+"task_id": "original-routing-03-1",
+"family": "routing",
+"input_tokens": 145
+},
+{
+"task_id": "original-routing-04-0",
+"family": "routing",
+"input_tokens": 139
+},
+{
+"task_id": "original-routing-04-1",
+"family": "routing",
+"input_tokens": 138
+},
+{
+"task_id": "original-routing-05-0",
+"family": "routing",
+"input_tokens": 140
+},
+{
+"task_id": "original-routing-05-1",
+"family": "routing",
+"input_tokens": 140
+},
+{
+"task_id": "original-routing-06-0",
+"family": "routing",
+"input_tokens": 139
+},
+{
+"task_id": "original-routing-06-1",
+"family": "routing",
+"input_tokens": 138
+},
+{
+"task_id": "easy-intent-00",
+"family": "intent",
+"input_tokens": 133
+},
+{
+"task_id": "easy-intent-01",
+"family": "intent",
+"input_tokens": 133
+},
+{
+"task_id": "easy-intent-02",
+"family": "intent",
+"input_tokens": 136
+},
+{
+"task_id": "easy-intent-03",
+"family": "intent",
+"input_tokens": 125
+},
+{
+"task_id": "easy-intent-04",
+"family": "intent",
+"input_tokens": 130
+},
+{
+"task_id": "easy-intent-05",
+"family": "intent",
+"input_tokens": 129
+},
+{
+"task_id": "easy-intent-06",
+"family": "intent",
+"input_tokens": 121
+},
+{
+"task_id": "easy-intent-07",
+"family": "intent",
+"input_tokens": 114
+},
+{
+"task_id": "easy-intent-08",
+"family": "intent",
+"input_tokens": 116
+},
+{
+"task_id": "easy-intent-09",
+"family": "intent",
+"input_tokens": 119
+},
+{
+"task_id": "easy-intent-10",
+"family": "intent",
+"input_tokens": 117
+},
+{
+"task_id": "easy-intent-11",
+"family": "intent",
+"input_tokens": 117
+},
+{
+"task_id": "easy-fact-00",
+"family": "fact",
+"input_tokens": 105
+},
+{
+"task_id": "easy-fact-01",
+"family": "fact",
+"input_tokens": 103
+},
+{
+"task_id": "easy-fact-02",
+"family": "fact",
+"input_tokens": 111
+},
+{
+"task_id": "easy-fact-03",
+"family": "fact",
+"input_tokens": 114
+},
+{
+"task_id": "easy-fact-04",
+"family": "fact",
+"input_tokens": 103
+},
+{
+"task_id": "easy-fact-05",
+"family": "fact",
+"input_tokens": 104
+},
+{
+"task_id": "easy-fact-06",
+"family": "fact",
+"input_tokens": 124
+},
+{
+"task_id": "easy-fact-07",
+"family": "fact",
+"input_tokens": 99
+},
+{
+"task_id": "easy-fact-08",
+"family": "fact",
+"input_tokens": 95
+},
+{
+"task_id": "easy-fact-09",
+"family": "fact",
+"input_tokens": 95
+},
+{
+"task_id": "easy-fact-10",
+"family": "fact",
+"input_tokens": 104
+},
+{
+"task_id": "easy-fact-11",
+"family": "fact",
+"input_tokens": 105
+},
+{
+"task_id": "easy-extraction-00",
+"family": "extraction",
+"input_tokens": 89
+},
+{
+"task_id": "easy-extraction-01",
+"family": "extraction",
+"input_tokens": 91
+},
+{
+"task_id": "easy-extraction-02",
+"family": "extraction",
+"input_tokens": 92
+},
+{
+"task_id": "easy-extraction-03",
+"family": "extraction",
+"input_tokens": 93
+},
+{
+"task_id": "easy-extraction-04",
+"family": "extraction",
+"input_tokens": 91
+},
+{
+"task_id": "easy-extraction-05",
+"family": "extraction",
+"input_tokens": 91
+},
+{
+"task_id": "easy-extraction-06",
+"family": "extraction",
+"input_tokens": 84
+},
+{
+"task_id": "easy-extraction-07",
+"family": "extraction",
+"input_tokens": 82
+},
+{
+"task_id": "easy-extraction-08",
+"family": "extraction",
+"input_tokens": 91
+},
+{
+"task_id": "easy-extraction-09",
+"family": "extraction",
+"input_tokens": 93
+},
+{
+"task_id": "easy-extraction-10",
+"family": "extraction",
+"input_tokens": 89
+},
+{
+"task_id": "easy-extraction-11",
+"family": "extraction",
+"input_tokens": 95
+},
+{
+"task_id": "easy-tool_selection-00",
+"family": "tool_selection",
+"input_tokens": 124
+},
+{
+"task_id": "easy-tool_selection-01",
+"family": "tool_selection",
+"input_tokens": 125
+},
+{
+"task_id": "easy-tool_selection-02",
+"family": "tool_selection",
+"input_tokens": 128
+},
+{
+"task_id": "easy-tool_selection-03",
+"family": "tool_selection",
+"input_tokens": 126
+},
+{
+"task_id": "easy-tool_selection-04",
+"family": "tool_selection",
+"input_tokens": 122
+},
+{
+"task_id": "easy-tool_selection-05",
+"family": "tool_selection",
+"input_tokens": 128
+},
+{
+"task_id": "easy-tool_selection-06",
+"family": "tool_selection",
+"input_tokens": 132
+},
+{
+"task_id": "easy-tool_selection-07",
+"family": "tool_selection",
+"input_tokens": 132
+},
+{
+"task_id": "easy-tool_selection-08",
+"family": "tool_selection",
+"input_tokens": 131
+},
+{
+"task_id": "easy-tool_selection-09",
+"family": "tool_selection",
+"input_tokens": 128
+},
+{
+"task_id": "easy-tool_selection-10",
+"family": "tool_selection",
+"input_tokens": 128
+},
+{
+"task_id": "easy-tool_selection-11",
+"family": "tool_selection",
+"input_tokens": 131
+},
+{
+"task_id": "hard-opus-a-long_policy-01",
+"family": "long_policy",
+"input_tokens": 3936
+},
+{
+"task_id": "hard-opus-a-long_policy-04",
+"family": "long_policy",
+"input_tokens": 2628
+},
+{
+"task_id": "hard-opus-a-long_policy-08",
+"family": "long_policy",
+"input_tokens": 2402
+},
+{
+"task_id": "hard-opus-a-long_policy-09",
+"family": "long_policy",
+"input_tokens": 2530
+},
+{
+"task_id": "hard-opus-a-long_policy-11",
+"family": "long_policy",
+"input_tokens": 2349
+},
+{
+"task_id": "hard-opus-a-long_policy-13",
+"family": "long_policy",
+"input_tokens": 2441
+},
+{
+"task_id": "hard-opus-a-long_policy-17",
+"family": "long_policy",
+"input_tokens": 2363
+},
+{
+"task_id": "hard-opus-a-long_policy-19",
+"family": "long_policy",
+"input_tokens": 2340
+},
+{
+"task_id": "hard-opus-a-probability-03",
+"family": "probability",
+"input_tokens": 444
+},
+{
+"task_id": "hard-opus-a-probability-04",
+"family": "probability",
+"input_tokens": 1107
+},
+{
+"task_id": "hard-opus-a-probability-07",
+"family": "probability",
+"input_tokens": 1221
+},
+{
+"task_id": "hard-opus-a-probability-08",
+"family": "probability",
+"input_tokens": 406
+},
+{
+"task_id": "hard-opus-a-temporal_numeric-03",
+"family": "temporal_numeric",
+"input_tokens": 502
+},
+{
+"task_id": "hard-opus-a-temporal_numeric-06",
+"family": "temporal_numeric",
+"input_tokens": 537
+},
+{
+"task_id": "hard-opus-a-temporal_numeric-07",
+"family": "temporal_numeric",
+"input_tokens": 1308
+},
+{
+"task_id": "hard-opus-a-temporal_numeric-09",
+"family": "temporal_numeric",
+"input_tokens": 534
+},
+{
+"task_id": "hard-opus-a-temporal_numeric-12",
+"family": "temporal_numeric",
+"input_tokens": 607
+},
+{
+"task_id": "hard-opus-b-ambiguous-02",
+"family": "ambiguous",
+"input_tokens": 543
+},
+{
+"task_id": "hard-opus-b-ambiguous-03",
+"family": "ambiguous",
+"input_tokens": 497
+},
+{
+"task_id": "hard-opus-b-ambiguous-07",
+"family": "ambiguous",
+"input_tokens": 500
+},
+{
+"task_id": "hard-opus-b-ambiguous-09",
+"family": "ambiguous",
+"input_tokens": 638
+},
+{
+"task_id": "hard-opus-b-ambiguous-10",
+"family": "ambiguous",
+"input_tokens": 565
+},
+{
+"task_id": "hard-opus-b-ambiguous-11",
+"family": "ambiguous",
+"input_tokens": 467
+},
+{
+"task_id": "hard-opus-b-ambiguous-13",
+"family": "ambiguous",
+"input_tokens": 605
+},
+{
+"task_id": "hard-opus-b-multi_hop-03",
+"family": "multi_hop",
+"input_tokens": 2968
+},
+{
+"task_id": "hard-opus-b-multi_hop-04",
+"family": "multi_hop",
+"input_tokens": 2352
+},
+{
+"task_id": "hard-opus-b-multi_hop-05",
+"family": "multi_hop",
+"input_tokens": 2603
+},
+{
+"task_id": "hard-opus-b-multi_hop-07",
+"family": "multi_hop",
+"input_tokens": 2647
+},
+{
+"task_id": "hard-opus-b-multi_hop-08",
+"family": "multi_hop",
+"input_tokens": 2327
+},
+{
+"task_id": "hard-opus-b-probability-01",
+"family": "probability",
+"input_tokens": 1922
+},
+{
+"task_id": "hard-opus-b-probability-02",
+"family": "probability",
+"input_tokens": 503
+},
+{
+"task_id": "hard-opus-b-probability-03",
+"family": "probability",
+"input_tokens": 1228
+},
+{
+"task_id": "hard-opus-b-probability-04",
+"family": "probability",
+"input_tokens": 605
+},
+{
+"task_id": "hard-opus-b-probability-06",
+"family": "probability",
+"input_tokens": 1022
+},
+{
+"task_id": "hard-opus-b-tradeoff-01",
+"family": "tradeoff",
+"input_tokens": 845
+},
+{
+"task_id": "hard-opus-b-tradeoff-03",
+"family": "tradeoff",
+"input_tokens": 763
+},
+{
+"task_id": "hard-opus-b-tradeoff-06",
+"family": "tradeoff",
+"input_tokens": 805
+},
+{
+"task_id": "hard-opus-b-tradeoff-07",
+"family": "tradeoff",
+"input_tokens": 723
+},
+{
+"task_id": "hard-opus-b-tradeoff-08",
+"family": "tradeoff",
+"input_tokens": 616
+},
+{
+"task_id": "hard-opus-b-tradeoff-12",
+"family": "tradeoff",
+"input_tokens": 598
+},
+{
+"task_id": "hard-opus-c-long_policy-02",
+"family": "long_policy",
+"input_tokens": 3588
+},
+{
+"task_id": "hard-opus-c-long_policy-03",
+"family": "long_policy",
+"input_tokens": 3513
+},
+{
+"task_id": "hard-opus-c-long_policy-04",
+"family": "long_policy",
+"input_tokens": 3327
+},
+{
+"task_id": "hard-opus-c-long_policy-05",
+"family": "long_policy",
+"input_tokens": 3259
+},
+{
+"task_id": "hard-opus-c-long_policy-08",
+"family": "long_policy",
+"input_tokens": 3263
+},
+{
+"task_id": "hard-opus-c-long_policy-10",
+"family": "long_policy",
+"input_tokens": 3638
+},
+{
+"task_id": "hard-opus-c-long_policy-11",
+"family": "long_policy",
+"input_tokens": 3414
+},
+{
+"task_id": "hard-opus-c-probability-03",
+"family": "probability",
+"input_tokens": 553
+},
+{
+"task_id": "hard-opus-c-temporal_numeric-02",
+"family": "temporal_numeric",
+"input_tokens": 951
+},
+{
+"task_id": "hard-opus-c-temporal_numeric-03",
+"family": "temporal_numeric",
+"input_tokens": 874
+},
+{
+"task_id": "hard-opus-c-temporal_numeric-04",
+"family": "temporal_numeric",
+"input_tokens": 789
+},
+{
+"task_id": "hard-opus-c-temporal_numeric-06",
+"family": "temporal_numeric",
+"input_tokens": 992
+},
+{
+"task_id": "hard-opus-c-temporal_numeric-08",
+"family": "temporal_numeric",
+"input_tokens": 993
+},
+{
+"task_id": "hard-opus-c-temporal_numeric-12",
+"family": "temporal_numeric",
+"input_tokens": 827
+},
+{
+"task_id": "hard-sol-a-adversarial-01",
+"family": "adversarial",
+"input_tokens": 287
+},
+{
+"task_id": "hard-sol-a-adversarial-06",
+"family": "adversarial",
+"input_tokens": 256
+},
+{
+"task_id": "hard-sol-a-adversarial-07",
+"family": "adversarial",
+"input_tokens": 303
+},
+{
+"task_id": "hard-sol-a-adversarial-08",
+"family": "adversarial",
+"input_tokens": 233
+},
+{
+"task_id": "hard-sol-a-adversarial-09",
+"family": "adversarial",
+"input_tokens": 247
+},
+{
+"task_id": "hard-sol-a-adversarial-11",
+"family": "adversarial",
+"input_tokens": 308
+},
+{
+"task_id": "hard-sol-a-multi_hop-01",
+"family": "multi_hop",
+"input_tokens": 2717
+},
+{
+"task_id": "hard-sol-a-multi_hop-02",
+"family": "multi_hop",
+"input_tokens": 2765
+},
+{
+"task_id": "hard-sol-a-multi_hop-05",
+"family": "multi_hop",
+"input_tokens": 2677
+},
+{
+"task_id": "hard-sol-a-multi_hop-07",
+"family": "multi_hop",
+"input_tokens": 2658
+},
+{
+"task_id": "hard-sol-a-multi_hop-08",
+"family": "multi_hop",
+"input_tokens": 2628
+},
+{
+"task_id": "hard-sol-a-multi_hop-09",
+"family": "multi_hop",
+"input_tokens": 2642
+},
+{
+"task_id": "hard-sol-a-multi_hop-10",
+"family": "multi_hop",
+"input_tokens": 2706
+},
+{
+"task_id": "hard-sol-a-multi_hop-12",
+"family": "multi_hop",
+"input_tokens": 2653
+},
+{
+"task_id": "hard-sol-a-trap-02",
+"family": "trap",
+"input_tokens": 307
+},
+{
+"task_id": "hard-sol-a-trap-04",
+"family": "trap",
+"input_tokens": 213
+},
+{
+"task_id": "hard-sol-a-trap-05",
+"family": "trap",
+"input_tokens": 358
+},
+{
+"task_id": "hard-sol-a-trap-06",
+"family": "trap",
+"input_tokens": 355
+},
+{
+"task_id": "hard-sol-a-trap-08",
+"family": "trap",
+"input_tokens": 282
+},
+{
+"task_id": "hard-sol-a-trap-10",
+"family": "trap",
+"input_tokens": 209
+},
+{
+"task_id": "hard-sol-a-trap-13",
+"family": "trap",
+"input_tokens": 221
+},
+{
+"task_id": "hard-sol-a-trap-15",
+"family": "trap",
+"input_tokens": 323
+},
+{
+"task_id": "hard-sol-b-judge_hard-01",
+"family": "judge_hard",
+"input_tokens": 309
+},
+{
+"task_id": "hard-sol-b-judge_hard-02",
+"family": "judge_hard",
+"input_tokens": 233
+},
+{
+"task_id": "hard-sol-b-judge_hard-05",
+"family": "judge_hard",
+"input_tokens": 253
+},
+{
+"task_id": "hard-sol-b-judge_hard-08",
+"family": "judge_hard",
+"input_tokens": 235
+},
+{
+"task_id": "hard-sol-b-judge_hard-10",
+"family": "judge_hard",
+"input_tokens": 254
+},
+{
+"task_id": "hard-sol-b-judge_hard-14",
+"family": "judge_hard",
+"input_tokens": 271
+},
+{
+"task_id": "hard-sol-b-judge_hard-15",
+"family": "judge_hard",
+"input_tokens": 227
+},
+{
+"task_id": "hard-sol-b-judge_hard-18",
+"family": "judge_hard",
+"input_tokens": 195
+},
+{
+"task_id": "hard-sol-b-long_policy-01",
+"family": "long_policy",
+"input_tokens": 2745
+},
+{
+"task_id": "hard-sol-b-long_policy-02",
+"family": "long_policy",
+"input_tokens": 2596
+},
+{
+"task_id": "hard-sol-b-long_policy-05",
+"family": "long_policy",
+"input_tokens": 2557
+},
+{
+"task_id": "hard-sol-b-long_policy-06",
+"family": "long_policy",
+"input_tokens": 2640
+},
+{
+"task_id": "hard-sol-b-routing_hard-01",
+"family": "routing_hard",
+"input_tokens": 337
+},
+{
+"task_id": "hard-sol-b-routing_hard-02",
+"family": "routing_hard",
+"input_tokens": 320
+},
+{
+"task_id": "hard-sol-b-routing_hard-03",
+"family": "routing_hard",
+"input_tokens": 318
+},
+{
+"task_id": "hard-sol-b-routing_hard-07",
+"family": "routing_hard",
+"input_tokens": 301
+},
+{
+"task_id": "hard-sol-b-routing_hard-09",
+"family": "routing_hard",
+"input_tokens": 307
+},
+{
+"task_id": "hard-sol-b-temporal_numeric-01",
+"family": "temporal_numeric",
+"input_tokens": 300
+},
+{
+"task_id": "hard-sol-b-temporal_numeric-02",
+"family": "temporal_numeric",
+"input_tokens": 313
+},
+{
+"task_id": "hard-sol-b-temporal_numeric-03",
+"family": "temporal_numeric",
+"input_tokens": 252
+},
+{
+"task_id": "hard-sol-b-temporal_numeric-04",
+"family": "temporal_numeric",
+"input_tokens": 262
+},
+{
+"task_id": "hard-sol-c-judge_hard-03",
+"family": "judge_hard",
+"input_tokens": 416
+},
+{
+"task_id": "hard-sol-c-judge_hard-05",
+"family": "judge_hard",
+"input_tokens": 378
+},
+{
+"task_id": "hard-sol-c-judge_hard-07",
+"family": "judge_hard",
+"input_tokens": 342
+},
+{
+"task_id": "hard-sol-c-judge_hard-08",
+"family": "judge_hard",
+"input_tokens": 337
+},
+{
+"task_id": "hard-sol-c-judge_hard-09",
+"family": "judge_hard",
+"input_tokens": 367
+},
+{
+"task_id": "hard-sol-c-judge_hard-10",
+"family": "judge_hard",
+"input_tokens": 396
+},
+{
+"task_id": "hard-sol-c-judge_hard-11",
+"family": "judge_hard",
+"input_tokens": 367
+},
+{
+"task_id": "hard-sol-c-judge_hard-13",
+"family": "judge_hard",
+"input_tokens": 357
+},
+{
+"task_id": "hard-sol-c-judge_hard-15",
+"family": "judge_hard",
+"input_tokens": 312
+},
+{
+"task_id": "hard-sol-c-multi_hop-07",
+"family": "multi_hop",
+"input_tokens": 2534
+},
+{
+"task_id": "hard-sol-c-multi_hop-09",
+"family": "multi_hop",
+"input_tokens": 2553
+},
+{
+"task_id": "hard-sol-c-multi_hop-11",
+"family": "multi_hop",
+"input_tokens": 2631
+},
+{
+"task_id": "hard-sol-c-multi_hop-12",
+"family": "multi_hop",
+"input_tokens": 550
+},
+{
+"task_id": "hard-sol-c-multi_hop-13",
+"family": "multi_hop",
+"input_tokens": 2602
+}
+]
+}
