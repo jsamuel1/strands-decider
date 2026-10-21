@@ -76,6 +76,25 @@ def make_bench(sess, st, reqs, out, concurrency, read_timeout):
     return Bench(sess, st, reqs, out, concurrency)
 
 
+def harness_provenance() -> dict:
+    """The commit this harness runs from, and every file under examples/lambda-kleidiai or tests that differs from
+    it (git status, ignored build/ output excluded)."""
+    import subprocess
+
+    root = os.path.dirname(os.path.dirname(os.path.dirname(HERE)))
+    git = ["git", "-C", root]
+    commit = subprocess.run(
+        [*git, "rev-parse", "HEAD"], capture_output=True, text=True, check=True
+    ).stdout.strip()
+    st = subprocess.run(
+        [*git, "status", "--porcelain", "--", "examples/lambda-kleidiai", "tests"],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+    return {"commit": commit, "dirty_inputs": [ln[3:] for ln in st.splitlines() if ln.strip()]}
+
+
 def conditions(b, a, arms, reqs) -> dict:
     import boto3
     import deploy as p1deploy
@@ -141,6 +160,7 @@ def conditions(b, a, arms, reqs) -> dict:
         "probe": reqs["probe"],
         "functions": fns,
         "build_manifest": b.st["manifest"],
+        "harness": harness_provenance(),
         "runtime_version_arn": b.st["runtime_version_arn"],
         "client": {
             "python": platform.python_version(),
@@ -182,6 +202,10 @@ def main() -> None:
     st = e11deploy.load_state()
     if st.get("region") != a.region or not st.get("functions"):
         sys.exit("no E11 deployment; run e11deploy.py up")
+    if (h := harness_provenance())["dirty_inputs"]:
+        sys.exit(f"refusing to benchmark: files differ from {h['commit']}: {h['dirty_inputs']}")
+    if st.get("manifest", {}).get("repo_dirty") or st.get("manifest", {}).get("dirty_inputs"):
+        sys.exit("refusing to benchmark: the deployed zip's manifest records a dirty build")
     os.makedirs(a.out, exist_ok=True)
     if any(os.path.exists(os.path.join(a.out, f)) for f in ("invocations.jsonl", "logs")):
         sys.exit(f"{a.out} already holds a run; use a new --out")
