@@ -1,4 +1,4 @@
-"""E6 benchmark: ctl against pyc, interleaved, on new environments. Rows are P1's (baseline/bench.py Bench).
+"""E6 benchmark: ctl against pyc, alternating arm order by round, on new environments.
 
   python e6bench.py --mode cold    --rounds 6 --concurrency 10 --out build/runs/cold-<id>
   python e6bench.py --mode restore --rounds 3 --concurrency 10 --out build/runs/restore-<id>
@@ -12,8 +12,9 @@ restore mode, per round, for each arm in alternating order: set COLD_TAG, publis
   snapshot (P1's Bench.publish), `concurrency` restore invokes, one warm pass, then delete the version. Only the
   snapshot init imports the code, so its `imports` phase comes from the saved logs (before_snapshot records).
 
---read-timeout bounds one invoke (default 900 s, P1's). P3 saw first restore waves stall with no RESTORE_START, so
-that a stall costs N seconds rather than 15 minutes. The value is recorded in conditions.json.
+--read-timeout bounds one invoke (default 900 s, P1's), so a stalled request costs N seconds rather than 15
+minutes. The benchmark alternates which arm runs first each round; arms are sequential waves rather than
+simultaneous or within-round interleaved. The value is recorded in conditions.json.
 """
 
 from __future__ import annotations

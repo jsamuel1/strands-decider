@@ -1,6 +1,7 @@
 # E6: profile-led in-Lambda hot spots, and the top one measured (complete Python bytecode)
 
-E6 started from P3's profile (`profiling/README.md`, run `20261020T124451Z`). It proposed one-change experiments for
+E6 started from P3's corrected profile (`profiling/README.md`, run `20261020T231634Z`; the earlier
+`20261020T124451Z` run is superseded). It proposed one-change experiments for
 the hot spots that no other card owns, and it measured the top one on Lambda. The other cards already own:
 - the tokenizer: T0 to T3
 - the KleidiAI repack: E7, E8, E9
@@ -15,7 +16,7 @@ That left the cold `imports` phase and the allocator for E6.
 **Result (run `20261021T045838Z`, status `no-change`).**
 - Complete unchecked-hash bytecode halves the cold `imports` phase: 0.719 to 0.346 s on CPU part 0xd40, Δ −0.373 s
   [−0.380, −0.367]. Init Duration falls by 0.380 s.
-- The same happens on every CPU part Lambda ran us on.
+- The same direction appears in every shared round/CPU-part cell. The 0xd0c and 0xd4f cells remain sparse.
 - Answers are bit-identical.
 - The cold first request does not get faster. The on-demand load runs in PR #77's background thread, and the
   request waits for the 25 s S3 download either way. Starting the download 0.37 s earlier only means waiting longer
@@ -70,8 +71,8 @@ The zips sit under `e6/` in P1's bucket. The role may read only the weights key.
 ## Measurements
 
 Run `results/20261021T045838Z/`:
-- Cold: 6 interleaved rounds × 10 on each arm, followed by 5 warm passes (one per fixed request). The first arm
-  alternates every round.
+- Cold: 6 rounds × 10 on each arm, followed by 5 warm passes (one per fixed request). Each arm is one sequential
+  wave; the first arm alternates every round. This is alternation, not within-round interleaving.
 - Restore: 3 rounds × 10 per arm, followed by one warm pass.
 - 840 invocations. 0 errors. 1 class mismatch (a ctl restore invoke landed warm), excluded as P1's harness does.
 - Cost: $1.73 at list prices (the operator's ceiling was $20). The SnapStart cache 3-hour minimum is most of it.
@@ -92,8 +93,9 @@ Run `results/20261021T045838Z/`:
 - The 0xd0c and 0xd4f parts show the same `imports` halving: −0.479 s (n = 5 / 3) and −0.291 s (n = 6 / 5).
 - On 0xd0c the cold first request is −0.69 s [−1.17, −0.32], but the sample is small, and on 0xd4f it is +0.05 s.
   That does not add up to a consistent first-request gain.
-- Every delta is matched by CPU part. The CIs bootstrap over environments. All 6 interleaved cold rounds have an
-  `imports` Δ below 0.
+- Every aggregate delta is matched by CPU part. The CIs bootstrap over environments. For the targeted `imports`
+  phase, all 6 shared 0xd40 round/part cells are below zero. Sparse 0xd0c and 0xd4f rows form 4 more shared cells,
+  also below zero, plus 5 unmatched cells that are listed but not compared in `host_variability`.
 
 Why the S3 download looks slower on pyc:
 - The wrapper's bytecode check adds 9 ms (pyc) to 12 ms (ctl) after P1's timers have stopped, so it does not explain
@@ -128,7 +130,9 @@ Three CPU identities appeared on both arms:
 | 0xd0c | 0x3 | 0x119fff | 0x0 | 7 | 3 |
 | 0xd4f | 0x0 | 0x2ff3ffff | 0x3f3bf | 6 | 5 |
 
-All environments reported 6 CPUs, kernel 5.10.255 and Python 3.12.14. Every comparison is made within one part. No
+All environments reported 6 CPUs, kernel 5.10.255 and Python 3.12.14. Aggregate comparisons are made within one
+part. `results.json` → `host_variability` also records every primary metric per shared `(round, CPU part)` cell,
+including per-arm counts, medians, ranges, delta, ratio and sign; unmatched cells are explicit. No
 Graviton generation is claimed: the parts and features are reported as read.
 
 The change removes CPU work (bytecode compilation), so a fixed-host run would only repeat the offline proxy below. The
@@ -145,7 +149,9 @@ See `meta.json` → `reproduce`. `pyc_zip.py` needs CPython 3.12 and needs no ar
 
 - The run covers one region (us-east-2) and one memory size (10,240 MB).
 - The restore leg ran only on 0xd40.
-- The 0xd0c and 0xd4f cells are small (3 to 7 environments).
+- Arms were sequential waves, alternating first position by round. This controls round-level drift and CPU identity,
+  but not time-within-round drift.
+- The 0xd0c and 0xd4f cells are small (3 to 7 environments), and 5 cold `imports` round/part cells lack one arm.
 - Lambda's Python 3.12.14 differs from the compiler's 3.12.13 in patch level only (same magic number). Lambda used
   the bytecode, as the in-function check shows.
 - The SnapStart publish-time saving (the snapshot init's `imports`) is not on any request path.

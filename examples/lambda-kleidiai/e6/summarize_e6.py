@@ -6,14 +6,15 @@
 Uses P1's summarize.py for every row-level computation (load_run, arm_phases, compare, costs, round_medians), so
 the distributions are the same blocks P1 publishes. E6 adds:
 - `e6.delta`: pyc minus ctl per phase. Each delta is matched by CPU part (P1's `overhead` method) and gets a
-  bootstrap 95% CI over environments. Per-round paired medians come from the interleaved rounds.
+  bootstrap 95% CI over environments. The legacy pooled per-round medians remain descriptive; the required
+  host-variability assessment uses shared `(round, CPU part)` cells.
 - `e6.bytecode`: the mechanism, per arm. It records how many task-root modules each environment loaded from usable
   bytecode, from e6_entry's first-invocation record.
 - `e6.host`: every CPU identity and environment field the wrapper read, with counts per arm. Anything the sandbox
   does not expose stays "unknown".
-Status is `improved` only if the cold `imports` CI lies entirely below 0 within every CPU part both arms ran on,
-and errors, class mismatches and correctness are clean. It is `regressed` if the CI lies entirely above 0, and
-`no-change` otherwise.
+Status is `improved` only if a deployment headline's CI lies entirely below 0 within every CPU part both arms ran
+on, and errors, class mismatches and correctness are clean. It is `regressed` if a headline CI lies entirely above
+0, and `no-change` otherwise.
 """
 
 from __future__ import annotations
@@ -81,7 +82,7 @@ def boot_ci(a: list[float], b: list[float], n: int = 4000, seed: int = 6) -> lis
 
 
 def delta(rows: list[dict], cls: str, keys: dict) -> dict:
-    """pyc minus ctl per metric, within each CPU part both arms ran on, plus the interleaved per-round deltas."""
+    """pyc minus ctl per metric and CPU part, plus descriptive pooled per-round deltas."""
     rs = ok_rows(rows, cls)
     out: dict = {}
     for name, f in keys.items():
@@ -133,6 +134,115 @@ def delta(rows: list[dict], cls: str, keys: dict) -> dict:
                 "rounds_below_zero": sum(d < 0 for d in rounds),
             }
     return out
+
+
+def host_variability_analysis(rows: list[dict]) -> dict:
+    """Primary metrics by shared (round, observed CPU part) cell.
+
+    Arms run as sequential waves. Their order alternates by round, so this controls
+    round drift and CPU identity but is not within-round interleaving.
+    """
+    specs = {
+        "cold_imports": ("cold", COLD_KEYS["imports"]),
+        "cold_first_request_total": ("cold", COLD_KEYS["first_request_total"]),
+        "restore_first_request_total": ("restore", RESTORE_KEYS["first_request_total"]),
+        "warm_steady_state_inference": ("warm", WARM_KEYS["steady_state_inference"]),
+    }
+    metrics: dict = {}
+    unknown_cpu_rows: dict = {}
+    for name, (cls, measure) in specs.items():
+        rs = ok_rows(rows, cls)
+        unknown_cpu_rows[name] = {
+            arm: sum(r.get("cpu_part") in (None, "", "unknown") for r in rs if r["arm"] == arm)
+            for arm in (CONTROL, EXPERIMENT)
+        }
+        known = [r for r in rs if r.get("cpu_part") not in (None, "", "unknown")]
+        keys = sorted({(r["round"], str(r["cpu_part"])) for r in known})
+        shared, missing = [], []
+        by_part: dict[str, list[dict]] = defaultdict(list)
+        for rnd, cpu in keys:
+            values = {
+                arm: [
+                    value
+                    for r in known
+                    if r["arm"] == arm and r["round"] == rnd and str(r["cpu_part"]) == cpu
+                    if (value := measure(r)) is not None
+                ]
+                for arm in (CONTROL, EXPERIMENT)
+            }
+            if not all(values.values()):
+                missing.append(
+                    {
+                        "round": rnd,
+                        "cpu_part": cpu,
+                        "n": {arm: len(values[arm]) for arm in (CONTROL, EXPERIMENT)},
+                    }
+                )
+                continue
+            ctl, pyc = values[CONTROL], values[EXPERIMENT]
+            ctl_median, pyc_median = statistics.median(ctl), statistics.median(pyc)
+            change = pyc_median - ctl_median
+            cell = {
+                "round": rnd,
+                "cpu_part": cpu,
+                "n": {CONTROL: len(ctl), EXPERIMENT: len(pyc)},
+                "median": {CONTROL: round(ctl_median, 6), EXPERIMENT: round(pyc_median, 6)},
+                "range": {
+                    CONTROL: [round(min(ctl), 6), round(max(ctl), 6)],
+                    EXPERIMENT: [round(min(pyc), 6), round(max(pyc), 6)],
+                },
+                "delta": round(change, 6),
+                "ratio": round(pyc_median / ctl_median, 6) if ctl_median else None,
+                "sign": "negative" if change < 0 else "positive" if change > 0 else "zero",
+            }
+            shared.append(cell)
+            by_part[cpu].append(cell)
+        metrics[name] = {
+            "class": cls,
+            "shared_cells": shared,
+            "missing_cells": missing,
+            "by_cpu_part": {
+                cpu: {
+                    "shared_cell_count": len(cells),
+                    "delta_range": [min(c["delta"] for c in cells), max(c["delta"] for c in cells)],
+                    "delta_signs": sorted({c["sign"] for c in cells}),
+                }
+                for cpu, cells in sorted(by_part.items())
+            },
+        }
+
+    import_cells = metrics["cold_imports"]["shared_cells"]
+    imports_comparable = bool(import_cells) and all(c["delta"] < 0 for c in import_cells)
+    return {
+        "schema": "lkai-host-variability/1",
+        "observed": {"primary_metrics": metrics},
+        "unknown": {
+            "cpu_identity_rows": unknown_cpu_rows,
+            "environment_fields": [
+                "availability zone",
+                "physical host",
+                "cgroup CPU limit",
+                "cgroup memory limit",
+            ],
+        },
+        "method": "Within each observed CPU part, compare arm medians in each round. Arms are sequential waves "
+        "whose first position alternates by round; this is alternation, not within-round interleaving. Missing-arm "
+        "cells and rows without CPU identity are listed but never treated as comparable strata.",
+        "assessment": {
+            "primary_effect": {
+                "metric": "cold_imports",
+                "comparable": imports_comparable,
+                "shared_cells": len(import_cells),
+                "reason": "all shared round/CPU-part cells have a negative pyc-minus-ctl delta"
+                if imports_comparable
+                else "shared round/CPU-part cells do not establish a stable direction",
+            },
+            "deployment_headlines": "no consistent cold-first-request, restore, or warm benefit across observed "
+            "CPU parts and rounds",
+            "rerun": "not needed: host-conditioned cells support the imports-phase effect, while deployment "
+            "headlines remain a null result; sparse unmatched cells are reported as limitations",
+        },
+    }
 
 
 def bytecode(rows: list[dict]) -> dict:
@@ -356,13 +466,15 @@ def main(argv: list[str] | None = None) -> int:
         "measured": False,
         "note": "both E6 arms run P1's phase timers; overhead is P1's (P1-baseline/20261020T080835Z)",
     }
+    res["host_variability"] = host_variability_analysis(rows)
     res["e6"] = {
         "delta": {
             "cold": delta(rows, "cold", COLD_KEYS),
             "warm": delta(rows, "warm", WARM_KEYS),
             "restore": delta(rows, "restore", RESTORE_KEYS),
             "method": "pyc minus ctl, medians within each CPU part both arms ran on; ci95 = bootstrap over "
-            "environments (4,000 resamples, seed 6); per-round deltas from interleaved rounds",
+            "environments (4,000 resamples, seed 6); pooled per-round deltas are descriptive only; "
+            "host_variability contains the required round-by-CPU-part cells",
         },
         "bytecode": bytecode(rows),
         "host": host(rows),

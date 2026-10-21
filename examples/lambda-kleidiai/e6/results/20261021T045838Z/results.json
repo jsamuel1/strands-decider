@@ -5483,7 +5483,13 @@
   "method": "complete answer object, same request id and same CPU part as the reference; every invocation either is compared or is counted in without_answers (errors, malformed successes) or no_reference_for_cpu_part",
   "reference": "reference/outputs.json"
  },
- "profiling_artifacts": [],
+ "profiling_artifacts": [
+  {
+   "name": "P3 corrected baseline hot spots by phase",
+   "tool": "P1 timers, cProfile, py-spy, lkaisamp",
+   "url": "https://github.com/jsamuel1/strands-decider/blob/89a0df4/examples/lambda-kleidiai/profiling/README.md"
+  }
+ ],
  "artifacts": {
   "invocations": "invocations.jsonl.gz",
   "logs": "logs/",
@@ -5506,7 +5512,7 @@
   "cp examples/lambda-kleidiai/e6/meta.json examples/lambda-kleidiai/e6/results/<id>/ && gzip examples/lambda-kleidiai/e6/results/<id>/invocations.jsonl",
   "python examples/lambda-kleidiai/results/publish_result.py examples/lambda-kleidiai/e6/results/<id>/results.json   # P2 (feat/lambda-kleidiai-results)"
  ],
- "conclusion": "Complete unchecked-hash bytecode halves the cold imports phase on every CPU part Lambda gave us (CPU part 0xd40 as read from /proc/cpuinfo, n=49/52: 0.719 -> 0.346 s, delta -0.373 s, 95% CI [-0.380, -0.367]; 0xd0c and 0xd4f the same direction, 6/6 interleaved rounds below 0) and Init Duration by -0.380 s on 0xd40. Mechanism confirmed in-function: ctl recompiles all 153-157 task-root modules from source in every environment (0 usable .pyc), pyc recompiles 1 (the e6_entry wrapper itself). The cold first request does NOT improve: on 0xd40 first_request_total delta -0.012 s, CI [-0.098, +0.079]. On 0xd0c (n=5/3 only) it is -0.685 s, CI [-1.168, -0.322]; on 0xd4f (n=6/5) +0.047 s, CI [-0.271, +0.250]. That is no consistent improvement across parts. The reason: the on-demand load runs in PR #77's background thread and the request waits for the ~25 s S3 download, which starts after imports either way; the saved ~0.37 s goes back into wait_for_load (weight_download on pyc +0.30 s, CI [+0.258, +0.383], a download that starts earlier and ends at the same time: import_total + weight_download p50 25.75 vs 25.68 s). Billed cold duration is unchanged (REPORT Billed Duration includes Init; the Init saved is spent waiting for the load inside Duration). SnapStart snapshot init imports also halve (0.665 -> 0.332 s, n=6/6), but that is publish time, not restore latency: restore first request total delta -0.045 s, CI [-0.097, +0.014] (0xd40 only). Warm inference unchanged (+0.0077 s, CI [-0.0100, +0.0251]). Answers: 420/420 pyc answers bit-identical to ctl for the same request and CPU part, and every answer P1's reference covers is bit-identical to it. Recommendation: adopt (no cost, +7 MB zip / +19 MB unzipped of the 250 MB limit, ~9 MB less peak memory) as hygiene; it pays off only where imports are on the request path, i.e. after a change that overlaps or removes the download (E4, E5, E9 or a combined ladder rung), so R should re-measure it there rather than credit it to the current baseline.",
+ "conclusion": "Complete unchecked-hash bytecode halves the cold imports phase on every CPU part Lambda gave us (CPU part 0xd40 as read from /proc/cpuinfo, n=49/52: 0.719 -> 0.346 s, delta -0.373 s, 95% CI [-0.380, -0.367]; 0xd0c and 0xd4f the same direction in every shared round/part cell; all 12 shared cells below 0, with 5 sparse unmatched cells reported separately) and Init Duration by -0.380 s on 0xd40. Mechanism confirmed in-function: ctl recompiles all 153-157 task-root modules from source in every environment (0 usable .pyc), pyc recompiles 1 (the e6_entry wrapper itself). The cold first request does NOT improve: on 0xd40 first_request_total delta -0.012 s, CI [-0.098, +0.079]. On 0xd0c (n=5/3 only) it is -0.685 s, CI [-1.168, -0.322]; on 0xd4f (n=6/5) +0.047 s, CI [-0.271, +0.250]. That is no consistent improvement across parts. The reason: the on-demand load runs in PR #77's background thread and the request waits for the ~25 s S3 download, which starts after imports either way; the saved ~0.37 s goes back into wait_for_load (weight_download on pyc +0.30 s, CI [+0.258, +0.383], a download that starts earlier and ends at the same time: import_total + weight_download p50 25.75 vs 25.68 s). Billed cold duration is unchanged (REPORT Billed Duration includes Init; the Init saved is spent waiting for the load inside Duration). SnapStart snapshot init imports also halve (0.665 -> 0.332 s, n=6/6), but that is publish time, not restore latency: restore first request total delta -0.045 s, CI [-0.097, +0.014] (0xd40 only). Warm inference unchanged (+0.0077 s, CI [-0.0100, +0.0251]). Answers: 420/420 pyc answers bit-identical to ctl for the same request and CPU part, and every answer P1's reference covers is bit-identical to it. Recommendation: adopt (no cost, +7 MB zip / +19 MB unzipped of the 250 MB limit, ~9 MB less peak memory) as hygiene; it pays off only where imports are on the request path, i.e. after a change that overlaps or removes the download (E4, E5, E9 or a combined ladder rung), so R should re-measure it there rather than credit it to the current baseline.",
  "request_coverage": {
   "ctl": {
    "answered": [
@@ -5535,6 +5541,1393 @@
  },
  "provenance_problem": "build manifest records no dirty_inputs; rebuild with build.sh",
  "primary_arm": "pyc",
+ "host_variability": {
+  "schema": "lkai-host-variability/1",
+  "observed": {
+   "primary_metrics": {
+    "cold_imports": {
+     "class": "cold",
+     "shared_cells": [
+      {
+       "round": 0,
+       "cpu_part": "0xd40",
+       "n": {
+        "ctl": 9,
+        "pyc": 9
+       },
+       "median": {
+        "ctl": 0.706757,
+        "pyc": 0.350932
+       },
+       "range": {
+        "ctl": [
+         0.688218,
+         0.723255
+        ],
+        "pyc": [
+         0.31122,
+         0.368185
+        ]
+       },
+       "delta": -0.355825,
+       "ratio": 0.496538,
+       "sign": "negative"
+      },
+      {
+       "round": 1,
+       "cpu_part": "0xd0c",
+       "n": {
+        "ctl": 1,
+        "pyc": 1
+       },
+       "median": {
+        "ctl": 0.927456,
+        "pyc": 0.44012
+       },
+       "range": {
+        "ctl": [
+         0.927456,
+         0.927456
+        ],
+        "pyc": [
+         0.44012,
+         0.44012
+        ]
+       },
+       "delta": -0.487336,
+       "ratio": 0.474545,
+       "sign": "negative"
+      },
+      {
+       "round": 1,
+       "cpu_part": "0xd40",
+       "n": {
+        "ctl": 8,
+        "pyc": 8
+       },
+       "median": {
+        "ctl": 0.722301,
+        "pyc": 0.341027
+       },
+       "range": {
+        "ctl": [
+         0.701069,
+         0.740335
+        ],
+        "pyc": [
+         0.332419,
+         0.378699
+        ]
+       },
+       "delta": -0.381274,
+       "ratio": 0.47214,
+       "sign": "negative"
+      },
+      {
+       "round": 1,
+       "cpu_part": "0xd4f",
+       "n": {
+        "ctl": 1,
+        "pyc": 1
+       },
+       "median": {
+        "ctl": 0.58606,
+        "pyc": 0.2743
+       },
+       "range": {
+        "ctl": [
+         0.58606,
+         0.58606
+        ],
+        "pyc": [
+         0.2743,
+         0.2743
+        ]
+       },
+       "delta": -0.31176,
+       "ratio": 0.468041,
+       "sign": "negative"
+      },
+      {
+       "round": 2,
+       "cpu_part": "0xd40",
+       "n": {
+        "ctl": 9,
+        "pyc": 10
+       },
+       "median": {
+        "ctl": 0.730869,
+        "pyc": 0.345173
+       },
+       "range": {
+        "ctl": [
+         0.690974,
+         0.771441
+        ],
+        "pyc": [
+         0.33467,
+         0.372584
+        ]
+       },
+       "delta": -0.385696,
+       "ratio": 0.472278,
+       "sign": "negative"
+      },
+      {
+       "round": 3,
+       "cpu_part": "0xd40",
+       "n": {
+        "ctl": 7,
+        "pyc": 9
+       },
+       "median": {
+        "ctl": 0.725205,
+        "pyc": 0.346184
+       },
+       "range": {
+        "ctl": [
+         0.717547,
+         0.747203
+        ],
+        "pyc": [
+         0.329456,
+         0.354411
+        ]
+       },
+       "delta": -0.379021,
+       "ratio": 0.47736,
+       "sign": "negative"
+      },
+      {
+       "round": 3,
+       "cpu_part": "0xd4f",
+       "n": {
+        "ctl": 1,
+        "pyc": 1
+       },
+       "median": {
+        "ctl": 0.568296,
+        "pyc": 0.278493
+       },
+       "range": {
+        "ctl": [
+         0.568296,
+         0.568296
+        ],
+        "pyc": [
+         0.278493,
+         0.278493
+        ]
+       },
+       "delta": -0.289803,
+       "ratio": 0.490049,
+       "sign": "negative"
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd0c",
+       "n": {
+        "ctl": 1,
+        "pyc": 1
+       },
+       "median": {
+        "ctl": 0.917555,
+        "pyc": 0.449475
+       },
+       "range": {
+        "ctl": [
+         0.917555,
+         0.917555
+        ],
+        "pyc": [
+         0.449475,
+         0.449475
+        ]
+       },
+       "delta": -0.46808,
+       "ratio": 0.489862,
+       "sign": "negative"
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd40",
+       "n": {
+        "ctl": 8,
+        "pyc": 8
+       },
+       "median": {
+        "ctl": 0.716711,
+        "pyc": 0.345274
+       },
+       "range": {
+        "ctl": [
+         0.70596,
+         0.730584
+        ],
+        "pyc": [
+         0.338295,
+         0.372887
+        ]
+       },
+       "delta": -0.371437,
+       "ratio": 0.481747,
+       "sign": "negative"
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd4f",
+       "n": {
+        "ctl": 1,
+        "pyc": 1
+       },
+       "median": {
+        "ctl": 0.555621,
+        "pyc": 0.270595
+       },
+       "range": {
+        "ctl": [
+         0.555621,
+         0.555621
+        ],
+        "pyc": [
+         0.270595,
+         0.270595
+        ]
+       },
+       "delta": -0.285026,
+       "ratio": 0.487014,
+       "sign": "negative"
+      },
+      {
+       "round": 5,
+       "cpu_part": "0xd40",
+       "n": {
+        "ctl": 8,
+        "pyc": 8
+       },
+       "median": {
+        "ctl": 0.713805,
+        "pyc": 0.346669
+       },
+       "range": {
+        "ctl": [
+         0.692079,
+         0.733784
+        ],
+        "pyc": [
+         0.329043,
+         0.373681
+        ]
+       },
+       "delta": -0.367136,
+       "ratio": 0.485664,
+       "sign": "negative"
+      },
+      {
+       "round": 5,
+       "cpu_part": "0xd4f",
+       "n": {
+        "ctl": 1,
+        "pyc": 2
+       },
+       "median": {
+        "ctl": 0.56838,
+        "pyc": 0.271425
+       },
+       "range": {
+        "ctl": [
+         0.56838,
+         0.56838
+        ],
+        "pyc": [
+         0.270363,
+         0.272486
+        ]
+       },
+       "delta": -0.296955,
+       "ratio": 0.477541,
+       "sign": "negative"
+      }
+     ],
+     "missing_cells": [
+      {
+       "round": 0,
+       "cpu_part": "0xd0c",
+       "n": {
+        "ctl": 0,
+        "pyc": 1
+       }
+      },
+      {
+       "round": 0,
+       "cpu_part": "0xd4f",
+       "n": {
+        "ctl": 1,
+        "pyc": 0
+       }
+      },
+      {
+       "round": 2,
+       "cpu_part": "0xd4f",
+       "n": {
+        "ctl": 1,
+        "pyc": 0
+       }
+      },
+      {
+       "round": 3,
+       "cpu_part": "0xd0c",
+       "n": {
+        "ctl": 2,
+        "pyc": 0
+       }
+      },
+      {
+       "round": 5,
+       "cpu_part": "0xd0c",
+       "n": {
+        "ctl": 1,
+        "pyc": 0
+       }
+      }
+     ],
+     "by_cpu_part": {
+      "0xd0c": {
+       "shared_cell_count": 2,
+       "delta_range": [
+        -0.487336,
+        -0.46808
+       ],
+       "delta_signs": [
+        "negative"
+       ]
+      },
+      "0xd40": {
+       "shared_cell_count": 6,
+       "delta_range": [
+        -0.385696,
+        -0.355825
+       ],
+       "delta_signs": [
+        "negative"
+       ]
+      },
+      "0xd4f": {
+       "shared_cell_count": 4,
+       "delta_range": [
+        -0.31176,
+        -0.285026
+       ],
+       "delta_signs": [
+        "negative"
+       ]
+      }
+     }
+    },
+    "cold_first_request_total": {
+     "class": "cold",
+     "shared_cells": [
+      {
+       "round": 0,
+       "cpu_part": "0xd40",
+       "n": {
+        "ctl": 9,
+        "pyc": 9
+       },
+       "median": {
+        "ctl": 35.968,
+        "pyc": 35.9991
+       },
+       "range": {
+        "ctl": [
+         35.80971,
+         36.3009
+        ],
+        "pyc": [
+         35.69428,
+         36.44776
+        ]
+       },
+       "delta": 0.0311,
+       "ratio": 1.000865,
+       "sign": "positive"
+      },
+      {
+       "round": 1,
+       "cpu_part": "0xd0c",
+       "n": {
+        "ctl": 1,
+        "pyc": 1
+       },
+       "median": {
+        "ctl": 48.60412,
+        "pyc": 47.78192
+       },
+       "range": {
+        "ctl": [
+         48.60412,
+         48.60412
+        ],
+        "pyc": [
+         47.78192,
+         47.78192
+        ]
+       },
+       "delta": -0.8222,
+       "ratio": 0.983084,
+       "sign": "negative"
+      },
+      {
+       "round": 1,
+       "cpu_part": "0xd40",
+       "n": {
+        "ctl": 8,
+        "pyc": 8
+       },
+       "median": {
+        "ctl": 35.90771,
+        "pyc": 35.968805
+       },
+       "range": {
+        "ctl": [
+         35.84674,
+         36.26301
+        ],
+        "pyc": [
+         35.65083,
+         36.26623
+        ]
+       },
+       "delta": 0.061095,
+       "ratio": 1.001701,
+       "sign": "positive"
+      },
+      {
+       "round": 1,
+       "cpu_part": "0xd4f",
+       "n": {
+        "ctl": 1,
+        "pyc": 1
+       },
+       "median": {
+        "ctl": 34.58839,
+        "pyc": 34.19817
+       },
+       "range": {
+        "ctl": [
+         34.58839,
+         34.58839
+        ],
+        "pyc": [
+         34.19817,
+         34.19817
+        ]
+       },
+       "delta": -0.39022,
+       "ratio": 0.988718,
+       "sign": "negative"
+      },
+      {
+       "round": 2,
+       "cpu_part": "0xd40",
+       "n": {
+        "ctl": 9,
+        "pyc": 10
+       },
+       "median": {
+        "ctl": 35.95735,
+        "pyc": 36.051025
+       },
+       "range": {
+        "ctl": [
+         35.84637,
+         36.59809
+        ],
+        "pyc": [
+         35.85713,
+         36.18503
+        ]
+       },
+       "delta": 0.093675,
+       "ratio": 1.002605,
+       "sign": "positive"
+      },
+      {
+       "round": 3,
+       "cpu_part": "0xd40",
+       "n": {
+        "ctl": 7,
+        "pyc": 9
+       },
+       "median": {
+        "ctl": 36.07811,
+        "pyc": 35.9009
+       },
+       "range": {
+        "ctl": [
+         35.71569,
+         36.23175
+        ],
+        "pyc": [
+         35.62598,
+         36.40423
+        ]
+       },
+       "delta": -0.17721,
+       "ratio": 0.995088,
+       "sign": "negative"
+      },
+      {
+       "round": 3,
+       "cpu_part": "0xd4f",
+       "n": {
+        "ctl": 1,
+        "pyc": 1
+       },
+       "median": {
+        "ctl": 34.34905,
+        "pyc": 34.48668
+       },
+       "range": {
+        "ctl": [
+         34.34905,
+         34.34905
+        ],
+        "pyc": [
+         34.48668,
+         34.48668
+        ]
+       },
+       "delta": 0.13763,
+       "ratio": 1.004007,
+       "sign": "positive"
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd0c",
+       "n": {
+        "ctl": 1,
+        "pyc": 1
+       },
+       "median": {
+        "ctl": 48.91763,
+        "pyc": 47.91865
+       },
+       "range": {
+        "ctl": [
+         48.91763,
+         48.91763
+        ],
+        "pyc": [
+         47.91865,
+         47.91865
+        ]
+       },
+       "delta": -0.99898,
+       "ratio": 0.979578,
+       "sign": "negative"
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd40",
+       "n": {
+        "ctl": 8,
+        "pyc": 8
+       },
+       "median": {
+        "ctl": 36.081435,
+        "pyc": 35.974
+       },
+       "range": {
+        "ctl": [
+         35.80496,
+         75.99708
+        ],
+        "pyc": [
+         35.7798,
+         36.17914
+        ]
+       },
+       "delta": -0.107435,
+       "ratio": 0.997022,
+       "sign": "negative"
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd4f",
+       "n": {
+        "ctl": 1,
+        "pyc": 1
+       },
+       "median": {
+        "ctl": 34.30308,
+        "pyc": 34.71002
+       },
+       "range": {
+        "ctl": [
+         34.30308,
+         34.30308
+        ],
+        "pyc": [
+         34.71002,
+         34.71002
+        ]
+       },
+       "delta": 0.40694,
+       "ratio": 1.011863,
+       "sign": "positive"
+      },
+      {
+       "round": 5,
+       "cpu_part": "0xd40",
+       "n": {
+        "ctl": 8,
+        "pyc": 8
+       },
+       "median": {
+        "ctl": 35.999695,
+        "pyc": 36.03048
+       },
+       "range": {
+        "ctl": [
+         35.79686,
+         36.33817
+        ],
+        "pyc": [
+         35.81206,
+         36.29383
+        ]
+       },
+       "delta": 0.030785,
+       "ratio": 1.000855,
+       "sign": "positive"
+      },
+      {
+       "round": 5,
+       "cpu_part": "0xd4f",
+       "n": {
+        "ctl": 1,
+        "pyc": 2
+       },
+       "median": {
+        "ctl": 34.60212,
+        "pyc": 34.537485
+       },
+       "range": {
+        "ctl": [
+         34.60212,
+         34.60212
+        ],
+        "pyc": [
+         34.516,
+         34.55897
+        ]
+       },
+       "delta": -0.064635,
+       "ratio": 0.998132,
+       "sign": "negative"
+      }
+     ],
+     "missing_cells": [
+      {
+       "round": 0,
+       "cpu_part": "0xd0c",
+       "n": {
+        "ctl": 0,
+        "pyc": 1
+       }
+      },
+      {
+       "round": 0,
+       "cpu_part": "0xd4f",
+       "n": {
+        "ctl": 1,
+        "pyc": 0
+       }
+      },
+      {
+       "round": 2,
+       "cpu_part": "0xd4f",
+       "n": {
+        "ctl": 1,
+        "pyc": 0
+       }
+      },
+      {
+       "round": 3,
+       "cpu_part": "0xd0c",
+       "n": {
+        "ctl": 2,
+        "pyc": 0
+       }
+      },
+      {
+       "round": 5,
+       "cpu_part": "0xd0c",
+       "n": {
+        "ctl": 1,
+        "pyc": 0
+       }
+      }
+     ],
+     "by_cpu_part": {
+      "0xd0c": {
+       "shared_cell_count": 2,
+       "delta_range": [
+        -0.99898,
+        -0.8222
+       ],
+       "delta_signs": [
+        "negative"
+       ]
+      },
+      "0xd40": {
+       "shared_cell_count": 6,
+       "delta_range": [
+        -0.17721,
+        0.093675
+       ],
+       "delta_signs": [
+        "negative",
+        "positive"
+       ]
+      },
+      "0xd4f": {
+       "shared_cell_count": 4,
+       "delta_range": [
+        -0.39022,
+        0.40694
+       ],
+       "delta_signs": [
+        "negative",
+        "positive"
+       ]
+      }
+     }
+    },
+    "restore_first_request_total": {
+     "class": "restore",
+     "shared_cells": [
+      {
+       "round": 100,
+       "cpu_part": "0xd40",
+       "n": {
+        "ctl": 9,
+        "pyc": 10
+       },
+       "median": {
+        "ctl": 3.98599,
+        "pyc": 3.906745
+       },
+       "range": {
+        "ctl": [
+         3.90848,
+         5.34629
+        ],
+        "pyc": [
+         3.84892,
+         4.24503
+        ]
+       },
+       "delta": -0.079245,
+       "ratio": 0.980119,
+       "sign": "negative"
+      },
+      {
+       "round": 101,
+       "cpu_part": "0xd40",
+       "n": {
+        "ctl": 10,
+        "pyc": 10
+       },
+       "median": {
+        "ctl": 3.92706,
+        "pyc": 3.89916
+       },
+       "range": {
+        "ctl": [
+         3.74972,
+         3.98832
+        ],
+        "pyc": [
+         3.87223,
+         4.31479
+        ]
+       },
+       "delta": -0.0279,
+       "ratio": 0.992895,
+       "sign": "negative"
+      },
+      {
+       "round": 102,
+       "cpu_part": "0xd40",
+       "n": {
+        "ctl": 8,
+        "pyc": 10
+       },
+       "median": {
+        "ctl": 3.84333,
+        "pyc": 3.80401
+       },
+       "range": {
+        "ctl": [
+         3.7332,
+         4.16293
+        ],
+        "pyc": [
+         3.69746,
+         3.98686
+        ]
+       },
+       "delta": -0.03932,
+       "ratio": 0.989769,
+       "sign": "negative"
+      }
+     ],
+     "missing_cells": [
+      {
+       "round": 100,
+       "cpu_part": "0xd0c",
+       "n": {
+        "ctl": 1,
+        "pyc": 0
+       }
+      },
+      {
+       "round": 102,
+       "cpu_part": "0xd0c",
+       "n": {
+        "ctl": 1,
+        "pyc": 0
+       }
+      }
+     ],
+     "by_cpu_part": {
+      "0xd40": {
+       "shared_cell_count": 3,
+       "delta_range": [
+        -0.079245,
+        -0.0279
+       ],
+       "delta_signs": [
+        "negative"
+       ]
+      }
+     }
+    },
+    "warm_steady_state_inference": {
+     "class": "warm",
+     "shared_cells": [
+      {
+       "round": 0,
+       "cpu_part": "0xd40",
+       "n": {
+        "ctl": 45,
+        "pyc": 45
+       },
+       "median": {
+        "ctl": 0.60388,
+        "pyc": 0.61212
+       },
+       "range": {
+        "ctl": [
+         0.23365,
+         1.76158
+        ],
+        "pyc": [
+         0.2372,
+         1.79603
+        ]
+       },
+       "delta": 0.00824,
+       "ratio": 1.013645,
+       "sign": "positive"
+      },
+      {
+       "round": 1,
+       "cpu_part": "0xd0c",
+       "n": {
+        "ctl": 5,
+        "pyc": 5
+       },
+       "median": {
+        "ctl": 1.12774,
+        "pyc": 1.16036
+       },
+       "range": {
+        "ctl": [
+         0.45415,
+         3.4773
+        ],
+        "pyc": [
+         0.44142,
+         3.41812
+        ]
+       },
+       "delta": 0.03262,
+       "ratio": 1.028925,
+       "sign": "positive"
+      },
+      {
+       "round": 1,
+       "cpu_part": "0xd40",
+       "n": {
+        "ctl": 40,
+        "pyc": 40
+       },
+       "median": {
+        "ctl": 0.601775,
+        "pyc": 0.624825
+       },
+       "range": {
+        "ctl": [
+         0.23183,
+         1.76403
+        ],
+        "pyc": [
+         0.23062,
+         1.793
+        ]
+       },
+       "delta": 0.02305,
+       "ratio": 1.038303,
+       "sign": "positive"
+      },
+      {
+       "round": 1,
+       "cpu_part": "0xd4f",
+       "n": {
+        "ctl": 5,
+        "pyc": 5
+       },
+       "median": {
+        "ctl": 0.54313,
+        "pyc": 0.53313
+       },
+       "range": {
+        "ctl": [
+         0.21737,
+         1.48861
+        ],
+        "pyc": [
+         0.21482,
+         1.52391
+        ]
+       },
+       "delta": -0.01,
+       "ratio": 0.981588,
+       "sign": "negative"
+      },
+      {
+       "round": 2,
+       "cpu_part": "0xd40",
+       "n": {
+        "ctl": 45,
+        "pyc": 50
+       },
+       "median": {
+        "ctl": 0.61181,
+        "pyc": 0.618575
+       },
+       "range": {
+        "ctl": [
+         0.23073,
+         1.769
+        ],
+        "pyc": [
+         0.22811,
+         1.88149
+        ]
+       },
+       "delta": 0.006765,
+       "ratio": 1.011057,
+       "sign": "positive"
+      },
+      {
+       "round": 3,
+       "cpu_part": "0xd40",
+       "n": {
+        "ctl": 35,
+        "pyc": 45
+       },
+       "median": {
+        "ctl": 0.61403,
+        "pyc": 0.61114
+       },
+       "range": {
+        "ctl": [
+         0.23272,
+         1.78072
+        ],
+        "pyc": [
+         0.23932,
+         1.79809
+        ]
+       },
+       "delta": -0.00289,
+       "ratio": 0.995293,
+       "sign": "negative"
+      },
+      {
+       "round": 3,
+       "cpu_part": "0xd4f",
+       "n": {
+        "ctl": 5,
+        "pyc": 5
+       },
+       "median": {
+        "ctl": 0.52647,
+        "pyc": 0.5318
+       },
+       "range": {
+        "ctl": [
+         0.21651,
+         1.5173
+        ],
+        "pyc": [
+         0.21042,
+         1.54958
+        ]
+       },
+       "delta": 0.00533,
+       "ratio": 1.010124,
+       "sign": "positive"
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd0c",
+       "n": {
+        "ctl": 5,
+        "pyc": 5
+       },
+       "median": {
+        "ctl": 1.12353,
+        "pyc": 1.11511
+       },
+       "range": {
+        "ctl": [
+         0.44142,
+         3.48273
+        ],
+        "pyc": [
+         0.43496,
+         3.41457
+        ]
+       },
+       "delta": -0.00842,
+       "ratio": 0.992506,
+       "sign": "negative"
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd40",
+       "n": {
+        "ctl": 40,
+        "pyc": 40
+       },
+       "median": {
+        "ctl": 0.607735,
+        "pyc": 0.61659
+       },
+       "range": {
+        "ctl": [
+         0.2323,
+         1.77466
+        ],
+        "pyc": [
+         0.23404,
+         1.84224
+        ]
+       },
+       "delta": 0.008855,
+       "ratio": 1.01457,
+       "sign": "positive"
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd4f",
+       "n": {
+        "ctl": 5,
+        "pyc": 5
+       },
+       "median": {
+        "ctl": 0.54818,
+        "pyc": 0.53608
+       },
+       "range": {
+        "ctl": [
+         0.21485,
+         1.54649
+        ],
+        "pyc": [
+         0.20651,
+         1.53065
+        ]
+       },
+       "delta": -0.0121,
+       "ratio": 0.977927,
+       "sign": "negative"
+      },
+      {
+       "round": 5,
+       "cpu_part": "0xd40",
+       "n": {
+        "ctl": 40,
+        "pyc": 40
+       },
+       "median": {
+        "ctl": 0.607665,
+        "pyc": 0.617965
+       },
+       "range": {
+        "ctl": [
+         0.22842,
+         1.76927
+        ],
+        "pyc": [
+         0.237,
+         1.81385
+        ]
+       },
+       "delta": 0.0103,
+       "ratio": 1.01695,
+       "sign": "positive"
+      },
+      {
+       "round": 5,
+       "cpu_part": "0xd4f",
+       "n": {
+        "ctl": 5,
+        "pyc": 10
+       },
+       "median": {
+        "ctl": 0.55553,
+        "pyc": 0.551035
+       },
+       "range": {
+        "ctl": [
+         0.21124,
+         1.55194
+        ],
+        "pyc": [
+         0.2067,
+         1.51005
+        ]
+       },
+       "delta": -0.004495,
+       "ratio": 0.991909,
+       "sign": "negative"
+      },
+      {
+       "round": 100,
+       "cpu_part": "0xd40",
+       "n": {
+        "ctl": 9,
+        "pyc": 10
+       },
+       "median": {
+        "ctl": 0.24653,
+        "pyc": 0.24311
+       },
+       "range": {
+        "ctl": [
+         0.24062,
+         0.24988
+        ],
+        "pyc": [
+         0.23531,
+         0.25443
+        ]
+       },
+       "delta": -0.00342,
+       "ratio": 0.986127,
+       "sign": "negative"
+      },
+      {
+       "round": 101,
+       "cpu_part": "0xd40",
+       "n": {
+        "ctl": 10,
+        "pyc": 10
+       },
+       "median": {
+        "ctl": 0.66884,
+        "pyc": 0.668095
+       },
+       "range": {
+        "ctl": [
+         0.5894,
+         0.68112
+        ],
+        "pyc": [
+         0.65752,
+         0.67926
+        ]
+       },
+       "delta": -0.000745,
+       "ratio": 0.998886,
+       "sign": "negative"
+      },
+      {
+       "round": 102,
+       "cpu_part": "0xd40",
+       "n": {
+        "ctl": 8,
+        "pyc": 10
+       },
+       "median": {
+        "ctl": 0.472895,
+        "pyc": 0.479145
+       },
+       "range": {
+        "ctl": [
+         0.45193,
+         0.60654
+        ],
+        "pyc": [
+         0.46532,
+         0.553
+        ]
+       },
+       "delta": 0.00625,
+       "ratio": 1.013216,
+       "sign": "positive"
+      }
+     ],
+     "missing_cells": [
+      {
+       "round": 0,
+       "cpu_part": "0xd0c",
+       "n": {
+        "ctl": 0,
+        "pyc": 5
+       }
+      },
+      {
+       "round": 0,
+       "cpu_part": "0xd4f",
+       "n": {
+        "ctl": 5,
+        "pyc": 0
+       }
+      },
+      {
+       "round": 2,
+       "cpu_part": "0xd4f",
+       "n": {
+        "ctl": 5,
+        "pyc": 0
+       }
+      },
+      {
+       "round": 3,
+       "cpu_part": "0xd0c",
+       "n": {
+        "ctl": 10,
+        "pyc": 0
+       }
+      },
+      {
+       "round": 5,
+       "cpu_part": "0xd0c",
+       "n": {
+        "ctl": 5,
+        "pyc": 0
+       }
+      },
+      {
+       "round": 100,
+       "cpu_part": "0xd0c",
+       "n": {
+        "ctl": 1,
+        "pyc": 0
+       }
+      },
+      {
+       "round": 102,
+       "cpu_part": "0xd0c",
+       "n": {
+        "ctl": 2,
+        "pyc": 0
+       }
+      }
+     ],
+     "by_cpu_part": {
+      "0xd0c": {
+       "shared_cell_count": 2,
+       "delta_range": [
+        -0.00842,
+        0.03262
+       ],
+       "delta_signs": [
+        "negative",
+        "positive"
+       ]
+      },
+      "0xd40": {
+       "shared_cell_count": 9,
+       "delta_range": [
+        -0.00342,
+        0.02305
+       ],
+       "delta_signs": [
+        "negative",
+        "positive"
+       ]
+      },
+      "0xd4f": {
+       "shared_cell_count": 4,
+       "delta_range": [
+        -0.0121,
+        0.00533
+       ],
+       "delta_signs": [
+        "negative",
+        "positive"
+       ]
+      }
+     }
+    }
+   }
+  },
+  "unknown": {
+   "cpu_identity_rows": {
+    "cold_imports": {
+     "ctl": 0,
+     "pyc": 0
+    },
+    "cold_first_request_total": {
+     "ctl": 0,
+     "pyc": 0
+    },
+    "restore_first_request_total": {
+     "ctl": 0,
+     "pyc": 0
+    },
+    "warm_steady_state_inference": {
+     "ctl": 0,
+     "pyc": 0
+    }
+   },
+   "environment_fields": [
+    "availability zone",
+    "physical host",
+    "cgroup CPU limit",
+    "cgroup memory limit"
+   ]
+  },
+  "method": "Within each observed CPU part, compare arm medians in each round. Arms are sequential waves whose first position alternates by round; this is alternation, not within-round interleaving. Missing-arm cells and rows without CPU identity are listed but never treated as comparable strata.",
+  "assessment": {
+   "primary_effect": {
+    "metric": "cold_imports",
+    "comparable": true,
+    "shared_cells": 12,
+    "reason": "all shared round/CPU-part cells have a negative pyc-minus-ctl delta"
+   },
+   "deployment_headlines": "no consistent cold-first-request, restore, or warm benefit across observed CPU parts and rounds",
+   "rerun": "not needed: host-conditioned cells support the imports-phase effect, while deployment headlines remain a null result; sparse unmatched cells are reported as limitations"
+  }
+ },
  "e6": {
   "delta": {
    "cold": {
@@ -6168,7 +7561,7 @@
      "rounds_below_zero": 2
     }
    },
-   "method": "pyc minus ctl, medians within each CPU part both arms ran on; ci95 = bootstrap over environments (4,000 resamples, seed 6); per-round deltas from interleaved rounds"
+   "method": "pyc minus ctl, medians within each CPU part both arms ran on; ci95 = bootstrap over environments (4,000 resamples, seed 6); pooled per-round deltas are descriptive only; host_variability contains the required round-by-CPU-part cells"
   },
   "bytecode": {
    "ctl": {

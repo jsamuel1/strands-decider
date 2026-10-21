@@ -400,6 +400,46 @@ def _res(cold, restore, warm, *, errors=0, agree=(10, 10, 0, 0)):
     }
 
 
+def test_host_variability_analysis_records_shared_and_missing_cells():
+    s = _summ()
+    rows = [
+        _row("ctl", "cold", 0, imports=0.70),
+        _row("pyc", "cold", 0, imports=0.35),
+        _row("ctl", "cold", 1, imports=0.72),
+        _row("pyc", "cold", 1, imports=0.34),
+        _row("ctl", "cold", 0, cpu="0xd0c", imports=0.90),
+        _row("pyc", "cold", 1, cpu="0xd0c", imports=0.44),
+    ]
+    h = s.host_variability_analysis(rows)
+    imports = h["observed"]["primary_metrics"]["cold_imports"]
+    assert [cell["delta"] for cell in imports["shared_cells"]] == [-0.35, -0.38]
+    assert imports["by_cpu_part"]["0xd40"] == {
+        "shared_cell_count": 2,
+        "delta_range": [-0.38, -0.35],
+        "delta_signs": ["negative"],
+    }
+    assert imports["missing_cells"] == [
+        {"round": 0, "cpu_part": "0xd0c", "n": {"ctl": 1, "pyc": 0}},
+        {"round": 1, "cpu_part": "0xd0c", "n": {"ctl": 0, "pyc": 1}},
+    ]
+    assert h["assessment"]["primary_effect"]["comparable"] is True
+    assert "not within-round interleaving" in h["method"]
+
+
+def test_host_variability_analysis_does_not_treat_unknown_cpu_as_a_stratum():
+    s = _summ()
+    rows = [
+        _row("ctl", "cold", 0, cpu=None, imports=0.70),
+        _row("pyc", "cold", 0, cpu=None, imports=0.35),
+    ]
+    h = s.host_variability_analysis(rows)
+    imports = h["observed"]["primary_metrics"]["cold_imports"]
+    assert imports["shared_cells"] == []
+    assert imports["missing_cells"] == []
+    assert h["unknown"]["cpu_identity_rows"]["cold_imports"] == {"ctl": 1, "pyc": 1}
+    assert h["assessment"]["primary_effect"]["comparable"] is False
+
+
 def test_status_follows_the_headlines_not_the_targeted_phase():
     s = _summ()
     null = (-0.1, 0.1)
