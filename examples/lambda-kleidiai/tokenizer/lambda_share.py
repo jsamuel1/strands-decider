@@ -156,6 +156,7 @@ def analyse(p1: dict[str, Any], logs: Path) -> dict[str, Any]:
     out["per_request_cprofile"] = {
         f"{c}|{cpu}": {
             "fit_s": dist([x["fit"] for x in v]),
+            "fit_values_s": [x["fit"] for x in v],
             "encode_calls_s": dist([x["encode_batch"] + x["encode"] for x in v]),
             "handler_s": dist([x["handler"] for x in v]),
             "fit_share_of_handler": dist([x["fit"] / x["handler"] for x in v if x["handler"] > 0]),
@@ -169,6 +170,7 @@ def analyse(p1: dict[str, Any], logs: Path) -> dict[str, Any]:
         iby[(r["class"], r["cpu_part"])].append(r["from_file_s"])
         iby[(r["class"], "all")].append(r["from_file_s"])
     out["init_from_file_cprofile"] = {f"{c}|{cpu}": dist(v) for (c, cpu), v in sorted(iby.items())}
+    out["init_from_file_values_s"] = {f"{c}|{cpu}": v for (c, cpu), v in sorted(iby.items())}
     out["sampler_cpu_share"] = sampler_shares(logs / "lkai-p3-sampler.jsonl.gz")
     # P1 light-instrumentation context (instrumented arm, all CPU parts pooled, seconds).
     p1ctx = {

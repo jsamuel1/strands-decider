@@ -26,12 +26,27 @@ P1_BASELINE = "70eab7be69f86ddeb8c64158d94df344b5180098"
 P3_COMMIT = "0eabd60fd11f6183faa8ac908d138724b63d1eca"
 
 
-def _d(x: dict[str, Any] | None, unit: str = "s") -> dict[str, Any] | None:
-    if not x:
-        return None
-    out = {"unit": unit, **{k: x[k] for k in ("n", "p50", "p90", "p99", "min", "max", "mean")}}
-    out["stdev"] = x.get("stdev", 0.0)
-    return out
+def _p2_dist() -> Any:
+    """P2's lkai_results.dist (the dashboard's own distribution block, histogram included)."""
+    import importlib.util
+    import os
+
+    path = os.environ.get("LKAI_RESULTS_PY") or str(
+        Path(__file__).resolve().parent.parent / "results" / "lkai_results.py"
+    )
+    spec = importlib.util.spec_from_file_location("lkai_results", path)
+    if spec is None or spec.loader is None:
+        raise SystemExit(f"P2 lkai_results.py not found at {path} (set LKAI_RESULTS_PY)")
+    mod = importlib.util.module_from_spec(spec)
+    import sys
+
+    sys.modules["lkai_results"] = mod  # its dataclasses resolve their module through sys.modules
+    spec.loader.exec_module(mod)
+    return mod.dist
+
+
+def _d(values: list[float] | None) -> dict[str, Any] | None:
+    return _p2_dist()(values or []) if values else None
 
 
 def fixed_host_block(benches: list[dict[str, Any]]) -> dict[str, Any]:
@@ -129,16 +144,19 @@ def build(
         "cprofile": copy.deepcopy(p3["phases"]["cprofile"]),
     }
     pc = share["per_request_cprofile"]
-    ph["cprofile"]["cold"]["tokenizer_init_from_file"] = _d(
-        share["init_from_file_cprofile"]["cold|all"]
-    )
+    # rep runs with LKAI_PHASES=0: the before_snapshot record that carries snapshot_init is never emitted, so it
+    # was not measured (null, as the P2 schema asks), not zero.
+    ph["rep"]["restore"].setdefault("snapshot_init", None)
+    iv = share["init_from_file_values_s"]
+    # A tokenizer phase is a dist; per-CPU-part splits are a map of dists (allowed, as snapshot_init is).
+    ph["cprofile"]["cold"]["tokenizer_init_from_file"] = _d(iv["cold|all"])
     ph["cprofile"]["restore"]["snapshot_init"]["tokenizer_init_from_file"] = _d(
-        share["init_from_file_cprofile"].get("snapshot_init|all")
+        iv.get("snapshot_init|all")
     )
     for cls in ("cold", "restore", "warm"):
-        ph["cprofile"][cls]["tokenizer_fit"] = _d(pc[f"{cls}|all"]["fit_s"])
+        ph["cprofile"][cls]["tokenizer_fit"] = _d(pc[f"{cls}|all"]["fit_values_s"])
         ph["cprofile"][cls]["tokenizer_fit_by_cpu_part"] = {
-            k.split("|")[1]: _d(v["fit_s"])
+            k.split("|")[1]: _d(v["fit_values_s"])
             for k, v in pc.items()
             if k.startswith(cls + "|") and not k.endswith("|all")
         }
