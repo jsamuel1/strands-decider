@@ -59,7 +59,9 @@ AWS_PROFILE=<p> python repro.py teardown --build build/
 
 ok/10 is the client-side result. `Inv` is CloudWatch `Invocations` for the target version over the whole run, and
 `START` is the count of `START ... Version: N` lines in the function's log group. Both include the warm-up wave's 10
-for `fresh_old` (target v1).
+for `fresh_old` (target v1). Idle lengths are nominal. The 30 s cells actually idled 52 s (`idle_since_warmup_s` in
+`conditions.json`), because publishing v2 and waiting for its snapshot took longer than 30 s; every other cell
+idled within 3 s of its nominal length.
 
 | Idle (s) | `reuse_poll` ok / Inv / START | `reuse_nopoll` ok / Inv / START | `fresh_new` ok / Inv / START | `fresh_old` ok / Inv / START |
 |---|---|---|---|---|
@@ -77,14 +79,15 @@ for `fresh_old` (target v1).
   RST instead of a silent drop, but the cause is the same.
 - **Lambda never received the stalled requests.** `Invocations` and `START` equal the client's ok count in every
   cell. That matches P3's aborted run (`Invocations` = 1 for `lkai-p3-rep:1`).
-- **The bytes were never acknowledged.** `tcp_samples.jsonl.gz` holds snapshots, taken 5 to 108 s into the wave, of
+- **The bytes were never acknowledged.** `tcp_samples.jsonl.gz` holds snapshots, taken 4 to 108 s into the wave, of
   every TCP socket on the stalled connections' local ports. Each stalled socket reads `ESTABLISHED`, with about
-  1,785 B unacknowledged (`tx_queue`, one invoke request) and its retransmit counter climbing from 3 to 7. The
+  1,785 B unacknowledged (`tx_queue`, one invoke request) and its retransmit counter climbing from 2 or 3 at the first sample to 7. The
   surviving `reuse_poll` connection shows `tx_queue 0` and no retransmits.
 - **urllib3 cannot see it.** Just before each measured wave, every pooled socket reads `ESTABLISHED` and
   `wait_for_read(sock, 0)` returns false (`pool_before` in `conditions.json`). urllib3 relies on that check to
-  decide whether to reconnect, so it logged no "Resetting dropped connection" and wrote each request into the dead
-  flow.
+  decide whether to reconnect, so it logged no "Resetting dropped connection" for the Lambda endpoint and wrote
+  each request into the dead flow. (The log's only 4 resets are on `monitoring` and `logs`, from the post-run
+  CloudWatch reads.)
 - **Threshold:** clean at 200 s, fully stalled from 400 s. That brackets the AWS NAT gateway's documented 350 s
   idle timeout, and the client host's egress is a public NAT gateway in ap-southeast-2. **Which element drops the
   flow is not established.** AWS documents that a NAT gateway sends an RST to the instance when it uses a
@@ -94,7 +97,7 @@ for `fresh_old` (target v1).
   no datapoint aligned with the 15:56 (+11:00) idle expiry, so it neither confirms nor rules out the NAT. The
   threshold was not bisected below 400 s.
 - **Not version age, not cache warm-up:** `fresh_new` restored a never-invoked v2 that was 0 to 1,048 s old, and
-  `fresh_old` invoked v1 after 30 to 1,102 s, all through a new client: 100 of 100 succeeded.
+  `fresh_old` invoked v1 52 to 1,102 s after its snapshot was ready, all through a new client: 100 of 100 succeeded.
 - Unrelated side observation, not part of the finding: `fresh_old` at 400 s or more restored instead of hitting the
   warm-up's environments (6 of 10 at 400 s, 10 of 10 at 700 s and 1100 s). Lambda had already retired those idle
   environments.
