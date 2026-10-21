@@ -497,6 +497,61 @@ def test_host_variability_names_what_it_did_not_record(tmp_path):
     assert not re.search(r"Graviton\d", json.dumps(h))
 
 
+def test_localtest_compares_the_observed_cpu_part_and_fails_on_mismatch(tmp_path):
+    import subprocess
+
+    script = open(os.path.join(E4, "localtest.sh")).read().split("python3 - ", 1)[1]
+    body = script.split("<<'EOF'\n", 1)[1].rsplit("\nEOF", 1)[0]
+    out = tmp_path / "out"
+    out.mkdir()
+    reference = tmp_path / "reference.json"
+    reference.write_text('{"outputs":{"r":{"p1":{"q":{"choice":"yes"}}}}}')
+
+    def invoke(answer):
+        (out / "base-0.json").write_text(
+            __import__("json").dumps(
+                {
+                    "init": {"cpu_part": "p1"},
+                    "counters": {},
+                    "answers": {"r": {"q": {"choice": answer}}},
+                }
+            )
+        )
+        return subprocess.run(
+            [sys.executable, "-c", body, str(out), str(reference)],
+            capture_output=True,
+            text=True,
+        )
+
+    assert invoke("yes").returncode == 0
+    bad = invoke("no")
+    assert bad.returncode != 0
+    assert "output differs from P1 reference for CPU part p1" in bad.stderr
+
+
+def test_host_variability_names_sequential_alternating_arm_waves(tmp_path):
+    import gzip
+
+    import summarize_e4
+
+    (tmp_path / "logs").mkdir()
+    with gzip.open(tmp_path / "logs" / "fn.jsonl.gz", "wt"):
+        pass
+    rows = [
+        _row("base", 0, "cold", "p1", 10.0, 100),
+        _row("stream", 0, "cold", "p1", 8.0, 90),
+    ]
+    cond = {
+        "arms": ["base", "stream"],
+        "functions": {
+            a: {"MemorySize": 10240, "Architectures": ["arm64"]} for a in ("base", "stream")
+        },
+    }
+    method = summarize_e4.host_variability(str(tmp_path), cond, rows)["method"]
+    assert "sequentially in alternating order" in method
+    assert "interleaved" not in method
+
+
 def test_published_e4_texts_claim_no_graviton_generation():
     """The initiative's host rule: the runs recorded CPU part numbers only, so no published E4 text names a
     generation (the README's note that none is claimed is the one allowed mention)."""

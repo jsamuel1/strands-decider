@@ -60,8 +60,8 @@ examples/lambda-kleidiai/e4_stream/localtest.sh
 
 Both runs are on the P2 dashboard (`E4-stream-load`); the redacted raw data is in `results/<run-id>/`. Lambda
 python3.12 arm64, 10,240 MB, SnapStart on published versions, us-east-2; P1's harness (`bench_e4.py` = `bench.py` with
-a fresh Lambda client per wave), 5 rounds x 10 per class and arm, arms interleaved. Deltas are medians within the
-same CPU part (cpuinfo `CPU part`), pooled by sample count.
+a fresh Lambda client per wave), 5 rounds x 10 per class and arm. Arm waves run sequentially, with order reversed on
+odd rounds. Deltas are medians within the same CPU part (cpuinfo `CPU part`), pooled by sample count.
 
 **Run 2, `20261020T181753Z` (status improved).** Zip `ddd2f998…`, commit `4c5fcf0`. 0 errors, 0 class mismatches,
 2,400 of 2,400 answers bit-identical to P1's reference.

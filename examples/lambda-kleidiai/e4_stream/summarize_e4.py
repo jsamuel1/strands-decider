@@ -170,9 +170,10 @@ def _runtime_versions(run: str) -> dict[str, int]:
 def round_deltas(rows: list[dict], a: str, b: str = "base") -> dict:
     """Per round and CPU part, median(a) - median(b) of the first-request total and Max Memory Used.
 
-    `sign` is "negative" or "positive" when every round's delta has that sign, else "mixed": an effect whose rounds
-    all agree within every part cannot come from which CPU part an arm drew, because the comparison never crosses
-    parts and the arms are interleaved within each round."""
+    `sign` is "negative" or "positive" when every comparable round's delta has that sign, else "mixed". Each
+    delta stays within one CPU part, but arms were run sequentially in alternating order within a round, so this
+    controls CPU identity and round-level drift rather than simultaneous-host variation.
+    """
     ok = [r for r in rows if not r["error"] and not r["class_mismatch"]]
     ms = _metrics()
     out: dict = {}
@@ -245,8 +246,8 @@ def host_variability(run: str, cond: dict, rows: list[dict]) -> dict:
         "generation": "not claimed: the runs recorded the CPU part number only (no implementer), so no Graviton "
         "generation is named; parts are referred to by number",
         "method": "every arm vs base is compared only within one CPU part ("
-        "<arm>_vs_base.<class>.<metric>.by_cpu_part); arms are interleaved within each round, and "
-        "per_round_deltas show each round's within-part delta",
+        "<arm>_vs_base.<class>.<metric>.by_cpu_part); arms run sequentially in alternating order each round, and "
+        "per_round_deltas show each comparable round's within-part delta",
         "per_round_deltas": {arm: round_deltas(rows, arm) for arm in cond["arms"] if arm != "base"},
     }
 

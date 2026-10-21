@@ -27,9 +27,10 @@ out, ref = sys.argv[1], json.load(open(sys.argv[2]))["outputs"]
 for f in sorted(os.listdir(out)):
     r = json.load(open(os.path.join(out, f)))
     cpu = r["init"].get("cpu_part") or r["counters"].get("cpu_part")
-    same = {rid: a == ref.get(rid, {}).get("0xd40") for rid, a in r["answers"].items()}
+    same = {rid: a == ref.get(rid, {}).get(cpu) for rid, a in r["answers"].items()}
     i = r["init"]
     print(f, "dl+load %.2f" % i.get("download_and_load", -1), "dl %.2f" % i.get("weight_download", -1),
           "load %.2f" % i.get("model_load_mmap", -1), "blocked %.2f" % i.get("stream_load_blocked", 0),
-          "warmup %.3f" % i.get("warmup_inference", -1), "bit-identical vs P1 0xd40:", sum(same.values()), "/", len(same))
+          "warmup %.3f" % i.get("warmup_inference", -1), "bit-identical vs P1", cpu + ":", sum(same.values()), "/", len(same))
+    assert all(same.values()), f"{f}: output differs from P1 reference for CPU part {cpu}: {same}"
 EOF
