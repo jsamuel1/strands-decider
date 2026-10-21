@@ -1,0 +1,1197 @@
+{
+ "schema": "lkai-conditions/1",
+ "experiment": "E10",
+ "mode": "cold",
+ "region": "us-east-2",
+ "rounds": 6,
+ "concurrency": 10,
+ "warm_per_arm_per_round": 5,
+ "read_timeout_s": {
+  "cold": 300,
+  "restore": 120
+ },
+ "arms": [
+  "c512",
+  "c1024",
+  "c2048",
+  "c4096",
+  "c8192",
+  "c16384"
+ ],
+ "n_ctx": {
+  "c512": 512,
+  "c1024": 1024,
+  "c2048": 2048,
+  "c4096": 4096,
+  "c8192": 8192,
+  "c16384": 16384
+ },
+ "order": "cyclic Latin square: round r = arms rotated left by r; sequential waves within a round",
+ "requests_file": "baseline/requests.json",
+ "requests": {
+  "schema": "lkai-requests/1",
+  "note": "Fixed request set for the lambda-kleidiai baseline. Every condition sends these exact bodies; 'probe' is the first request of every new execution environment (cold and restore), so first-inference latency is comparable across arms and rounds. Warm invocations cycle through all ids in order.",
+  "probe": "ticket-route-1q",
+  "requests": [
+   {
+    "id": "ticket-route-1q",
+    "request": {
+     "state": {
+      "ticket": "Refund issued but invoice still shows the old total."
+     },
+     "questions": {
+      "q": {
+       "type": "choice",
+       "instructions": "Route this ticket.",
+       "criteria": {
+        "billing": "payment or invoice",
+        "technical": "product defect",
+        "account": "login"
+       }
+      }
+     }
+    }
+   },
+   {
+    "id": "payouts-3q",
+    "request": {
+     "state": "Help! My payouts have been failing for 3 days!",
+     "questions": {
+      "is_urgent": {
+       "type": "noul",
+       "instructions": "Does this convey urgency?"
+      },
+      "team": {
+       "type": "choice",
+       "instructions": "Which team should handle this?",
+       "criteria": {
+        "billing": "",
+        "sales": "",
+        "retail": ""
+       }
+      },
+      "frustration": {
+       "type": "score",
+       "instructions": "How frustrated is the writer?",
+       "criteria": [
+        "calm",
+        "frustrated",
+        "depressed"
+       ]
+      }
+     }
+    }
+   },
+   {
+    "id": "cracked-screen-2q",
+    "request": {
+     "state": "Order 1182 arrived with a cracked screen. The customer wants a refund today.",
+     "questions": {
+      "q": {
+       "type": "choice",
+       "instructions": "Route the ticket.",
+       "criteria": {
+        "refunds": "money back",
+        "shipping": "delivery problems",
+        "tech": "device faults"
+       }
+      },
+      "u": {
+       "type": "noul",
+       "instructions": "Is the customer upset?"
+      }
+     }
+    }
+   },
+   {
+    "id": "agent-action-guard-2q",
+    "request": {
+     "state": {
+      "user_goal": "Clean up last quarter's test fixtures in the staging bucket.",
+      "proposed_tool_call": {
+       "name": "s3_delete_prefix",
+       "arguments": {
+        "bucket": "acme-prod-invoices",
+        "prefix": "2026/"
+       }
+      },
+      "recent_messages": [
+       "user: the staging bucket is acme-staging-fixtures, only touch that one",
+       "assistant: Understood, I will list acme-staging-fixtures first.",
+       "tool(s3_list): acme-staging-fixtures/2026/Q3/ has 412 objects"
+      ]
+     },
+     "questions": {
+      "safe": {
+       "type": "noul",
+       "instructions": "Is the proposed tool call consistent with the user's instructions?"
+      },
+      "action": {
+       "type": "choice",
+       "instructions": "What should the agent do next?",
+       "criteria": {
+        "proceed": "run the tool call as proposed",
+        "revise": "fix the arguments and retry",
+        "ask": "ask the user before doing anything"
+       }
+      }
+     }
+    }
+   },
+   {
+    "id": "incident-review-4q",
+    "request": {
+     "state": "Incident 4471 timeline. 09:02 deploy of checkout-api build 8812 starts in us-east-2. 09:06 p99 latency on /cart rises from 180 ms to 2.4 s; error rate 0.2% to 6%. 09:07 on-call paged by the latency alarm. 09:11 on-call sees connection-pool exhaustion against the orders database and suspects the new build's retry change, which retries reads three times with no jitter. 09:14 rollback to build 8807 started. 09:19 rollback complete in two of three cells; the third cell is still on 8812 because its deployment was paused by a separate change freeze. 09:23 p99 back to 210 ms in the rolled-back cells; the third cell keeps failing about 9% of requests. 09:31 the freeze owner approves the rollback for the third cell. 09:38 all cells healthy. Customer impact: about 36 minutes of degraded checkout in one region, an estimated 2,100 failed carts. The retry change had passed load tests, which ran against a database with three times the production connection limit. No runbook step covered a cell stuck behind a freeze.",
+     "questions": {
+      "root_cause": {
+       "type": "choice",
+       "instructions": "What is the most direct root cause?",
+       "criteria": {
+        "retries": "retry change without jitter exhausted the connection pool",
+        "freeze": "the change freeze",
+        "alarm": "slow alarming",
+        "capacity": "database undersized for normal load"
+       }
+      },
+      "severity": {
+       "type": "score",
+       "instructions": "How severe was the customer impact?",
+       "criteria": [
+        "negligible",
+        "minor",
+        "moderate",
+        "major",
+        "critical"
+       ]
+      },
+      "test_gap": {
+       "type": "noul",
+       "instructions": "Did a test environment difference hide the problem?"
+      },
+      "runbook": {
+       "type": "noul",
+       "instructions": "Should the runbook gain a step for cells blocked by a freeze?"
+      }
+     }
+    }
+   }
+  ]
+ },
+ "probe": "ticket-route-1q",
+ "functions": {
+  "c512": {
+   "FunctionName": "lkai-fbb1-c512",
+   "Runtime": "python3.12",
+   "Architectures": [
+    "arm64"
+   ],
+   "MemorySize": 10240,
+   "Timeout": 900,
+   "EphemeralStorage": {
+    "Size": 512
+   },
+   "SnapStart": {
+    "ApplyOn": "PublishedVersions",
+    "OptimizationStatus": "Off"
+   },
+   "Handler": "e10_entry.handler",
+   "CodeSha256": "InOl/9GbH9bxhdivBeQg8ScZa9PxjjVwJQqdJgdrdHE=",
+   "CodeSize": 51936898,
+   "environment": {
+    "E10_N_CTX": "512",
+    "LKAI_PHASES": "1",
+    "COLD_TAG": "0",
+    "N_SEQ": "17",
+    "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+    "DEC_KV": "f32",
+    "DEC_UBATCH": "512",
+    "E10_ARM": "c512"
+   },
+   "runtime_management": {
+    "UpdateRuntimeOn": "Manual",
+    "RuntimeVersionArn": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07"
+   }
+  },
+  "c1024": {
+   "FunctionName": "lkai-fbb1-c1024",
+   "Runtime": "python3.12",
+   "Architectures": [
+    "arm64"
+   ],
+   "MemorySize": 10240,
+   "Timeout": 900,
+   "EphemeralStorage": {
+    "Size": 512
+   },
+   "SnapStart": {
+    "ApplyOn": "PublishedVersions",
+    "OptimizationStatus": "Off"
+   },
+   "Handler": "e10_entry.handler",
+   "CodeSha256": "InOl/9GbH9bxhdivBeQg8ScZa9PxjjVwJQqdJgdrdHE=",
+   "CodeSize": 51936898,
+   "environment": {
+    "E10_N_CTX": "1024",
+    "LKAI_PHASES": "1",
+    "COLD_TAG": "0",
+    "N_SEQ": "17",
+    "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+    "DEC_KV": "f32",
+    "DEC_UBATCH": "512",
+    "E10_ARM": "c1024"
+   },
+   "runtime_management": {
+    "UpdateRuntimeOn": "Manual",
+    "RuntimeVersionArn": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07"
+   }
+  },
+  "c2048": {
+   "FunctionName": "lkai-fbb1-c2048",
+   "Runtime": "python3.12",
+   "Architectures": [
+    "arm64"
+   ],
+   "MemorySize": 10240,
+   "Timeout": 900,
+   "EphemeralStorage": {
+    "Size": 512
+   },
+   "SnapStart": {
+    "ApplyOn": "PublishedVersions",
+    "OptimizationStatus": "Off"
+   },
+   "Handler": "e10_entry.handler",
+   "CodeSha256": "InOl/9GbH9bxhdivBeQg8ScZa9PxjjVwJQqdJgdrdHE=",
+   "CodeSize": 51936898,
+   "environment": {
+    "E10_N_CTX": "2048",
+    "LKAI_PHASES": "1",
+    "COLD_TAG": "0",
+    "N_SEQ": "17",
+    "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+    "DEC_KV": "f32",
+    "DEC_UBATCH": "512",
+    "E10_ARM": "c2048"
+   },
+   "runtime_management": {
+    "UpdateRuntimeOn": "Manual",
+    "RuntimeVersionArn": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07"
+   }
+  },
+  "c4096": {
+   "FunctionName": "lkai-fbb1-c4096",
+   "Runtime": "python3.12",
+   "Architectures": [
+    "arm64"
+   ],
+   "MemorySize": 10240,
+   "Timeout": 900,
+   "EphemeralStorage": {
+    "Size": 512
+   },
+   "SnapStart": {
+    "ApplyOn": "PublishedVersions",
+    "OptimizationStatus": "Off"
+   },
+   "Handler": "e10_entry.handler",
+   "CodeSha256": "InOl/9GbH9bxhdivBeQg8ScZa9PxjjVwJQqdJgdrdHE=",
+   "CodeSize": 51936898,
+   "environment": {
+    "E10_N_CTX": "4096",
+    "LKAI_PHASES": "1",
+    "COLD_TAG": "0",
+    "N_SEQ": "17",
+    "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+    "DEC_KV": "f32",
+    "DEC_UBATCH": "512",
+    "E10_ARM": "c4096"
+   },
+   "runtime_management": {
+    "UpdateRuntimeOn": "Manual",
+    "RuntimeVersionArn": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07"
+   }
+  },
+  "c8192": {
+   "FunctionName": "lkai-fbb1-c8192",
+   "Runtime": "python3.12",
+   "Architectures": [
+    "arm64"
+   ],
+   "MemorySize": 10240,
+   "Timeout": 900,
+   "EphemeralStorage": {
+    "Size": 512
+   },
+   "SnapStart": {
+    "ApplyOn": "PublishedVersions",
+    "OptimizationStatus": "Off"
+   },
+   "Handler": "e10_entry.handler",
+   "CodeSha256": "InOl/9GbH9bxhdivBeQg8ScZa9PxjjVwJQqdJgdrdHE=",
+   "CodeSize": 51936898,
+   "environment": {
+    "E10_N_CTX": "8192",
+    "LKAI_PHASES": "1",
+    "COLD_TAG": "0",
+    "N_SEQ": "17",
+    "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+    "DEC_KV": "f32",
+    "DEC_UBATCH": "512",
+    "E10_ARM": "c8192"
+   },
+   "runtime_management": {
+    "UpdateRuntimeOn": "Manual",
+    "RuntimeVersionArn": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07"
+   }
+  },
+  "c16384": {
+   "FunctionName": "lkai-fbb1-c16384",
+   "Runtime": "python3.12",
+   "Architectures": [
+    "arm64"
+   ],
+   "MemorySize": 10240,
+   "Timeout": 900,
+   "EphemeralStorage": {
+    "Size": 512
+   },
+   "SnapStart": {
+    "ApplyOn": "PublishedVersions",
+    "OptimizationStatus": "Off"
+   },
+   "Handler": "e10_entry.handler",
+   "CodeSha256": "InOl/9GbH9bxhdivBeQg8ScZa9PxjjVwJQqdJgdrdHE=",
+   "CodeSize": 51936898,
+   "environment": {
+    "E10_N_CTX": "16384",
+    "LKAI_PHASES": "1",
+    "COLD_TAG": "0",
+    "N_SEQ": "17",
+    "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+    "DEC_KV": "f32",
+    "DEC_UBATCH": "512",
+    "E10_ARM": "c16384"
+   },
+   "runtime_management": {
+    "UpdateRuntimeOn": "Manual",
+    "RuntimeVersionArn": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07"
+   }
+  }
+ },
+ "build_manifest": {
+  "schema": "lkai-e10-build/1",
+  "repo_commit": "573de7d6ecffecaf1f6866909a9824fba098149d",
+  "repo_dirty": false,
+  "dirty_inputs": [],
+  "base": {
+   "p1_zip_sha256": "26eb2651e8915f8ad09eae899feff583a448de6b8d2bc4943bccabb66cae189b",
+   "p1_manifest_sha256": "779f28c2f0110782b0e8c3ab73545184d122d75e58279c21064bf7ba38013169",
+   "p1_repo_commit": "4412b31988ba112dd27ad850830689f33c07e78a"
+  },
+  "wrapper_sha256": "2945aa3a74ff1cf74f448c283f6a528072e62045b8e3ebb87e33d510a98fef32",
+  "zips": {
+   "e10": {
+    "sha256": "2273a5ffd19b1fd6f185d8af05e420f127196bd3f18e3570250a9d26076b7471",
+    "bytes": 51936898
+   }
+  },
+  "function_zip": {
+   "sha256": "2273a5ffd19b1fd6f185d8af05e420f127196bd3f18e3570250a9d26076b7471",
+   "bytes": 51936898,
+   "handler": "e10_entry.handler"
+  },
+  "model": {
+   "id": "StrandsAgents/strands-decider-2B-qwen3.5-v1-2610",
+   "revision": "216d1ccb46a9e9b036eb9187b248db98480f77d4",
+   "format": "GGUF Q8_0",
+   "transform": "LoRA merged fp32 (weights/merge_export.py), H512 Hadamard fold (weights/fold_hadamard.py --block 512)",
+   "merge_report": {
+    "merged": 186,
+    "scale": 2.0,
+    "unpaired_adapter": [],
+    "base_revision": "b1485b2fa6dfa1287294f269f5fb618e03d52d7c",
+    "checkpoint": "/hf/hub/models--StrandsAgents--strands-decider-2B-qwen3.5-v1-2610/snapshots/216d1ccb46a9e9b036eb9187b248db98480f77d4"
+   },
+   "gguf_bytes": 2076712416,
+   "gguf_sha256": "8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e"
+  },
+  "images": {
+   "lambda_build": "public.ecr.aws/lambda/python@sha256:37fe9ca4183c36ec57e4c5eabb8893cd9fbc9c0f3053b903d9a57eb2bd6bafcc",
+   "weights": "python@sha256:5560e9ab8709f459489e5b8aa696eda8a07ef821e14bb122be62d91234bfa98b"
+  },
+  "toolchain": [
+   "gcc (GCC) 11.5.0 20240719 (Red Hat 11.5.0-5)",
+   "Python 3.12.15"
+  ],
+  "assets_sha256": {
+   "head.safetensors": "2492613e72eac53becb9ff855023261ac2722c5111b9f1e03be59a87328dd799",
+   "head_config.json": "3a6a6a3a135dcdbb29d6d9179d507d511fbba934d3682f354dd3d1130b9813dd",
+   "tokenizer.json": "a2cdd2e108566b09079afa8d266e9e65e7c280f27b771218237a06de5ba9cd86"
+  },
+  "llama_cpp": {
+   "commit": "f74e2fa6a31cc33ab4ee4ae516641cfe62df3924",
+   "patches": "llama/patch_llama.py (prefill,gdn,kskip,sme)",
+   "flags": "GGML_NATIVE=OFF GGML_BACKEND_DL=ON GGML_CPU_ALL_VARIANTS=ON GGML_CPU_KLEIDIAI=ON"
+  }
+ },
+ "runtime_version_arn": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+ "client": {
+  "python": "3.14.6",
+  "boto3": "1.43.93",
+  "host": "x86_64"
+ },
+ "started": "2026-10-21T11:04:31Z",
+ "rounds_meta": [
+  {
+   "round": 0,
+   "order": [
+    "c512",
+    "c1024",
+    "c2048",
+    "c4096",
+    "c8192",
+    "c16384"
+   ],
+   "cold_tag": "e10-cold-r0-1792580671.371",
+   "t0": 1792580671.3707669,
+   "log_window": [
+    1792580671.3707669,
+    1792581029.785901
+   ],
+   "log_events": 2160
+  },
+  {
+   "round": 1,
+   "order": [
+    "c1024",
+    "c2048",
+    "c4096",
+    "c8192",
+    "c16384",
+    "c512"
+   ],
+   "cold_tag": "e10-cold-r1-1792581035.789",
+   "t0": 1792581035.7887192,
+   "log_window": [
+    1792581035.7887192,
+    1792581485.0335183
+   ],
+   "log_events": 2163
+  },
+  {
+   "round": 2,
+   "order": [
+    "c2048",
+    "c4096",
+    "c8192",
+    "c16384",
+    "c512",
+    "c1024"
+   ],
+   "cold_tag": "e10-cold-r2-1792581491.272",
+   "t0": 1792581491.271775,
+   "log_window": [
+    1792581491.271775,
+    1792581929.1642551
+   ],
+   "log_events": 2160
+  },
+  {
+   "round": 3,
+   "order": [
+    "c4096",
+    "c8192",
+    "c16384",
+    "c512",
+    "c1024",
+    "c2048"
+   ],
+   "cold_tag": "e10-cold-r3-1792581935.446",
+   "t0": 1792581935.4463134,
+   "log_window": [
+    1792581935.4463134,
+    1792582389.1798954
+   ],
+   "log_events": 2161
+  },
+  {
+   "round": 4,
+   "order": [
+    "c8192",
+    "c16384",
+    "c512",
+    "c1024",
+    "c2048",
+    "c4096"
+   ],
+   "cold_tag": "e10-cold-r4-1792582402.234",
+   "t0": 1792582402.2337985,
+   "log_window": [
+    1792582402.2337985,
+    1792582837.646126
+   ],
+   "log_events": 2160
+  },
+  {
+   "round": 5,
+   "order": [
+    "c16384",
+    "c512",
+    "c1024",
+    "c2048",
+    "c4096",
+    "c8192"
+   ],
+   "cold_tag": "e10-cold-r5-1792582843.554",
+   "t0": 1792582843.5545073,
+   "log_window": [
+    1792582843.5545073,
+    1792583277.269321
+   ],
+   "log_events": 2160
+  },
+  {
+   "round": 100,
+   "order": [
+    "c512",
+    "c1024",
+    "c2048",
+    "c4096",
+    "c8192",
+    "c16384"
+   ],
+   "cold_tag": "e10-restore-r0-1792583287.799",
+   "t0": 1792583287.7990687,
+   "published": {
+    "c512": {
+     "arm": "c512",
+     "version": "1",
+     "publish_s": 145.5,
+     "t_publish": 1792583292.570632,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "InOl/9GbH9bxhdivBeQg8ScZa9PxjjVwJQqdJgdrdHE=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+     "t_first_invoke": 1792583457.7687542,
+     "t_deleted": 1792583464.087285
+    },
+    "c1024": {
+     "arm": "c1024",
+     "version": "1",
+     "publish_s": 165.2,
+     "t_publish": 1792583292.5725155,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "InOl/9GbH9bxhdivBeQg8ScZa9PxjjVwJQqdJgdrdHE=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+     "t_first_invoke": 1792583464.0872915,
+     "t_deleted": 1792583470.1894178
+    },
+    "c2048": {
+     "arm": "c2048",
+     "version": "1",
+     "publish_s": 152.3,
+     "t_publish": 1792583292.5735831,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "InOl/9GbH9bxhdivBeQg8ScZa9PxjjVwJQqdJgdrdHE=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+     "t_first_invoke": 1792583470.1894202,
+     "t_deleted": 1792583475.9800236
+    },
+    "c4096": {
+     "arm": "c4096",
+     "version": "1",
+     "publish_s": 142.7,
+     "t_publish": 1792583292.574734,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "InOl/9GbH9bxhdivBeQg8ScZa9PxjjVwJQqdJgdrdHE=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+     "t_first_invoke": 1792583475.980027,
+     "t_deleted": 1792583483.135828
+    },
+    "c8192": {
+     "arm": "c8192",
+     "version": "1",
+     "publish_s": 155.7,
+     "t_publish": 1792583292.575712,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "InOl/9GbH9bxhdivBeQg8ScZa9PxjjVwJQqdJgdrdHE=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+     "t_first_invoke": 1792583483.1358306,
+     "t_deleted": 1792583490.323808
+    },
+    "c16384": {
+     "arm": "c16384",
+     "version": "1",
+     "publish_s": 155.6,
+     "t_publish": 1792583292.5766191,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "InOl/9GbH9bxhdivBeQg8ScZa9PxjjVwJQqdJgdrdHE=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+     "t_first_invoke": 1792583490.32381,
+     "t_deleted": 1792583497.8974175
+    }
+   },
+   "t_versions_deleted": 1792583497.8974175,
+   "log_window": [
+    1792583287.7990687,
+    1792583517.897524
+   ],
+   "log_events": 985
+  },
+  {
+   "round": 101,
+   "order": [
+    "c1024",
+    "c2048",
+    "c4096",
+    "c8192",
+    "c16384",
+    "c512"
+   ],
+   "cold_tag": "e10-restore-r1-1792583523.421",
+   "t0": 1792583523.4213917,
+   "published": {
+    "c1024": {
+     "arm": "c1024",
+     "version": "2",
+     "publish_s": 151.8,
+     "t_publish": 1792583527.8226893,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "InOl/9GbH9bxhdivBeQg8ScZa9PxjjVwJQqdJgdrdHE=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+     "t_first_invoke": 1792583692.9601312,
+     "t_deleted": 1792583699.184383
+    },
+    "c2048": {
+     "arm": "c2048",
+     "version": "2",
+     "publish_s": 151.7,
+     "t_publish": 1792583527.823909,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "InOl/9GbH9bxhdivBeQg8ScZa9PxjjVwJQqdJgdrdHE=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+     "t_first_invoke": 1792583699.184385,
+     "t_deleted": 1792583705.5352988
+    },
+    "c4096": {
+     "arm": "c4096",
+     "version": "2",
+     "publish_s": 145.1,
+     "t_publish": 1792583527.8249907,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "InOl/9GbH9bxhdivBeQg8ScZa9PxjjVwJQqdJgdrdHE=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+     "t_first_invoke": 1792583705.5353005,
+     "t_deleted": 1792583714.0009215
+    },
+    "c8192": {
+     "arm": "c8192",
+     "version": "2",
+     "publish_s": 165.1,
+     "t_publish": 1792583527.8262432,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "InOl/9GbH9bxhdivBeQg8ScZa9PxjjVwJQqdJgdrdHE=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+     "t_first_invoke": 1792583714.0009253,
+     "t_deleted": 1792583726.169048
+    },
+    "c16384": {
+     "arm": "c16384",
+     "version": "2",
+     "publish_s": 164.8,
+     "t_publish": 1792583527.8272476,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "InOl/9GbH9bxhdivBeQg8ScZa9PxjjVwJQqdJgdrdHE=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+     "t_first_invoke": 1792583726.1690497,
+     "t_deleted": 1792583734.2397773
+    },
+    "c512": {
+     "arm": "c512",
+     "version": "2",
+     "publish_s": 165.1,
+     "t_publish": 1792583527.828154,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "InOl/9GbH9bxhdivBeQg8ScZa9PxjjVwJQqdJgdrdHE=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+     "t_first_invoke": 1792583734.2397802,
+     "t_deleted": 1792583740.5931194
+    }
+   },
+   "t_versions_deleted": 1792583740.5931194,
+   "log_window": [
+    1792583523.4213917,
+    1792583760.593215
+   ],
+   "log_events": 984
+  },
+  {
+   "round": 102,
+   "order": [
+    "c2048",
+    "c4096",
+    "c8192",
+    "c16384",
+    "c512",
+    "c1024"
+   ],
+   "cold_tag": "e10-restore-r2-1792583765.921",
+   "t0": 1792583765.921295,
+   "published": {
+    "c2048": {
+     "arm": "c2048",
+     "version": "3",
+     "publish_s": 148.3,
+     "t_publish": 1792583770.266941,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "InOl/9GbH9bxhdivBeQg8ScZa9PxjjVwJQqdJgdrdHE=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+     "t_first_invoke": 1792583954.7463632,
+     "t_deleted": 1792583960.8714707
+    },
+    "c4096": {
+     "arm": "c4096",
+     "version": "3",
+     "publish_s": 151.8,
+     "t_publish": 1792583770.2681236,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "InOl/9GbH9bxhdivBeQg8ScZa9PxjjVwJQqdJgdrdHE=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+     "t_first_invoke": 1792583960.8714726,
+     "t_deleted": 1792583967.5120254
+    },
+    "c8192": {
+     "arm": "c8192",
+     "version": "3",
+     "publish_s": 184.5,
+     "t_publish": 1792583770.2693405,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "InOl/9GbH9bxhdivBeQg8ScZa9PxjjVwJQqdJgdrdHE=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+     "t_first_invoke": 1792583967.512028,
+     "t_deleted": 1792583977.4333653
+    },
+    "c16384": {
+     "arm": "c16384",
+     "version": "3",
+     "publish_s": 161.7,
+     "t_publish": 1792583770.270278,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "InOl/9GbH9bxhdivBeQg8ScZa9PxjjVwJQqdJgdrdHE=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+     "t_first_invoke": 1792583977.433367,
+     "t_deleted": 1792583983.8092234
+    },
+    "c512": {
+     "arm": "c512",
+     "version": "3",
+     "publish_s": 155.0,
+     "t_publish": 1792583770.2713563,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "InOl/9GbH9bxhdivBeQg8ScZa9PxjjVwJQqdJgdrdHE=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+     "t_first_invoke": 1792583983.8092253,
+     "t_deleted": 1792583989.9936647
+    },
+    "c1024": {
+     "arm": "c1024",
+     "version": "3",
+     "publish_s": 151.9,
+     "t_publish": 1792583770.2723887,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "InOl/9GbH9bxhdivBeQg8ScZa9PxjjVwJQqdJgdrdHE=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+     "t_first_invoke": 1792583989.993666,
+     "t_deleted": 1792584001.192219
+    }
+   },
+   "t_versions_deleted": 1792584001.192219,
+   "log_window": [
+    1792583765.921295,
+    1792584021.19231
+   ],
+   "log_events": 984
+  },
+  {
+   "round": 103,
+   "order": [
+    "c4096",
+    "c8192",
+    "c16384",
+    "c512",
+    "c1024",
+    "c2048"
+   ],
+   "cold_tag": "e10-restore-r3-1792584026.807",
+   "t0": 1792584026.8065572,
+   "published": {
+    "c4096": {
+     "arm": "c4096",
+     "version": "4",
+     "publish_s": 165.1,
+     "t_publish": 1792584031.1854992,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "InOl/9GbH9bxhdivBeQg8ScZa9PxjjVwJQqdJgdrdHE=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+     "t_first_invoke": 1792584206.0202603,
+     "t_deleted": 1792584212.6498666
+    },
+    "c8192": {
+     "arm": "c8192",
+     "version": "4",
+     "publish_s": 168.9,
+     "t_publish": 1792584031.1868107,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "InOl/9GbH9bxhdivBeQg8ScZa9PxjjVwJQqdJgdrdHE=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+     "t_first_invoke": 1792584212.64987,
+     "t_deleted": 1792584221.359664
+    },
+    "c16384": {
+     "arm": "c16384",
+     "version": "4",
+     "publish_s": 174.8,
+     "t_publish": 1792584031.187978,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "InOl/9GbH9bxhdivBeQg8ScZa9PxjjVwJQqdJgdrdHE=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+     "t_first_invoke": 1792584221.3596666,
+     "t_deleted": 1792584234.257978
+    },
+    "c512": {
+     "arm": "c512",
+     "version": "4",
+     "publish_s": 165.0,
+     "t_publish": 1792584031.1891317,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "InOl/9GbH9bxhdivBeQg8ScZa9PxjjVwJQqdJgdrdHE=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+     "t_first_invoke": 1792584234.2579813,
+     "t_deleted": 1792584242.7251093
+    },
+    "c1024": {
+     "arm": "c1024",
+     "version": "4",
+     "publish_s": 165.1,
+     "t_publish": 1792584031.1902485,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "InOl/9GbH9bxhdivBeQg8ScZa9PxjjVwJQqdJgdrdHE=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+     "t_first_invoke": 1792584242.7251124,
+     "t_deleted": 1792584249.3973367
+    },
+    "c2048": {
+     "arm": "c2048",
+     "version": "4",
+     "publish_s": 165.0,
+     "t_publish": 1792584031.1912315,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "InOl/9GbH9bxhdivBeQg8ScZa9PxjjVwJQqdJgdrdHE=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+     "t_first_invoke": 1792584249.3973386,
+     "t_deleted": 1792584257.9019837
+    }
+   },
+   "t_versions_deleted": 1792584257.9019837,
+   "log_window": [
+    1792584026.8065572,
+    1792584277.9020731
+   ],
+   "log_events": 987
+  },
+  {
+   "round": 104,
+   "order": [
+    "c8192",
+    "c16384",
+    "c512",
+    "c1024",
+    "c2048",
+    "c4096"
+   ],
+   "cold_tag": "e10-restore-r4-1792584283.284",
+   "t0": 1792584283.2836168,
+   "published": {
+    "c8192": {
+     "arm": "c8192",
+     "version": "5",
+     "publish_s": 164.9,
+     "t_publish": 1792584287.593889,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "InOl/9GbH9bxhdivBeQg8ScZa9PxjjVwJQqdJgdrdHE=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+     "t_first_invoke": 1792584462.5454566,
+     "t_deleted": 1792584470.0185263
+    },
+    "c16384": {
+     "arm": "c16384",
+     "version": "5",
+     "publish_s": 174.9,
+     "t_publish": 1792584287.595041,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "InOl/9GbH9bxhdivBeQg8ScZa9PxjjVwJQqdJgdrdHE=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+     "t_first_invoke": 1792584470.0185285,
+     "t_deleted": 1792584482.7511926
+    },
+    "c512": {
+     "arm": "c512",
+     "version": "5",
+     "publish_s": 164.9,
+     "t_publish": 1792584287.5962586,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "InOl/9GbH9bxhdivBeQg8ScZa9PxjjVwJQqdJgdrdHE=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+     "t_first_invoke": 1792584482.7511952,
+     "t_deleted": 1792584490.9515786
+    },
+    "c1024": {
+     "arm": "c1024",
+     "version": "5",
+     "publish_s": 164.9,
+     "t_publish": 1792584287.5973399,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "InOl/9GbH9bxhdivBeQg8ScZa9PxjjVwJQqdJgdrdHE=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+     "t_first_invoke": 1792584490.9515817,
+     "t_deleted": 1792584501.2078106
+    },
+    "c2048": {
+     "arm": "c2048",
+     "version": "5",
+     "publish_s": 174.8,
+     "t_publish": 1792584287.5982864,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "InOl/9GbH9bxhdivBeQg8ScZa9PxjjVwJQqdJgdrdHE=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+     "t_first_invoke": 1792584501.2078137,
+     "t_deleted": 1792584511.3485074
+    },
+    "c4096": {
+     "arm": "c4096",
+     "version": "5",
+     "publish_s": 145.3,
+     "t_publish": 1792584287.5992258,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "InOl/9GbH9bxhdivBeQg8ScZa9PxjjVwJQqdJgdrdHE=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+     "t_first_invoke": 1792584511.3485098,
+     "t_deleted": 1792584518.9332128
+    }
+   },
+   "t_versions_deleted": 1792584518.9332128,
+   "log_window": [
+    1792584283.2836168,
+    1792584538.9333065
+   ],
+   "log_events": 984
+  },
+  {
+   "round": 105,
+   "order": [
+    "c16384",
+    "c512",
+    "c1024",
+    "c2048",
+    "c4096",
+    "c8192"
+   ],
+   "cold_tag": "e10-restore-r5-1792584544.446",
+   "t0": 1792584544.4458246,
+   "published": {
+    "c16384": {
+     "arm": "c16384",
+     "version": "6",
+     "publish_s": 168.1,
+     "t_publish": 1792584548.7877913,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "InOl/9GbH9bxhdivBeQg8ScZa9PxjjVwJQqdJgdrdHE=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+     "t_first_invoke": 1792584717.02478,
+     "t_deleted": 1792584728.5443096
+    },
+    "c512": {
+     "arm": "c512",
+     "version": "6",
+     "publish_s": 168.2,
+     "t_publish": 1792584548.7890828,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "InOl/9GbH9bxhdivBeQg8ScZa9PxjjVwJQqdJgdrdHE=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+     "t_first_invoke": 1792584728.5443115,
+     "t_deleted": 1792584735.5223563
+    },
+    "c1024": {
+     "arm": "c1024",
+     "version": "6",
+     "publish_s": 164.8,
+     "t_publish": 1792584548.7901952,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "InOl/9GbH9bxhdivBeQg8ScZa9PxjjVwJQqdJgdrdHE=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+     "t_first_invoke": 1792584735.5223584,
+     "t_deleted": 1792584744.649069
+    },
+    "c2048": {
+     "arm": "c2048",
+     "version": "6",
+     "publish_s": 155.0,
+     "t_publish": 1792584548.791288,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "InOl/9GbH9bxhdivBeQg8ScZa9PxjjVwJQqdJgdrdHE=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+     "t_first_invoke": 1792584744.6490715,
+     "t_deleted": 1792584751.6068761
+    },
+    "c4096": {
+     "arm": "c4096",
+     "version": "6",
+     "publish_s": 164.9,
+     "t_publish": 1792584548.792318,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "InOl/9GbH9bxhdivBeQg8ScZa9PxjjVwJQqdJgdrdHE=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+     "t_first_invoke": 1792584751.606879,
+     "t_deleted": 1792584758.6167512
+    },
+    "c8192": {
+     "arm": "c8192",
+     "version": "6",
+     "publish_s": 155.4,
+     "t_publish": 1792584548.7931554,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "InOl/9GbH9bxhdivBeQg8ScZa9PxjjVwJQqdJgdrdHE=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+     "t_first_invoke": 1792584758.6167529,
+     "t_deleted": 1792584764.4800127
+    }
+   },
+   "t_versions_deleted": 1792584764.4800127,
+   "log_window": [
+    1792584544.4458246,
+    1792584784.4801035
+   ],
+   "log_events": 984
+  }
+ ],
+ "finished": "2026-10-21T12:13:10Z",
+ "legs": {
+  "cold": {
+   "rounds": 6,
+   "started": "2026-10-21T11:04:31Z",
+   "finished": "2026-10-21T11:48:03Z"
+  },
+  "restore": {
+   "rounds": 6,
+   "started": "2026-10-21T11:48:07Z",
+   "finished": "2026-10-21T12:13:10Z"
+  }
+ }
+}

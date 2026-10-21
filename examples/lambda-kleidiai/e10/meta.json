@@ -1,0 +1,26 @@
+{
+ "experiment_id": "E10-kv-size",
+ "primary_arm": "c4096",
+ "hypothesis": "P1 builds the llama.cpp context with n_ctx=16384. Its attention K/V cache (384 MiB, 24,576 B per cell) and the 327.5 MiB Gated DeltaNet recurrent state are memset by llama_memory_clear before every forward, and at context init; P3 found memset was 9.2% of cold-init CPU samples and 50.4% of the restored first forward. A smaller n_ctx shrinks only the attention K/V (and the compute buffer), so it should cut context_init, the restored first forward, Max Memory Used, and possibly Restore Duration, in proportion to the bytes removed. The recurrent state does not depend on n_ctx (it scales with N_SEQ, unchanged).",
+ "changed_variable": {
+  "name": "llama.cpp context size n_ctx (the value snapstart/engine.py passes to dec_load_seq)",
+  "baseline": "16384 (P1; arm c16384 = P1 zip + e10_entry.py with E10_N_CTX=16384, P1's exact arguments)",
+  "experiment": "512, 1024, 2048, 4096, 8192 (arms c512..c8192, same zip, E10_N_CTX only). Primary arm c4096: the smallest n_ctx that refuses nothing the model's 4,096-token window admits"
+ },
+ "profiling_artifacts": [],
+ "reproduce": [
+  "git fetch https://github.com/jsamuel1/strands-decider lkai/fbb1-kv-size && git checkout <commit>",
+  "# P1's deployed zip and manifest from P1's bucket: code/26eb2651e8915f8ad09eae899feff583a448de6b8d2bc4943bccabb66cae189b/{function.zip,manifest.json}",
+  "aws s3api get-object --bucket <p1-bucket> --key code/26eb2651.../function.zip p1.zip   # and manifest.json",
+  "python3 examples/lambda-kleidiai/e10/make_zip.py --p1-zip p1.zip --p1-manifest p1-manifest.json --out examples/lambda-kleidiai/e10/build",
+  "AWS_PROFILE=<p> python3 examples/lambda-kleidiai/e10/e10deploy.py up",
+  "AWS_PROFILE=<p> python3 examples/lambda-kleidiai/e10/e10bench.py --mode cold --rounds 6 --concurrency 10 --read-timeout 300 --out build/runs/cold-<id>",
+  "AWS_PROFILE=<p> python3 examples/lambda-kleidiai/e10/e10bench.py --mode restore --rounds 6 --concurrency 10 --read-timeout 120 --out build/runs/restore-<id>",
+  "AWS_PROFILE=<p> python3 examples/lambda-kleidiai/e10/e10deploy.py teardown --all",
+  "python3 examples/lambda-kleidiai/e10/summarize_e10.py --cold build/runs/cold-<id> --restore build/runs/restore-<id> --run-id <id> --baseline-commit 70eab7be69f86ddeb8c64158d94df344b5180098 --reference examples/lambda-kleidiai/baseline/reference/outputs.json --meta examples/lambda-kleidiai/e10/meta.json --offline examples/lambda-kleidiai/e10/offline/sizes.json --out build/runs/summary-<id>",
+  "python3 examples/lambda-kleidiai/baseline/redact.py build/runs/summary-<id> examples/lambda-kleidiai/e10/results/<id> --bucket <p1-bucket> --account <account>",
+  "# offline (x86) sizes: python offline/offline_probe.py <n_ctx> <app> <lib> <gguf> offline/requests.json offline/probe-<n_ctx>.json; python offline/offline_sizes.py ...",
+  "python examples/lambda-kleidiai/results/publish_result.py examples/lambda-kleidiai/e10/results/<id>/results.json   # P2 (feat/lambda-kleidiai-results)"
+ ],
+ "conclusion": "Smaller n_ctx shrinks only the attention K/V (24,576 B per cell: 384 MiB at P1's 16384, 96 MiB at 4096) and the compute buffer (327 to 105 MiB); the 327.5 MiB recurrent state is unchanged. Lambda run 20261021T110426Z, 6 arms x (6 cold rounds + 6 restore rounds), 2,880 invocations, 0 errors, 0 class mismatches, $8.45 at list prices. Primary arm c4096 (the smallest size that refuses none of the 231 JevBench public tasks, max 3,936 tokens, nor any request the 4,096-token window admits) against c16384, within CPU part 0xd40 (n=51/48 cold, 42/55 restore): context_init 0.323 -> 0.198 s (-0.126, 95% CI [-0.132, -0.118]); Max Memory Used 5,160 -> 4,883 MB (-277); restored first forward 0.669 -> 0.560 s (-0.109 [-0.114, -0.099]); Restore Duration -0.098 s [-0.124, -0.074]; restore first-request total 3.914 -> 3.714 s (-0.200 [-0.233, -0.168], -5.1%); cold first-request total -0.082 s [-0.150, -0.023] (-0.2%, inside a 36 s request dominated by the S3 download); warm steady state unchanged (-0.006 [-0.018, +0.010]). 0xd0c (n=6/8 cold, 18/5 restore) and 0xd4f (3/4 cold, no restore) move the same way but their headline CIs overlap 0, so by the all-parts rule c4096's status is no-change; host_variability shows every shared round/part cell for context_init and memory negative beyond the control's spread. The effect scales with bytes removed: restored first forward -0.068 / -0.109 / -0.125 / -0.135 / -0.141 s at 8192 / 4096 / 2048 / 1024 / 512 on 0xd40, Max Memory -176 / -277 / -341 / -368 / -387 MB. c1024 and c2048 are improved on every part for the restore first request, but refuse 41 and 36 of 231 JevBench tasks (422, before decode). c512 changes incident-review-4q's answers (max |dp| 0.0035, no choice flip) because 512 splits its 4 questions into two fork groups; c1024 to c8192 answer every request bit-identically to c16384 and to P1's reference. Recommendation: n_ctx=4096 (= the model window): ~0.1 s off the restored first forward, ~0.2 s off the restored request, 277 MB less memory, no capacity loss. Not inferred: no Graviton generation from CPU parts."
+}

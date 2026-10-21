@@ -1,0 +1,56 @@
+{
+ "schema": "lkai-e10-build/1",
+ "repo_commit": "573de7d6ecffecaf1f6866909a9824fba098149d",
+ "repo_dirty": false,
+ "dirty_inputs": [],
+ "base": {
+  "p1_zip_sha256": "26eb2651e8915f8ad09eae899feff583a448de6b8d2bc4943bccabb66cae189b",
+  "p1_manifest_sha256": "779f28c2f0110782b0e8c3ab73545184d122d75e58279c21064bf7ba38013169",
+  "p1_repo_commit": "4412b31988ba112dd27ad850830689f33c07e78a"
+ },
+ "wrapper_sha256": "2945aa3a74ff1cf74f448c283f6a528072e62045b8e3ebb87e33d510a98fef32",
+ "zips": {
+  "e10": {
+   "sha256": "2273a5ffd19b1fd6f185d8af05e420f127196bd3f18e3570250a9d26076b7471",
+   "bytes": 51936898
+  }
+ },
+ "function_zip": {
+  "sha256": "2273a5ffd19b1fd6f185d8af05e420f127196bd3f18e3570250a9d26076b7471",
+  "bytes": 51936898,
+  "handler": "e10_entry.handler"
+ },
+ "model": {
+  "id": "StrandsAgents/strands-decider-2B-qwen3.5-v1-2610",
+  "revision": "216d1ccb46a9e9b036eb9187b248db98480f77d4",
+  "format": "GGUF Q8_0",
+  "transform": "LoRA merged fp32 (weights/merge_export.py), H512 Hadamard fold (weights/fold_hadamard.py --block 512)",
+  "merge_report": {
+   "merged": 186,
+   "scale": 2.0,
+   "unpaired_adapter": [],
+   "base_revision": "b1485b2fa6dfa1287294f269f5fb618e03d52d7c",
+   "checkpoint": "/hf/hub/models--StrandsAgents--strands-decider-2B-qwen3.5-v1-2610/snapshots/216d1ccb46a9e9b036eb9187b248db98480f77d4"
+  },
+  "gguf_bytes": 2076712416,
+  "gguf_sha256": "8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e"
+ },
+ "images": {
+  "lambda_build": "public.ecr.aws/lambda/python@sha256:37fe9ca4183c36ec57e4c5eabb8893cd9fbc9c0f3053b903d9a57eb2bd6bafcc",
+  "weights": "python@sha256:5560e9ab8709f459489e5b8aa696eda8a07ef821e14bb122be62d91234bfa98b"
+ },
+ "toolchain": [
+  "gcc (GCC) 11.5.0 20240719 (Red Hat 11.5.0-5)",
+  "Python 3.12.15"
+ ],
+ "assets_sha256": {
+  "head.safetensors": "2492613e72eac53becb9ff855023261ac2722c5111b9f1e03be59a87328dd799",
+  "head_config.json": "3a6a6a3a135dcdbb29d6d9179d507d511fbba934d3682f354dd3d1130b9813dd",
+  "tokenizer.json": "a2cdd2e108566b09079afa8d266e9e65e7c280f27b771218237a06de5ba9cd86"
+ },
+ "llama_cpp": {
+  "commit": "f74e2fa6a31cc33ab4ee4ae516641cfe62df3924",
+  "patches": "llama/patch_llama.py (prefill,gdn,kskip,sme)",
+  "flags": "GGML_NATIVE=OFF GGML_BACKEND_DL=ON GGML_CPU_ALL_VARIANTS=ON GGML_CPU_KLEIDIAI=ON"
+ }
+}

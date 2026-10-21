@@ -377,10 +377,10 @@ def merge_runs(cold: str, restore: str | None, out_dir: str) -> str:
 def status_of(res: dict, arm: str) -> str:
     d = res["e10"]["delta"][arm]
     heads = [d.get(cls, {}).get(m, {}).get("by_cpu_part", {}) for cls, m in HEADLINES.items()]
-    c = res["correctness"] or {}
+    c = res["e10"]["correctness_by_arm"][arm]
     g = res["e10"]["arm_agreement"][arm]
     clean = (
-        not res["errors"]["count"]
+        not res["e10"]["errors_by_arm"][arm]
         and c.get("bit_identical") == c.get("compared")
         and c.get("choice_flips") == 0
         and g["compared"] > 0
@@ -453,6 +453,13 @@ def main(argv: list[str] | None = None) -> int:
         "capacity": offline.get("capacity"),
         "host": host(rows),
         "arm_agreement": arm_agreement(rows, arms),
+        "correctness_by_arm": {
+            arm: p1.compare(p1.by(rows, arm=arm), json.load(open(a.reference))["outputs"])
+            for arm in arms
+        },
+        "errors_by_arm": {
+            arm: sum(1 for r in rows if r["arm"] == arm and r["error"]) for arm in arms
+        },
     }
     res["e10"]["status_by_arm"] = {arm: status_of(res, arm) for arm in arms if arm != CONTROL}
     res["status"] = res["e10"]["status_by_arm"][res["primary_arm"]]

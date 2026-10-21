@@ -266,3 +266,91 @@ def test_order_is_a_latin_square(aws_mods):
         assert sorted(o) == sorted(arms)
     for pos in range(len(arms)):
         assert sorted(o[pos] for o in orders) == sorted(arms)  # every arm in every position once
+
+
+# ---------------------------------------------------------------- summarize_e10
+
+
+def _row(
+    arm,
+    rnd,
+    cls,
+    cpu,
+    ctx_init=0.3,
+    lat=0.24,
+    mem=5000,
+    answers=None,
+    rid="ticket-route-1q",
+    err=None,
+):
+    return {
+        "arm": arm,
+        "round": rnd,
+        "wave": cls,
+        "expected_class": cls,
+        "observed_class": cls,
+        "class_mismatch": False,
+        "error": err,
+        "cpu_part": cpu,
+        "request_id": rid,
+        "latency_ms": lat * 1000,
+        "answers": answers or {"q": {"type": "noul", "noul": 0.5}},
+        "report": {"Init Duration": 800.0, "Duration": 35000.0, "Max Memory Used": mem},
+        "lkai": {
+            "init": {"context_init": ctx_init},
+            "e10": {"n_ctx": {"env": 1, "applied": [1]}, "vm_hwm_kib": 1024},
+        },
+    }
+
+
+@pytest.fixture
+def s10(aws_mods):
+    sys.modules.pop("summarize", None)
+    sys.modules.pop("summarize_e10", None)
+    return importlib.import_module("summarize_e10")
+
+
+def test_host_cells_compare_within_round_and_part_only(s10):
+    rows = []
+    for rnd in range(2):
+        rows += [_row("c16384", rnd, "cold", "0xd40", ctx_init=v) for v in (0.30, 0.32, 0.31)]
+        rows += [_row("c4096", rnd, "cold", "0xd40", ctx_init=v) for v in (0.20, 0.21)]
+        rows += [
+            _row("c4096", rnd, "cold", "0xd0c", ctx_init=0.5)
+        ]  # no control on 0xd0c: missing, not compared
+    rows += [_row("c4096", 0, "cold", None, ctx_init=9.9)]  # unknown CPU: counted, never a stratum
+    hv = s10.host_variability_analysis(rows, ["c4096", "c16384"])
+    m = hv["observed"]["primary_metrics"]["cold_context_init"]["arms"]["c4096"]
+    assert [c["cpu_part"] for c in m["shared_cells"]] == ["0xd40", "0xd40"]
+    assert all(c["outcome"] == "negative-beyond-control-variation" for c in m["shared_cells"])
+    assert {(c["round"], c["cpu_part"]) for c in m["missing_cells"]} == {(0, "0xd0c"), (1, "0xd0c")}
+    assert m["by_cpu_part"]["0xd40"]["outcome"] == "negative-beyond-control-variation"
+    assert hv["unknown"]["cpu_identity_rows"]["cold_context_init"]["c4096"] == 1
+    assert "Graviton" not in json.dumps(hv["observed"])
+
+
+def test_within_control_spread_is_null_even_with_signs(s10):
+    rows = []
+    for rnd, d in enumerate((-0.005, 0.005)):
+        rows += [_row("c16384", rnd, "warm", "0xd40", lat=v) for v in (0.23, 0.25)]
+        rows += [_row("c4096", rnd, "warm", "0xd40", lat=0.24 + d)]
+    hv = s10.host_variability_analysis(rows, ["c4096", "c16384"])
+    part = hv["observed"]["primary_metrics"]["warm_steady_state_inference"]["arms"]["c4096"][
+        "by_cpu_part"
+    ]["0xd40"]
+    assert part["outcome"] == "within-control-variation" and part["delta_signs"] == [
+        "negative",
+        "positive",
+    ]
+
+
+def test_arm_agreement_counts_differences_and_uncovered_parts(s10):
+    a, b = {"q": {"type": "noul", "noul": 0.5}}, {"q": {"type": "noul", "noul": 0.6}}
+    rows = [
+        _row("c16384", 0, "warm", "0xd40", answers=a),
+        _row("c512", 0, "warm", "0xd40", answers=a),
+        _row("c512", 0, "warm", "0xd40", answers=b),
+        _row("c512", 0, "warm", "0xd4f", answers=a),
+    ]
+    g = s10.arm_agreement(rows, ["c512", "c16384"])
+    assert g["c512"] == {"compared": 2, "bit_identical": 1, "no_control_answer_for_cpu_part": 1}
