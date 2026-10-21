@@ -5,7 +5,9 @@ at load time.
   python probe_e7.py <pkg_dir> <gguf> <requests.json> <out.json>
 
 Runs inside P1's pinned Lambda image (public.ecr.aws/lambda/python:3.12, arm64) with the unzipped E7 function.zip at
-<pkg_dir>. The arm is LKAI_SKIP_TIED_OUTPUT in the environment (probe_e7.sh sets it). The GGUF is copied into a memfd
+<pkg_dir>. The arm is LKAI_SKIP_TIED_OUTPUT in the environment (probe_e7.sh sets it). Every other variable defaults to
+P1's function environment (DEC_KV=f32, DEC_UBATCH=512, N_SEQ=17, OPENBLAS_NUM_THREADS=1). The GGUF is copied into a
+memfd
 and mapped as /proc/self/fd/N, as PR #77's loader does. The phases are decshim's own timers (P1's), the memory is
 VmRSS / VmHWM from /proc/self/status, and the answers are the complete answer objects for P1's fixed requests.
 """
@@ -22,6 +24,10 @@ import time
 pkg, gguf, reqs, out = sys.argv[1:5]
 sys.path.insert(0, pkg)
 os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
+# P1's function environment (baseline/deploy.py); the answers depend on DEC_KV and DEC_UBATCH.
+os.environ.setdefault("DEC_KV", "f32")
+os.environ.setdefault("DEC_UBATCH", "512")
+os.environ.setdefault("N_SEQ", "17")
 threads = int(os.environ.get("THREADS", "6"))
 
 libc = ctypes.CDLL("libc.so.6", use_errno=True)
@@ -54,6 +60,7 @@ PH = ("ggml_backend_load", "model_load_mmap", "context_init", "dec_load_total")
 res: dict = {
     "arm_env": os.environ.get("LKAI_SKIP_TIED_OUTPUT", "unset"),
     "threads": threads,
+    "env": {k: os.environ[k] for k in ("DEC_KV", "DEC_UBATCH", "N_SEQ", "OPENBLAS_NUM_THREADS")},
     "host": e7_host.host_metadata(),
 }
 t = time.monotonic()
