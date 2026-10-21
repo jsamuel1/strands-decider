@@ -1,0 +1,253 @@
+{
+ "schema": "lkai-result/1",
+ "experiment_id": "I1-restore-stall",
+ "run_id": "20261021T044949Z",
+ "status": "failed",
+ "hypothesis": "The first restore wave after a long publish phase stalls because of the client, not Lambda. bench.py at the pinned baseline reuses one boto3 Lambda client, so its pooled keep-alive HTTPS connections idle through the publish phase and silently go dead. An invoke written into one never reaches Lambda and ends in a client read timeout. Alternatives to rule out: (a) the version's age since publish; (b) SnapStart cache warm-up for a version never invoked before.",
+ "changed_variable": {
+  "name": "lambda_invoke_client_lifetime",
+  "baseline": "one client for lifecycle calls and every invoke (bench.py at aac59d4)",
+  "experiment": "a new client per invocation wave, lifecycle calls on a separate retrying client"
+ },
+ "commits": {
+  "baseline": "aac59d45555ebded9357c23f6f8e4f939edf25d7",
+  "experiment": "5764b9ee1baa43b8e8fbf0cc817bff59ce1fccce",
+  "repo_dirty_at_build": false
+ },
+ "deployment": {
+  "region": "us-east-2",
+  "az": null,
+  "runtime": "python3.13",
+  "runtime_version_arn": null,
+  "architecture": "arm64",
+  "memory_mb": 128,
+  "snapstart": {
+   "ApplyOn": "PublishedVersions"
+  },
+  "functions": {
+   "repro": "lkai-i1-df45-<idle>-<arm> (20 functions, torn down)"
+  }
+ },
+ "conditions": {
+  "rounds": 1,
+  "concurrency": 10,
+  "arms": [
+   "reuse_poll",
+   "reuse_nopoll",
+   "fresh_new",
+   "fresh_old"
+  ],
+  "idles_s": [
+   30,
+   200,
+   400,
+   700,
+   1100
+  ],
+  "started": "2026-10-21T04:49:49Z",
+  "finished": "2026-10-21T05:11:06Z",
+  "measured_read_timeout_s": 120,
+  "client_host": "ip-10-0-3-99 (ap-southeast-2 private subnet, NAT egress), python 3.14.6, boto3 1.43.93",
+  "per_cell": {
+   "reuse_poll@30s": {
+    "client_ok": 10,
+    "of": 10,
+    "target_version_invocations_metric": 10.0,
+    "target_version_start_lines": 10
+   },
+   "reuse_nopoll@30s": {
+    "client_ok": 10,
+    "of": 10,
+    "target_version_invocations_metric": 10.0,
+    "target_version_start_lines": 10
+   },
+   "fresh_new@30s": {
+    "client_ok": 10,
+    "of": 10,
+    "target_version_invocations_metric": 10.0,
+    "target_version_start_lines": 10
+   },
+   "fresh_old@30s": {
+    "client_ok": 10,
+    "of": 10,
+    "target_version_invocations_metric": 20.0,
+    "target_version_start_lines": 20
+   },
+   "reuse_poll@200s": {
+    "client_ok": 10,
+    "of": 10,
+    "target_version_invocations_metric": 10.0,
+    "target_version_start_lines": 10
+   },
+   "reuse_nopoll@200s": {
+    "client_ok": 10,
+    "of": 10,
+    "target_version_invocations_metric": 10.0,
+    "target_version_start_lines": 10
+   },
+   "fresh_new@200s": {
+    "client_ok": 10,
+    "of": 10,
+    "target_version_invocations_metric": 10.0,
+    "target_version_start_lines": 10
+   },
+   "fresh_old@200s": {
+    "client_ok": 10,
+    "of": 10,
+    "target_version_invocations_metric": 20.0,
+    "target_version_start_lines": 20
+   },
+   "reuse_poll@400s": {
+    "client_ok": 1,
+    "of": 10,
+    "target_version_invocations_metric": 1.0,
+    "target_version_start_lines": 1
+   },
+   "reuse_nopoll@400s": {
+    "client_ok": 0,
+    "of": 10,
+    "target_version_invocations_metric": 0,
+    "target_version_start_lines": 0
+   },
+   "fresh_new@400s": {
+    "client_ok": 10,
+    "of": 10,
+    "target_version_invocations_metric": 10.0,
+    "target_version_start_lines": 10
+   },
+   "fresh_old@400s": {
+    "client_ok": 10,
+    "of": 10,
+    "target_version_invocations_metric": 20.0,
+    "target_version_start_lines": 20
+   },
+   "reuse_poll@700s": {
+    "client_ok": 1,
+    "of": 10,
+    "target_version_invocations_metric": 1.0,
+    "target_version_start_lines": 1
+   },
+   "reuse_nopoll@700s": {
+    "client_ok": 0,
+    "of": 10,
+    "target_version_invocations_metric": 0,
+    "target_version_start_lines": 0
+   },
+   "fresh_new@700s": {
+    "client_ok": 10,
+    "of": 10,
+    "target_version_invocations_metric": 10.0,
+    "target_version_start_lines": 10
+   },
+   "fresh_old@700s": {
+    "client_ok": 10,
+    "of": 10,
+    "target_version_invocations_metric": 20.0,
+    "target_version_start_lines": 20
+   },
+   "reuse_poll@1100s": {
+    "client_ok": 1,
+    "of": 10,
+    "target_version_invocations_metric": 1.0,
+    "target_version_start_lines": 1
+   },
+   "reuse_nopoll@1100s": {
+    "client_ok": 0,
+    "of": 10,
+    "target_version_invocations_metric": 0,
+    "target_version_start_lines": 0
+   },
+   "fresh_new@1100s": {
+    "client_ok": 10,
+    "of": 10,
+    "target_version_invocations_metric": 10.0,
+    "target_version_start_lines": 10
+   },
+   "fresh_old@1100s": {
+    "client_ok": 10,
+    "of": 10,
+    "target_version_invocations_metric": 20.0,
+    "target_version_start_lines": 20
+   }
+  }
+ },
+ "classification": {
+  "method": "REPORT line of each successful invoke: Restore Duration = restore, Init Duration = cold, neither = warm. Expected classes are not asserted: the repro tests delivery, not start class",
+  "mismatches": 0,
+  "expected_vs_observed": {
+   "restore": 316,
+   "warm": 27
+  }
+ },
+ "phases": {},
+ "errors": {
+  "count": 57,
+  "rows": [
+   {
+    "arm": "reuse_nopoll",
+    "idle_s": 400,
+    "wave": "measured",
+    "error": "client:ReadTimeoutError",
+    "n": 10
+   },
+   {
+    "arm": "reuse_nopoll",
+    "idle_s": 700,
+    "wave": "measured",
+    "error": "client:ReadTimeoutError",
+    "n": 10
+   },
+   {
+    "arm": "reuse_nopoll",
+    "idle_s": 1100,
+    "wave": "measured",
+    "error": "client:ReadTimeoutError",
+    "n": 10
+   },
+   {
+    "arm": "reuse_poll",
+    "idle_s": 400,
+    "wave": "measured",
+    "error": "client:ReadTimeoutError",
+    "n": 9
+   },
+   {
+    "arm": "reuse_poll",
+    "idle_s": 700,
+    "wave": "measured",
+    "error": "client:ReadTimeoutError",
+    "n": 9
+   },
+   {
+    "arm": "reuse_poll",
+    "idle_s": 1100,
+    "wave": "measured",
+    "error": "client:ReadTimeoutError",
+    "n": 9
+   }
+  ]
+ },
+ "cost": {
+  "billed_duration_s": 133.6,
+  "total_usd": 0.01,
+  "s3_request_usd": 0.0,
+  "s3_gb_transferred": 0.0
+ },
+ "correctness": null,
+ "profiling_artifacts": [],
+ "artifacts": {
+  "conditions": "conditions.json",
+  "invocations": "invocations.jsonl.gz",
+  "tcp_samples": "tcp_samples.jsonl.gz",
+  "urllib3_debug_log": "urllib3.log.gz"
+ },
+ "reproduce": [
+  "git fetch https://github.com/jsamuel1/strands-decider lkai/df45-restore-stall && git checkout 5764b9ee1baa43b8e8fbf0cc817bff59ce1fccce",
+  "cd examples/lambda-kleidiai/baseline/restore_stall",
+  "AWS_PROFILE=<p> python repro.py up --build build/ --idle 30,200,400,700,1100",
+  "AWS_PROFILE=<p> python repro.py run --build build/ --out build/runs/<run-id> --idle 30,200,400,700,1100",
+  "AWS_PROFILE=<p> python repro.py teardown --build build/",
+  "pytest tests/test_lkai_baseline.py -k 'own_new_client or lone_invoke'"
+ ],
+ "conclusion": "INVESTIGATION: CAUSE FOUND. The status is 'failed' only because this run has no model-latency phases by design (a 128 MB sleep function); it is not a failed investigation. The first-restore-wave stall is client-side. With one reused client, a measured wave after 400, 700 or 1100 s of pool idle got 1/10 (reuse_poll, the aac59d4 bench.py shape, where the survivor rode the connection kept alive by readiness polls) or 0/10 (reuse_nopoll). The rest ended in client:ReadTimeoutError at 120 s. After 30 or 200 s of idle, every invoke succeeded (10/10). A fresh client succeeded 100/100 at every idle length, both on a never-invoked v2 that was 0 to 1048 s old and on an old v1 idle for up to 1102 s. That rules out (a) the version's age and (b) SnapStart cache warm-up. Lambda-side Invocations and START lines equal the client ok count in every cell, so the stalled requests never reached Lambda. Each stalled socket stayed ESTABLISHED with about 1,785 B unacknowledged and retransmits climbing from 3 to 7; urllib3's dropped-connection check returned false. The threshold lies between 200 and 400 s on this host's NAT egress path. The element that drops the flow was not identified: no RST was seen, although AWS documents one for NAT gateway idle timeout. Fix on lkai/df45-restore-stall: bench.py gives every wave a new invoke client (P1's later e262455 has the same shape). Affected published data: P3 20261020T124451Z lost 45 restore rows and has 45 warm-labelled restores, all excluded by summarize.py, so latency is unbiased and only n shrinks. E1's first attempt was discarded. No published restore latency needs correction. Limitations: one host, one path, one run; the threshold was not bisected; TCP keepalive was not tested. Full write-up: examples/lambda-kleidiai/baseline/restore_stall/README.md on the branch."
+}
