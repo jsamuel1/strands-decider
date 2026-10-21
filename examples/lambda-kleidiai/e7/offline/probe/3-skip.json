@@ -1,0 +1,204 @@
+{
+ "answers": {
+  "agent-action-guard-2q": {
+   "action": {
+    "choice": "proceed",
+    "confidence": 0.4488,
+    "probabilities": {
+     "ask": 0.1231,
+     "proceed": 0.6325,
+     "revise": 0.2444
+    },
+    "type": "choice"
+   },
+   "safe": {
+    "noul": 0.2744,
+    "type": "noul"
+   }
+  },
+  "cracked-screen-2q": {
+   "q": {
+    "choice": "refunds",
+    "confidence": 0.492,
+    "probabilities": {
+     "refunds": 0.6614,
+     "shipping": 0.1216,
+     "tech": 0.217
+    },
+    "type": "choice"
+   },
+   "u": {
+    "noul": 0.6251,
+    "type": "noul"
+   }
+  },
+  "incident-review-4q": {
+   "root_cause": {
+    "choice": "retries",
+    "confidence": 0.4051,
+    "probabilities": {
+     "alarm": 0.0191,
+     "capacity": 0.0724,
+     "freeze": 0.3546,
+     "retries": 0.5538
+    },
+    "type": "choice"
+   },
+   "runbook": {
+    "noul": 0.8827,
+    "type": "noul"
+   },
+   "severity": {
+    "confidence": 0.4432,
+    "legend": {
+     "0": "negligible",
+     "1": "minor",
+     "2": "moderate",
+     "3": "major",
+     "4": "critical"
+    },
+    "probabilities": {
+     "0": 0.1037,
+     "1": 0.1626,
+     "2": 0.2673,
+     "3": 0.2597,
+     "4": 0.2068
+    },
+    "score": 2.3033,
+    "type": "score"
+   },
+   "test_gap": {
+    "noul": 0.3864,
+    "type": "noul"
+   }
+  },
+  "payouts-3q": {
+   "frustration": {
+    "confidence": 0.512,
+    "legend": {
+     "0": "calm",
+     "1": "frustrated",
+     "2": "depressed"
+    },
+    "probabilities": {
+     "0": 0.1945,
+     "1": 0.5764,
+     "2": 0.2291
+    },
+    "score": 1.0346,
+    "type": "score"
+   },
+   "is_urgent": {
+    "noul": 0.8582,
+    "type": "noul"
+   },
+   "team": {
+    "choice": "billing",
+    "confidence": 0.6487,
+    "probabilities": {
+     "billing": 0.7658,
+     "retail": 0.1106,
+     "sales": 0.1236
+    },
+    "type": "choice"
+   }
+  },
+  "ticket-route-1q": {
+   "q": {
+    "choice": "billing",
+    "confidence": 0.9433,
+    "probabilities": {
+     "account": 0.0064,
+     "billing": 0.9622,
+     "technical": 0.0314
+    },
+    "type": "choice"
+   }
+  }
+ },
+ "arm_env": "1",
+ "cpu_part": "0xd40",
+ "env": {
+  "DEC_KV": "f32",
+  "DEC_UBATCH": "512",
+  "N_SEQ": "17",
+  "OPENBLAS_NUM_THREADS": "1"
+ },
+ "first_inference_s": 0.8375,
+ "ggml_cpu": [
+  "libggml-cpu-armv8.2_3.so",
+  "libggml-cpu-armv8.6_1.so"
+ ],
+ "host": {
+  "cgroup": {
+   "cpu.max": "max 100000",
+   "cpuset.cpus.effective": "0-5",
+   "memory.max": "unknown"
+  },
+  "cpu": {
+   "architecture": "8",
+   "features": "fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm paca pacg dcpodp svei8mm svebf16 i8mm bf16 dgh rng",
+   "implementer": "0x41",
+   "part": "0xd40",
+   "processors": 16,
+   "revision": "1",
+   "variant": "0x1"
+  },
+  "execution_env": "unknown",
+  "hwcap": "0xcfffffff",
+  "hwcap2": "0x1f201",
+  "init_type": "unknown",
+  "kernel": "6.1.188-233.386.amzn2023.aarch64",
+  "memory_mb": "unknown",
+  "os_cpu_count": 16,
+  "python": "3.12.15",
+  "sched_affinity": 6,
+  "skip_env": "1"
+ },
+ "latency_s": {
+  "agent-action-guard-2q": 4.2308,
+  "cracked-screen-2q": 4.609,
+  "incident-review-4q": 4.4132,
+  "payouts-3q": 6.3542,
+  "ticket-route-1q": 0.8
+ },
+ "load_engine_s": 6.8707,
+ "maxrss_kb": 4431596,
+ "mechanism": {
+  "buft_bytes": {
+   "CPU": 1081344,
+   "CPU_KLEIDIAI": 1458511872,
+   "CPU_REPACK": 0
+  },
+  "tied_output_skipped": true
+ },
+ "memfd_copy_s": 1.338,
+ "phases_s": {
+  "context_init": 0.1771,
+  "dec_load_total": 6.2179,
+  "ggml_backend_load": 0.0059,
+  "model_load_mmap": 6.035
+ },
+ "status_after_load_kb": {
+  "RssAnon": 2396408,
+  "RssFile": 29144,
+  "RssShmem": 1954160,
+  "VmHWM": 4428588,
+  "VmRSS": 4379712
+ },
+ "status_after_memfd_kb": {
+  "RssAnon": 28336,
+  "RssFile": 21492,
+  "RssShmem": 0,
+  "VmHWM": 180868,
+  "VmRSS": 49828
+ },
+ "status_after_requests_kb": {
+  "RssAnon": 2446736,
+  "RssFile": 30700,
+  "RssShmem": 1954160,
+  "VmHWM": 4431596,
+  "VmRSS": 4431596
+ },
+ "threads": 6
+}

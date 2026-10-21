@@ -1,0 +1,212 @@
+{
+ "answers": {
+  "loads_compared": 12,
+  "reference_cpu_part": "0xd40",
+  "skip_vs_ctl_bit_identical": true,
+  "vs_reference_bit_identical": {
+   "agent-action-guard-2q": true,
+   "cracked-screen-2q": true,
+   "incident-review-4q": true,
+   "payouts-3q": true,
+   "ticket-route-1q": true
+  }
+ },
+ "host": [
+  "{\"architecture\": \"8\", \"features\": \"fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm paca pacg dcpodp svei8mm svebf16 i8mm bf16 dgh rng\", \"ggml_cpu\": [\"libggml-cpu-armv8.2_3.so\", \"libggml-cpu-armv8.6_1.so\"], \"implementer\": \"0x41\", \"part\": \"0xd40\", \"processors\": 16, \"revision\": \"1\", \"variant\": \"0x1\"}"
+ ],
+ "latency_s_p50": {
+  "ctl": {
+   "agent-action-guard-2q": 2.1858,
+   "cracked-screen-2q": 1.4044,
+   "incident-review-4q": 4.3932,
+   "payouts-3q": 1.4256,
+   "ticket-route-1q": 0.5
+  },
+  "skip": {
+   "agent-action-guard-2q": 2.2372,
+   "cracked-screen-2q": 1.6276,
+   "incident-review-4q": 2.8114,
+   "payouts-3q": 2.3092,
+   "ticket-route-1q": 0.5303
+  }
+ },
+ "mechanism": {
+  "ctl": [
+   "{\"buft_bytes\": {\"CPU\": 1081344, \"CPU_KLEIDIAI\": 1998856192, \"CPU_REPACK\": 0}, \"tied_output_skipped\": false}"
+  ],
+  "skip": [
+   "{\"buft_bytes\": {\"CPU\": 1081344, \"CPU_KLEIDIAI\": 1458511872, \"CPU_REPACK\": 0}, \"tied_output_skipped\": true}"
+  ]
+ },
+ "metrics": {
+  "context_init_s": {
+   "ctl": {
+    "max": 0.1823,
+    "min": 0.1657,
+    "n": 6,
+    "p50": 0.1754
+   },
+   "paired_delta": {
+    "max": 0.008,
+    "min": -0.0071,
+    "n": 6,
+    "p50": -0.001
+   },
+   "pairs_below_zero": 4,
+   "skip": {
+    "max": 0.1841,
+    "min": 0.1655,
+    "n": 6,
+    "p50": 0.1749
+   }
+  },
+  "cpu_kleidiai_buffer_mb": {
+   "ctl": {
+    "max": 1906.2578,
+    "min": 1906.2578,
+    "n": 6,
+    "p50": 1906.2578
+   },
+   "paired_delta": {
+    "max": -515.3125,
+    "min": -515.3125,
+    "n": 6,
+    "p50": -515.3125
+   },
+   "pairs_below_zero": 6,
+   "skip": {
+    "max": 1390.9453,
+    "min": 1390.9453,
+    "n": 6,
+    "p50": 1390.9453
+   }
+  },
+  "dec_load_total_s": {
+   "ctl": {
+    "max": 8.3108,
+    "min": 8.1602,
+    "n": 6,
+    "p50": 8.1762
+   },
+   "paired_delta": {
+    "max": -1.6734,
+    "min": -2.0893,
+    "n": 6,
+    "p50": -1.9854
+   },
+   "pairs_below_zero": 6,
+   "skip": {
+    "max": 6.5408,
+    "min": 6.0709,
+    "n": 6,
+    "p50": 6.186
+   }
+  },
+  "first_inference_s": {
+   "ctl": {
+    "max": 1.1065,
+    "min": 0.232,
+    "n": 6,
+    "p50": 0.5587
+   },
+   "paired_delta": {
+    "max": 1.1359,
+    "min": -0.5041,
+    "n": 6,
+    "p50": -0.0863
+   },
+   "pairs_below_zero": 4,
+   "skip": {
+    "max": 1.6275,
+    "min": 0.2314,
+    "n": 6,
+    "p50": 0.5668
+   }
+  },
+  "model_load_mmap_s": {
+   "ctl": {
+    "max": 8.1217,
+    "min": 7.9798,
+    "n": 6,
+    "p50": 7.9985
+   },
+   "paired_delta": {
+    "max": -1.6789,
+    "min": -2.0887,
+    "n": 6,
+    "p50": -1.9859
+   },
+   "pairs_below_zero": 6,
+   "skip": {
+    "max": 6.351,
+    "min": 5.8999,
+    "n": 6,
+    "p50": 6.0071
+   }
+  },
+  "rss_anon_after_load_mb": {
+   "ctl": {
+    "max": 2844.1523,
+    "min": 2844.1523,
+    "n": 6,
+    "p50": 2844.1523
+   },
+   "paired_delta": {
+    "max": -503.9102,
+    "min": -503.918,
+    "n": 6,
+    "p50": -503.9121
+   },
+   "pairs_below_zero": 6,
+   "skip": {
+    "max": 2340.2422,
+    "min": 2340.2344,
+    "n": 6,
+    "p50": 2340.2402
+   }
+  },
+  "vm_hwm_after_load_mb": {
+   "ctl": {
+    "max": 4813.0117,
+    "min": 4812.3398,
+    "n": 6,
+    "p50": 4812.7715
+   },
+   "paired_delta": {
+    "max": -487.5469,
+    "min": -488.2266,
+    "n": 6,
+    "p50": -487.8301
+   },
+   "pairs_below_zero": 6,
+   "skip": {
+    "max": 4325.0742,
+    "min": 4324.4492,
+    "n": 6,
+    "p50": 4324.8457
+   }
+  },
+  "vm_hwm_after_requests_mb": {
+   "ctl": {
+    "max": 4832.8945,
+    "min": 4832.1367,
+    "n": 6,
+    "p50": 4832.3281
+   },
+   "paired_delta": {
+    "max": -503.5703,
+    "min": -505.1914,
+    "n": 6,
+    "p50": -504.4531
+   },
+   "pairs_below_zero": 6,
+   "skip": {
+    "max": 4328.5664,
+    "min": 4327.6406,
+    "n": 6,
+    "p50": 4327.8828
+   }
+  }
+ },
+ "pairs": 6
+}

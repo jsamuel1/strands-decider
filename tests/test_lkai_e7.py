@@ -366,3 +366,48 @@ def test_no_graviton_generation_is_named_in_e7_sources():
             assert (
                 "Graviton2" not in text and "Graviton3" not in text and "Graviton4" not in text
             ), f
+
+
+def _hv_res(rows):
+    res = _res((-1.9, -1.5))
+    res["e7"]["delta"] = {
+        "cold": s7.delta(rows, "cold", {"model_load_mmap": s7.COLD_KEYS["model_load_mmap"]}),
+        "restore": {},
+        "warm": {},
+    }
+    res["e7"]["host"] = {"unknown_fields": ["cgroup cpu.max"]}
+    return s7.host_variability(res, rows)
+
+
+def test_host_variability_needs_no_rerun_when_every_part_and_cell_agree():
+    rows = []
+    for rnd in range(3):
+        for i in range(3):
+            rows += [
+                _row("ctl", "cold", "0xd40", rnd, mmap=8.0 + 0.01 * i),
+                _row("skip", "cold", "0xd40", rnd, mmap=6.3 + 0.01 * i),
+                _row("ctl", "cold", "0xd0c", rnd, mmap=12.0 + 0.01 * i),
+                _row("skip", "cold", "0xd0c", rnd, mmap=9.5 + 0.01 * i),
+            ]
+    hv = _hv_res(rows)
+    c = hv["checks"]["cold.model_load_mmap"]
+    assert c["consistent"] and c["ci_sign_by_part"] == {"0xd0c": -1, "0xd40": -1}
+    assert hv["rerun_needed"] is False
+    assert hv["observed"]["skip:cold:0xd40"] == 9
+
+
+def test_host_variability_flags_an_effect_whose_sign_depends_on_the_host():
+    rows = []
+    for rnd in range(3):
+        for i in range(3):
+            rows += [
+                _row("ctl", "cold", "0xd40", rnd, mmap=8.0 + 0.01 * i),
+                _row("skip", "cold", "0xd40", rnd, mmap=6.3 + 0.01 * i),
+                _row("ctl", "cold", "0xd0c", rnd, mmap=9.5 + 0.01 * i),
+                _row("skip", "cold", "0xd0c", rnd, mmap=12.0 + 0.01 * i),
+            ]
+    hv = _hv_res(rows)
+    c = hv["checks"]["cold.model_load_mmap"]
+    assert not c["consistent"] and c["ci_sign_by_part"] == {"0xd0c": 1, "0xd40": -1}
+    assert c["cell_delta_signs"] == [-1, 1]
+    assert hv["rerun_needed"] is True

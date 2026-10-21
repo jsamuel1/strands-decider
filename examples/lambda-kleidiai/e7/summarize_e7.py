@@ -335,6 +335,54 @@ def status_of(res: dict) -> str:
     return "no-change"
 
 
+def host_variability(res: dict, rows: list[dict]) -> dict:
+    """The HOST VARIABILITY assessment: what was observed, what was not, and whether the conclusion holds within each
+    CPU part and round. Comparable means: every headline/target metric's CI has one sign on every part, and every
+    (round, part) cell has that same sign. Rows without a CPU part are listed, never a stratum."""
+    observed = Counter(
+        f"{r['arm']}:{r['expected_class']}:{known_part(r) or 'unknown'}"
+        for r in rows
+        if not r["error"]
+    )
+    checks = {}
+    for cls, keys in (
+        ("cold", ("first_request_total", "model_load_mmap", "report_max_memory_mb")),
+        ("restore", ("first_request_total", "report_restore_duration", "report_max_memory_mb")),
+        ("warm", ("steady_state_inference", "report_max_memory_mb")),
+    ):
+        for k in keys:
+            d = res["e7"]["delta"][cls].get(k)
+            if not d:
+                continue
+            ci_signs = sorted(
+                {(v["ci95"][0] > 0) - (v["ci95"][1] < 0) for v in d["by_cpu_part"].values()}
+            )
+            checks[f"{cls}.{k}"] = {
+                "ci_sign_by_part": {
+                    p: (v["ci95"][0] > 0) - (v["ci95"][1] < 0) for p, v in d["by_cpu_part"].items()
+                },
+                "cell_delta_range": d["cell_delta_range"],
+                "cell_delta_signs": d["cell_delta_signs"],
+                "cells": len(d["cells"]),
+                "consistent": len(ci_signs) == 1
+                and ci_signs != [0]
+                and d["cell_delta_signs"] == ci_signs,
+                "null_on_every_part": ci_signs == [0],
+                "rows_without_cpu_part": d["rows_without_cpu_part"],
+            }
+    return {
+        "observed": dict(sorted(observed.items())),
+        "unknown": res["e7"]["host"]["unknown_fields"],
+        "method": "interleaved rounds (cold and restore waves per arm, arm order alternating every round; warm "
+        "passes alternate the arm pass by pass); deltas within each CPU part (cpuinfo, read in the function at the "
+        "environment's first invocation) and within each (round, part) cell. No Graviton generation is inferred.",
+        "checks": checks,
+        "rerun_needed": not all(
+            c["consistent"] or c["null_on_every_part"] for c in checks.values()
+        ),
+    }
+
+
 def fmt_values(res: dict) -> dict:
     """Numbers a conclusion template may cite: <class>_<metric>_<part>_{ctl,skip,d,lo,hi,n}."""
     out = {}
@@ -386,6 +434,7 @@ def main(argv: list[str] | None = None) -> int:
         "arm_agreement": arm_agreement(rows),
     }
     res["status"] = status_of(res)
+    res["host_variability"] = host_variability(res, rows)
     tmpl = meta.get("conclusion_template")
     res["conclusion"] = tmpl.format(**fmt_values(res)) if tmpl else meta.get("conclusion")
     res["profiling_artifacts"] = meta.get("profiling_artifacts", [])
