@@ -47,6 +47,8 @@ E8_SOURCES = [
         "e8_host.py",
         "build.sh",
         "hash_check.sh",
+        "probe_e8.py",
+        "probe_e8.sh",
         "deploy_e8.py",
         "bench_e8.py",
         "summarize_e8.py",
