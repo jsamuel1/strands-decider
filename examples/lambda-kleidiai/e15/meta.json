@@ -1,0 +1,59 @@
+{
+ "experiment_id": "E15-f32-sgemm",
+ "hypothesis": "E15 Phase 1 (offline, per-node wall time on CPU part 0xd40) attributed ggml_vec_dot_f32 to the six full-attention layers' F32 KQ and KQV matmuls, 10.6% of warm graph time. llama.cpp f74e2fa6a's ggml-cpu.c undefines GGML_USE_LLAMAFILE whenever __ARM_FEATURE_SVE or __ARM_FEATURE_MATMUL_INT8 is set, so the SVE / i8mm CPU variants (armv8.6_1 on 0xd40, armv8.6_2 on 0xd4f) never call llamafile's F32 tinyBLAS sgemm and run KQV through the per-row ggml_vec_dot_f32 loop. Letting those variants use tinyBLAS for F32 x F32 MUL_MAT only (KQ stays on vec_dot because its src1 is not contiguous) makes warm requests faster on those parts; the offline paired probe measured -1.88% per warm request (95% CI -2.10% to -1.64%) with max |delta probability| 0.0101 and 0 choice flips. Parts that load a non-SVE variant (0xd0c, armv8.2_2) already use llamafile and are unchanged.",
+ "changed_variable": {
+  "name": "llamafile F32 sgemm for F32 x F32 MUL_MAT in the SVE / i8mm ggml CPU variants",
+  "baseline": "ctl: P1's libggml-cpu-*.so (llama.cpp f74e2fa6a + patch_llama.py): F32 MUL_MAT in armv8.2_3 / armv8.6_1 / armv8.6_2 runs ggml_vec_dot_f32 per row"
+ },
+ "arms": {
+  "off": {
+   "changed_variable": {
+    "name": "candidate-A CPU variant libraries with the switch off (the dormant build)",
+    "baseline": "ctl: P1's zip + the E15 metadata wrapper",
+    "experiment": "off: the same zip with the six lib/libggml-cpu-*.so built from f74e2fa6a + patch_llama.py + e15/patch_a.py; LKAI_E15_A unset, so llamafile_sgemm is never called for F32 in the SVE / i8mm variants"
+   },
+   "conclusion_template": "Packaging control (the dormant build, LKAI_E15_A unset), status {status}. Warm REPORT Duration paired by (round, request) on CPU part {cpu}: {w_mean}% mean over {rounds} rounds ({w_below} below 0, range {w_lo} to {w_hi}%; sign-flip p={w_p}; control split-half noise at most {w_null}%), verdict {w_verdict}. Median {w_ctl_ms} vs {w_arm_ms} ms. Answers: {agree}/{agree_n} bit-identical to ctl for the same request and CPU part, and {ref}/{ref_n} bit-identical to P1's reference ({ref_missing} answers on parts the reference lacks). Cold first request {cold_d} s, 95% CI [{cold_lo}, {cold_hi}] (n={cold_n}); restored first request {rst_d} s [{rst_lo}, {rst_hi}] (n={rst_n}). Loaded variants: {applicability}. Other CPU parts: {other_parts}. Errors: {function_errors} function, {transport} client-transport; restore ReadTimeout rows {restore_timeouts}. Warm arms interleaved pass by pass within each round; cold and restore are sequential arm waves whose order rotates across rounds. Every comparison is within one CPU part as read from /proc/cpuinfo; no CPU generation is inferred. Run cost ${cost:.2f} (all three arms)."
+  },
+  "a": {
+   "changed_variable": {
+    "name": "llamafile F32 sgemm for F32 x F32 MUL_MAT in the SVE / i8mm ggml CPU variants",
+    "baseline": "ctl: P1's zip + the E15 metadata wrapper (F32 MUL_MAT through ggml_vec_dot_f32 in the SVE / i8mm variants)",
+    "experiment": "a: the off zip with LKAI_E15_A=1: the SVE / i8mm variants call llamafile_sgemm (tinyBLAS F32 NEON tiles) for F32 x F32 MUL_MAT; quantised MUL_MAT and the non-SVE variants are unchanged"
+   },
+   "conclusion_template": "Candidate A (llamafile F32 sgemm in the SVE / i8mm variants), status {status}. Warm REPORT Duration paired by (round, request) on CPU part {cpu}: {w_mean}% mean over {rounds} rounds vs ctl ({w_below} below 0, range {w_lo} to {w_hi}%; sign-flip p={w_p}; control split-half noise at most {w_null}%), verdict {w_verdict}; median {w_ctl_ms} -> {w_arm_ms} ms; engine timer {eng_mean}%; process CPU per request {cpu_mean}%. The switch alone (a vs off, same zip): {sw_mean}% mean, {sw_below} rounds below 0, p={sw_p}. Correctness under the operator's tolerance (max |delta probability| <= 0.02, 0 flips): vs ctl in this run max {agree_max} with {agree_flips} flips ({agree}/{agree_n} bit-identical); vs P1's reference max {ref_max} with {ref_flips} flips ({ref}/{ref_n} bit-identical, {ref_missing} answers on parts the reference lacks). Loaded variants: {applicability}; parts whose variant is unchanged are a negative control. Other CPU parts: {other_parts}. Side effects: cold first request {cold_d} s, 95% CI [{cold_lo}, {cold_hi}] (n={cold_n}); restored first request {rst_d} s [{rst_lo}, {rst_hi}] (n={rst_n}); cold max memory {mem_d} MB. Errors: {function_errors} function, {transport} client-transport; restore ReadTimeout rows {restore_timeouts}. Warm arms interleaved pass by pass within each round; cold and restore are sequential arm waves whose order rotates across rounds. Every comparison is within one CPU part as read from /proc/cpuinfo; no CPU generation is inferred. Run cost ${cost:.2f} (all three arms)."
+  }
+ },
+ "profiling_artifacts": [
+  {
+   "name": "E15 Phase 1: per-node wall time of the warm forward (offline, part 0xd40)",
+   "tool": "env-gated ggml graph-node timer, perf --call-graph dwarf",
+   "url": "https://github.com/jsamuel1/strands-decider/blob/7be0617056cd34ee417a2c2ba81d69d42380b3da/examples/lambda-kleidiai/e15/README.md"
+  },
+  {
+   "name": "E15 Phase 2 offline paired probe of candidates A and B",
+   "tool": "paired_drive.py (arms toggled per request in one process)",
+   "url": "https://github.com/jsamuel1/strands-decider/tree/7be0617056cd34ee417a2c2ba81d69d42380b3da/examples/lambda-kleidiai/e15/results/offline-paired-20261021T1105Z"
+  },
+  {
+   "name": "P3 corrected baseline hot spots by phase",
+   "tool": "P1 timers, lkaisamp, perf (offline)",
+   "url": "https://github.com/jsamuel1/strands-decider/blob/89a0df4/examples/lambda-kleidiai/profiling/README.md"
+  }
+ ],
+ "reproduce": [
+  "git fetch https://github.com/jsamuel1/strands-decider lkai/89cf-nonmatmul-ops && git checkout <commit>",
+  "# P1's build/ (baseline/build.sh at aac59d4) on an arm64 host with Docker: function.zip 26eb2651..., manifest.json, llama.cpp with patch_llama.py applied",
+  "bash examples/lambda-kleidiai/e15/build_cand.sh examples/lambda-kleidiai/baseline/build examples/lambda-kleidiai/e15/build/cand-libs",
+  "python examples/lambda-kleidiai/e15/e15_zip.py --p1-zip examples/lambda-kleidiai/baseline/build/function.zip --p1-manifest examples/lambda-kleidiai/baseline/build/manifest.json --cand-libs examples/lambda-kleidiai/e15/build/cand-libs --out examples/lambda-kleidiai/e15/build",
+  "AWS_PROFILE=<p> python examples/lambda-kleidiai/e15/e15deploy.py up",
+  "AWS_PROFILE=<p> python examples/lambda-kleidiai/e15/e15bench.py --mode cold --rounds 6 --concurrency 10 --warm-reps 3 --read-timeout 300 --out build/runs/cold-<id>",
+  "AWS_PROFILE=<p> python examples/lambda-kleidiai/e15/e15bench.py --mode restore --rounds 3 --concurrency 10 --warm-reps 3 --read-timeout 120 --out build/runs/restore-<id>",
+  "AWS_PROFILE=<p> python examples/lambda-kleidiai/e15/e15deploy.py teardown --all",
+  "python examples/lambda-kleidiai/e15/summarize_e15.py --cold build/runs/cold-<id> --restore build/runs/restore-<id> --run-id <id> --baseline-commit 70eab7be69f86ddeb8c64158d94df344b5180098 --reference examples/lambda-kleidiai/baseline/reference/outputs.json --meta examples/lambda-kleidiai/e15/meta.json --out build/runs/summary-<id>",
+  "python examples/lambda-kleidiai/baseline/redact.py build/runs/summary-<id> examples/lambda-kleidiai/e15/results/<id> --bucket <p1-bucket> --account <account>",
+  "python examples/lambda-kleidiai/baseline/redact.py examples/lambda-kleidiai/e15/build/manifest.json examples/lambda-kleidiai/e15/results/<id>/build-manifest.json --bucket <p1-bucket> --account <account>",
+  "cp examples/lambda-kleidiai/e15/meta.json examples/lambda-kleidiai/e15/results/<id>/ && gzip examples/lambda-kleidiai/e15/results/<id>/invocations.jsonl",
+  "python examples/lambda-kleidiai/e15/summarize_e15.py --stage examples/lambda-kleidiai/e15/results/<id> --out build/publish-<id>",
+  "for a in off a; do python examples/lambda-kleidiai/results/publish_result.py build/publish-<id>/$a/results.json; done   # P2 (feat/lambda-kleidiai-results)"
+ ]
+}
