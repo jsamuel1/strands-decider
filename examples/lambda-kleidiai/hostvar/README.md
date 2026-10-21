@@ -84,6 +84,96 @@ without `COLD_TAG`). That is P1 (`inst`, `rep`), E1 (`gp`) and E5 (`base`). The 
 and is not in the key, so download-dominated phases are not pooled across runs (they are `null` in `phases`).
 
 <!-- hostvar:tables begin -->
+
+### CPU part IDs by run and start class (all arms)
+
+| run | invoke client | class | 0xd0c | 0xd40 | 0xd4f | unknown |
+|---|---|---|---:|---:|---:|---:|
+| E1 | fresh-per-wave | cold | 12 | 171 | 17 | 0 |
+| E1 | fresh-per-wave | restore | 16 | 184 | 0 | 0 |
+| E1 | fresh-per-wave | warm | 173 | 1827 | 0 | 0 |
+| E2 | pooled | cold | 4 | 84 | 12 | 0 |
+| E2 | pooled | restore | 5 | 95 | 0 | 0 |
+| E2 | pooled | warm | 50 | 950 | 0 | 0 |
+| E3 | pooled | cold | 51 | 423 | 26 | 0 |
+| E3 | pooled | restore | 0 | 60 | 0 | 0 |
+| E3 | pooled | warm | 51 | 483 | 26 | 0 |
+| E4a | unknown | cold | 15 | 124 | 11 | 0 |
+| E4a | unknown | restore | 18 | 132 | 0 | 0 |
+| E4a | unknown | warm | 180 | 1320 | 0 | 0 |
+| E4b | fresh-per-wave | cold | 37 | 134 | 29 | 0 |
+| E4b | fresh-per-wave | restore | 23 | 177 | 0 | 0 |
+| E4b | fresh-per-wave | warm | 230 | 1770 | 0 | 0 |
+| E5 | pooled | cold | 5 | 84 | 11 | 0 |
+| E5 | pooled | restore | 8 | 92 | 0 | 0 |
+| E5 | pooled | warm | 80 | 920 | 0 | 0 |
+| E6 | fresh-per-wave | cold | 8 | 101 | 11 | 0 |
+| E6 | fresh-per-wave | restore | 2 | 58 | 0 | 0 |
+| E6 | fresh-per-wave | warm | 43 | 562 | 55 | 0 |
+| P1 | pooled | cold | 11 | 84 | 5 | 0 |
+| P1 | pooled | restore | 1 | 99 | 0 | 0 |
+| P1 | pooled | warm | 10 | 990 | 0 | 0 |
+| P3a | pooled | cold | 33 | 295 | 22 | 0 |
+| P3a | pooled | restore | 20 | 285 | 0 | 45 |
+| P3a | pooled | warm | 220 | 3280 | 0 | 0 |
+| P3b | fresh-per-wave | cold | 66 | 287 | 47 | 0 |
+| P3b | fresh-per-wave | restore | 42 | 358 | 0 | 0 |
+| P3b | fresh-per-wave | warm | 420 | 3580 | 0 | 0 |
+
+Totals: {"0xd0c": 1834, "0xd40": 19009, "0xd4f": 272, "unknown": 45}. Environments with a part: 3,138, with more than one: 0. Log streams with rows: 3,939 (21,115 of 21,160 rows linked), with more than one part: 0. Snapshot-building inits: 488 streams over 174 versions, by part {"0xd0c": 240, "0xd40": 238, "unknown": 10}; versions by part set {"0xd0c+0xd40": 174}.
+
+### ggml CPU variant loaded, by part (cold and snapshot-build streams)
+
+| part | variants (streams) |
+|---|---|
+| 0xd0c | `libggml-cpu-armv8.0_1.so,libggml-cpu-armv8.2_2.so` (482) |
+| 0xd40 | `libggml-cpu-armv8.0_1.so,libggml-cpu-armv8.6_1.so` (2026) |
+| 0xd4f | `libggml-cpu-armv8.0_1.so,libggml-cpu-armv8.6_2.so` (191) |
+
+### Latency by CPU part, same-code control pool (E1, E5, P1; 1,800 invocations)
+
+| class | metric | 0xd0c | 0xd40 | 0xd4f | unknown |
+|---|---|---|---|---|---|
+| cold | first_request_total_s | 48.52 s (n=10) | 35.95 s (n=128) | 34.34 s (n=12) | n/a |
+| cold | probe_engine_s | 439 ms (n=10) | 239 ms (n=128) | 210 ms (n=12) | n/a |
+| restore | restore_duration_s | 4.12 s (n=7) | 3.26 s (n=143) | n/a | n/a |
+| restore | probe_engine_s | 1,063 ms (n=7) | 672 ms (n=143) | n/a | n/a |
+| warm | engine_s | 1,114 ms (n=73) | 627 ms (n=1427) | n/a | n/a |
+| warm | probe_engine_s | 435 ms (n=15) | 244 ms (n=285) | n/a | n/a |
+
+### Run-to-run spread of control medians (same-code pool)
+
+| class | metric | pooled range (CV) | 0xd0c range (CV) | 0xd40 range (CV) | 0xd4f range (CV) | unknown range (CV) |
+|---|---|---|---|---|---|---|
+| cold | first_request_total_s | 0.11 s (0.2%, 3 runs) | 0.12 s (0.2%, 2 runs) | 0.14 s (0.2%, 3 runs) | 0.37 s (0.8%, 2 runs) | n/a |
+| cold | probe_engine_s | 2.3 ms (0.5%, 3 runs) | 1.5 ms (0.2%, 2 runs) | 3.1 ms (0.7%, 3 runs) | 6.2 ms (2.1%, 2 runs) | n/a |
+| restore | restore_duration_s | 0.03 s (0.5%, 3 runs) | 0.04 s (0.7%, 2 runs) | 0.04 s (0.6%, 3 runs) | n/a | n/a |
+| restore | probe_engine_s | 10.2 ms (0.8%, 3 runs) | 9.3 ms (0.6%, 2 runs) | 9.8 ms (0.7%, 3 runs) | n/a | n/a |
+| warm | engine_s | 20.8 ms (1.6%, 3 runs) | 62.3 ms (3.0%, 3 runs) | 20.8 ms (1.7%, 3 runs) | n/a | n/a |
+| warm | probe_engine_s | 2.4 ms (0.5%, 3 runs) | 0.6 ms (0.1%, 2 runs) | 2.3 ms (0.5%, 3 runs) | n/a | n/a |
+
+### Within-run comparisons where the part mix moved the pooled result (17 of 188; floor 1% of control median)
+
+| run | control → arm | class | metric | pooled Δ | within-part Δ | mix (control / arm) | flag |
+|---|---|---|---|---:|---|---|---|
+| P1 | inst → rep | warm | engine_s | -33.7 ms | 0xd40 -8.1 | 0xd0c:10 0xd40:490 / 0xd40:500 | mix_shift |
+| E1 | gp → xz | warm | engine_s | +35.7 ms | 0xd0c +18.5, 0xd40 +7.9 | 0xd0c:33 0xd40:467 / 0xd0c:94 0xd40:406 | mix_shift |
+| E1 | gp → xzv | warm | engine_s | -63.3 ms | 0xd40 +3.8 | 0xd0c:33 0xd40:467 / 0xd40:500 | mix_shift |
+| E3 | ctl → aa | warm | probe_engine_s | -3.7 ms | 0xd40 -1.1 | 0xd0c:3 0xd40:17 / 0xd40:10 | mix_shift |
+| E3 | ctl → crt8 | warm | engine_s | +20.2 ms | 0xd0c +1.3, 0xd40 +14.2 | 0xd0c:6 0xd40:72 0xd4f:2 / 0xd0c:4 0xd40:44 0xd4f:2 | mix_shift |
+| E3 | ctl → crtf16 | cold | first_request_total_s | +1.01 s | 0xd0c -0.22, 0xd40 +0.11 | 0xd0c:6 0xd40:42 0xd4f:2 / 0xd0c:8 0xd40:39 0xd4f:3 | mix_shift |
+| E3 | ctl → crtf16 | warm | probe_engine_s | +3.7 ms | 0xd40 +0.7 | 0xd0c:3 0xd40:17 / 0xd0c:2 0xd40:8 | mix_shift |
+| E3 | ctl → ldr | warm | probe_engine_s | -1.4 ms | 0xd40 +1.2 | 0xd0c:3 0xd40:17 / 0xd40:10 | mix_shift |
+| E3 | ctl → t16x64 | warm | engine_s | +14.7 ms | 0xd40 +8.7 | 0xd0c:6 0xd40:72 0xd4f:2 / 0xd40:48 0xd4f:2 | mix_shift |
+| E3 | ctl → t16x64 | warm | probe_engine_s | +0.6 ms | 0xd40 +3.2 | 0xd0c:3 0xd40:17 / 0xd40:10 | mix_shift |
+| E3 | ctl → t64x64 | warm | probe_engine_s | +2.3 ms | 0xd40 +4.9 | 0xd0c:3 0xd40:17 / 0xd40:20 | mix_shift |
+| E3 | ctl → t8x128 | warm | engine_s | +6.0 ms | 0xd40 -6.7 | 0xd0c:6 0xd40:72 0xd4f:2 / 0xd0c:2 0xd40:46 0xd4f:2 | mix_shift |
+| E3 | ctl → t8x128 | warm | probe_engine_s | +0.1 ms | 0xd40 +2.8 | 0xd0c:3 0xd40:17 / 0xd40:10 | mix_shift |
+| E4a | base → streamfile | warm | engine_s | +17.0 ms | 0xd0c -6.9, 0xd40 +2.0 | 0xd0c:60 0xd40:440 / 0xd0c:70 0xd40:430 | mix_shift |
+| P3a | rep → cprofile | warm | engine_s | -25.9 ms | 0xd0c -70.9, 0xd40 -58.5 | 0xd0c:29 0xd40:444 / 0xd0c:30 0xd40:470 | mix_shift |
+| P3b | rep → cprofile | warm | engine_s | -17.0 ms | 0xd0c -9.4, 0xd40 +5.3 | 0xd0c:79 0xd40:421 / 0xd0c:19 0xd40:481 | mix_shift |
+| P3b | rep → telemetry | warm | engine_s | +13.6 ms | 0xd0c -39.5, 0xd40 -20.0 | 0xd0c:79 0xd40:421 / 0xd0c:102 0xd40:398 | sign_flip |
+
 <!-- hostvar:tables end -->
 
 The full record, including every comparison (not only the flagged ones), per-run distributions and the part mix of

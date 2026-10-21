@@ -1,0 +1,1336 @@
+{
+ "E1": [
+  {
+   "client": {
+    "boto3": "1.43.115",
+    "host": "x86_64",
+    "python": "3.14.6"
+   },
+   "concurrency": 10,
+   "finished": "2026-10-20T13:54:50Z",
+   "functions": {
+    "gp": {
+     "architecture": "arm64",
+     "code_sha256": "JusmUeiRX4rQnq6Jn+/1g6RI3muNK8SUO8yrtmyuGJs=",
+     "environment": {
+      "DEC_KV": "f32",
+      "DEC_UBATCH": "512",
+      "LKAI_PHASES": "1",
+      "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+      "N_SEQ": "17"
+     },
+     "handler": "lkai_entry.handler",
+     "layers": [],
+     "memory_mb": 10240,
+     "runtime": "python3.12",
+     "tracing": null
+    },
+    "gpv": {
+     "architecture": "arm64",
+     "code_sha256": "JusmUeiRX4rQnq6Jn+/1g6RI3muNK8SUO8yrtmyuGJs=",
+     "environment": {
+      "DEC_KV": "f32",
+      "DEC_UBATCH": "512",
+      "LKAI_PHASES": "1",
+      "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+      "N_SEQ": "17"
+     },
+     "handler": "lkai_entry.handler",
+     "layers": [],
+     "memory_mb": 10240,
+     "runtime": "python3.12",
+     "tracing": null
+    },
+    "xz": {
+     "architecture": "arm64",
+     "code_sha256": "JusmUeiRX4rQnq6Jn+/1g6RI3muNK8SUO8yrtmyuGJs=",
+     "environment": {
+      "DEC_KV": "f32",
+      "DEC_UBATCH": "512",
+      "LKAI_PHASES": "1",
+      "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+      "N_SEQ": "17"
+     },
+     "handler": "lkai_entry.handler",
+     "layers": [],
+     "memory_mb": 10240,
+     "runtime": "python3.12",
+     "tracing": null
+    },
+    "xzv": {
+     "architecture": "arm64",
+     "code_sha256": "JusmUeiRX4rQnq6Jn+/1g6RI3muNK8SUO8yrtmyuGJs=",
+     "environment": {
+      "DEC_KV": "f32",
+      "DEC_UBATCH": "512",
+      "LKAI_PHASES": "1",
+      "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+      "N_SEQ": "17"
+     },
+     "handler": "lkai_entry.handler",
+     "layers": [],
+     "memory_mb": 10240,
+     "runtime": "python3.12",
+     "tracing": null
+    }
+   },
+   "orders": [
+    [
+     "gp",
+     "xz",
+     "gpv",
+     "xzv"
+    ],
+    [
+     "xzv",
+     "gpv",
+     "xz",
+     "gp"
+    ],
+    [
+     "gp",
+     "xz",
+     "gpv",
+     "xzv"
+    ],
+    [
+     "xzv",
+     "gpv",
+     "xz",
+     "gp"
+    ],
+    [
+     "gp",
+     "xz",
+     "gpv",
+     "xzv"
+    ]
+   ],
+   "region": "us-east-2",
+   "rounds": 5,
+   "runtime_version_arn": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+   "started": "2026-10-20T12:37:18Z"
+  }
+ ],
+ "E2": [
+  {
+   "client": {
+    "boto3": "1.43.93",
+    "host": "x86_64",
+    "python": "3.14.6"
+   },
+   "concurrency": 10,
+   "finished": "2026-10-20T11:50:35Z",
+   "functions": {
+    "ozia": {
+     "architecture": "arm64",
+     "code_sha256": "JusmUeiRX4rQnq6Jn+/1g6RI3muNK8SUO8yrtmyuGJs=",
+     "environment": {
+      "DEC_KV": "f32",
+      "DEC_UBATCH": "512",
+      "LKAI_PHASES": "1",
+      "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/onezone_ia/s2b-h512-Q8_0.gguf",
+      "N_SEQ": "17"
+     },
+     "handler": "lkai_entry.handler",
+     "layers": [],
+     "memory_mb": 10240,
+     "runtime": "python3.12",
+     "tracing": null
+    },
+    "std": {
+     "architecture": "arm64",
+     "code_sha256": "JusmUeiRX4rQnq6Jn+/1g6RI3muNK8SUO8yrtmyuGJs=",
+     "environment": {
+      "DEC_KV": "f32",
+      "DEC_UBATCH": "512",
+      "LKAI_PHASES": "1",
+      "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/standard/s2b-h512-Q8_0.gguf",
+      "N_SEQ": "17"
+     },
+     "handler": "lkai_entry.handler",
+     "layers": [],
+     "memory_mb": 10240,
+     "runtime": "python3.12",
+     "tracing": null
+    }
+   },
+   "orders": [
+    [
+     "std",
+     "ozia"
+    ],
+    [
+     "ozia",
+     "std"
+    ],
+    [
+     "std",
+     "ozia"
+    ],
+    [
+     "ozia",
+     "std"
+    ],
+    [
+     "std",
+     "ozia"
+    ]
+   ],
+   "region": "us-east-2",
+   "rounds": 5,
+   "runtime_version_arn": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+   "started": "2026-10-20T11:13:10Z"
+  }
+ ],
+ "E3": [
+  {
+   "client": {
+    "boto3": "1.43.115",
+    "host": "x86_64",
+    "python": "3.12.13"
+   },
+   "concurrency": 10,
+   "finished": "2026-10-20T12:25:15Z",
+   "functions": {
+    "aa": {
+     "architecture": "arm64",
+     "code_sha256": "SoFYLK5TTNb1dQcmR9RQYyKjvEI+eIB7UrDA2bE/44I=",
+     "environment": {
+      "DEC_KV": "f32",
+      "DEC_UBATCH": "512",
+      "E3_DL": "threads:64:32",
+      "LKAI_PHASES": "1",
+      "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+      "N_SEQ": "17"
+     },
+     "handler": "e3_entry.handler",
+     "layers": [],
+     "memory_mb": 10240,
+     "runtime": "python3.12",
+     "tracing": null
+    },
+    "crt16": {
+     "architecture": "arm64",
+     "code_sha256": "SoFYLK5TTNb1dQcmR9RQYyKjvEI+eIB7UrDA2bE/44I=",
+     "environment": {
+      "DEC_KV": "f32",
+      "DEC_UBATCH": "512",
+      "E3_DL": "crt:16:25",
+      "LKAI_PHASES": "1",
+      "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+      "N_SEQ": "17"
+     },
+     "handler": "e3_entry.handler",
+     "layers": [],
+     "memory_mb": 10240,
+     "runtime": "python3.12",
+     "tracing": null
+    },
+    "crt8": {
+     "architecture": "arm64",
+     "code_sha256": "SoFYLK5TTNb1dQcmR9RQYyKjvEI+eIB7UrDA2bE/44I=",
+     "environment": {
+      "DEC_KV": "f32",
+      "DEC_UBATCH": "512",
+      "E3_DL": "crt:8:25",
+      "LKAI_PHASES": "1",
+      "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+      "N_SEQ": "17"
+     },
+     "handler": "e3_entry.handler",
+     "layers": [],
+     "memory_mb": 10240,
+     "runtime": "python3.12",
+     "tracing": null
+    },
+    "crtf16": {
+     "architecture": "arm64",
+     "code_sha256": "SoFYLK5TTNb1dQcmR9RQYyKjvEI+eIB7UrDA2bE/44I=",
+     "environment": {
+      "DEC_KV": "f32",
+      "DEC_UBATCH": "512",
+      "E3_DL": "crtfile:16:25",
+      "LKAI_PHASES": "1",
+      "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+      "N_SEQ": "17"
+     },
+     "handler": "e3_entry.handler",
+     "layers": [],
+     "memory_mb": 10240,
+     "runtime": "python3.12",
+     "tracing": null
+    },
+    "ctl": {
+     "architecture": "arm64",
+     "code_sha256": "0UjXBgJ+G5IPSJq9bZK3Ah3x+8/t3wuon4L5Ex0NIws=",
+     "environment": {
+      "DEC_KV": "f32",
+      "DEC_UBATCH": "512",
+      "LKAI_PHASES": "1",
+      "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+      "N_SEQ": "17"
+     },
+     "handler": "lkai_entry.handler",
+     "layers": [],
+     "memory_mb": 10240,
+     "runtime": "python3.12",
+     "tracing": null
+    },
+    "ldr": {
+     "architecture": "arm64",
+     "code_sha256": "SoFYLK5TTNb1dQcmR9RQYyKjvEI+eIB7UrDA2bE/44I=",
+     "environment": {
+      "DEC_KV": "f32",
+      "DEC_UBATCH": "512",
+      "E3_DL": "loader",
+      "LKAI_PHASES": "1",
+      "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+      "N_SEQ": "17"
+     },
+     "handler": "e3_entry.handler",
+     "layers": [],
+     "memory_mb": 10240,
+     "runtime": "python3.12",
+     "tracing": null
+    },
+    "t16x64": {
+     "architecture": "arm64",
+     "code_sha256": "SoFYLK5TTNb1dQcmR9RQYyKjvEI+eIB7UrDA2bE/44I=",
+     "environment": {
+      "DEC_KV": "f32",
+      "DEC_UBATCH": "512",
+      "E3_DL": "threads:16:64",
+      "LKAI_PHASES": "1",
+      "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+      "N_SEQ": "17"
+     },
+     "handler": "e3_entry.handler",
+     "layers": [],
+     "memory_mb": 10240,
+     "runtime": "python3.12",
+     "tracing": null
+    },
+    "t32x64": {
+     "architecture": "arm64",
+     "code_sha256": "SoFYLK5TTNb1dQcmR9RQYyKjvEI+eIB7UrDA2bE/44I=",
+     "environment": {
+      "DEC_KV": "f32",
+      "DEC_UBATCH": "512",
+      "E3_DL": "threads:32:64",
+      "LKAI_PHASES": "1",
+      "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+      "N_SEQ": "17"
+     },
+     "handler": "e3_entry.handler",
+     "layers": [],
+     "memory_mb": 10240,
+     "runtime": "python3.12",
+     "tracing": null
+    },
+    "t64x64": {
+     "architecture": "arm64",
+     "code_sha256": "SoFYLK5TTNb1dQcmR9RQYyKjvEI+eIB7UrDA2bE/44I=",
+     "environment": {
+      "DEC_KV": "f32",
+      "DEC_UBATCH": "512",
+      "E3_DL": "threads:64:64",
+      "LKAI_PHASES": "1",
+      "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+      "N_SEQ": "17"
+     },
+     "handler": "e3_entry.handler",
+     "layers": [],
+     "memory_mb": 10240,
+     "runtime": "python3.12",
+     "tracing": null
+    },
+    "t8x128": {
+     "architecture": "arm64",
+     "code_sha256": "SoFYLK5TTNb1dQcmR9RQYyKjvEI+eIB7UrDA2bE/44I=",
+     "environment": {
+      "DEC_KV": "f32",
+      "DEC_UBATCH": "512",
+      "E3_DL": "threads:8:128",
+      "LKAI_PHASES": "1",
+      "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+      "N_SEQ": "17"
+     },
+     "handler": "e3_entry.handler",
+     "layers": [],
+     "memory_mb": 10240,
+     "runtime": "python3.12",
+     "tracing": null
+    }
+   },
+   "orders": [
+    [
+     "ctl",
+     "ldr",
+     "aa",
+     "t16x64",
+     "t8x128",
+     "t32x64",
+     "t64x64",
+     "crt8",
+     "crt16",
+     "crtf16"
+    ],
+    [
+     "ldr",
+     "aa",
+     "t16x64",
+     "t8x128",
+     "t32x64",
+     "t64x64",
+     "crt8",
+     "crt16",
+     "crtf16",
+     "ctl"
+    ],
+    [
+     "aa",
+     "t16x64",
+     "t8x128",
+     "t32x64",
+     "t64x64",
+     "crt8",
+     "crt16",
+     "crtf16",
+     "ctl",
+     "ldr"
+    ],
+    [
+     "t16x64",
+     "t8x128",
+     "t32x64",
+     "t64x64",
+     "crt8",
+     "crt16",
+     "crtf16",
+     "ctl",
+     "ldr",
+     "aa"
+    ],
+    [
+     "t8x128",
+     "t32x64",
+     "t64x64",
+     "crt8",
+     "crt16",
+     "crtf16",
+     "ctl",
+     "ldr",
+     "aa",
+     "t16x64"
+    ]
+   ],
+   "region": "us-east-2",
+   "rounds": 5,
+   "runtime_version_arn": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+   "started": "2026-10-20T11:35:00Z"
+  },
+  {
+   "client": {
+    "boto3": "1.43.115",
+    "host": "x86_64",
+    "python": "3.12.13"
+   },
+   "concurrency": 10,
+   "finished": "2026-10-20T12:43:43Z",
+   "functions": {
+    "ctl": {
+     "architecture": "arm64",
+     "code_sha256": "0UjXBgJ+G5IPSJq9bZK3Ah3x+8/t3wuon4L5Ex0NIws=",
+     "environment": {
+      "DEC_KV": "f32",
+      "DEC_UBATCH": "512",
+      "LKAI_PHASES": "1",
+      "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+      "N_SEQ": "17"
+     },
+     "handler": "lkai_entry.handler",
+     "layers": [],
+     "memory_mb": 10240,
+     "runtime": "python3.12",
+     "tracing": null
+    },
+    "t64x64": {
+     "architecture": "arm64",
+     "code_sha256": "SoFYLK5TTNb1dQcmR9RQYyKjvEI+eIB7UrDA2bE/44I=",
+     "environment": {
+      "DEC_KV": "f32",
+      "DEC_UBATCH": "512",
+      "E3_DL": "threads:64:64",
+      "LKAI_PHASES": "1",
+      "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+      "N_SEQ": "17"
+     },
+     "handler": "e3_entry.handler",
+     "layers": [],
+     "memory_mb": 10240,
+     "runtime": "python3.12",
+     "tracing": null
+    }
+   },
+   "orders": [
+    [
+     "ctl",
+     "t64x64"
+    ],
+    [
+     "t64x64",
+     "ctl"
+    ],
+    [
+     "ctl",
+     "t64x64"
+    ]
+   ],
+   "region": "us-east-2",
+   "rounds": 3,
+   "runtime_version_arn": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+   "started": "2026-10-20T12:26:11Z"
+  }
+ ],
+ "E4a": [
+  {
+   "client": {
+    "boto3": "1.42.97",
+    "host": "aarch64",
+    "python": "3.9.23"
+   },
+   "concurrency": 10,
+   "finished": "2026-10-20T14:15:47Z",
+   "functions": {
+    "base": {
+     "architecture": "arm64",
+     "code_sha256": "don9uVnZz9BzdFZrRZSvBFALkWY9R1HhhmkSt8r44K8=",
+     "environment": {
+      "DEC_KV": "f32",
+      "DEC_UBATCH": "512",
+      "E4_STREAM": "0",
+      "LKAI_PHASES": "1",
+      "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+      "N_SEQ": "17"
+     },
+     "handler": "e4_entry.handler",
+     "layers": [],
+     "memory_mb": 10240,
+     "runtime": "python3.12",
+     "tracing": null
+    },
+    "stream": {
+     "architecture": "arm64",
+     "code_sha256": "don9uVnZz9BzdFZrRZSvBFALkWY9R1HhhmkSt8r44K8=",
+     "environment": {
+      "DEC_KV": "f32",
+      "DEC_UBATCH": "512",
+      "E4_STREAM": "1",
+      "LKAI_PHASES": "1",
+      "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+      "N_SEQ": "17",
+      "STREAM_ORDER": "arrival"
+     },
+     "handler": "e4_entry.handler",
+     "layers": [],
+     "memory_mb": 10240,
+     "runtime": "python3.12",
+     "tracing": null
+    },
+    "streamfile": {
+     "architecture": "arm64",
+     "code_sha256": "don9uVnZz9BzdFZrRZSvBFALkWY9R1HhhmkSt8r44K8=",
+     "environment": {
+      "DEC_KV": "f32",
+      "DEC_UBATCH": "512",
+      "E4_STREAM": "1",
+      "LKAI_PHASES": "1",
+      "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+      "N_SEQ": "17",
+      "STREAM_ORDER": "file"
+     },
+     "handler": "e4_entry.handler",
+     "layers": [],
+     "memory_mb": 10240,
+     "runtime": "python3.12",
+     "tracing": null
+    }
+   },
+   "orders": [
+    [
+     "base",
+     "stream",
+     "streamfile"
+    ],
+    [
+     "streamfile",
+     "stream",
+     "base"
+    ],
+    [
+     "base",
+     "stream",
+     "streamfile"
+    ],
+    [
+     "streamfile",
+     "stream",
+     "base"
+    ],
+    [
+     "base",
+     "stream",
+     "streamfile"
+    ]
+   ],
+   "region": "us-east-2",
+   "rounds": 5,
+   "runtime_version_arn": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+   "started": "2026-10-20T13:17:51Z"
+  }
+ ],
+ "E4b": [
+  {
+   "client": {
+    "boto3": "1.42.97",
+    "host": "aarch64",
+    "python": "3.9.23"
+   },
+   "concurrency": 10,
+   "finished": "2026-10-20T19:36:20Z",
+   "functions": {
+    "base": {
+     "architecture": "arm64",
+     "code_sha256": "3dL5mBPfFUO5TGPwtBvi6UAjZ5HepCb8S40W7zrpv2Y=",
+     "environment": {
+      "DEC_KV": "f32",
+      "DEC_UBATCH": "512",
+      "E4_STREAM": "0",
+      "LKAI_PHASES": "1",
+      "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+      "N_SEQ": "17"
+     },
+     "handler": "e4_entry.handler",
+     "layers": [],
+     "memory_mb": 10240,
+     "runtime": "python3.12",
+     "tracing": null
+    },
+    "basethr": {
+     "architecture": "arm64",
+     "code_sha256": "3dL5mBPfFUO5TGPwtBvi6UAjZ5HepCb8S40W7zrpv2Y=",
+     "environment": {
+      "DEC_KV": "f32",
+      "DEC_UBATCH": "512",
+      "E4_MMAP_THRESHOLD": "4194304",
+      "E4_STREAM": "0",
+      "LKAI_PHASES": "1",
+      "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+      "N_SEQ": "17"
+     },
+     "handler": "e4_entry.handler",
+     "layers": [],
+     "memory_mb": 10240,
+     "runtime": "python3.12",
+     "tracing": null
+    },
+    "stream": {
+     "architecture": "arm64",
+     "code_sha256": "3dL5mBPfFUO5TGPwtBvi6UAjZ5HepCb8S40W7zrpv2Y=",
+     "environment": {
+      "DEC_KV": "f32",
+      "DEC_UBATCH": "512",
+      "E4_MMAP_THRESHOLD": "4194304",
+      "E4_STREAM": "1",
+      "LKAI_PHASES": "1",
+      "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+      "N_SEQ": "17",
+      "STREAM_ORDER": "arrival"
+     },
+     "handler": "e4_entry.handler",
+     "layers": [],
+     "memory_mb": 10240,
+     "runtime": "python3.12",
+     "tracing": null
+    },
+    "streamdyn": {
+     "architecture": "arm64",
+     "code_sha256": "3dL5mBPfFUO5TGPwtBvi6UAjZ5HepCb8S40W7zrpv2Y=",
+     "environment": {
+      "DEC_KV": "f32",
+      "DEC_UBATCH": "512",
+      "E4_STREAM": "1",
+      "LKAI_PHASES": "1",
+      "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+      "N_SEQ": "17",
+      "STREAM_ORDER": "arrival"
+     },
+     "handler": "e4_entry.handler",
+     "layers": [],
+     "memory_mb": 10240,
+     "runtime": "python3.12",
+     "tracing": null
+    }
+   },
+   "orders": [
+    [
+     "base",
+     "stream",
+     "basethr",
+     "streamdyn"
+    ],
+    [
+     "streamdyn",
+     "basethr",
+     "stream",
+     "base"
+    ],
+    [
+     "base",
+     "stream",
+     "basethr",
+     "streamdyn"
+    ],
+    [
+     "streamdyn",
+     "basethr",
+     "stream",
+     "base"
+    ],
+    [
+     "base",
+     "stream",
+     "basethr",
+     "streamdyn"
+    ]
+   ],
+   "region": "us-east-2",
+   "rounds": 5,
+   "runtime_version_arn": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+   "started": "2026-10-20T18:19:14Z"
+  }
+ ],
+ "E5": [
+  {
+   "client": {
+    "boto3": "1.42.97",
+    "host": "aarch64",
+    "python": "3.9.23"
+   },
+   "concurrency": 10,
+   "finished": "2026-10-20T12:23:15Z",
+   "functions": {
+    "base": {
+     "architecture": "arm64",
+     "code_sha256": "JusmUeiRX4rQnq6Jn+/1g6RI3muNK8SUO8yrtmyuGJs=",
+     "environment": {
+      "DEC_KV": "f32",
+      "DEC_UBATCH": "512",
+      "LKAI_PHASES": "1",
+      "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+      "N_SEQ": "17"
+     },
+     "handler": "lkai_entry.handler",
+     "layers": [],
+     "memory_mb": 10240,
+     "runtime": "python3.12",
+     "tracing": null
+    },
+    "e5": {
+     "architecture": "arm64",
+     "code_sha256": "JusmUeiRX4rQnq6Jn+/1g6RI3muNK8SUO8yrtmyuGJs=",
+     "environment": {
+      "DEC_KV": "f32",
+      "DEC_UBATCH": "512",
+      "LKAI_PHASES": "1",
+      "MODEL_KEY": "weights/29aa5abe0fe316b1f6a451c7a313dc3ddcc09d039fc46315e37742e775c05790/s2b-h512-Q8_0-novocab.gguf",
+      "N_SEQ": "17"
+     },
+     "handler": "lkai_entry.handler",
+     "layers": [],
+     "memory_mb": 10240,
+     "runtime": "python3.12",
+     "tracing": null
+    }
+   },
+   "orders": [
+    [
+     "base",
+     "e5"
+    ],
+    [
+     "e5",
+     "base"
+    ],
+    [
+     "base",
+     "e5"
+    ],
+    [
+     "e5",
+     "base"
+    ],
+    [
+     "base",
+     "e5"
+    ]
+   ],
+   "region": "us-east-2",
+   "rounds": 5,
+   "runtime_version_arn": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+   "started": "2026-10-20T11:44:49Z"
+  }
+ ],
+ "E6": [
+  {
+   "client": {
+    "boto3": "1.43.116",
+    "host": "x86_64",
+    "python": "3.12.13"
+   },
+   "concurrency": 10,
+   "finished": "2026-10-21T05:32:48Z",
+   "functions": {
+    "ctl": {
+     "architecture": "arm64",
+     "code_sha256": "CtEFH5kDL3qiCNt8of2+GRMnvXIBb5Y6rfwGVg7Vwhc=",
+     "environment": {
+      "DEC_KV": "f32",
+      "DEC_UBATCH": "512",
+      "E6_ARM": "ctl",
+      "LKAI_PHASES": "1",
+      "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+      "N_SEQ": "17"
+     },
+     "handler": "e6_entry.handler",
+     "layers": [],
+     "memory_mb": 10240,
+     "runtime": "python3.12",
+     "tracing": null
+    },
+    "pyc": {
+     "architecture": "arm64",
+     "code_sha256": "7r7rXb1eUgGi0UcTvxeDpS8QltAtZr5oSVYvIYYpqS0=",
+     "environment": {
+      "DEC_KV": "f32",
+      "DEC_UBATCH": "512",
+      "E6_ARM": "pyc",
+      "LKAI_PHASES": "1",
+      "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+      "N_SEQ": "17"
+     },
+     "handler": "e6_entry.handler",
+     "layers": [],
+     "memory_mb": 10240,
+     "runtime": "python3.12",
+     "tracing": null
+    }
+   },
+   "orders": [
+    [
+     "ctl",
+     "pyc"
+    ],
+    [
+     "pyc",
+     "ctl"
+    ],
+    [
+     "ctl",
+     "pyc"
+    ],
+    [
+     "pyc",
+     "ctl"
+    ],
+    [
+     "ctl",
+     "pyc"
+    ],
+    [
+     "pyc",
+     "ctl"
+    ],
+    [
+     "ctl",
+     "pyc"
+    ],
+    [
+     "pyc",
+     "ctl"
+    ],
+    [
+     "ctl",
+     "pyc"
+    ]
+   ],
+   "region": "us-east-2",
+   "rounds": 6,
+   "runtime_version_arn": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+   "started": "2026-10-21T04:58:40Z"
+  }
+ ],
+ "P1": [
+  {
+   "client": {
+    "boto3": "1.42.97",
+    "host": "aarch64",
+    "python": "3.9.23"
+   },
+   "concurrency": 10,
+   "finished": "2026-10-20T08:39:43Z",
+   "functions": {
+    "inst": {
+     "architecture": "arm64",
+     "code_sha256": "JusmUeiRX4rQnq6Jn+/1g6RI3muNK8SUO8yrtmyuGJs=",
+     "environment": {
+      "DEC_KV": "f32",
+      "DEC_UBATCH": "512",
+      "LKAI_PHASES": "1",
+      "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+      "N_SEQ": "17"
+     },
+     "handler": "lkai_entry.handler",
+     "layers": [],
+     "memory_mb": 10240,
+     "runtime": "python3.12",
+     "tracing": null
+    },
+    "rep": {
+     "architecture": "arm64",
+     "code_sha256": "JusmUeiRX4rQnq6Jn+/1g6RI3muNK8SUO8yrtmyuGJs=",
+     "environment": {
+      "DEC_KV": "f32",
+      "DEC_UBATCH": "512",
+      "LKAI_PHASES": "0",
+      "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+      "N_SEQ": "17"
+     },
+     "handler": "lkai_entry.handler",
+     "layers": [],
+     "memory_mb": 10240,
+     "runtime": "python3.12",
+     "tracing": null
+    }
+   },
+   "orders": [
+    [
+     "inst",
+     "rep"
+    ],
+    [
+     "rep",
+     "inst"
+    ],
+    [
+     "inst",
+     "rep"
+    ],
+    [
+     "rep",
+     "inst"
+    ],
+    [
+     "inst",
+     "rep"
+    ]
+   ],
+   "region": "us-east-2",
+   "rounds": 5,
+   "runtime_version_arn": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+   "started": "2026-10-20T08:13:51Z"
+  }
+ ],
+ "P3a": [
+  {
+   "client": {
+    "boto3": "1.43.93",
+    "host": "x86_64",
+    "python": "3.14.6"
+   },
+   "concurrency": 10,
+   "finished": "2026-10-20T15:06:11Z",
+   "functions": {
+    "cprofile": {
+     "architecture": "arm64",
+     "code_sha256": "gUIqiOdLSdz9X9GuCOmjSPzjSyz9BZHSAgHpuIZdhac=",
+     "environment": {
+      "DEC_KV": "f32",
+      "DEC_UBATCH": "512",
+      "LKAI_PHASES": "1",
+      "LKAI_PROF": "cprofile",
+      "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+      "N_SEQ": "17"
+     },
+     "handler": "lkai_prof.handler",
+     "layers": [],
+     "memory_mb": 10240,
+     "runtime": "python3.12",
+     "tracing": "PassThrough"
+    },
+    "none": {
+     "architecture": "arm64",
+     "code_sha256": "gUIqiOdLSdz9X9GuCOmjSPzjSyz9BZHSAgHpuIZdhac=",
+     "environment": {
+      "DEC_KV": "f32",
+      "DEC_UBATCH": "512",
+      "LKAI_PHASES": "1",
+      "LKAI_PROF": "none",
+      "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+      "N_SEQ": "17"
+     },
+     "handler": "lkai_prof.handler",
+     "layers": [],
+     "memory_mb": 10240,
+     "runtime": "python3.12",
+     "tracing": "PassThrough"
+    },
+    "pyspy": {
+     "architecture": "arm64",
+     "code_sha256": "gUIqiOdLSdz9X9GuCOmjSPzjSyz9BZHSAgHpuIZdhac=",
+     "environment": {
+      "DEC_KV": "f32",
+      "DEC_UBATCH": "512",
+      "LKAI_PHASES": "1",
+      "LKAI_PROF": "pyspy",
+      "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+      "N_SEQ": "17"
+     },
+     "handler": "lkai_prof.handler",
+     "layers": [],
+     "memory_mb": 10240,
+     "runtime": "python3.12",
+     "tracing": "PassThrough"
+    },
+    "rep": {
+     "architecture": "arm64",
+     "code_sha256": "JusmUeiRX4rQnq6Jn+/1g6RI3muNK8SUO8yrtmyuGJs=",
+     "environment": {
+      "DEC_KV": "f32",
+      "DEC_UBATCH": "512",
+      "LKAI_PHASES": "0",
+      "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+      "N_SEQ": "17"
+     },
+     "handler": "lkai_entry.handler",
+     "layers": [],
+     "memory_mb": 10240,
+     "runtime": "python3.12",
+     "tracing": "PassThrough"
+    },
+    "sampler": {
+     "architecture": "arm64",
+     "code_sha256": "gUIqiOdLSdz9X9GuCOmjSPzjSyz9BZHSAgHpuIZdhac=",
+     "environment": {
+      "DEC_KV": "f32",
+      "DEC_UBATCH": "512",
+      "LKAI_PHASES": "1",
+      "LKAI_PROF": "sampler",
+      "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+      "N_SEQ": "17"
+     },
+     "handler": "lkai_prof.handler",
+     "layers": [],
+     "memory_mb": 10240,
+     "runtime": "python3.12",
+     "tracing": "PassThrough"
+    },
+    "telemetry": {
+     "architecture": "arm64",
+     "code_sha256": "JusmUeiRX4rQnq6Jn+/1g6RI3muNK8SUO8yrtmyuGJs=",
+     "environment": {
+      "DEC_KV": "f32",
+      "DEC_UBATCH": "512",
+      "LKAI_PHASES": "0",
+      "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+      "N_SEQ": "17"
+     },
+     "handler": "lkai_entry.handler",
+     "layers": [
+      [
+       "lkai-p3-telemetry",
+       "2"
+      ]
+     ],
+     "memory_mb": 10240,
+     "runtime": "python3.12",
+     "tracing": "PassThrough"
+    },
+    "xray": {
+     "architecture": "arm64",
+     "code_sha256": "JusmUeiRX4rQnq6Jn+/1g6RI3muNK8SUO8yrtmyuGJs=",
+     "environment": {
+      "DEC_KV": "f32",
+      "DEC_UBATCH": "512",
+      "LKAI_PHASES": "0",
+      "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+      "N_SEQ": "17"
+     },
+     "handler": "lkai_entry.handler",
+     "layers": [],
+     "memory_mb": 10240,
+     "runtime": "python3.12",
+     "tracing": "Active"
+    }
+   },
+   "orders": [
+    [
+     "rep",
+     "none",
+     "cprofile",
+     "pyspy",
+     "sampler",
+     "xray",
+     "telemetry"
+    ],
+    [
+     "telemetry",
+     "xray",
+     "sampler",
+     "pyspy",
+     "cprofile",
+     "none",
+     "rep"
+    ],
+    [
+     "rep",
+     "none",
+     "cprofile",
+     "pyspy",
+     "sampler",
+     "xray",
+     "telemetry"
+    ],
+    [
+     "telemetry",
+     "xray",
+     "sampler",
+     "pyspy",
+     "cprofile",
+     "none",
+     "rep"
+    ],
+    [
+     "rep",
+     "none",
+     "cprofile",
+     "pyspy",
+     "sampler",
+     "xray",
+     "telemetry"
+    ]
+   ],
+   "region": "us-east-2",
+   "rounds": 5,
+   "runtime_version_arn": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+   "started": "2026-10-20T12:44:56Z"
+  }
+ ],
+ "P3b": [
+  {
+   "client": {
+    "boto3": "1.43.93",
+    "host": "x86_64",
+    "python": "3.14.6"
+   },
+   "concurrency": 10,
+   "finished": "2026-10-21T02:04:20Z",
+   "functions": {
+    "cprofile": {
+     "architecture": "arm64",
+     "code_sha256": "ideZjqdUjeEO5vWzn4fAnreQ6fzo7eC3CbhKwdJN6Wk=",
+     "environment": {
+      "DEC_KV": "f32",
+      "DEC_UBATCH": "512",
+      "LKAI_PHASES": "1",
+      "LKAI_PROF": "cprofile",
+      "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+      "N_SEQ": "17"
+     },
+     "handler": "lkai_prof.handler",
+     "layers": [],
+     "memory_mb": 10240,
+     "runtime": "python3.12",
+     "tracing": "PassThrough"
+    },
+    "none": {
+     "architecture": "arm64",
+     "code_sha256": "ideZjqdUjeEO5vWzn4fAnreQ6fzo7eC3CbhKwdJN6Wk=",
+     "environment": {
+      "DEC_KV": "f32",
+      "DEC_UBATCH": "512",
+      "LKAI_PHASES": "1",
+      "LKAI_PROF": "none",
+      "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+      "N_SEQ": "17"
+     },
+     "handler": "lkai_prof.handler",
+     "layers": [],
+     "memory_mb": 10240,
+     "runtime": "python3.12",
+     "tracing": "PassThrough"
+    },
+    "pyspy": {
+     "architecture": "arm64",
+     "code_sha256": "ideZjqdUjeEO5vWzn4fAnreQ6fzo7eC3CbhKwdJN6Wk=",
+     "environment": {
+      "DEC_KV": "f32",
+      "DEC_UBATCH": "512",
+      "LKAI_PHASES": "1",
+      "LKAI_PROF": "pyspy",
+      "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+      "N_SEQ": "17"
+     },
+     "handler": "lkai_prof.handler",
+     "layers": [],
+     "memory_mb": 10240,
+     "runtime": "python3.12",
+     "tracing": "PassThrough"
+    },
+    "rep": {
+     "architecture": "arm64",
+     "code_sha256": "JusmUeiRX4rQnq6Jn+/1g6RI3muNK8SUO8yrtmyuGJs=",
+     "environment": {
+      "DEC_KV": "f32",
+      "DEC_UBATCH": "512",
+      "LKAI_PHASES": "0",
+      "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+      "N_SEQ": "17"
+     },
+     "handler": "lkai_entry.handler",
+     "layers": [],
+     "memory_mb": 10240,
+     "runtime": "python3.12",
+     "tracing": "PassThrough"
+    },
+    "rep2": {
+     "architecture": "arm64",
+     "code_sha256": "JusmUeiRX4rQnq6Jn+/1g6RI3muNK8SUO8yrtmyuGJs=",
+     "environment": {
+      "DEC_KV": "f32",
+      "DEC_UBATCH": "512",
+      "LKAI_PHASES": "0",
+      "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+      "N_SEQ": "17"
+     },
+     "handler": "lkai_entry.handler",
+     "layers": [],
+     "memory_mb": 10240,
+     "runtime": "python3.12",
+     "tracing": "PassThrough"
+    },
+    "sampler": {
+     "architecture": "arm64",
+     "code_sha256": "ideZjqdUjeEO5vWzn4fAnreQ6fzo7eC3CbhKwdJN6Wk=",
+     "environment": {
+      "DEC_KV": "f32",
+      "DEC_UBATCH": "512",
+      "LKAI_PHASES": "1",
+      "LKAI_PROF": "sampler",
+      "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+      "N_SEQ": "17"
+     },
+     "handler": "lkai_prof.handler",
+     "layers": [],
+     "memory_mb": 10240,
+     "runtime": "python3.12",
+     "tracing": "PassThrough"
+    },
+    "telemetry": {
+     "architecture": "arm64",
+     "code_sha256": "JusmUeiRX4rQnq6Jn+/1g6RI3muNK8SUO8yrtmyuGJs=",
+     "environment": {
+      "DEC_KV": "f32",
+      "DEC_UBATCH": "512",
+      "LKAI_PHASES": "0",
+      "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+      "N_SEQ": "17"
+     },
+     "handler": "lkai_entry.handler",
+     "layers": [
+      [
+       "lkai-p3-telemetry",
+       "3"
+      ]
+     ],
+     "memory_mb": 10240,
+     "runtime": "python3.12",
+     "tracing": "PassThrough"
+    },
+    "xray": {
+     "architecture": "arm64",
+     "code_sha256": "JusmUeiRX4rQnq6Jn+/1g6RI3muNK8SUO8yrtmyuGJs=",
+     "environment": {
+      "DEC_KV": "f32",
+      "DEC_UBATCH": "512",
+      "LKAI_PHASES": "0",
+      "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+      "N_SEQ": "17"
+     },
+     "handler": "lkai_entry.handler",
+     "layers": [],
+     "memory_mb": 10240,
+     "runtime": "python3.12",
+     "tracing": "Active"
+    }
+   },
+   "orders": [
+    [
+     "rep",
+     "rep2",
+     "none",
+     "cprofile",
+     "pyspy",
+     "sampler",
+     "xray",
+     "telemetry"
+    ],
+    [
+     "telemetry",
+     "xray",
+     "sampler",
+     "pyspy",
+     "cprofile",
+     "none",
+     "rep2",
+     "rep"
+    ],
+    [
+     "rep",
+     "rep2",
+     "none",
+     "cprofile",
+     "pyspy",
+     "sampler",
+     "xray",
+     "telemetry"
+    ],
+    [
+     "telemetry",
+     "xray",
+     "sampler",
+     "pyspy",
+     "cprofile",
+     "none",
+     "rep2",
+     "rep"
+    ],
+    [
+     "rep",
+     "rep2",
+     "none",
+     "cprofile",
+     "pyspy",
+     "sampler",
+     "xray",
+     "telemetry"
+    ]
+   ],
+   "region": "us-east-2",
+   "rounds": 5,
+   "runtime_version_arn": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+   "started": "2026-10-20T23:19:02Z"
+  }
+ ]
+}
