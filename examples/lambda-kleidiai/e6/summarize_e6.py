@@ -136,11 +136,57 @@ def delta(rows: list[dict], cls: str, keys: dict) -> dict:
     return out
 
 
+def _part_variability(cells: list[dict]) -> dict:
+    """Classify one CPU part using each cell's control within-cell spread as margin."""
+    deltas = [c["delta"] for c in cells]
+    signs = sorted({c["sign"] for c in cells})
+    assessed = [c for c in cells if c["control_spread"] is not None]
+    unassessed = [
+        {"round": c["round"], "reason": "fewer than two control observations"}
+        for c in cells
+        if c["control_spread"] is None
+    ]
+    cell_outcomes = []
+    for cell in assessed:
+        spread = cell["control_spread"]
+        change = cell["delta"]
+        if abs(change) <= spread:
+            cell_outcomes.append("within-control-variation")
+        elif change < -spread:
+            cell_outcomes.append("negative-beyond-control-variation")
+        else:
+            cell_outcomes.append("positive-beyond-control-variation")
+    if not assessed:
+        outcome = "insufficient-control-cell-spread"
+    elif len(set(cell_outcomes)) == 1:
+        outcome = cell_outcomes[0]
+    else:
+        outcome = "mixed-or-overlapping-control-variation"
+    return {
+        "shared_cell_count": len(cells),
+        "assessed_cell_count": len(assessed),
+        "unassessed_cells": unassessed,
+        "control_within_cell_spread_range": (
+            [
+                min(c["control_spread"] for c in assessed),
+                max(c["control_spread"] for c in assessed),
+            ]
+            if assessed
+            else None
+        ),
+        "delta_range": [min(deltas), max(deltas)],
+        "delta_signs": signs,
+        "effect_abs_floor": min(abs(d) for d in deltas),
+        "outcome": outcome,
+    }
+
+
 def host_variability_analysis(rows: list[dict]) -> dict:
     """Primary metrics by shared (round, observed CPU part) cell.
 
     Arms run as sequential waves. Their order alternates by round, so this controls
-    round drift and CPU identity but is not within-round interleaving.
+    round drift and CPU identity but is not within-round interleaving. A per-part
+    outcome compares every cell delta with that part's control round-median span.
     """
     specs = {
         "cold_imports": ("cold", COLD_KEYS["imports"]),
@@ -191,6 +237,7 @@ def host_variability_analysis(rows: list[dict]) -> dict:
                     CONTROL: [round(min(ctl), 6), round(max(ctl), 6)],
                     EXPERIMENT: [round(min(pyc), 6), round(max(pyc), 6)],
                 },
+                "control_spread": round(max(ctl) - min(ctl), 6) if len(ctl) >= 2 else None,
                 "delta": round(change, 6),
                 "ratio": round(pyc_median / ctl_median, 6) if ctl_median else None,
                 "sign": "negative" if change < 0 else "positive" if change > 0 else "zero",
@@ -202,17 +249,63 @@ def host_variability_analysis(rows: list[dict]) -> dict:
             "shared_cells": shared,
             "missing_cells": missing,
             "by_cpu_part": {
-                cpu: {
-                    "shared_cell_count": len(cells),
-                    "delta_range": [min(c["delta"] for c in cells), max(c["delta"] for c in cells)],
-                    "delta_signs": sorted({c["sign"] for c in cells}),
-                }
-                for cpu, cells in sorted(by_part.items())
+                cpu: _part_variability(cells) for cpu, cells in sorted(by_part.items())
             },
         }
 
-    import_cells = metrics["cold_imports"]["shared_cells"]
-    imports_comparable = bool(import_cells) and all(c["delta"] < 0 for c in import_cells)
+    imports = metrics["cold_imports"]
+    import_cells = imports["shared_cells"]
+    import_outcomes = {cpu: part["outcome"] for cpu, part in imports["by_cpu_part"].items()}
+    assessed_outcomes = {
+        cpu: outcome
+        for cpu, outcome in import_outcomes.items()
+        if outcome != "insufficient-control-cell-spread"
+    }
+    unassessed_parts = sorted(set(import_outcomes) - set(assessed_outcomes))
+    comparable_outcomes = {
+        "negative-beyond-control-variation",
+        "positive-beyond-control-variation",
+        "within-control-variation",
+    }
+    imports_comparable = bool(assessed_outcomes) and len(set(assessed_outcomes.values())) == 1 and all(
+        outcome in comparable_outcomes for outcome in assessed_outcomes.values()
+    )
+    imports_outcome = (
+        next(iter(set(assessed_outcomes.values()))) if imports_comparable else "host-conditioned"
+    )
+    if not assessed_outcomes:
+        imports_outcome = "unassessed"
+    directional_sign = {
+        "negative-beyond-control-variation": "negative",
+        "positive-beyond-control-variation": "positive",
+    }.get(imports_outcome)
+    unassessed_conflicts = [
+        cpu
+        for cpu in unassessed_parts
+        if directional_sign
+        and any(
+            sign not in (directional_sign, "zero")
+            for sign in imports["by_cpu_part"][cpu]["delta_signs"]
+        )
+    ]
+    if unassessed_conflicts:
+        imports_comparable = False
+        imports_outcome = "host-conditioned"
+    if imports_comparable and imports_outcome == "negative-beyond-control-variation":
+        reason = (
+            "every assessed cell has a negative delta whose absolute size exceeds its control within-cell "
+            "spread; sparse CPU parts are listed as unassessed"
+        )
+    elif imports_comparable and imports_outcome == "within-control-variation":
+        reason = (
+            "every observed CPU part stays within its control round-median span; sign variation is a "
+            "limitation, not a directional effect"
+        )
+    elif not assessed_outcomes:
+        reason = "no shared known-CPU cells have enough control observations to estimate within-cell spread"
+    else:
+        reason = "CPU parts have different or indeterminate outcomes after control-variation adjustment"
+    unknown_import_rows = unknown_cpu_rows["cold_imports"]
     return {
         "schema": "lkai-host-variability/1",
         "observed": {"primary_metrics": metrics},
@@ -226,21 +319,32 @@ def host_variability_analysis(rows: list[dict]) -> dict:
             ],
         },
         "method": "Within each observed CPU part, compare arm medians in each round. Arms are sequential waves "
-        "whose first position alternates by round; this is alternation, not within-round interleaving. Missing-arm "
-        "cells and rows without CPU identity are listed but never treated as comparable strata.",
+        "whose first position alternates by round; this is alternation, not within-round interleaving. A "
+        "directional effect must exceed the control observations' within-cell range in every assessed shared "
+        "cell; deltas inside that range support a null outcome even if their signs vary. A cell with fewer than "
+        "two control observations has no spread estimate and is explicitly unassessed. Missing-arm cells and rows "
+        "without CPU identity are listed but never treated as comparable strata.",
         "assessment": {
             "primary_effect": {
                 "metric": "cold_imports",
                 "comparable": imports_comparable,
+                "outcome": imports_outcome,
+                "by_cpu_part": import_outcomes,
+                "unassessed_cpu_parts": unassessed_parts,
+                "unassessed_conflicts": unassessed_conflicts,
                 "shared_cells": len(import_cells),
-                "reason": "all shared round/CPU-part cells have a negative pyc-minus-ctl delta"
-                if imports_comparable
-                else "shared round/CPU-part cells do not establish a stable direction",
+                "unassessed_unknown_cpu_rows": unknown_import_rows,
+                "reason": reason,
             },
             "deployment_headlines": "no consistent cold-first-request, restore, or warm benefit across observed "
             "CPU parts and rounds",
-            "rerun": "not needed: host-conditioned cells support the imports-phase effect, while deployment "
-            "headlines remain a null result; sparse unmatched cells are reported as limitations",
+            "rerun": (
+                "not needed: host-adjusted assessed cells support one imports-phase outcome; sparse CPU parts "
+                "and unmatched cells remain explicit limitations, while deployment headlines remain null"
+                if imports_comparable
+                else "needed for the imports effect unless the host-conditioned or insufficient outcome is "
+                "accepted as a limitation"
+            ),
         },
     }
 

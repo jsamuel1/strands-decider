@@ -5569,6 +5569,7 @@
          0.368185
         ]
        },
+       "control_spread": 0.035037,
        "delta": -0.355825,
        "ratio": 0.496538,
        "sign": "negative"
@@ -5594,6 +5595,7 @@
          0.44012
         ]
        },
+       "control_spread": null,
        "delta": -0.487336,
        "ratio": 0.474545,
        "sign": "negative"
@@ -5619,6 +5621,7 @@
          0.378699
         ]
        },
+       "control_spread": 0.039266,
        "delta": -0.381274,
        "ratio": 0.47214,
        "sign": "negative"
@@ -5644,6 +5647,7 @@
          0.2743
         ]
        },
+       "control_spread": null,
        "delta": -0.31176,
        "ratio": 0.468041,
        "sign": "negative"
@@ -5669,6 +5673,7 @@
          0.372584
         ]
        },
+       "control_spread": 0.080467,
        "delta": -0.385696,
        "ratio": 0.472278,
        "sign": "negative"
@@ -5694,6 +5699,7 @@
          0.354411
         ]
        },
+       "control_spread": 0.029656,
        "delta": -0.379021,
        "ratio": 0.47736,
        "sign": "negative"
@@ -5719,6 +5725,7 @@
          0.278493
         ]
        },
+       "control_spread": null,
        "delta": -0.289803,
        "ratio": 0.490049,
        "sign": "negative"
@@ -5744,6 +5751,7 @@
          0.449475
         ]
        },
+       "control_spread": null,
        "delta": -0.46808,
        "ratio": 0.489862,
        "sign": "negative"
@@ -5769,6 +5777,7 @@
          0.372887
         ]
        },
+       "control_spread": 0.024624,
        "delta": -0.371437,
        "ratio": 0.481747,
        "sign": "negative"
@@ -5794,6 +5803,7 @@
          0.270595
         ]
        },
+       "control_spread": null,
        "delta": -0.285026,
        "ratio": 0.487014,
        "sign": "negative"
@@ -5819,6 +5829,7 @@
          0.373681
         ]
        },
+       "control_spread": 0.041705,
        "delta": -0.367136,
        "ratio": 0.485664,
        "sign": "negative"
@@ -5844,6 +5855,7 @@
          0.272486
         ]
        },
+       "control_spread": null,
        "delta": -0.296955,
        "ratio": 0.477541,
        "sign": "negative"
@@ -5894,33 +5906,77 @@
      "by_cpu_part": {
       "0xd0c": {
        "shared_cell_count": 2,
+       "assessed_cell_count": 0,
+       "unassessed_cells": [
+        {
+         "round": 1,
+         "reason": "fewer than two control observations"
+        },
+        {
+         "round": 4,
+         "reason": "fewer than two control observations"
+        }
+       ],
+       "control_within_cell_spread_range": null,
        "delta_range": [
         -0.487336,
         -0.46808
        ],
        "delta_signs": [
         "negative"
-       ]
+       ],
+       "effect_abs_floor": 0.46808,
+       "outcome": "insufficient-control-cell-spread"
       },
       "0xd40": {
        "shared_cell_count": 6,
+       "assessed_cell_count": 6,
+       "unassessed_cells": [],
+       "control_within_cell_spread_range": [
+        0.024624,
+        0.080467
+       ],
        "delta_range": [
         -0.385696,
         -0.355825
        ],
        "delta_signs": [
         "negative"
-       ]
+       ],
+       "effect_abs_floor": 0.355825,
+       "outcome": "negative-beyond-control-variation"
       },
       "0xd4f": {
        "shared_cell_count": 4,
+       "assessed_cell_count": 0,
+       "unassessed_cells": [
+        {
+         "round": 1,
+         "reason": "fewer than two control observations"
+        },
+        {
+         "round": 3,
+         "reason": "fewer than two control observations"
+        },
+        {
+         "round": 4,
+         "reason": "fewer than two control observations"
+        },
+        {
+         "round": 5,
+         "reason": "fewer than two control observations"
+        }
+       ],
+       "control_within_cell_spread_range": null,
        "delta_range": [
         -0.31176,
         -0.285026
        ],
        "delta_signs": [
         "negative"
-       ]
+       ],
+       "effect_abs_floor": 0.285026,
+       "outcome": "insufficient-control-cell-spread"
       }
      }
     },
@@ -5948,6 +6004,7 @@
          36.44776
         ]
        },
+       "control_spread": 0.49119,
        "delta": 0.0311,
        "ratio": 1.000865,
        "sign": "positive"
@@ -5973,6 +6030,7 @@
          47.78192
         ]
        },
+       "control_spread": null,
        "delta": -0.8222,
        "ratio": 0.983084,
        "sign": "negative"
@@ -5998,6 +6056,7 @@
          36.26623
         ]
        },
+       "control_spread": 0.41627,
        "delta": 0.061095,
        "ratio": 1.001701,
        "sign": "positive"
@@ -6023,6 +6082,7 @@
          34.19817
         ]
        },
+       "control_spread": null,
        "delta": -0.39022,
        "ratio": 0.988718,
        "sign": "negative"
@@ -6048,6 +6108,7 @@
          36.18503
         ]
        },
+       "control_spread": 0.75172,
        "delta": 0.093675,
        "ratio": 1.002605,
        "sign": "positive"
@@ -6073,6 +6134,7 @@
          36.40423
         ]
        },
+       "control_spread": 0.51606,
        "delta": -0.17721,
        "ratio": 0.995088,
        "sign": "negative"
@@ -6098,6 +6160,7 @@
          34.48668
         ]
        },
+       "control_spread": null,
        "delta": 0.13763,
        "ratio": 1.004007,
        "sign": "positive"
@@ -6123,6 +6186,7 @@
          47.91865
         ]
        },
+       "control_spread": null,
        "delta": -0.99898,
        "ratio": 0.979578,
        "sign": "negative"
@@ -6148,6 +6212,7 @@
          36.17914
         ]
        },
+       "control_spread": 40.19212,
        "delta": -0.107435,
        "ratio": 0.997022,
        "sign": "negative"
@@ -6173,6 +6238,7 @@
          34.71002
         ]
        },
+       "control_spread": null,
        "delta": 0.40694,
        "ratio": 1.011863,
        "sign": "positive"
@@ -6198,6 +6264,7 @@
          36.29383
         ]
        },
+       "control_spread": 0.54131,
        "delta": 0.030785,
        "ratio": 1.000855,
        "sign": "positive"
@@ -6223,6 +6290,7 @@
          34.55897
         ]
        },
+       "control_spread": null,
        "delta": -0.064635,
        "ratio": 0.998132,
        "sign": "negative"
@@ -6273,16 +6341,36 @@
      "by_cpu_part": {
       "0xd0c": {
        "shared_cell_count": 2,
+       "assessed_cell_count": 0,
+       "unassessed_cells": [
+        {
+         "round": 1,
+         "reason": "fewer than two control observations"
+        },
+        {
+         "round": 4,
+         "reason": "fewer than two control observations"
+        }
+       ],
+       "control_within_cell_spread_range": null,
        "delta_range": [
         -0.99898,
         -0.8222
        ],
        "delta_signs": [
         "negative"
-       ]
+       ],
+       "effect_abs_floor": 0.8222,
+       "outcome": "insufficient-control-cell-spread"
       },
       "0xd40": {
        "shared_cell_count": 6,
+       "assessed_cell_count": 6,
+       "unassessed_cells": [],
+       "control_within_cell_spread_range": [
+        0.41627,
+        40.19212
+       ],
        "delta_range": [
         -0.17721,
         0.093675
@@ -6290,10 +6378,32 @@
        "delta_signs": [
         "negative",
         "positive"
-       ]
+       ],
+       "effect_abs_floor": 0.030785,
+       "outcome": "within-control-variation"
       },
       "0xd4f": {
        "shared_cell_count": 4,
+       "assessed_cell_count": 0,
+       "unassessed_cells": [
+        {
+         "round": 1,
+         "reason": "fewer than two control observations"
+        },
+        {
+         "round": 3,
+         "reason": "fewer than two control observations"
+        },
+        {
+         "round": 4,
+         "reason": "fewer than two control observations"
+        },
+        {
+         "round": 5,
+         "reason": "fewer than two control observations"
+        }
+       ],
+       "control_within_cell_spread_range": null,
        "delta_range": [
         -0.39022,
         0.40694
@@ -6301,7 +6411,9 @@
        "delta_signs": [
         "negative",
         "positive"
-       ]
+       ],
+       "effect_abs_floor": 0.064635,
+       "outcome": "insufficient-control-cell-spread"
       }
      }
     },
@@ -6329,6 +6441,7 @@
          4.24503
         ]
        },
+       "control_spread": 1.43781,
        "delta": -0.079245,
        "ratio": 0.980119,
        "sign": "negative"
@@ -6354,6 +6467,7 @@
          4.31479
         ]
        },
+       "control_spread": 0.2386,
        "delta": -0.0279,
        "ratio": 0.992895,
        "sign": "negative"
@@ -6379,6 +6493,7 @@
          3.98686
         ]
        },
+       "control_spread": 0.42973,
        "delta": -0.03932,
        "ratio": 0.989769,
        "sign": "negative"
@@ -6405,13 +6520,21 @@
      "by_cpu_part": {
       "0xd40": {
        "shared_cell_count": 3,
+       "assessed_cell_count": 3,
+       "unassessed_cells": [],
+       "control_within_cell_spread_range": [
+        0.2386,
+        1.43781
+       ],
        "delta_range": [
         -0.079245,
         -0.0279
        ],
        "delta_signs": [
         "negative"
-       ]
+       ],
+       "effect_abs_floor": 0.0279,
+       "outcome": "within-control-variation"
       }
      }
     },
@@ -6439,6 +6562,7 @@
          1.79603
         ]
        },
+       "control_spread": 1.52793,
        "delta": 0.00824,
        "ratio": 1.013645,
        "sign": "positive"
@@ -6464,6 +6588,7 @@
          3.41812
         ]
        },
+       "control_spread": 3.02315,
        "delta": 0.03262,
        "ratio": 1.028925,
        "sign": "positive"
@@ -6489,6 +6614,7 @@
          1.793
         ]
        },
+       "control_spread": 1.5322,
        "delta": 0.02305,
        "ratio": 1.038303,
        "sign": "positive"
@@ -6514,6 +6640,7 @@
          1.52391
         ]
        },
+       "control_spread": 1.27124,
        "delta": -0.01,
        "ratio": 0.981588,
        "sign": "negative"
@@ -6539,6 +6666,7 @@
          1.88149
         ]
        },
+       "control_spread": 1.53827,
        "delta": 0.006765,
        "ratio": 1.011057,
        "sign": "positive"
@@ -6564,6 +6692,7 @@
          1.79809
         ]
        },
+       "control_spread": 1.548,
        "delta": -0.00289,
        "ratio": 0.995293,
        "sign": "negative"
@@ -6589,6 +6718,7 @@
          1.54958
         ]
        },
+       "control_spread": 1.30079,
        "delta": 0.00533,
        "ratio": 1.010124,
        "sign": "positive"
@@ -6614,6 +6744,7 @@
          3.41457
         ]
        },
+       "control_spread": 3.04131,
        "delta": -0.00842,
        "ratio": 0.992506,
        "sign": "negative"
@@ -6639,6 +6770,7 @@
          1.84224
         ]
        },
+       "control_spread": 1.54236,
        "delta": 0.008855,
        "ratio": 1.01457,
        "sign": "positive"
@@ -6664,6 +6796,7 @@
          1.53065
         ]
        },
+       "control_spread": 1.33164,
        "delta": -0.0121,
        "ratio": 0.977927,
        "sign": "negative"
@@ -6689,6 +6822,7 @@
          1.81385
         ]
        },
+       "control_spread": 1.54085,
        "delta": 0.0103,
        "ratio": 1.01695,
        "sign": "positive"
@@ -6714,6 +6848,7 @@
          1.51005
         ]
        },
+       "control_spread": 1.3407,
        "delta": -0.004495,
        "ratio": 0.991909,
        "sign": "negative"
@@ -6739,6 +6874,7 @@
          0.25443
         ]
        },
+       "control_spread": 0.00926,
        "delta": -0.00342,
        "ratio": 0.986127,
        "sign": "negative"
@@ -6764,6 +6900,7 @@
          0.67926
         ]
        },
+       "control_spread": 0.09172,
        "delta": -0.000745,
        "ratio": 0.998886,
        "sign": "negative"
@@ -6789,6 +6926,7 @@
          0.553
         ]
        },
+       "control_spread": 0.15461,
        "delta": 0.00625,
        "ratio": 1.013216,
        "sign": "positive"
@@ -6855,6 +6993,12 @@
      "by_cpu_part": {
       "0xd0c": {
        "shared_cell_count": 2,
+       "assessed_cell_count": 2,
+       "unassessed_cells": [],
+       "control_within_cell_spread_range": [
+        3.02315,
+        3.04131
+       ],
        "delta_range": [
         -0.00842,
         0.03262
@@ -6862,10 +7006,18 @@
        "delta_signs": [
         "negative",
         "positive"
-       ]
+       ],
+       "effect_abs_floor": 0.00842,
+       "outcome": "within-control-variation"
       },
       "0xd40": {
        "shared_cell_count": 9,
+       "assessed_cell_count": 9,
+       "unassessed_cells": [],
+       "control_within_cell_spread_range": [
+        0.00926,
+        1.548
+       ],
        "delta_range": [
         -0.00342,
         0.02305
@@ -6873,10 +7025,18 @@
        "delta_signs": [
         "negative",
         "positive"
-       ]
+       ],
+       "effect_abs_floor": 0.000745,
+       "outcome": "within-control-variation"
       },
       "0xd4f": {
        "shared_cell_count": 4,
+       "assessed_cell_count": 4,
+       "unassessed_cells": [],
+       "control_within_cell_spread_range": [
+        1.27124,
+        1.3407
+       ],
        "delta_range": [
         -0.0121,
         0.00533
@@ -6884,7 +7044,9 @@
        "delta_signs": [
         "negative",
         "positive"
-       ]
+       ],
+       "effect_abs_floor": 0.004495,
+       "outcome": "within-control-variation"
       }
      }
     }
@@ -6916,16 +7078,31 @@
     "cgroup memory limit"
    ]
   },
-  "method": "Within each observed CPU part, compare arm medians in each round. Arms are sequential waves whose first position alternates by round; this is alternation, not within-round interleaving. Missing-arm cells and rows without CPU identity are listed but never treated as comparable strata.",
+  "method": "Within each observed CPU part, compare arm medians in each round. Arms are sequential waves whose first position alternates by round; this is alternation, not within-round interleaving. A directional effect must exceed the control observations' within-cell range in every assessed shared cell; deltas inside that range support a null outcome even if their signs vary. A cell with fewer than two control observations has no spread estimate and is explicitly unassessed. Missing-arm cells and rows without CPU identity are listed but never treated as comparable strata.",
   "assessment": {
    "primary_effect": {
     "metric": "cold_imports",
     "comparable": true,
+    "outcome": "negative-beyond-control-variation",
+    "by_cpu_part": {
+     "0xd0c": "insufficient-control-cell-spread",
+     "0xd40": "negative-beyond-control-variation",
+     "0xd4f": "insufficient-control-cell-spread"
+    },
+    "unassessed_cpu_parts": [
+     "0xd0c",
+     "0xd4f"
+    ],
+    "unassessed_conflicts": [],
     "shared_cells": 12,
-    "reason": "all shared round/CPU-part cells have a negative pyc-minus-ctl delta"
+    "unassessed_unknown_cpu_rows": {
+     "ctl": 0,
+     "pyc": 0
+    },
+    "reason": "every assessed cell has a negative delta whose absolute size exceeds its control within-cell spread; sparse CPU parts are listed as unassessed"
    },
    "deployment_headlines": "no consistent cold-first-request, restore, or warm benefit across observed CPU parts and rounds",
-   "rerun": "not needed: host-conditioned cells support the imports-phase effect, while deployment headlines remain a null result; sparse unmatched cells are reported as limitations"
+   "rerun": "not needed: host-adjusted assessed cells support one imports-phase outcome; sparse CPU parts and unmatched cells remain explicit limitations, while deployment headlines remain null"
   }
  },
  "e6": {

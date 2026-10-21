@@ -415,15 +415,86 @@ def test_host_variability_analysis_records_shared_and_missing_cells():
     assert [cell["delta"] for cell in imports["shared_cells"]] == [-0.35, -0.38]
     assert imports["by_cpu_part"]["0xd40"] == {
         "shared_cell_count": 2,
+        "assessed_cell_count": 0,
+        "unassessed_cells": [
+            {"round": 0, "reason": "fewer than two control observations"},
+            {"round": 1, "reason": "fewer than two control observations"},
+        ],
+        "control_within_cell_spread_range": None,
         "delta_range": [-0.38, -0.35],
         "delta_signs": ["negative"],
+        "effect_abs_floor": 0.35,
+        "outcome": "insufficient-control-cell-spread",
     }
     assert imports["missing_cells"] == [
         {"round": 0, "cpu_part": "0xd0c", "n": {"ctl": 1, "pyc": 0}},
         {"round": 1, "cpu_part": "0xd0c", "n": {"ctl": 0, "pyc": 1}},
     ]
-    assert h["assessment"]["primary_effect"]["comparable"] is True
+    assert h["assessment"]["primary_effect"]["comparable"] is False
+    assert h["assessment"]["primary_effect"]["outcome"] == "unassessed"
     assert "not within-round interleaving" in h["method"]
+
+
+def test_host_variability_all_in_band_is_comparable_without_directional_claim():
+    s = _summ()
+    rows = [
+        _row("ctl", "cold", 0, imports=0.70),
+        _row("ctl", "cold", 0, imports=0.80),
+        _row("pyc", "cold", 0, imports=0.71),
+        _row("ctl", "cold", 1, imports=0.70),
+        _row("ctl", "cold", 1, imports=0.80),
+        _row("pyc", "cold", 1, imports=0.79),
+    ]
+    h = s.host_variability_analysis(rows)
+    effect = h["assessment"]["primary_effect"]
+    part = h["observed"]["primary_metrics"]["cold_imports"]["by_cpu_part"]["0xd40"]
+    assert part["control_within_cell_spread_range"] == [0.1, 0.1]
+    assert part["delta_signs"] == ["negative", "positive"]
+    assert part["outcome"] == "within-control-variation"
+    assert effect["comparable"] is True
+    assert effect["outcome"] == "within-control-variation"
+    assert "sign variation is a limitation" in effect["reason"]
+
+
+def test_host_variability_host_conditioned_outcome_flip_requires_rerun():
+    s = _summ()
+    rows = [
+        _row("ctl", "cold", 0, cpu="0xd40", imports=0.70),
+        _row("ctl", "cold", 0, cpu="0xd40", imports=0.72),
+        _row("pyc", "cold", 0, cpu="0xd40", imports=0.30),
+        _row("ctl", "cold", 1, cpu="0xd40", imports=0.70),
+        _row("ctl", "cold", 1, cpu="0xd40", imports=0.72),
+        _row("pyc", "cold", 1, cpu="0xd40", imports=0.32),
+        _row("ctl", "cold", 0, cpu="0xd0c", imports=0.90),
+        _row("ctl", "cold", 0, cpu="0xd0c", imports=0.92),
+        _row("pyc", "cold", 0, cpu="0xd0c", imports=1.30),
+        _row("ctl", "cold", 1, cpu="0xd0c", imports=0.90),
+        _row("ctl", "cold", 1, cpu="0xd0c", imports=0.92),
+        _row("pyc", "cold", 1, cpu="0xd0c", imports=1.32),
+    ]
+    h = s.host_variability_analysis(rows)
+    effect = h["assessment"]["primary_effect"]
+    assert effect["by_cpu_part"] == {
+        "0xd0c": "positive-beyond-control-variation",
+        "0xd40": "negative-beyond-control-variation",
+    }
+    assert effect["comparable"] is False
+    assert effect["outcome"] == "host-conditioned"
+    assert h["assessment"]["rerun"].startswith("needed")
+
+
+def test_host_variability_single_round_part_is_not_comparable():
+    s = _summ()
+    rows = [
+        _row("ctl", "cold", 0, imports=0.70),
+        _row("pyc", "cold", 0, imports=0.35),
+    ]
+    h = s.host_variability_analysis(rows)
+    effect = h["assessment"]["primary_effect"]
+    part = h["observed"]["primary_metrics"]["cold_imports"]["by_cpu_part"]["0xd40"]
+    assert part["outcome"] == "insufficient-control-cell-spread"
+    assert part["control_within_cell_spread_range"] is None
+    assert effect["comparable"] is False
 
 
 def test_host_variability_analysis_does_not_treat_unknown_cpu_as_a_stratum():
@@ -437,7 +508,64 @@ def test_host_variability_analysis_does_not_treat_unknown_cpu_as_a_stratum():
     assert imports["shared_cells"] == []
     assert imports["missing_cells"] == []
     assert h["unknown"]["cpu_identity_rows"]["cold_imports"] == {"ctl": 1, "pyc": 1}
+    assert h["assessment"]["primary_effect"]["unassessed_unknown_cpu_rows"] == {
+        "ctl": 1,
+        "pyc": 1,
+    }
     assert h["assessment"]["primary_effect"]["comparable"] is False
+
+
+def test_host_variability_mixed_known_and_unknown_names_unassessed_rows():
+    s = _summ()
+    rows = [
+        _row("ctl", "cold", 0, imports=0.70),
+        _row("ctl", "cold", 0, imports=0.71),
+        _row("pyc", "cold", 0, imports=0.35),
+        _row("ctl", "cold", 1, imports=0.72),
+        _row("ctl", "cold", 1, imports=0.73),
+        _row("pyc", "cold", 1, imports=0.34),
+        _row("ctl", "cold", 0, cpu=None, imports=9.0),
+        _row("pyc", "cold", 0, cpu="unknown", imports=1.0),
+    ]
+    effect = s.host_variability_analysis(rows)["assessment"]["primary_effect"]
+    assert effect["comparable"] is True
+    assert effect["unassessed_cpu_parts"] == []
+    assert effect["unassessed_unknown_cpu_rows"] == {"ctl": 1, "pyc": 1}
+
+
+def test_host_variability_sparse_same_sign_parts_stay_explicitly_unassessed():
+    s = _summ()
+    rows = [
+        _row("ctl", "cold", 0, cpu="0xd40", imports=0.70),
+        _row("ctl", "cold", 0, cpu="0xd40", imports=0.72),
+        _row("pyc", "cold", 0, cpu="0xd40", imports=0.35),
+        _row("ctl", "cold", 1, cpu="0xd40", imports=0.71),
+        _row("ctl", "cold", 1, cpu="0xd40", imports=0.73),
+        _row("pyc", "cold", 1, cpu="0xd40", imports=0.34),
+        _row("ctl", "cold", 0, cpu="0xd0c", imports=0.90),
+        _row("pyc", "cold", 0, cpu="0xd0c", imports=0.40),
+    ]
+    effect = s.host_variability_analysis(rows)["assessment"]["primary_effect"]
+    assert effect["comparable"] is True
+    assert effect["unassessed_cpu_parts"] == ["0xd0c"]
+    assert effect["unassessed_conflicts"] == []
+
+
+def test_host_variability_sparse_opposite_sign_part_blocks_comparability():
+    s = _summ()
+    rows = [
+        _row("ctl", "cold", 0, cpu="0xd40", imports=0.70),
+        _row("ctl", "cold", 0, cpu="0xd40", imports=0.72),
+        _row("pyc", "cold", 0, cpu="0xd40", imports=0.35),
+        _row("ctl", "cold", 1, cpu="0xd40", imports=0.71),
+        _row("ctl", "cold", 1, cpu="0xd40", imports=0.73),
+        _row("pyc", "cold", 1, cpu="0xd40", imports=0.34),
+        _row("ctl", "cold", 0, cpu="0xd0c", imports=0.90),
+        _row("pyc", "cold", 0, cpu="0xd0c", imports=1.10),
+    ]
+    effect = s.host_variability_analysis(rows)["assessment"]["primary_effect"]
+    assert effect["comparable"] is False
+    assert effect["unassessed_conflicts"] == ["0xd0c"]
 
 
 def test_status_follows_the_headlines_not_the_targeted_phase():

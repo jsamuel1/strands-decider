@@ -131,9 +131,12 @@ Three CPU identities appeared on both arms:
 | 0xd4f | 0x0 | 0x2ff3ffff | 0x3f3bf | 6 | 5 |
 
 All environments reported 6 CPUs, kernel 5.10.255 and Python 3.12.14. Aggregate comparisons are made within one
-part. `results.json` → `host_variability` also records every primary metric per shared `(round, CPU part)` cell,
-including per-arm counts, medians, ranges, delta, ratio and sign; unmatched cells are explicit. No
-Graviton generation is claimed: the parts and features are reported as read.
+part. `results.json` → `host_variability` records every primary metric per shared `(round, CPU part)` cell,
+including per-arm counts, medians, ranges, delta, ratio and sign. It compares `|delta|` with the control
+observations' within-cell range. On 0xd40, every cold-import delta is negative and larger than that margin.
+The one-sample 0xd0c/0xd4f cells have no spread estimate, so they remain explicit unassessed supporting rows;
+their observed deltas have the same sign. Unmatched cells are also explicit. No Graviton generation is claimed:
+the parts and features are reported as read.
 
 The change removes CPU work (bytecode compilation), so a fixed-host run would only repeat the offline proxy below. The
 H1 box was not needed.
