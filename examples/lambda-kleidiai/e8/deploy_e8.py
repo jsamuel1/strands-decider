@@ -60,7 +60,9 @@ def save_state(build: str, st: dict) -> None:
 
 def arm_environment(p1_env: dict, arm: str) -> dict:
     """P1's environment (without COLD_TAG and LKAI_PHASES), LKAI_PHASES=1, E8_ARM, and the arm's switch value."""
-    env = {k: v for k, v in p1_env.items() if k not in ("COLD_TAG", "LKAI_PHASES", SWITCH, "E8_ARM")}
+    env = {
+        k: v for k, v in p1_env.items() if k not in ("COLD_TAG", "LKAI_PHASES", SWITCH, "E8_ARM")
+    }
     env |= {"COLD_TAG": "0", "LKAI_PHASES": "1", "E8_ARM": arm}
     if ARMS[arm][1] is not None:
         env[SWITCH] = ARMS[arm][1]
@@ -179,7 +181,9 @@ def up(sess, st: dict, build: str) -> None:
                     )
                 except lam.exceptions.ResourceNotFoundException:
                     lam.create_function(
-                        **cfg, Code={"S3Bucket": st["bucket"], "S3Key": st["zip_keys"][z]}, Tags=TAGS
+                        **cfg,
+                        Code={"S3Bucket": st["bucket"], "S3Key": st["zip_keys"][z]},
+                        Tags=TAGS,
                     )
                 break
             except lam.exceptions.InvalidParameterValueException as e:  # role not yet assumable

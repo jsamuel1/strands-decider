@@ -63,52 +63,22 @@ static void kleidiai_parallel_rows(int nth, size_t n_rows, size_t align, F && fn
 """
 
 
-def patch(root: Path) -> None:
-    k = root / "ggml/src/ggml-cpu/kleidiai/kleidiai.cpp"
-    s = k.read_text()
+SERIAL_PACK = (
+    "                rhs_info->pack_func_ex(1, n, k, nr, kr, sr, 0, 0,\n"
+    "                                       qdata.data(), nullptr, scales.data(),\n"
+    "                                       dst_ptr, 0, &params);\n"
+)
+NAMESPACE = "namespace ggml::cpu::kleidiai {\n\nstatic size_t round_down("
 
-    def sub(old: str, new: str, what: str) -> None:
-        nonlocal s
-        assert s.count(old) == 1, f"kleidiai.cpp {what} anchor not found"
-        s = s.replace(old, new)
-
-    sub("#include <vector>\n", "#include <vector>\n#include <thread>\n", "include")
-    anchor = "namespace ggml::cpu::kleidiai {\n\nstatic size_t round_down("
-    sub(anchor, HELPERS + anchor, "namespace")
-
-    # 1. The per-row requantisation: its body becomes a lambda over [row_begin, row_end), called once over every row
-    #    (serial) or once per block (parallel). Only Q8_0 takes the parallel path.
-    sub(
-        "            for (size_t row = 0; row < n; ++row) {\n                const uint8_t * row_data",
-        "            const int repack_nth = tensor->type == GGML_TYPE_Q8_0 ? kleidiai_repack_threads() : 0;\n"
-        "            auto requant_rows = [&](size_t row_begin, size_t row_end) {\n"
-        "            for (size_t row = row_begin; row < row_end; ++row) {\n                const uint8_t * row_data",
-        "requant loop",
-    )
-    sub(
-        "                            qdata[row * k + linear_idx] = static_cast<int8_t>(q);\n"
-        "                        }\n                    }\n                }\n            }\n        }\n\n"
-        "        if (want_f32 && slot_total > 0) {",
-        "                            qdata[row * k + linear_idx] = static_cast<int8_t>(q);\n"
-        "                        }\n                    }\n                }\n            }\n            };\n"
-        "            if (repack_nth > 1) {\n"
-        "                kleidiai_parallel_rows(repack_nth, n, 1, requant_rows);\n"
-        "            } else {\n"
-        "                requant_rows(0, n);\n"
-        "            }\n        }\n\n"
-        "        if (want_f32 && slot_total > 0) {",
-        "requant loop end",
-    )
-
+# (what, anchor, replacement). Each anchor must occur exactly once in P1's patched kleidiai.cpp.
+EDITS = [
+    ("include", "#include <vector>\n", "#include <vector>\n#include <thread>\n"),
+    ("namespace", NAMESPACE, HELPERS + NAMESPACE),
     # 2. The Q8_0 RHS pack: one call per nr-aligned row block, each into its own packed row groups.
     #    packed_size_ex(r0, ...) is the byte offset of row r0's group whenever r0 % nr == 0.
-    serial = (
-        "                rhs_info->pack_func_ex(1, n, k, nr, kr, sr, 0, 0,\n"
-        "                                       qdata.data(), nullptr, scales.data(),\n"
-        "                                       dst_ptr, 0, &params);\n"
-    )
-    sub(
-        serial,
+    (
+        "q8 pack",
+        SERIAL_PACK,
         "                const int pack_nth = tensor->type == GGML_TYPE_Q8_0 ? kleidiai_repack_threads() : 0;\n"
         "                if (pack_nth > 1 && nr > 0) {\n"
         "                    kleidiai_parallel_rows(pack_nth, n, nr, [&](size_t r0, size_t r1) {\n"
@@ -117,11 +87,60 @@ def patch(root: Path) -> None:
         "                                               dst_ptr + rhs_info->packed_size_ex(r0, k, nr, kr, 0), 0,\n"
         "                                               &params);\n"
         "                    });\n"
-        "                } else {\n" + serial + "                }\n",
-        "q8 pack",
-    )
+        "                } else {\n" + SERIAL_PACK + "                }\n",
+    ),
+]
 
-    k.write_text(s)
+
+LOOP_HEAD = (
+    "            for (size_t row = 0; row < n; ++row) {\n                const uint8_t * row_data"
+)
+LOOP_TAIL = (
+    "                            qdata[row * k + linear_idx] = static_cast<int8_t>(q);\n"
+    "                        }\n                    }\n                }\n            }\n"
+)
+SERIAL_FOR = "for (size_t row = 0; row < n; ++row)"
+BLOCK_FOR = "for (size_t row = row_begin; row < row_end; ++row)"
+
+
+def requant_edit(s: str) -> str:
+    """1. The per-row requantisation. Upstream's loop stays byte for byte as the `else` branch, so the switch-off
+    path compiles from upstream's text. The parallel branch is a copy of that loop over [row_begin, row_end), taken
+    only for Q8_0 with N > 1 (Q6_K's shared row_f32 keeps it serial)."""
+    if s.count(LOOP_HEAD) != 1:
+        raise AssertionError("kleidiai.cpp requant loop anchor not found")
+    start = s.index(LOOP_HEAD)
+    if s.count(LOOP_TAIL, start) != 1:
+        raise AssertionError("kleidiai.cpp requant loop end anchor not found")
+    end = s.index(LOOP_TAIL, start) + len(LOOP_TAIL)
+    loop = s[start:end]
+    block = loop.replace(SERIAL_FOR, BLOCK_FOR, 1)
+    new = (
+        "            const int repack_nth = tensor->type == GGML_TYPE_Q8_0 ? kleidiai_repack_threads() : 0;\n"
+        "            if (repack_nth > 1) {\n"
+        "                kleidiai_parallel_rows(repack_nth, n, 1, [&](size_t row_begin, size_t row_end) {\n"
+        + block
+        + "                });\n"
+        "            } else\n" + loop
+    )
+    return s[:start] + new + s[end:]
+
+
+def apply(s: str) -> str:
+    """The patched text of kleidiai.cpp. Refuses a tree whose anchors are missing or already patched."""
+    if "kleidiai_repack_threads" in s:
+        raise AssertionError("kleidiai.cpp already carries the E8 patch")
+    s = requant_edit(s)
+    for what, old, new in EDITS:
+        if s.count(old) != 1:
+            raise AssertionError(f"kleidiai.cpp {what} anchor not found")
+        s = s.replace(old, new)
+    return s
+
+
+def patch(root: Path) -> None:
+    k = root / "ggml/src/ggml-cpu/kleidiai/kleidiai.cpp"
+    k.write_text(apply(k.read_text()))
 
 
 if __name__ == "__main__":

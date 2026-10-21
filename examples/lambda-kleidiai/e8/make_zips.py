@@ -74,7 +74,9 @@ def build(p1_zip: str, p1_manifest: str, libs: str, out: str, wrapper_dir: str =
         if clash := sorted(names & set(WRAPPER)):
             sys.exit(f"{clash} already in the P1 zip")
         variants = variant_entries(src)
-        have = sorted(f for f in os.listdir(libs) if f.startswith("libggml-cpu-") and f.endswith(".so"))
+        have = sorted(
+            f for f in os.listdir(libs) if f.startswith("libggml-cpu-") and f.endswith(".so")
+        )
         if [os.path.basename(v) for v in variants] != have:
             sys.exit(f"--libs must hold exactly P1's variants {variants}, has {have}")
         for arm in ("base", "off"):
@@ -110,7 +112,14 @@ def main() -> None:
     ap.add_argument("--out", required=True)
     a = ap.parse_args()
     r = build(a.p1_zip, a.p1_manifest, a.libs, a.out)
-    print("base", r["base_zip"]["sha256"][:12], "off", r["off_zip"]["sha256"][:12], len(r["replaced"]), "replaced")
+    print(
+        "base",
+        r["base_zip"]["sha256"][:12],
+        "off",
+        r["off_zip"]["sha256"][:12],
+        len(r["replaced"]),
+        "replaced",
+    )
 
 
 if __name__ == "__main__":
