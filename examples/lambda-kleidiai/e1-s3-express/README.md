@@ -85,6 +85,13 @@ Lambda chooses the host for each execution environment, and E1 cannot control th
   different CPU mixes produced the change.
 - `unknown`: what the run did not record. That covers CPU implementer, variant and revision, feature flags and
   HWCAPs, core count, cgroup limits, kernel release, and the AZ of non-VPC environments.
+- `snapshot_init`: the same check for the SnapStart snapshot inits, whose weight download sits behind every
+  restore. Each `before_snapshot` record takes its CPU part from the engine init line in its own log stream, its
+  `env_id` from the record and its version from the stream name. Per arm it reports the CPU-part mix, missing
+  `env_id`s, streams or environments showing more than one part, and records per version. Per contrast it reports
+  each arm's CPU-part shares and the snapshot `weight_download` median delta within each part with at least 3
+  records per arm. Records whose stream shows no part (`unknown`) or several (`ambiguous`) are counted, never
+  compared. No status rule is applied, because snapshot inits are not paired by round.
 
 CPU part values are reported as recorded and are not mapped to a processor generation.
 
@@ -93,6 +100,12 @@ headline is `improved` within all three parts. Within 0xd40, xz − gp cold `wei
 in 5/5 rounds. The same-AZ contrast stays null on 0xd40. `pooled_mix_confounded` is empty, so the CPU mix does
 not change any conclusion and the run was not repeated. H1's fixed-host EC2 baseline isolates CPU and memory
 effects, but E1's variable is the network path, so it does not apply.
+
+The 56 snapshot inits all recorded an `env_id` and exactly one CPU part per stream. Every arm drew 0xd40 and
+0xd0c in equal numbers (gp and xz 5 + 5, gpv and xzv 9 + 9), so the snapshot contrasts compare identical CPU
+mixes. Within each part, xz − gp snapshot `weight_download` is −0.70 s on 0xd40 and −1.21 s on 0xd0c (5 vs 5
+each), the same sign as the pooled −1.02 s. The same-AZ contrast stays within ±0.07 s on both parts. With 5 to 9
+records per arm and part, these figures support the direction only.
 
 ## Files
 

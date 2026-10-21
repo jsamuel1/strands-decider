@@ -623,6 +623,90 @@ def test_host_variability_comparable_verdict_names_unassessed_unknown_rows():
     assert "unassessed" not in hv_all_known["verdict"]
 
 
+def _snap_logs(tmp_path, streams):
+    """streams: {arm: [(stream, [cpu parts in its init lines], env_id or None, weight_download), ...]}."""
+    (tmp_path / "logs").mkdir()
+    for a, ss in streams.items():
+        with gzip.open(tmp_path / "logs" / f"lkai-e1-{a}.jsonl.gz", "wt") as f:
+            for i, (stream, parts, env, dl) in enumerate(ss):
+                for p in parts:
+                    msg = f"decider.engine init cpu_part={p} ggml_cpu=v threads=6\n"
+                    f.write(json.dumps({"logStreamName": stream, "message": msg}) + "\n")
+                rec = {"kind": "before_snapshot", "wall_ns": i, "init": {"weight_download": dl}}
+                if env:
+                    rec["env_id"] = env
+                f.write(
+                    json.dumps({"logStreamName": stream, "message": "LKAI " + json.dumps(rec)})
+                    + "\n"
+                )
+    return str(tmp_path)
+
+
+def test_snapshot_init_host_identity_comes_from_each_init_stream(tmp_path):
+    import summarize_e1
+
+    streams = {
+        a: [
+            (
+                f"2026/10/20/[2]{a}{i}{p}",
+                [p],
+                f"{a}{i}{p}",
+                base + (0.1 * i) + (1.0 if p == "0xd0c" else 0),
+            )
+            for p in ("0xd40", "0xd0c")
+            for i in range(3)
+        ]
+        for a, base in (("gp", 25.0), ("xz", 24.0))
+    }
+    # a stream on an unpublished version is not this run's snapshot
+    streams["gp"].append(("2026/10/20/[9]old", ["0xd4f"], "old", 99.0))
+    run = _snap_logs(tmp_path, streams)
+    fn_of = {"gp": "lkai-e1-gp", "xz": "lkai-e1-xz"}
+    hosts = summarize_e1.snapshot_hosts(run, {"lkai-e1-gp": {"2"}, "lkai-e1-xz": {"2"}})
+    s = summarize_e1.snapshot_host_variability(hosts, fn_of)
+    assert s["by_arm"]["gp"]["cpu_part_mix"] == {"0xd0c": 3, "0xd40": 3}
+    assert s["by_arm"]["gp"]["missing_env_id"] == 0 and s["by_arm"]["gp"]["distinct_env_ids"] == 6
+    assert s["by_arm"]["gp"]["records_per_version"] == {"2": 6}
+    c = s["weight_download_contrasts"]["bucket_type_no_vpc"]
+    assert c["same_cpu_part_shares"] is True
+    assert c["within_cpu_part"]["0xd40"]["delta_p50_s"] == pytest.approx(-1.0)
+    assert c["within_cpu_part"]["0xd0c"]["n"] == [3, 3]
+    assert all(v["same_sign_as_pooled"] for v in c["within_cpu_part"].values())
+    assert s["unassessed_records"] == {"gp": 0, "xz": 0}
+
+
+def test_snapshot_init_missing_or_ambiguous_identity_is_counted_not_compared(tmp_path):
+    import summarize_e1
+
+    streams = {
+        "gp": [(f"s/[2]g{i}", [], None, 25.0) for i in range(3)]  # no init line, no env_id
+        + [("s/[2]both", ["0xd40", "0xd0c"], "e-both", 25.0)],  # one stream, two parts
+        "xz": [(f"s/[2]x{i}", ["0xd40"], f"x{i}", 24.0) for i in range(3)],
+    }
+    run = _snap_logs(tmp_path, streams)
+    hosts = summarize_e1.snapshot_hosts(run, None)
+    s = summarize_e1.snapshot_host_variability(hosts, {"gp": "lkai-e1-gp", "xz": "lkai-e1-xz"})
+    g = s["by_arm"]["gp"]
+    assert g["cpu_part_mix"] == {"ambiguous": 1, "unknown": 3}
+    assert g["missing_env_id"] == 3 and g["streams_with_more_than_one_cpu_part"] == 1
+    c = s["weight_download_contrasts"]["bucket_type_no_vpc"]
+    assert c["within_cpu_part"] == {} and c["pooled_known_part_delta_p50_s"] is None
+    assert c["cpu_part_shares"]["gp"] == {} and c["same_cpu_part_shares"] is False
+    assert s["unassessed_records"] == {"gp": 4, "xz": 0}
+
+
+def test_snapshot_init_section_is_published_in_host_variability(tmp_path):
+    import summarize_e1
+
+    hv = summarize_e1.summarize_e1(_run(tmp_path), None, None, {})["e1"]["host_variability"]
+    s = hv["snapshot_init"]
+    # the _run fixture's snapshot streams carry no engine init line: identity unknown, never a stratum
+    assert s["by_arm"]["xz"]["n"] == 3 and s["by_arm"]["xz"]["cpu_part_mix"] == {"unknown": 3}
+    assert s["weight_download_contrasts"]["bucket_type_no_vpc"]["within_cpu_part"] == {}
+    assert "snapshot_init_cpu_part" in hv["observed"]
+    assert "raviton" not in json.dumps(s)
+
+
 def test_s3_costs_priced_by_bucket_type(tmp_path):
     import summarize_e1
 

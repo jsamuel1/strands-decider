@@ -16,13 +16,16 @@ comparison against P1's reference answers, unchanged. This adds what E1 asks for
   host_variability
                the CPU identity each invocation recorded (/proc/cpuinfo "CPU part", read per request) and the
                ggml CPU variant it loaded, the mix per arm and class, every contrast recomputed within each CPU
-               part both arms ran on, and whether the headline status survives that split. Metadata the run did
-               not record is listed as unknown. No CPU part is mapped to a processor generation.
+               part both arms ran on, and whether the headline status survives that split. The same for the
+               snapshot inits behind every restore (CPU part from each init's own log stream, env_id from its
+               record): mix, identity gaps and stability, and the snapshot weight_download delta within each
+               part. Metadata the run did not record is listed as unknown. No CPU part is mapped to a processor generation.
 """
 
 from __future__ import annotations
 
 import argparse
+import gzip
 import json
 import math
 import os
@@ -256,9 +259,149 @@ HOST_UNKNOWN = [
 ]
 MIN_PER_PART = 3  # per arm and class, for a within-part median to be reported
 _GGML_RE = re.compile(r"init cpu_part=(\S+) ggml_cpu=(\S+) threads=(\d+)")
+_CPU_RE = re.compile(r"init cpu_part=(\S+)")
 
 
-def host_variability(rows: list[dict], status: str, pooled: dict | None = None) -> dict:
+def snapshot_hosts(run: str, versions: dict[str, set[str]] | None = None) -> dict[str, list[dict]]:
+    """Every before_snapshot record in the saved logs with the host identity its own log stream recorded.
+
+    A snapshot init runs in its own execution environment (one log stream); the engine's `init cpu_part=...` line
+    in that stream is the CPU part the snapshot was built on. A record's cpu_part is that part when the stream
+    shows exactly one, `unknown` when it shows none, `ambiguous` when it shows more than one. env_id and the
+    version come from the record and the stream name. Same version filter and wall_ns de-duplication as
+    baseline/summarize.snapshot_inits, so the counts agree with snapshot_inits_by_arm."""
+    out: dict[str, list[dict]] = defaultdict(list)
+    d = os.path.join(run, "logs")
+    if not os.path.isdir(d):
+        return out
+    for f in sorted(os.listdir(d)):
+        fn = f.removesuffix(".jsonl.gz")
+        parts: dict[str, set[str]] = defaultdict(set)
+        recs: list[dict] = []
+        seen = set()
+        with gzip.open(os.path.join(d, f), "rt") as fh:
+            for line in fh:
+                e = json.loads(line)
+                stream = e.get("logStreamName", "")
+                msg = e.get("message", "")
+                for m in _CPU_RE.finditer(msg):
+                    parts[stream].add(m.group(1))
+                ver = stream.split("[", 1)[1].split("]", 1)[0] if "[" in stream else None
+                if versions is not None and ver not in versions.get(fn, set()):
+                    continue
+                for rec in p1.phases.parse_lkai(msg):
+                    if rec.get("kind") == "before_snapshot" and rec.get("wall_ns") not in seen:
+                        seen.add(rec.get("wall_ns"))
+                        recs.append({"rec": rec, "stream": stream, "version": ver})
+        for x in recs:
+            ps = parts.get(x["stream"], set())
+            part = next(iter(ps)) if len(ps) == 1 else ("unknown" if not ps else "ambiguous")
+            out[fn].append(
+                {
+                    "version": x["version"],
+                    "log_stream": x["stream"],
+                    "env_id": x["rec"].get("env_id"),
+                    "cpu_part": part,
+                    "weight_download": (x["rec"].get("init") or {}).get("weight_download"),
+                }
+            )
+    return out
+
+
+def snapshot_host_variability(snap_hosts: dict[str, list[dict]], fn_of: dict[str, str]) -> dict:
+    """Host identity of the snapshot inits (the weight download behind every restore): CPU-part mix per arm,
+    identity gaps and stability, and the snapshot weight_download contrasts within each CPU part.
+
+    Only a single recorded part counts as a stratum; unknown and ambiguous records are counted, never compared.
+    No status rule is applied: a version's snapshot inits are not per-round paired, so this reports medians,
+    sample counts and whether each part's delta has the pooled delta's sign."""
+    known = lambda p: p not in ("unknown", "ambiguous")  # noqa: E731
+    by_arm = {a: snap_hosts.get(fn, []) for a, fn in fn_of.items()}
+    arms: dict = {}
+    for a, recs in by_arm.items():
+        mix: dict[str, int] = defaultdict(int)
+        env_parts: dict[str, set[str]] = defaultdict(set)
+        per_version: dict[str, int] = defaultdict(int)
+        for r in recs:
+            mix[r["cpu_part"]] += 1
+            per_version[str(r["version"])] += 1
+            if r["env_id"] and known(r["cpu_part"]):
+                env_parts[r["env_id"]].add(r["cpu_part"])
+        arms[a] = {
+            "n": len(recs),
+            "cpu_part_mix": dict(sorted(mix.items())),
+            "missing_env_id": sum(1 for r in recs if not r["env_id"]),
+            "distinct_env_ids": len({r["env_id"] for r in recs if r["env_id"]}),
+            "env_ids_with_more_than_one_cpu_part": sorted(
+                e for e, ps in env_parts.items() if len(ps) > 1
+            ),
+            "streams_with_more_than_one_cpu_part": sum(
+                1 for r in recs if r["cpu_part"] == "ambiguous"
+            ),
+            "records_per_version": dict(sorted(per_version.items())),
+        }
+
+    def dl(a: str, part: str | None) -> list[float]:
+        return [
+            r["weight_download"]
+            for r in by_arm.get(a, [])
+            if r["weight_download"] is not None
+            and known(r["cpu_part"])
+            and (part is None or r["cpu_part"] == part)
+        ]
+
+    def share(a: str) -> dict[str, float]:
+        m = {p: n for p, n in arms.get(a, {}).get("cpu_part_mix", {}).items() if known(p)}
+        t = sum(m.values())
+        return {p: round(n / t, 4) for p, n in sorted(m.items())} if t else {}
+
+    contrasts: dict = {}
+    for name, (a, b) in CONTRASTS.items():
+        xa, xb = dl(a, None), dl(b, None)
+        pooled = round(statistics.median(xa) - statistics.median(xb), 6) if xa and xb else None
+        parts = sorted(
+            {r["cpu_part"] for r in by_arm.get(a, []) + by_arm.get(b, []) if known(r["cpu_part"])}
+        )
+        within = {}
+        for p in parts:
+            pa, pb = dl(a, p), dl(b, p)
+            if min(len(pa), len(pb)) >= MIN_PER_PART:
+                d = statistics.median(pa) - statistics.median(pb)
+                within[p] = {
+                    "a_p50": round(statistics.median(pa), 6),
+                    "b_p50": round(statistics.median(pb), 6),
+                    "delta_p50_s": round(d, 6),
+                    "n": [len(pa), len(pb)],
+                    "same_sign_as_pooled": pooled is not None and (d > 0) == (pooled > 0),
+                }
+        contrasts[name] = {
+            "a": a,
+            "b": b,
+            "cpu_part_shares": {a: share(a), b: share(b)},
+            "same_cpu_part_shares": share(a) == share(b),
+            "pooled_known_part_delta_p50_s": pooled,
+            "within_cpu_part": within,
+        }
+    unassessed = {
+        a: sum(v for p, v in arms[a]["cpu_part_mix"].items() if not known(p)) for a in arms
+    }
+    return {
+        "source": "before_snapshot records in logs/<function>.jsonl.gz; CPU part from the engine init line "
+        "in the same log stream; env_id from the record; version from the stream name",
+        "by_arm": arms,
+        "weight_download_contrasts": contrasts,
+        "unassessed_records": unassessed,
+        "min_samples_per_arm": MIN_PER_PART,
+        "unknown": "every field in host_variability.unknown is unrecorded for snapshot inits too",
+    }
+
+
+def host_variability(
+    rows: list[dict],
+    status: str,
+    pooled: dict | None = None,
+    snapshot: dict | None = None,
+) -> dict:
     """Is the comparison confounded by which CPU each environment landed on? Mix per arm and class, every contrast
     within each CPU part both arms ran on (MIN_PER_PART samples each), the headline status on that split, and every
     pooled measure whose status (same rule as the headline) no CPU part reproduces."""
@@ -335,6 +478,8 @@ def host_variability(rows: list[dict], status: str, pooled: dict | None = None) 
             "cpu_part": "per invocation, /proc/cpuinfo 'CPU part' read in the handler",
             "ggml_cpu_variant_by_cpu_part": {k: dict(v) for k, v in sorted(ggml.items())},
             "log_stream": "per environment, logs/<function>.jsonl.gz logStreamName",
+            "snapshot_init_cpu_part": "per snapshot init, the engine init line in that init's log stream",
+            "snapshot_init_env_id": "per snapshot init, the before_snapshot record's env_id",
             "runtime_version_arn": "conditions.json runtime_version_arn (pinned)",
         },
         "unknown": HOST_UNKNOWN,
@@ -348,6 +493,7 @@ def host_variability(rows: list[dict], status: str, pooled: dict | None = None) 
         "min_samples_per_arm": MIN_PER_PART,
         "pooled_mix_confounded": mix_confounded,
         "verdict": verdict,
+        "snapshot_init": snapshot,
     }
 
 
@@ -367,6 +513,7 @@ def summarize_e1(
             versions[fn_of[arm]].add(str(pub["version"]))
     snaps = p1.snapshot_inits(run, versions)
     snap_counts = {a: len(snaps.get(fn, [])) for a, fn in fn_of.items()}
+    snap_hv = snapshot_host_variability(snapshot_hosts(run, versions), fn_of)
     cmp = {name: {"a": a, "b": b, **contrast(rows, a, b)} for name, (a, b) in CONTRASTS.items()}
     status, why = decide(cmp)
     res["primary_arm"] = "xz"
@@ -378,7 +525,7 @@ def summarize_e1(
         "weight_download_pcts": download_pcts(rows, snaps, fn_of),
         "s3_costs_by_arm": s3_costs(cond, rows, snap_counts),
         "snapshot_inits_by_arm": snap_counts,
-        "host_variability": host_variability(rows, status, cmp),
+        "host_variability": host_variability(rows, status, cmp, snap_hv),
         "arms": {
             "gp": "general-purpose bucket, no VPC (P1's configuration, E1's own bucket)",
             "xz": "S3 Express One Zone directory bucket in the deployment AZ, no VPC (AZ of each "
