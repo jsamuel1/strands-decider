@@ -1,0 +1,444 @@
+{
+ "perf-steady": {
+  "samples": 20812,
+  "self_class": {
+   "allocator": {
+    "samples": 9346,
+    "share": 0.44906784547376516
+   },
+   "tokenizers": {
+    "samples": 8968,
+    "share": 0.4309052469729002
+   },
+   "inlined-other": {
+    "samples": 1182,
+    "share": 0.056794157216990195
+   },
+   "other": {
+    "samples": 864,
+    "share": 0.04151451085911974
+   },
+   "python": {
+    "samples": 452,
+    "share": 0.021718239477224677
+   }
+  },
+  "leaf": [
+   {
+    "frame": "_int_malloc (libc.so.6)",
+    "samples": 1847,
+    "share": 0.08874687680184509
+   },
+   {
+    "frame": "_int_free (libc.so.6)",
+    "samples": 1669,
+    "share": 0.08019411877762829
+   },
+   {
+    "frame": "__GI___libc_malloc (inlined)",
+    "samples": 1531,
+    "share": 0.07356332884874112
+   },
+   {
+    "frame": "unlink_chunk.constprop.0 (libc.so.6)",
+    "samples": 1099,
+    "share": 0.05280607341918124
+   },
+   {
+    "frame": "match_at (tokenizers.abi3.so)",
+    "samples": 930,
+    "share": 0.04468575821641361
+   },
+   {
+    "frame": "__free (inlined)",
+    "samples": 802,
+    "share": 0.03853546031135883
+   },
+   {
+    "frame": "<hashbrown::raw::RawTable<(usize, usize)>>::reserve_rehash::<hashbrown::map::make_hasher<usize, usize, std::hash::random::RandomState>::{closure#0}> (tokenizers.abi3.so)",
+    "samples": 756,
+    "share": 0.03632519700172977
+   },
+   {
+    "frame": "__GI___memcpy_sve (libc.so.6)",
+    "samples": 728,
+    "share": 0.03497981933499904
+   },
+   {
+    "frame": "[unknown] ([unknown])",
+    "samples": 655,
+    "share": 0.031472227561022484
+   },
+   {
+    "frame": "malloc_consolidate (libc.so.6)",
+    "samples": 653,
+    "share": 0.031376129156256004
+   },
+   {
+    "frame": "core::iter::adapters::flatten::and_then_or_clear::<core::iter::adapters::map::Map<alloc::vec::into_iter::IntoIter<tokenizers::tokenizer::Token>, <tokenizers::tokenizer::pre_tokenizer::PreTokenizedString>::into_encoding::{closure#2}::{closur",
+    "samples": 616,
+    "share": 0.02959830866807611
+   },
+   {
+    "frame": "<hashbrown::map::HashMap<usize, usize, std::hash::random::RandomState>>::insert (tokenizers.abi3.so)",
+    "samples": 604,
+    "share": 0.029021718239477225
+   },
+   {
+    "frame": "__realloc (inlined)",
+    "samples": 527,
+    "share": 0.02532192965596771
+   },
+   {
+    "frame": "<tokenizers::tokenizer::pre_tokenizer::BytesToCharOffsetConverter>::convert (tokenizers.abi3.so)",
+    "samples": 519,
+    "share": 0.024937536036901787
+   },
+   {
+    "frame": "<tokenizers::tokenizer::normalizer::NormalizedString>::transform_range::<core::ops::range::RangeFull, alloc::vec::Vec<(char, isize)>> (tokenizers.abi3.so)",
+    "samples": 400,
+    "share": 0.019219680953296174
+   },
+   {
+    "frame": "<core::iter::adapters::map::Map<core::iter::adapters::zip::Zip<core::iter::adapters::map::Map<core::slice::iter::Iter<tokenizers::models::bpe::word::Symbol>, <tokenizers::models::bpe::word::Word>::get_chars_iter::{closure#0}>, core::iter::a",
+    "samples": 399,
+    "share": 0.019171631750912934
+   },
+   {
+    "frame": "<tokenizers::tokenizer::pre_tokenizer::PreTokenizedString>::normalize::<<tokenizers::pre_tokenizers::byte_level::ByteLevel as tokenizers::tokenizer::PreTokenizer>::pre_tokenize::{closure#1}> (tokenizers.abi3.so)",
+    "samples": 322,
+    "share": 0.015471843167403422
+   },
+   {
+    "frame": "<std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&usize> (tokenizers.abi3.so)",
+    "samples": 321,
+    "share": 0.01542379396502018
+   },
+   {
+    "frame": "<alloc::vec::into_iter::IntoIter<(char, isize)> as core::iter::traits::iterator::Iterator>::fold::<(), core::iter::adapters::map::map_fold<(char, isize), char, (), <tokenizers::tokenizer::normalizer::NormalizedString>::transform_range<core:",
+    "samples": 317,
+    "share": 0.015231597155487218
+   },
+   {
+    "frame": "<core::iter::adapters::map::Map<core::iter::adapters::enumerate::Enumerate<core::slice::iter::Iter<u8>>, <tokenizers::pre_tokenizers::byte_level::ByteLevel as tokenizers::tokenizer::PreTokenizer>::pre_tokenize::{closure#1}::{closure#0}> as ",
+    "samples": 315,
+    "share": 0.015135498750720738
+   },
+   {
+    "frame": "<std::thread::local::LocalKey<core::cell::RefCell<ahash::hash_map::AHashMap<u64, ahash::hash_map::AHashMap<alloc::string::String, tokenizers::models::bpe::word::Word>>>>>::with::<<tokenizers::models::bpe::model::BPE>::tokenize_with_cache::{",
+    "samples": 292,
+    "share": 0.014030367095906209
+   },
+   {
+    "frame": "<ahash::random_state::RandomState as core::hash::BuildHasher>::hash_one::<&str> (tokenizers.abi3.so)",
+    "samples": 223,
+    "share": 0.010714972131462618
+   },
+   {
+    "frame": "<core::iter::adapters::map::Map<unicode_normalization_alignments::recompose::Recompositions<core::str::iter::Chars>, <tokenizers::tokenizer::normalizer::NormalizedString>::transform_range<core::ops::range::RangeFull, unicode_normalization_a",
+    "samples": 203,
+    "share": 0.009753988083797809
+   },
+   {
+    "frame": "<unicode_normalization_alignments::decompose::Decompositions<core::str::iter::Chars> as core::iter::traits::iterator::Iterator>::next (tokenizers.abi3.so)",
+    "samples": 200,
+    "share": 0.009609840476648087
+   },
+   {
+    "frame": "<core::hash::sip::Hasher<core::hash::sip::Sip13Rounds> as core::hash::Hasher>::write (tokenizers.abi3.so)",
+    "samples": 177,
+    "share": 0.008504708821833558
+   },
+   {
+    "frame": "<alloc::vec::Vec<tokenizers::tokenizer::pre_tokenizer::Split> as alloc::vec::spec_extend::SpecExtend<tokenizers::tokenizer::pre_tokenizer::Split, core::iter::adapters::filter_map::FilterMap<alloc::vec::into_iter::IntoIter<tokenizers::tokeni",
+    "samples": 167,
+    "share": 0.008024216798001154
+   },
+   {
+    "frame": "blas_thread_server (libscipy_openblas64_-f552eb69.so)",
+    "samples": 165,
+    "share": 0.007928118393234672
+   },
+   {
+    "frame": "__memcpy_generic (libc.so.6)",
+    "samples": 160,
+    "share": 0.00768787238131847
+   },
+   {
+    "frame": "unicode_normalization_alignments::normalize::compose (tokenizers.abi3.so)",
+    "samples": 154,
+    "share": 0.007399577167019027
+   },
+   {
+    "frame": "unicode_normalization_alignments::lookups::canonical_combining_class (tokenizers.abi3.so)",
+    "samples": 133,
+    "share": 0.006390543916970979
+   }
+  ],
+  "inclusive": {
+   "rayon": {
+    "samples": 11455,
+    "share": 0.5504036133000192
+   },
+   "python_interpreter": {
+    "samples": 10916,
+    "share": 0.5245050932154526
+   },
+   "python_encode": {
+    "samples": 6046,
+    "share": 0.2905054776090717
+   },
+   "into_encoding": {
+    "samples": 4969,
+    "share": 0.23875648664232174
+   },
+   "pre_tokenizer_split_regex": {
+    "samples": 4428,
+    "share": 0.21276186815298867
+   },
+   "byte_level": {
+    "samples": 3642,
+    "share": 0.1749951950797617
+   },
+   "normalize_any": {
+    "samples": 3284,
+    "share": 0.1577935806265616
+   },
+   "offsets_bytes_to_char": {
+    "samples": 2626,
+    "share": 0.1261772054583894
+   },
+   "hashmap_insert_or_rehash": {
+    "samples": 2271,
+    "share": 0.10911973861233903
+   },
+   "python_encode_batch": {
+    "samples": 2068,
+    "share": 0.09936575052854123
+   },
+   "bpe_tokenize_with_cache": {
+    "samples": 2009,
+    "share": 0.09653084758793004
+   },
+   "normalizer_nfc": {
+    "samples": 913,
+    "share": 0.04386892177589852
+   },
+   "from_file": {
+    "samples": 665,
+    "share": 0.03195271958485489
+   },
+   "serde_json": {
+    "samples": 641,
+    "share": 0.03079953872765712
+   },
+   "encoding_merge": {
+    "samples": 50,
+    "share": 0.0024024601191620218
+   },
+   "bpe_merge_word": {
+    "samples": 5,
+    "share": 0.00024024601191620219
+   }
+  }
+ },
+ "perf-init": {
+  "samples": 13485,
+  "self_class": {
+   "tokenizers": {
+    "samples": 7275,
+    "share": 0.5394883203559511
+   },
+   "allocator": {
+    "samples": 4371,
+    "share": 0.32413793103448274
+   },
+   "inlined-other": {
+    "samples": 1562,
+    "share": 0.11583240637745644
+   },
+   "other": {
+    "samples": 254,
+    "share": 0.018835743418613275
+   },
+   "python": {
+    "samples": 23,
+    "share": 0.0017055988134964777
+   }
+  },
+  "leaf": [
+   {
+    "frame": "<alloc::vec::into_iter::IntoIter<(alloc::string::String, alloc::string::String)> as core::iter::traits::iterator::Iterator>::try_fold::<(), <core::iter::adapters::enumerate::Enumerate<_> as core::iter::traits::iterator::Iterator>::try_fold:",
+    "samples": 1634,
+    "share": 0.12117167222840193
+   },
+   {
+    "frame": "__GI_memcmp (inlined)",
+    "samples": 1518,
+    "share": 0.11256952169076752
+   },
+   {
+    "frame": "<alloc::collections::btree::map::BTreeMap<alloc::string::String, serde_json::value::Value>>::insert (tokenizers.abi3.so)",
+    "samples": 1180,
+    "share": 0.0875046347793845
+   },
+   {
+    "frame": "__GI___memcpy_sve (libc.so.6)",
+    "samples": 846,
+    "share": 0.06273637374860956
+   },
+   {
+    "frame": "<ahash::random_state::RandomState as core::hash::BuildHasher>::hash_one::<&alloc::string::String> (tokenizers.abi3.so)",
+    "samples": 806,
+    "share": 0.059770114942528735
+   },
+   {
+    "frame": "__free (inlined)",
+    "samples": 766,
+    "share": 0.05680385613644791
+   },
+   {
+    "frame": "unlink_chunk.constprop.0 (libc.so.6)",
+    "samples": 686,
+    "share": 0.05087133852428624
+   },
+   {
+    "frame": "malloc_consolidate (libc.so.6)",
+    "samples": 655,
+    "share": 0.0485724879495736
+   },
+   {
+    "frame": "_int_malloc (libc.so.6)",
+    "samples": 629,
+    "share": 0.04664441972562106
+   },
+   {
+    "frame": "_int_free (libc.so.6)",
+    "samples": 403,
+    "share": 0.029885057471264367
+   },
+   {
+    "frame": "<serde::private::de::content::ContentVisitor as serde_core::de::Visitor>::visit_seq::<&mut serde_json::value::de::SeqDeserializer> (tokenizers.abi3.so)",
+    "samples": 373,
+    "share": 0.027660363366703744
+   },
+   {
+    "frame": "<hashbrown::map::HashMap<(u32, u32), (u32, u32), ahash::random_state::RandomState>>::insert (tokenizers.abi3.so)",
+    "samples": 359,
+    "share": 0.026622172784575453
+   },
+   {
+    "frame": "<serde::private::de::content::ContentRefDeserializer<serde_json::error::Error> as serde_core::de::Deserializer>::deserialize_any::<<serde_json::value::Value as serde_core::de::Deserialize>::deserialize::ValueVisitor> (tokenizers.abi3.so)",
+    "samples": 299,
+    "share": 0.02217278457545421
+   },
+   {
+    "frame": "<hashbrown::map::HashMap<alloc::string::String, u32, ahash::random_state::RandomState>>::insert (tokenizers.abi3.so)",
+    "samples": 283,
+    "share": 0.020986281053021878
+   },
+   {
+    "frame": "<serde::private::de::content::ContentVisitor as serde_core::de::Visitor>::visit_seq::<serde_json::de::SeqAccess<serde_json::read::StrRead>> (tokenizers.abi3.so)",
+    "samples": 272,
+    "share": 0.020170559881349647
+   },
+   {
+    "frame": "core::str::converts::from_utf8 (tokenizers.abi3.so)",
+    "samples": 244,
+    "share": 0.018094178717093068
+   },
+   {
+    "frame": "[unknown] ([unknown])",
+    "samples": 239,
+    "share": 0.017723396366332963
+   },
+   {
+    "frame": "__GI___libc_malloc (inlined)",
+    "samples": 228,
+    "share": 0.016907675194660732
+   },
+   {
+    "frame": "serde::private::de::content::content_clone (tokenizers.abi3.so)",
+    "samples": 199,
+    "share": 0.014757137560252131
+   },
+   {
+    "frame": "core::ptr::drop_glue::<serde_core::private::content::Content> (tokenizers.abi3.so)",
+    "samples": 156,
+    "share": 0.011568409343715239
+   },
+   {
+    "frame": "<serde_json::de::SeqAccess<_> as serde_core::de::SeqAccess>::next_element_seed::has_next_element::<serde_json::read::StrRead> (tokenizers.abi3.so)",
+    "samples": 147,
+    "share": 0.010901001112347052
+   },
+   {
+    "frame": "<&mut serde_json::de::Deserializer<serde_json::read::StrRead> as serde_core::de::Deserializer>::__deserialize_content_v1::<serde::private::de::content::ContentVisitor> (tokenizers.abi3.so)",
+    "samples": 145,
+    "share": 0.010752688172043012
+   },
+   {
+    "frame": "<serde::private::de::content::ContentVisitor as serde_core::de::Visitor>::visit_map::<serde_json::de::MapAccess<serde_json::read::StrRead>> (tokenizers.abi3.so)",
+    "samples": 129,
+    "share": 0.009566184649610678
+   },
+   {
+    "frame": "<hashbrown::raw::RawTable<(alloc::string::String, u32)>>::reserve_rehash::<hashbrown::map::make_hasher<alloc::string::String, u32, ahash::random_state::RandomState>::{closure#0}> (tokenizers.abi3.so)",
+    "samples": 112,
+    "share": 0.008305524657026326
+   },
+   {
+    "frame": "__memmove_sve (inlined)",
+    "samples": 93,
+    "share": 0.006896551724137931
+   },
+   {
+    "frame": "<serde_json::read::StrRead as serde_json::read::Read>::parse_str (tokenizers.abi3.so)",
+    "samples": 89,
+    "share": 0.006599925843529848
+   },
+   {
+    "frame": "<hashbrown::raw::RawTable<((u32, u32), (u32, u32))>>::reserve_rehash::<hashbrown::map::make_hasher<(u32, u32), (u32, u32), ahash::random_state::RandomState>::{closure#0}> (tokenizers.abi3.so)",
+    "samples": 87,
+    "share": 0.0064516129032258064
+   },
+   {
+    "frame": "<serde_json::read::SliceRead>::skip_to_escape (tokenizers.abi3.so)",
+    "samples": 80,
+    "share": 0.005932517612161661
+   },
+   {
+    "frame": "<alloc::collections::btree::map::entry::VacantEntry<alloc::string::String, serde_json::value::Value>>::insert_entry (tokenizers.abi3.so)",
+    "samples": 79,
+    "share": 0.0058583611420096405
+   },
+   {
+    "frame": "<hashbrown::map::HashMap<u32, alloc::string::String, ahash::random_state::RandomState>>::insert (tokenizers.abi3.so)",
+    "samples": 79,
+    "share": 0.0058583611420096405
+   }
+  ],
+  "inclusive": {
+   "python_interpreter": {
+    "samples": 13442,
+    "share": 0.9968112717834631
+   },
+   "from_file": {
+    "samples": 11548,
+    "share": 0.8563589173155358
+   },
+   "serde_json": {
+    "samples": 11204,
+    "share": 0.8308490915832406
+   },
+   "hashmap_insert_or_rehash": {
+    "samples": 4977,
+    "share": 0.36907675194660733
+   },
+   "pre_tokenizer_split_regex": {
+    "samples": 5,
+    "share": 0.0003707823507601038
+   }
+  }
+ }
+}

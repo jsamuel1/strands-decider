@@ -1,0 +1,20 @@
+# started on Wed Oct 21 10:33:15 2026
+
+32198.50,msec,task-clock,32198500824,100.00,1.503,CPUs utilized
+82595307545,,cycles,32390461755,100.00,2.565,GHz
+<not supported>,,instructions,0,100.00,,
+<not supported>,,branches,0,100.00,,
+<not supported>,,branch-misses,0,100.00,,
+<not supported>,,cache-references,0,100.00,,
+<not supported>,,cache-misses,0,100.00,,
+<not supported>,,L1-dcache-loads,0,100.00,,
+<not supported>,,L1-dcache-load-misses,0,100.00,,
+<not supported>,,LLC-loads,0,100.00,,
+<not supported>,,LLC-load-misses,0,100.00,,
+<not supported>,,stalled-cycles-backend,0,100.00,,
+<not supported>,,stalled-cycles-frontend,0,100.00,,
+69664,,page-faults,32198500824,100.00,2.164,K/sec
+69664,,minor-faults,32198500824,100.00,2.164,K/sec
+0,,major-faults,32198500824,100.00,0.000,/sec
+32329,,context-switches,32198500824,100.00,1.004,K/sec
+2465,,cpu-migrations,32198500824,100.00,76.556,/sec

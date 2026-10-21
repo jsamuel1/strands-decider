@@ -1,0 +1,11 @@
+{
+ "cases": 217,
+ "token_ids_compared": 61409,
+ "mismatches": 0,
+ "mismatch_rows": [],
+ "impl": "tokenizers:Tokenizer.from_file",
+ "tokenizers_version": "0.23.2",
+ "tokenizers_so_sha256": "999ab0b786c4c73eeadda6420e6048b22e0c465fc06587aa8eb0d341a287c1f3",
+ "golden_tokenizers_version": "0.23.2",
+ "machine": "aarch64"
+}

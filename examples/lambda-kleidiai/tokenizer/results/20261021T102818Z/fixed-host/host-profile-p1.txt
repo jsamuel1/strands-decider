@@ -1,0 +1,24 @@
+label: FIXED HOST, NOT LAMBDA
+host: ip-10-0-5-180
+Linux ip-10-0-5-180.ap-northeast-1.compute.internal 6.1.188-233.386.amzn2023.aarch64 #1 SMP Fri Sep 25 01:46:44 UTC 2026 aarch64 aarch64 aarch64 GNU/Linux
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm paca pacg dcpodp svei8mm svebf16 i8mm bf16 dgh rng
+CPU implementer	: 0x41
+CPU variant	: 0x1
+CPU part	: 0xd40
+CPU revision	: 1
+nproc: 16
+MemTotal:       40315808 kB
+21.38 19.46 14.81 12/1184 179109
+perf_event_paranoid: 2
+governor: unknown
+zip_sha256: 26eb2651e8915f8ad09eae899feff583a448de6b8d2bc4943bccabb66cae189b
+t0_cpus: 6-9
+other_python_affinity:
+  160120 cpus=0-5 python3.12 /w/offline_check.py --task /task --model /model.gguf --requests /w/p1
+  167362 cpus=0-15 docker run --rm --platform linux/arm64 --entrypoint bash -e ROUNDS=3 -e GDN_ROWS
+  167400 cpus=0-15 bash -c      set -euo pipefail     dnf install -y util-linux >/dev/null 2>&1    
+  168925 cpus=0-5 python3.12 /w/offline_check.py --task /task --model /model.gguf --requests /w/p1
+  174989 cpus=0-5 python3.12 /p/offline_drive.py --pkg /pkgc --gguf /w/model.gguf --threads 6 --re
+  177871 cpus=0-5 python3.12 /e11/premise_probe.py /tmp/pkg /model/s2b-h512-Q8_0.gguf /out/v3-rels
+image: public.ecr.aws/lambda/python@sha256:37fe9ca4183c36ec57e4c5eabb8893cd9fbc9c0f3053b903d9a57eb2bd6bafcc
+date_utc: 2026-10-21T10:32:27Z
