@@ -1,0 +1,1887 @@
+{
+ "schema": "lkai-host-variability/1",
+ "method": "post-run, from this run's own records; no new invocations. Comparisons are within one observed CPU part; a part counts toward the verdict when both arms have >= 3 samples in it. Arm order alternates between rounds (conditions.rounds_meta[].order). Within a round the cold and restore waves run one arm after the other and warm passes alternate arm order pass by pass, so time-within-round drift remains a limitation for cold and restore.",
+ "metadata": {
+  "cpu_part": "observed: /proc/cpuinfo 'CPU part', read by the handler in every environment (row cpu_part)",
+  "ggml_cpu_variant": "observed: the libggml-cpu variants mapped in /proc/self/maps after init (engine init log line). ggml picks the variant from the CPU features it detects; the record names the library only, not the features",
+  "threads": "configured, not observed: 6 llama.cpp threads (row timing.threads)",
+  "memory_size_mb": "observed: REPORT Memory Size",
+  "runtime_version": "observed: INIT_START Runtime Version ARN, pinned (conditions.runtime_version_arn)",
+  "architecture": "configured: arm64 (conditions.functions.*.Architectures)",
+  "region": "configured: conditions.region",
+  "execution_environment": "observed: row lkai.env_id and the CloudWatch log stream name (logs/*.jsonl.gz)",
+  "snapshot_init_cpu_part": "observed: the 'decider.engine init cpu_part=' line in the same CloudWatch log stream as each before_snapshot record (logs/*.jsonl.gz); unknown when that stream has none or two parts",
+  "snapshot_init_ggml_cpu_variant": "observed: the same line's ggml_cpu= list",
+  "kleidiai_load_path": "observed: the 'E9KAI adopt|convert|repack nr= kr=' stderr line of each environment's init (row log_tail / CloudWatch logs); on the base arm none (P1's loader prints nothing)",
+  "cpu_implementer": "unknown (not recorded)",
+  "cpu_variant": "unknown (not recorded)",
+  "cpu_revision": "unknown (not recorded)",
+  "midr": "unknown (not recorded)",
+  "cpu_feature_flags": "unknown (not recorded; /proc/cpuinfo Features was not read)",
+  "hwcap_hwcap2": "unknown (not recorded)",
+  "online_core_count": "unknown (not recorded)",
+  "cgroup_cpu_memory_limits": "unknown (not recorded)",
+  "kernel": "unknown (not recorded)",
+  "availability_zone": "unknown (not recorded)",
+  "graviton_generation": "unknown: this run recorded nothing that names a generation; never inferred from a part id or from timings"
+ },
+ "ggml_cpu_variant_by_cpu_part": {
+  "0xd0c": [
+   "libggml-cpu-armv8.0_1.so,libggml-cpu-armv8.2_2.so"
+  ],
+  "0xd40": [
+   "libggml-cpu-armv8.0_1.so,libggml-cpu-armv8.6_1.so"
+  ],
+  "0xd4f": [
+   "libggml-cpu-armv8.0_1.so,libggml-cpu-armv8.6_2.so"
+  ]
+ },
+ "log_streams_per_function": {
+  "lkai-f1ee-base": 120,
+  "lkai-f1ee-e9": 121
+ },
+ "mix": {
+  "invocations": {
+   "cold:base:0xd0c": 7,
+   "cold:base:0xd40": 39,
+   "cold:base:0xd4f": 4,
+   "cold:e9:0xd0c": 2,
+   "cold:e9:0xd40": 45,
+   "cold:e9:0xd4f": 3,
+   "restore:base:0xd0c": 8,
+   "restore:base:0xd40": 42,
+   "restore:e9:0xd0c": 6,
+   "restore:e9:0xd40": 44,
+   "warm:base:0xd0c": 80,
+   "warm:base:0xd40": 420,
+   "warm:e9:0xd0c": 60,
+   "warm:e9:0xd40": 440
+  },
+  "environments": {
+   "cold:base:0xd0c": 7,
+   "cold:base:0xd40": 39,
+   "cold:base:0xd4f": 4,
+   "cold:e9:0xd0c": 2,
+   "cold:e9:0xd40": 45,
+   "cold:e9:0xd4f": 3,
+   "restore:base:0xd0c": 8,
+   "restore:base:0xd40": 42,
+   "restore:e9:0xd0c": 6,
+   "restore:e9:0xd40": 44,
+   "warm:base:0xd0c": 8,
+   "warm:base:0xd40": 42,
+   "warm:e9:0xd0c": 6,
+   "warm:e9:0xd40": 44
+  },
+  "environments_total": 200,
+  "environments_with_more_than_one_cpu_part": 0
+ },
+ "by_class": {
+  "cold": {
+   "first_request_total": {
+    "by_cpu_part": {
+     "0xd0c": {
+      "e9": {
+       "n": 2,
+       "p50": 40.411545,
+       "min": 40.32629,
+       "max": 40.4968
+      },
+      "base": {
+       "n": 7,
+       "p50": 48.63444,
+       "min": 48.05685,
+       "max": 48.88834
+      },
+      "delta_p50": -8.222895,
+      "per_round_p50": {
+       "0": {
+        "e9": 40.4968,
+        "base": 48.66399
+       },
+       "3": {
+        "e9": 40.32629,
+        "base": 48.88834
+       }
+      },
+      "per_round_p50_range": {
+       "e9": 0.17051,
+       "base": 0.22435
+      },
+      "rounds_e9_below_base": [
+       2,
+       2
+      ]
+     },
+     "0xd40": {
+      "e9": {
+       "n": 45,
+       "p50": 31.07352,
+       "min": 30.69179,
+       "max": 31.47678
+      },
+      "base": {
+       "n": 39,
+       "p50": 35.94462,
+       "min": 35.59512,
+       "max": 36.36506
+      },
+      "delta_p50": -4.8711,
+      "per_round_p50": {
+       "0": {
+        "e9": 31.08611,
+        "base": 35.85294
+       },
+       "1": {
+        "e9": 31.190425,
+        "base": 36.04172
+       },
+       "2": {
+        "e9": 31.00178,
+        "base": 35.920115
+       },
+       "3": {
+        "e9": 31.12739,
+        "base": 35.97501
+       },
+       "4": {
+        "e9": 30.89989,
+        "base": 35.987435
+       }
+      },
+      "per_round_p50_range": {
+       "e9": 0.290535,
+       "base": 0.18878
+      },
+      "rounds_e9_below_base": [
+       5,
+       5
+      ]
+     },
+     "0xd4f": {
+      "e9": {
+       "n": 3,
+       "p50": 30.09899,
+       "min": 29.95169,
+       "max": 30.30995
+      },
+      "base": {
+       "n": 4,
+       "p50": 34.55892,
+       "min": 34.48396,
+       "max": 34.79574
+      },
+      "delta_p50": -4.45993,
+      "per_round_p50": {
+       "4": {
+        "e9": 30.20447,
+        "base": 34.50982
+       }
+      },
+      "per_round_p50_range": {
+       "e9": 0.0,
+       "base": 0.0
+      },
+      "rounds_e9_below_base": [
+       1,
+       1
+      ]
+     }
+    },
+    "unmatched_delta_p50": -4.90227
+   },
+   "model_load_mmap": {
+    "by_cpu_part": {
+     "0xd0c": {
+      "e9": {
+       "n": 2,
+       "p50": 11.600362,
+       "min": 11.545723,
+       "max": 11.655002
+      },
+      "base": {
+       "n": 7,
+       "p50": 19.687036,
+       "min": 19.567774,
+       "max": 20.045403
+      },
+      "delta_p50": -8.086674,
+      "per_round_p50": {
+       "0": {
+        "e9": 11.545723,
+        "base": 19.594688
+       },
+       "3": {
+        "e9": 11.655002,
+        "base": 20.045403
+       }
+      },
+      "per_round_p50_range": {
+       "e9": 0.109279,
+       "base": 0.450715
+      },
+      "rounds_e9_below_base": [
+       2,
+       2
+      ]
+     },
+     "0xd40": {
+      "e9": {
+       "n": 45,
+       "p50": 3.444114,
+       "min": 3.367507,
+       "max": 3.679267
+      },
+      "base": {
+       "n": 39,
+       "p50": 8.354238,
+       "min": 8.212883,
+       "max": 8.640644
+      },
+      "delta_p50": -4.910124,
+      "per_round_p50": {
+       "0": {
+        "e9": 3.447187,
+        "base": 8.329275
+       },
+       "1": {
+        "e9": 3.454634,
+        "base": 8.376961
+       },
+       "2": {
+        "e9": 3.433679,
+        "base": 8.334663
+       },
+       "3": {
+        "e9": 3.487874,
+        "base": 8.321221
+       },
+       "4": {
+        "e9": 3.395327,
+        "base": 8.399544
+       }
+      },
+      "per_round_p50_range": {
+       "e9": 0.092547,
+       "base": 0.078323
+      },
+      "rounds_e9_below_base": [
+       5,
+       5
+      ]
+     },
+     "0xd4f": {
+      "e9": {
+       "n": 3,
+       "p50": 2.91429,
+       "min": 2.828449,
+       "max": 2.954744
+      },
+      "base": {
+       "n": 4,
+       "p50": 7.195723,
+       "min": 7.109221,
+       "max": 7.316897
+      },
+      "delta_p50": -4.281433,
+      "per_round_p50": {
+       "4": {
+        "e9": 2.87137,
+        "base": 7.109221
+       }
+      },
+      "per_round_p50_range": {
+       "e9": 0.0,
+       "base": 0.0
+      },
+      "rounds_e9_below_base": [
+       1,
+       1
+      ]
+     }
+    },
+    "unmatched_delta_p50": -4.916676
+   },
+   "max_memory_mb": {
+    "by_cpu_part": {
+     "0xd0c": {
+      "e9": {
+       "n": 2,
+       "p50": 5137.0,
+       "min": 5135.0,
+       "max": 5139.0
+      },
+      "base": {
+       "n": 7,
+       "p50": 5141.0,
+       "min": 5137.0,
+       "max": 5162.0
+      },
+      "delta_p50": -4.0,
+      "per_round_p50": {
+       "0": {
+        "e9": 5139.0,
+        "base": 5160.0
+       },
+       "3": {
+        "e9": 5135.0,
+        "base": 5137.0
+       }
+      },
+      "per_round_p50_range": {
+       "e9": 4.0,
+       "base": 23.0
+      },
+      "rounds_e9_below_base": [
+       2,
+       2
+      ]
+     },
+     "0xd40": {
+      "e9": {
+       "n": 45,
+       "p50": 5158.0,
+       "min": 5154.0,
+       "max": 5162.0
+      },
+      "base": {
+       "n": 39,
+       "p50": 5158.0,
+       "min": 5135.0,
+       "max": 5164.0
+      },
+      "delta_p50": 0.0,
+      "per_round_p50": {
+       "0": {
+        "e9": 5156.0,
+        "base": 5159.0
+       },
+       "1": {
+        "e9": 5156.0,
+        "base": 5141.0
+       },
+       "2": {
+        "e9": 5159.0,
+        "base": 5147.0
+       },
+       "3": {
+        "e9": 5158.0,
+        "base": 5160.0
+       },
+       "4": {
+        "e9": 5157.0,
+        "base": 5158.0
+       }
+      },
+      "per_round_p50_range": {
+       "e9": 3.0,
+       "base": 19.0
+      },
+      "rounds_e9_below_base": [
+       3,
+       5
+      ]
+     },
+     "0xd4f": {
+      "e9": {
+       "n": 3,
+       "p50": 5157.0,
+       "min": 5155.0,
+       "max": 5158.0
+      },
+      "base": {
+       "n": 4,
+       "p50": 5160.5,
+       "min": 5158.0,
+       "max": 5163.0
+      },
+      "delta_p50": -3.5,
+      "per_round_p50": {
+       "4": {
+        "e9": 5156.5,
+        "base": 5160.0
+       }
+      },
+      "per_round_p50_range": {
+       "e9": 0.0,
+       "base": 0.0
+      },
+      "rounds_e9_below_base": [
+       1,
+       1
+      ]
+     }
+    },
+    "unmatched_delta_p50": -1.0
+   }
+  },
+  "restore": {
+   "first_request_total": {
+    "by_cpu_part": {
+     "0xd0c": {
+      "e9": {
+       "n": 6,
+       "p50": 5.31617,
+       "min": 5.19912,
+       "max": 5.48655
+      },
+      "base": {
+       "n": 8,
+       "p50": 5.16312,
+       "min": 4.96615,
+       "max": 5.31252
+      },
+      "delta_p50": 0.15305,
+      "per_round_p50": {
+       "3": {
+        "e9": 5.30797,
+        "base": 4.96615
+       },
+       "4": {
+        "e9": 5.32437,
+        "base": 5.19182
+       }
+      },
+      "per_round_p50_range": {
+       "e9": 0.0164,
+       "base": 0.22567
+      },
+      "rounds_e9_below_base": [
+       0,
+       2
+      ]
+     },
+     "0xd40": {
+      "e9": {
+       "n": 44,
+       "p50": 3.878405,
+       "min": 3.6959,
+       "max": 4.1837
+      },
+      "base": {
+       "n": 42,
+       "p50": 3.9368,
+       "min": 3.72113,
+       "max": 7.46682
+      },
+      "delta_p50": -0.058395,
+      "per_round_p50": {
+       "0": {
+        "e9": 3.874255,
+        "base": 3.93407
+       },
+       "1": {
+        "e9": 3.80942,
+        "base": 3.87637
+       },
+       "2": {
+        "e9": 3.889165,
+        "base": 3.936715
+       },
+       "3": {
+        "e9": 3.86206,
+        "base": 3.99279
+       },
+       "4": {
+        "e9": 3.96534,
+        "base": 4.15936
+       }
+      },
+      "per_round_p50_range": {
+       "e9": 0.15592,
+       "base": 0.28299
+      },
+      "rounds_e9_below_base": [
+       5,
+       5
+      ]
+     }
+    },
+    "unmatched_delta_p50": -0.073265
+   },
+   "max_memory_mb": {
+    "by_cpu_part": {
+     "0xd0c": {
+      "e9": {
+       "n": 6,
+       "p50": 5168.0,
+       "min": 5146.0,
+       "max": 5168.0
+      },
+      "base": {
+       "n": 8,
+       "p50": 5150.0,
+       "min": 5148.0,
+       "max": 5154.0
+      },
+      "delta_p50": 18.0,
+      "per_round_p50": {
+       "3": {
+        "e9": 5150.0,
+        "base": 5154.0
+       },
+       "4": {
+        "e9": 5168.0,
+        "base": 5150.0
+       }
+      },
+      "per_round_p50_range": {
+       "e9": 18.0,
+       "base": 4.0
+      },
+      "rounds_e9_below_base": [
+       1,
+       2
+      ]
+     },
+     "0xd40": {
+      "e9": {
+       "n": 44,
+       "p50": 5132.0,
+       "min": 5128.0,
+       "max": 5136.0
+      },
+      "base": {
+       "n": 42,
+       "p50": 5150.0,
+       "min": 5133.0,
+       "max": 5168.0
+      },
+      "delta_p50": -18.0,
+      "per_round_p50": {
+       "0": {
+        "e9": 5132.0,
+        "base": 5150.0
+       },
+       "1": {
+        "e9": 5130.0,
+        "base": 5152.0
+       },
+       "2": {
+        "e9": 5136.0,
+        "base": 5159.0
+       },
+       "3": {
+        "e9": 5128.0,
+        "base": 5150.0
+       },
+       "4": {
+        "e9": 5132.0,
+        "base": 5133.0
+       }
+      },
+      "per_round_p50_range": {
+       "e9": 8.0,
+       "base": 26.0
+      },
+      "rounds_e9_below_base": [
+       5,
+       5
+      ]
+     }
+    },
+    "unmatched_delta_p50": -18.0
+   }
+  },
+  "warm": {
+   "steady_state_inference": {
+    "by_cpu_part": {
+     "0xd0c": {
+      "e9": {
+       "n": 60,
+       "p50": 1.1247,
+       "min": 0.42576,
+       "max": 3.48385
+      },
+      "base": {
+       "n": 80,
+       "p50": 1.151585,
+       "min": 0.42543,
+       "max": 3.46021
+      },
+      "delta_p50": -0.026885,
+      "per_round_p50": {
+       "3": {
+        "e9": 1.14509,
+        "base": 1.123375
+       },
+       "4": {
+        "e9": 1.1247,
+        "base": 1.1967
+       }
+      },
+      "per_round_p50_range": {
+       "e9": 0.02039,
+       "base": 0.073325
+      },
+      "rounds_e9_below_base": [
+       1,
+       2
+      ]
+     },
+     "0xd40": {
+      "e9": {
+       "n": 440,
+       "p50": 0.655445,
+       "min": 0.23032,
+       "max": 1.81396
+      },
+      "base": {
+       "n": 420,
+       "p50": 0.659555,
+       "min": 0.23101,
+       "max": 1.83279
+      },
+      "delta_p50": -0.00411,
+      "per_round_p50": {
+       "0": {
+        "e9": 0.653455,
+        "base": 0.670635
+       },
+       "1": {
+        "e9": 0.663705,
+        "base": 0.65748
+       },
+       "2": {
+        "e9": 0.65012,
+        "base": 0.64297
+       },
+       "3": {
+        "e9": 0.65766,
+        "base": 0.658295
+       },
+       "4": {
+        "e9": 0.66016,
+        "base": 0.66642
+       }
+      },
+      "per_round_p50_range": {
+       "e9": 0.013585,
+       "base": 0.027665
+      },
+      "rounds_e9_below_base": [
+       3,
+       5
+      ]
+     }
+    },
+    "unmatched_delta_p50": 0.00436
+   },
+   "max_memory_mb": {
+    "by_cpu_part": {
+     "0xd0c": {
+      "e9": {
+       "n": 60,
+       "p50": 5183.0,
+       "min": 5146.0,
+       "max": 5192.0
+      },
+      "base": {
+       "n": 80,
+       "p50": 5172.0,
+       "min": 5148.0,
+       "max": 5178.0
+      },
+      "delta_p50": 11.0,
+      "per_round_p50": {
+       "3": {
+        "e9": 5176.0,
+        "base": 5178.0
+       },
+       "4": {
+        "e9": 5183.0,
+        "base": 5174.0
+       }
+      },
+      "per_round_p50_range": {
+       "e9": 7.0,
+       "base": 4.0
+      },
+      "rounds_e9_below_base": [
+       1,
+       2
+      ]
+     },
+     "0xd40": {
+      "e9": {
+       "n": 440,
+       "p50": 5152.0,
+       "min": 5128.0,
+       "max": 5159.0
+      },
+      "base": {
+       "n": 420,
+       "p50": 5173.0,
+       "min": 5133.0,
+       "max": 5194.0
+      },
+      "delta_p50": -21.0,
+      "per_round_p50": {
+       "0": {
+        "e9": 5156.0,
+        "base": 5173.0
+       },
+       "1": {
+        "e9": 5154.0,
+        "base": 5170.0
+       },
+       "2": {
+        "e9": 5156.0,
+        "base": 5176.0
+       },
+       "3": {
+        "e9": 5152.0,
+        "base": 5176.0
+       },
+       "4": {
+        "e9": 5158.0,
+        "base": 5157.0
+       }
+      },
+      "per_round_p50_range": {
+       "e9": 6.0,
+       "base": 19.0
+      },
+      "rounds_e9_below_base": [
+       4,
+       5
+      ]
+     }
+    },
+    "unmatched_delta_p50": -19.0
+   }
+  }
+ },
+ "verdict": {
+  "cold.first_request_total": {
+   "parts_with_n_ge_min": [
+    "0xd40",
+    "0xd4f"
+   ],
+   "parts_below_min_n": [
+    "0xd0c"
+   ],
+   "same_sign_in_every_part": true
+  },
+  "cold.model_load_mmap": {
+   "parts_with_n_ge_min": [
+    "0xd40",
+    "0xd4f"
+   ],
+   "parts_below_min_n": [
+    "0xd0c"
+   ],
+   "same_sign_in_every_part": true
+  },
+  "cold.max_memory_mb": {
+   "parts_with_n_ge_min": [
+    "0xd40",
+    "0xd4f"
+   ],
+   "parts_below_min_n": [
+    "0xd0c"
+   ],
+   "same_sign_in_every_part": false
+  },
+  "restore.first_request_total": {
+   "parts_with_n_ge_min": [
+    "0xd0c",
+    "0xd40"
+   ],
+   "parts_below_min_n": [],
+   "same_sign_in_every_part": false
+  },
+  "restore.max_memory_mb": {
+   "parts_with_n_ge_min": [
+    "0xd0c",
+    "0xd40"
+   ],
+   "parts_below_min_n": [],
+   "same_sign_in_every_part": false
+  },
+  "warm.steady_state_inference": {
+   "parts_with_n_ge_min": [
+    "0xd0c",
+    "0xd40"
+   ],
+   "parts_below_min_n": [],
+   "same_sign_in_every_part": true
+  },
+  "warm.max_memory_mb": {
+   "parts_with_n_ge_min": [
+    "0xd0c",
+    "0xd40"
+   ],
+   "parts_below_min_n": [],
+   "same_sign_in_every_part": false
+  }
+ },
+ "snapshot_init": {
+  "method": "before_snapshot records of the versions this run published, from the saved CloudWatch logs. A record's CPU part is the 'decider.engine init cpu_part=' line in its own log stream; a stream with no such line (missing) or with two different parts (ambiguous) leaves it unknown, and unknown records are counted here and in the pooled phases but enter no per-part comparison. One record per arm and part per round (rounds_meta), so per-round p50s are single values.",
+  "identity": {
+   "base": {
+    "records": 20,
+    "linked": 20,
+    "missing": 0,
+    "ambiguous": 0,
+    "streams_with_more_than_one_record": 0
+   },
+   "e9": {
+    "records": 20,
+    "linked": 20,
+    "missing": 0,
+    "ambiguous": 0,
+    "streams_with_more_than_one_record": 0
+   }
+  },
+  "mix": {
+   "base:0xd0c": 10,
+   "base:0xd40": 10,
+   "e9:0xd0c": 10,
+   "e9:0xd40": 10
+  },
+  "ggml_cpu_variant_by_cpu_part": {
+   "0xd0c": [
+    "libggml-cpu-armv8.0_1.so,libggml-cpu-armv8.2_2.so"
+   ],
+   "0xd40": [
+    "libggml-cpu-armv8.0_1.so,libggml-cpu-armv8.6_1.so"
+   ]
+  },
+  "environments_with_more_than_one_cpu_part": 0,
+  "by_cpu_part": {
+   "runtime_to_import": {
+    "by_cpu_part": {
+     "0xd0c": {
+      "e9": {
+       "n": 10,
+       "p50": 0.11545,
+       "min": 0.1132,
+       "max": 0.123
+      },
+      "base": {
+       "n": 10,
+       "p50": 0.11675,
+       "min": 0.1137,
+       "max": 0.1196
+      },
+      "delta_p50": -0.0013,
+      "per_round_p50": {
+       "0": {
+        "e9": 0.11515,
+        "base": 0.1155
+       },
+       "1": {
+        "e9": 0.11715,
+        "base": 0.1179
+       },
+       "2": {
+        "e9": 0.11545,
+        "base": 0.1152
+       },
+       "3": {
+        "e9": 0.11535,
+        "base": 0.11645
+       },
+       "4": {
+        "e9": 0.11885,
+        "base": 0.1172
+       }
+      },
+      "per_round_p50_range": {
+       "e9": 0.0037,
+       "base": 0.0027
+      },
+      "rounds_e9_below_base": [
+       3,
+       5
+      ]
+     },
+     "0xd40": {
+      "e9": {
+       "n": 10,
+       "p50": 0.0875,
+       "min": 0.0861,
+       "max": 0.0889
+      },
+      "base": {
+       "n": 10,
+       "p50": 0.08715,
+       "min": 0.0861,
+       "max": 0.0892
+      },
+      "delta_p50": 0.00035,
+      "per_round_p50": {
+       "0": {
+        "e9": 0.0868,
+        "base": 0.08765
+       },
+       "1": {
+        "e9": 0.0874,
+        "base": 0.08635
+       },
+       "2": {
+        "e9": 0.0873,
+        "base": 0.0885
+       },
+       "3": {
+        "e9": 0.0878,
+        "base": 0.0873
+       },
+       "4": {
+        "e9": 0.0879,
+        "base": 0.087
+       }
+      },
+      "per_round_p50_range": {
+       "e9": 0.0011,
+       "base": 0.00215
+      },
+      "rounds_e9_below_base": [
+       2,
+       5
+      ]
+     }
+    },
+    "unmatched_delta_p50": -0.0004
+   },
+   "imports": {
+    "by_cpu_part": {
+     "0xd0c": {
+      "e9": {
+       "n": 10,
+       "p50": 0.829816,
+       "min": 0.815641,
+       "max": 0.895025
+      },
+      "base": {
+       "n": 10,
+       "p50": 0.831003,
+       "min": 0.815908,
+       "max": 0.850228
+      },
+      "delta_p50": -0.001187,
+      "per_round_p50": {
+       "0": {
+        "e9": 0.825839,
+        "base": 0.831103
+       },
+       "1": {
+        "e9": 0.82934,
+        "base": 0.843722
+       },
+       "2": {
+        "e9": 0.832768,
+        "base": 0.824717
+       },
+       "3": {
+        "e9": 0.826543,
+        "base": 0.836305
+       },
+       "4": {
+        "e9": 0.860301,
+        "base": 0.825616
+       }
+      },
+      "per_round_p50_range": {
+       "e9": 0.034462,
+       "base": 0.019005
+      },
+      "rounds_e9_below_base": [
+       3,
+       5
+      ]
+     },
+     "0xd40": {
+      "e9": {
+       "n": 10,
+       "p50": 0.662627,
+       "min": 0.65239,
+       "max": 0.67443
+      },
+      "base": {
+       "n": 10,
+       "p50": 0.657197,
+       "min": 0.652676,
+       "max": 0.669464
+      },
+      "delta_p50": 0.00543,
+      "per_round_p50": {
+       "0": {
+        "e9": 0.66423,
+        "base": 0.653717
+       },
+       "1": {
+        "e9": 0.657806,
+        "base": 0.656251
+       },
+       "2": {
+        "e9": 0.660802,
+        "base": 0.660679
+       },
+       "3": {
+        "e9": 0.662768,
+        "base": 0.657706
+       },
+       "4": {
+        "e9": 0.673828,
+        "base": 0.665108
+       }
+      },
+      "per_round_p50_range": {
+       "e9": 0.016022,
+       "base": 0.011391
+      },
+      "rounds_e9_below_base": [
+       0,
+       5
+      ]
+     }
+    },
+    "unmatched_delta_p50": 0.00235
+   },
+   "weight_download": {
+    "by_cpu_part": {
+     "0xd0c": {
+      "e9": {
+       "n": 10,
+       "p50": 24.707501,
+       "min": 24.486402,
+       "max": 25.041279
+      },
+      "base": {
+       "n": 10,
+       "p50": 24.922712,
+       "min": 24.459737,
+       "max": 25.066985
+      },
+      "delta_p50": -0.215211,
+      "per_round_p50": {
+       "0": {
+        "e9": 24.628954,
+        "base": 24.591712
+       },
+       "1": {
+        "e9": 24.684394,
+        "base": 24.922712
+       },
+       "2": {
+        "e9": 24.745543,
+        "base": 24.816788
+       },
+       "3": {
+        "e9": 24.863074,
+        "base": 25.017145
+       },
+       "4": {
+        "e9": 24.872011,
+        "base": 25.058456
+       }
+      },
+      "per_round_p50_range": {
+       "e9": 0.243057,
+       "base": 0.466744
+      },
+      "rounds_e9_below_base": [
+       4,
+       5
+      ]
+     },
+     "0xd40": {
+      "e9": {
+       "n": 10,
+       "p50": 24.957037,
+       "min": 24.687525,
+       "max": 25.111945
+      },
+      "base": {
+       "n": 10,
+       "p50": 24.892899,
+       "min": 24.591888,
+       "max": 25.022203
+      },
+      "delta_p50": 0.064138,
+      "per_round_p50": {
+       "0": {
+        "e9": 25.045871,
+        "base": 24.634822
+       },
+       "1": {
+        "e9": 24.824827,
+        "base": 24.993341
+       },
+       "2": {
+        "e9": 24.854059,
+        "base": 24.977513
+       },
+       "3": {
+        "e9": 25.00692,
+        "base": 24.746749
+       },
+       "4": {
+        "e9": 24.917254,
+        "base": 24.892899
+       }
+      },
+      "per_round_p50_range": {
+       "e9": 0.221044,
+       "base": 0.358519
+      },
+      "rounds_e9_below_base": [
+       2,
+       5
+      ]
+     }
+    },
+    "unmatched_delta_p50": -0.027652
+   },
+   "ggml_backend_load": {
+    "by_cpu_part": {
+     "0xd0c": {
+      "e9": {
+       "n": 10,
+       "p50": 0.038269,
+       "min": 0.037728,
+       "max": 0.038803
+      },
+      "base": {
+       "n": 10,
+       "p50": 0.038155,
+       "min": 0.037846,
+       "max": 0.038261
+      },
+      "delta_p50": 0.000114,
+      "per_round_p50": {
+       "0": {
+        "e9": 0.038531,
+        "base": 0.038122
+       },
+       "1": {
+        "e9": 0.03824,
+        "base": 0.038038
+       },
+       "2": {
+        "e9": 0.037978,
+        "base": 0.038034
+       },
+       "3": {
+        "e9": 0.038122,
+        "base": 0.038188
+       },
+       "4": {
+        "e9": 0.038354,
+        "base": 0.038172
+       }
+      },
+      "per_round_p50_range": {
+       "e9": 0.000553,
+       "base": 0.000154
+      },
+      "rounds_e9_below_base": [
+       2,
+       5
+      ]
+     },
+     "0xd40": {
+      "e9": {
+       "n": 10,
+       "p50": 0.031046,
+       "min": 0.030811,
+       "max": 0.031513
+      },
+      "base": {
+       "n": 10,
+       "p50": 0.031091,
+       "min": 0.030843,
+       "max": 0.031335
+      },
+      "delta_p50": -4.5e-05,
+      "per_round_p50": {
+       "0": {
+        "e9": 0.031263,
+        "base": 0.031264
+       },
+       "1": {
+        "e9": 0.031071,
+        "base": 0.030949
+       },
+       "2": {
+        "e9": 0.030917,
+        "base": 0.031091
+       },
+       "3": {
+        "e9": 0.031083,
+        "base": 0.030931
+       },
+       "4": {
+        "e9": 0.031165,
+        "base": 0.031214
+       }
+      },
+      "per_round_p50_range": {
+       "e9": 0.000346,
+       "base": 0.000333
+      },
+      "rounds_e9_below_base": [
+       3,
+       5
+      ]
+     }
+    },
+    "unmatched_delta_p50": 3e-05
+   },
+   "model_load_mmap": {
+    "by_cpu_part": {
+     "0xd0c": {
+      "e9": {
+       "n": 10,
+       "p50": 11.243118,
+       "min": 11.139284,
+       "max": 11.343368
+      },
+      "base": {
+       "n": 10,
+       "p50": 19.141272,
+       "min": 19.053073,
+       "max": 19.414323
+      },
+      "delta_p50": -7.898154,
+      "per_round_p50": {
+       "0": {
+        "e9": 11.25618,
+        "base": 19.157823
+       },
+       "1": {
+        "e9": 11.167121,
+        "base": 19.141633
+       },
+       "2": {
+        "e9": 11.277705,
+        "base": 19.233698
+       },
+       "3": {
+        "e9": 11.193456,
+        "base": 19.078971
+       },
+       "4": {
+        "e9": 11.293709,
+        "base": 19.160325
+       }
+      },
+      "per_round_p50_range": {
+       "e9": 0.126588,
+       "base": 0.154727
+      },
+      "rounds_e9_below_base": [
+       5,
+       5
+      ]
+     },
+     "0xd40": {
+      "e9": {
+       "n": 10,
+       "p50": 3.243675,
+       "min": 3.192702,
+       "max": 3.315878
+      },
+      "base": {
+       "n": 10,
+       "p50": 8.113136,
+       "min": 8.053613,
+       "max": 8.178118
+      },
+      "delta_p50": -4.869461,
+      "per_round_p50": {
+       "0": {
+        "e9": 3.25429,
+        "base": 8.118267
+       },
+       "1": {
+        "e9": 3.241137,
+        "base": 8.056365
+       },
+       "2": {
+        "e9": 3.248156,
+        "base": 8.137929
+       },
+       "3": {
+        "e9": 3.24455,
+        "base": 8.13821
+       },
+       "4": {
+        "e9": 3.236465,
+        "base": 8.128395
+       }
+      },
+      "per_round_p50_range": {
+       "e9": 0.017825,
+       "base": 0.081845
+      },
+      "rounds_e9_below_base": [
+       5,
+       5
+      ]
+     }
+    },
+    "unmatched_delta_p50": -6.388015
+   },
+   "context_init": {
+    "by_cpu_part": {
+     "0xd0c": {
+      "e9": {
+       "n": 10,
+       "p50": 0.469295,
+       "min": 0.461486,
+       "max": 0.478365
+      },
+      "base": {
+       "n": 10,
+       "p50": 0.472613,
+       "min": 0.462425,
+       "max": 0.480444
+      },
+      "delta_p50": -0.003318,
+      "per_round_p50": {
+       "0": {
+        "e9": 0.470348,
+        "base": 0.468825
+       },
+       "1": {
+        "e9": 0.465515,
+        "base": 0.476834
+       },
+       "2": {
+        "e9": 0.464226,
+        "base": 0.475116
+       },
+       "3": {
+        "e9": 0.470473,
+        "base": 0.474749
+       },
+       "4": {
+        "e9": 0.474956,
+        "base": 0.466722
+       }
+      },
+      "per_round_p50_range": {
+       "e9": 0.01073,
+       "base": 0.010112
+      },
+      "rounds_e9_below_base": [
+       3,
+       5
+      ]
+     },
+     "0xd40": {
+      "e9": {
+       "n": 10,
+       "p50": 0.304492,
+       "min": 0.297788,
+       "max": 0.317413
+      },
+      "base": {
+       "n": 10,
+       "p50": 0.304568,
+       "min": 0.30165,
+       "max": 0.317346
+      },
+      "delta_p50": -7.6e-05,
+      "per_round_p50": {
+       "0": {
+        "e9": 0.3076,
+        "base": 0.304
+       },
+       "1": {
+        "e9": 0.308068,
+        "base": 0.302218
+       },
+       "2": {
+        "e9": 0.30423,
+        "base": 0.306432
+       },
+       "3": {
+        "e9": 0.304468,
+        "base": 0.307095
+       },
+       "4": {
+        "e9": 0.30475,
+        "base": 0.311843
+       }
+      },
+      "per_round_p50_range": {
+       "e9": 0.003838,
+       "base": 0.009625
+      },
+      "rounds_e9_below_base": [
+       3,
+       5
+      ]
+     }
+    },
+    "unmatched_delta_p50": -0.000436
+   },
+   "assets_load": {
+    "by_cpu_part": {
+     "0xd0c": {
+      "e9": {
+       "n": 10,
+       "p50": 1.148369,
+       "min": 1.110694,
+       "max": 1.174818
+      },
+      "base": {
+       "n": 10,
+       "p50": 1.145416,
+       "min": 1.101971,
+       "max": 1.178411
+      },
+      "delta_p50": 0.002953,
+      "per_round_p50": {
+       "0": {
+        "e9": 1.149131,
+        "base": 1.123235
+       },
+       "1": {
+        "e9": 1.13121,
+        "base": 1.160013
+       },
+       "2": {
+        "e9": 1.15257,
+        "base": 1.178142
+       },
+       "3": {
+        "e9": 1.137761,
+        "base": 1.137477
+       },
+       "4": {
+        "e9": 1.156152,
+        "base": 1.11601
+       }
+      },
+      "per_round_p50_range": {
+       "e9": 0.024942,
+       "base": 0.062132
+      },
+      "rounds_e9_below_base": [
+       2,
+       5
+      ]
+     },
+     "0xd40": {
+      "e9": {
+       "n": 10,
+       "p50": 0.809231,
+       "min": 0.788464,
+       "max": 0.837664
+      },
+      "base": {
+       "n": 10,
+       "p50": 0.828537,
+       "min": 0.808128,
+       "max": 0.842174
+      },
+      "delta_p50": -0.019306,
+      "per_round_p50": {
+       "0": {
+        "e9": 0.813064,
+        "base": 0.836861
+       },
+       "1": {
+        "e9": 0.809471,
+        "base": 0.815601
+       },
+       "2": {
+        "e9": 0.817376,
+        "base": 0.834543
+       },
+       "3": {
+        "e9": 0.804224,
+        "base": 0.817116
+       },
+       "4": {
+        "e9": 0.814632,
+        "base": 0.832997
+       }
+      },
+      "per_round_p50_range": {
+       "e9": 0.013152,
+       "base": 0.02126
+      },
+      "rounds_e9_below_base": [
+       5,
+       5
+      ]
+     }
+    },
+    "unmatched_delta_p50": 0.002107
+   },
+   "warmup_inference": {
+    "by_cpu_part": {
+     "0xd0c": {
+      "e9": {
+       "n": 10,
+       "p50": 0.400725,
+       "min": 0.389581,
+       "max": 0.421258
+      },
+      "base": {
+       "n": 10,
+       "p50": 0.401365,
+       "min": 0.389994,
+       "max": 0.418653
+      },
+      "delta_p50": -0.00064,
+      "per_round_p50": {
+       "0": {
+        "e9": 0.403888,
+        "base": 0.408405
+       },
+       "1": {
+        "e9": 0.397687,
+        "base": 0.401728
+       },
+       "2": {
+        "e9": 0.406969,
+        "base": 0.407054
+       },
+       "3": {
+        "e9": 0.39874,
+        "base": 0.395576
+       },
+       "4": {
+        "e9": 0.40542,
+        "base": 0.398224
+       }
+      },
+      "per_round_p50_range": {
+       "e9": 0.009282,
+       "base": 0.012829
+      },
+      "rounds_e9_below_base": [
+       3,
+       5
+      ]
+     },
+     "0xd40": {
+      "e9": {
+       "n": 10,
+       "p50": 0.241142,
+       "min": 0.234354,
+       "max": 0.252148
+      },
+      "base": {
+       "n": 10,
+       "p50": 0.23976,
+       "min": 0.227206,
+       "max": 0.25296
+      },
+      "delta_p50": 0.001382,
+      "per_round_p50": {
+       "0": {
+        "e9": 0.237862,
+        "base": 0.238476
+       },
+       "1": {
+        "e9": 0.241142,
+        "base": 0.234946
+       },
+       "2": {
+        "e9": 0.247055,
+        "base": 0.233995
+       },
+       "3": {
+        "e9": 0.239553,
+        "base": 0.246318
+       },
+       "4": {
+        "e9": 0.239031,
+        "base": 0.23609
+       }
+      },
+      "per_round_p50_range": {
+       "e9": 0.009193,
+       "base": 0.012323
+      },
+      "rounds_e9_below_base": [
+       2,
+       5
+      ]
+     }
+    },
+    "unmatched_delta_p50": -0.000613
+   },
+   "model_ready": {
+    "by_cpu_part": {
+     "0xd0c": {
+      "e9": {
+       "n": 10,
+       "p50": 38.058664,
+       "min": 37.770435,
+       "max": 38.352533
+      },
+      "base": {
+       "n": 10,
+       "p50": 46.172441,
+       "min": 45.705332,
+       "max": 46.325216
+      },
+      "delta_p50": -8.113777,
+      "per_round_p50": {
+       "0": {
+        "e9": 37.977695,
+        "base": 45.81849
+       },
+       "1": {
+        "e9": 37.914473,
+        "base": 46.171316
+       },
+       "2": {
+        "e9": 38.115043,
+        "base": 46.179018
+       },
+       "3": {
+        "e9": 38.131999,
+        "base": 46.172441
+       },
+       "4": {
+        "e9": 38.271059,
+        "base": 46.268301
+       }
+      },
+      "per_round_p50_range": {
+       "e9": 0.356586,
+       "base": 0.449811
+      },
+      "rounds_e9_below_base": [
+       5,
+       5
+      ]
+     },
+     "0xd40": {
+      "e9": {
+       "n": 10,
+       "p50": 29.615102,
+       "min": 29.345441,
+       "max": 29.749039
+      },
+      "base": {
+       "n": 10,
+       "p50": 34.406172,
+       "min": 34.091247,
+       "max": 34.590459
+      },
+      "delta_p50": -4.79107,
+      "per_round_p50": {
+       "0": {
+        "e9": 29.715022,
+        "base": 34.188896
+       },
+       "1": {
+        "e9": 29.480697,
+        "base": 34.458475
+       },
+       "2": {
+        "e9": 29.526688,
+        "base": 34.546526
+       },
+       "3": {
+        "e9": 29.655807,
+        "base": 34.311441
+       },
+       "4": {
+        "e9": 29.568438,
+        "base": 34.45886
+       }
+      },
+      "per_round_p50_range": {
+       "e9": 0.234325,
+       "base": 0.35763
+      },
+      "rounds_e9_below_base": [
+       5,
+       5
+      ]
+     }
+    },
+    "unmatched_delta_p50": -6.388159
+   },
+   "import_total": {
+    "by_cpu_part": {
+     "0xd0c": {
+      "e9": {
+       "n": 10,
+       "p50": 38.904792,
+       "min": 38.598472,
+       "max": 39.187157
+      },
+      "base": {
+       "n": 10,
+       "p50": 47.017999,
+       "min": 46.541602,
+       "max": 47.157041
+      },
+      "delta_p50": -8.113207,
+      "per_round_p50": {
+       "0": {
+        "e9": 38.812599,
+        "base": 46.658794
+       },
+       "1": {
+        "e9": 38.75314,
+        "base": 47.024369
+       },
+       "2": {
+        "e9": 38.957046,
+        "base": 47.012902
+       },
+       "3": {
+        "e9": 38.967745,
+        "base": 47.017999
+       },
+       "4": {
+        "e9": 39.140937,
+        "base": 47.103003
+       }
+      },
+      "per_round_p50_range": {
+       "e9": 0.387797,
+       "base": 0.444209
+      },
+      "rounds_e9_below_base": [
+       5,
+       5
+      ]
+     },
+     "0xd40": {
+      "e9": {
+       "n": 10,
+       "p50": 30.286461,
+       "min": 30.016024,
+       "max": 30.426745
+      },
+      "base": {
+       "n": 10,
+       "p50": 35.076712,
+       "min": 34.753252,
+       "max": 35.255305
+      },
+      "delta_p50": -4.790251,
+      "per_round_p50": {
+       "0": {
+        "e9": 30.386577,
+        "base": 34.849841
+       },
+       "1": {
+        "e9": 30.145841,
+        "base": 35.122044
+       },
+       "2": {
+        "e9": 30.194829,
+        "base": 35.214551
+       },
+       "3": {
+        "e9": 30.325901,
+        "base": 34.976452
+       },
+       "4": {
+        "e9": 30.249816,
+        "base": 35.131303
+       }
+      },
+      "per_round_p50_range": {
+       "e9": 0.240736,
+       "base": 0.36471
+      },
+      "rounds_e9_below_base": [
+       5,
+       5
+      ]
+     }
+    },
+    "unmatched_delta_p50": -6.385845
+   }
+  },
+  "verdict": {
+   "snapshot_init.runtime_to_import": {
+    "parts_with_n_ge_min": [
+     "0xd0c",
+     "0xd40"
+    ],
+    "parts_below_min_n": [],
+    "same_sign_in_every_part": false
+   },
+   "snapshot_init.imports": {
+    "parts_with_n_ge_min": [
+     "0xd0c",
+     "0xd40"
+    ],
+    "parts_below_min_n": [],
+    "same_sign_in_every_part": false
+   },
+   "snapshot_init.weight_download": {
+    "parts_with_n_ge_min": [
+     "0xd0c",
+     "0xd40"
+    ],
+    "parts_below_min_n": [],
+    "same_sign_in_every_part": false
+   },
+   "snapshot_init.ggml_backend_load": {
+    "parts_with_n_ge_min": [
+     "0xd0c",
+     "0xd40"
+    ],
+    "parts_below_min_n": [],
+    "same_sign_in_every_part": false
+   },
+   "snapshot_init.model_load_mmap": {
+    "parts_with_n_ge_min": [
+     "0xd0c",
+     "0xd40"
+    ],
+    "parts_below_min_n": [],
+    "same_sign_in_every_part": true
+   },
+   "snapshot_init.context_init": {
+    "parts_with_n_ge_min": [
+     "0xd0c",
+     "0xd40"
+    ],
+    "parts_below_min_n": [],
+    "same_sign_in_every_part": true
+   },
+   "snapshot_init.assets_load": {
+    "parts_with_n_ge_min": [
+     "0xd0c",
+     "0xd40"
+    ],
+    "parts_below_min_n": [],
+    "same_sign_in_every_part": false
+   },
+   "snapshot_init.warmup_inference": {
+    "parts_with_n_ge_min": [
+     "0xd0c",
+     "0xd40"
+    ],
+    "parts_below_min_n": [],
+    "same_sign_in_every_part": false
+   },
+   "snapshot_init.model_ready": {
+    "parts_with_n_ge_min": [
+     "0xd0c",
+     "0xd40"
+    ],
+    "parts_below_min_n": [],
+    "same_sign_in_every_part": true
+   },
+   "snapshot_init.import_total": {
+    "parts_with_n_ge_min": [
+     "0xd0c",
+     "0xd40"
+    ],
+    "parts_below_min_n": [],
+    "same_sign_in_every_part": true
+   }
+  }
+ }
+}
