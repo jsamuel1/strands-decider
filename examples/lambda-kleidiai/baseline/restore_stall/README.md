@@ -125,7 +125,7 @@ that round.
 | E4 pilot | shared | 455 s | 2 of 3 | pilot only |
 | E4 `20261020T131645Z`, `20261020T181753Z` | fresh per wave (c1e161a) | 459 to 651 s | 0 | none |
 | P3 aborted `20261020T115546Z` | shared | 1,109 s | 9 | aborted |
-| P3 `20261020T124451Z` | shared | 1,074 to 1,112 s | 45 restore rows, 45 warm rows mislabelled | the restore control (`rep`) has n = 21 against 44 to 48 for the others; latency unbiased |
+| P3 `20261020T124451Z` | shared | 1,074 to 1,112 s | 45 restore rows, 45 warm rows mislabelled | the affected restore arms have n = 23 (`rep`) and n = 32 (`telemetry`) against n = 50 for unaffected arms; latency rows exclude client errors and class mismatches |
 | P3 rerun `20261020T231634Z` | fresh per wave | 1,252 to 1,347 s | 0 | none |
 
 R: no published restore latency needs correcting. Published restore sample counts for P3's first-wave arms are
