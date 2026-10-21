@@ -163,12 +163,15 @@ HOST_UNRECORDED = (
 
 
 def _log_fields(rows: list[dict], pattern: str) -> dict[str, Counter]:
-    """{cpu_part: Counter(value)} for the last `pattern` match in each row's log tail (cold rows carry the init line)."""
+    """{cpu_part: Counter(value)} for the last `pattern` match in each row's log tail (cold rows carry the init line).
+
+    Rows without a CPU identity are counted under "unknown", an accounting bucket rather than a CPU part."""
     out: dict[str, Counter] = defaultdict(Counter)
     for r in rows:
         m = re.findall(pattern, r.get("log_tail") or "")
         if m:
-            out[str(r.get("cpu_part"))][m[-1]] += 1
+            cpu = r.get("cpu_part")
+            out["unknown" if cpu is None else str(cpu)][m[-1]] += 1
     return {k: dict(sorted(v.items())) for k, v in sorted(out.items())}
 
 

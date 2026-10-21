@@ -552,13 +552,14 @@ def test_mixed_known_and_unknown_cpu_parts_keep_unknown_counts(tmp_path):
     with gzip.open(tmp_path / "logs" / "fn.jsonl.gz", "wt"):
         pass
     rows = [
-        _row("base", 0, "cold", "p1", 10.0, 100),
-        _row("stream", 0, "cold", "p1", 8.0, 90),
-        _row("base", 0, "cold", None, 20.0, 200),
-        _row("stream", 0, "cold", None, 1.0, 10),
+        _row("base", 0, "cold", "p1", 10.0, 100, "ggml_cpu=v1"),
+        _row("stream", 0, "cold", "p1", 8.0, 90, "ggml_cpu=v1"),
+        _row("base", 0, "cold", None, 20.0, 200, "ggml_cpu=v2"),
+        _row("stream", 0, "cold", None, 1.0, 10, "ggml_cpu=v2"),
     ]
     comparison = summarize_e4.compare_arms(rows, "stream")
     assert set(comparison["cold"]["first_request_total"]["by_cpu_part"]) == {"p1"}
+    assert set(summarize_e4.round_deltas(rows, "stream")["cold"]["first_request_total"]) == {"p1"}
     assert comparison["unknown_cpu_part_rows"] == {"cold": {"base": 1, "stream": 1}}
     cond = {
         "arms": ["base", "stream"],
@@ -569,6 +570,7 @@ def test_mixed_known_and_unknown_cpu_parts_keep_unknown_counts(tmp_path):
     observed = summarize_e4.host_variability(str(tmp_path), cond, rows)["observed"]
     assert observed["unknown_cpu_part_rows_by_class_and_arm"] == {"cold": {"base": 1, "stream": 1}}
     assert "None" not in str(observed["cpu_parts_by_class_and_arm"])
+    assert observed["ggml_cpu_variants_by_cpu_part"] == {"p1": {"v1": 2}, "unknown": {"v2": 2}}
 
 
 def test_host_variability_names_sequential_alternating_arm_waves(tmp_path):
