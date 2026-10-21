@@ -6,8 +6,8 @@
 # 1. e4_stream/build.sh   P1's pinned weights and llama.cpp, plus patch_stream.py, built into one function.zip
 # 2. deploy_e4.py up      one function per arm of deploy_e4.ARMS_SETS[E4_ARMS] (r2 default; r1 = the first run):
 #                         same zip and config, different E4_* / STREAM_ORDER variables
-# 3. bench_e4.py         P1's interleaved cold / restore / warm harness (baseline/bench.py) over the three arms, with a
-#                         fresh Lambda client per wave (bench_e4.py says why)
+# 3. bench_e4.py         P1's cold / restore / warm harness (baseline/bench.py) over configured arms: each arm wave
+#                         runs sequentially, arm order reverses on odd rounds; fresh Lambda client per wave
 # 4. summarize_e4.py      lkai-result/1, correctness against P1's reference/outputs.json
 # 5. baseline/redact.py   results/<RUN_ID>/ is what gets committed
 # Env knobs as baseline/run.sh: REGION=us-east-2 ROUNDS=5 CONCURRENCY=10 WARM=10 PREFIX=lkai-e4

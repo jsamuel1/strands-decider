@@ -529,6 +529,48 @@ def test_localtest_compares_the_observed_cpu_part_and_fails_on_mismatch(tmp_path
     assert "output differs from P1 reference for CPU part p1" in bad.stderr
 
 
+def test_unknown_cpu_parts_are_excluded_and_counted():
+    """Unknown identities are unassessed rows, never a synthetic shared CPU stratum."""
+    import summarize_e4
+
+    rows = [
+        _row("base", 0, "cold", None, 10.0, 100),
+        _row("stream", 0, "cold", None, 8.0, 90),
+    ]
+    comparison = summarize_e4.compare_arms(rows, "stream")
+    assert "cold" not in comparison
+    assert comparison["unknown_cpu_part_rows"] == {"cold": {"base": 1, "stream": 1}}
+    assert summarize_e4.round_deltas(rows, "stream") == {}
+
+
+def test_mixed_known_and_unknown_cpu_parts_keep_unknown_counts(tmp_path):
+    import gzip
+
+    import summarize_e4
+
+    (tmp_path / "logs").mkdir()
+    with gzip.open(tmp_path / "logs" / "fn.jsonl.gz", "wt"):
+        pass
+    rows = [
+        _row("base", 0, "cold", "p1", 10.0, 100),
+        _row("stream", 0, "cold", "p1", 8.0, 90),
+        _row("base", 0, "cold", None, 20.0, 200),
+        _row("stream", 0, "cold", None, 1.0, 10),
+    ]
+    comparison = summarize_e4.compare_arms(rows, "stream")
+    assert set(comparison["cold"]["first_request_total"]["by_cpu_part"]) == {"p1"}
+    assert comparison["unknown_cpu_part_rows"] == {"cold": {"base": 1, "stream": 1}}
+    cond = {
+        "arms": ["base", "stream"],
+        "functions": {
+            a: {"MemorySize": 10240, "Architectures": ["arm64"]} for a in ("base", "stream")
+        },
+    }
+    observed = summarize_e4.host_variability(str(tmp_path), cond, rows)["observed"]
+    assert observed["unknown_cpu_part_rows_by_class_and_arm"] == {"cold": {"base": 1, "stream": 1}}
+    assert "None" not in str(observed["cpu_parts_by_class_and_arm"])
+
+
 def test_host_variability_names_sequential_alternating_arm_waves(tmp_path):
     import gzip
 

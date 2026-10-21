@@ -77,17 +77,33 @@ def _metrics() -> dict:
     }
 
 
+def _known_cpu_parts(rows: list[dict], *arms: str) -> list[str]:
+    """CPU identities observed by every requested arm; unknown rows are never a shared identity."""
+    sets = [
+        {str(r["cpu_part"]) for r in rows if r["arm"] == arm and r.get("cpu_part") is not None}
+        for arm in arms
+    ]
+    return sorted(set.intersection(*sets), key=str) if sets else []
+
+
+def _unknown_cpu_parts(rows: list[dict]) -> dict[str, dict[str, int]]:
+    """Unknown CPU-identity counts by start class and arm, retained as unassessed evidence."""
+    out: dict[str, dict[str, int]] = defaultdict(dict)
+    for (cls, arm), n in sorted(
+        Counter((r["expected_class"], r["arm"]) for r in rows if r.get("cpu_part") is None).items()
+    ):
+        out[cls][arm] = n
+    return {cls: dict(arms) for cls, arms in out.items()}
+
+
 def compare_arms(rows: list[dict], a: str, b: str = "base") -> dict:
-    """median(a) - median(b) within each CPU part both arms drew; pooled by the smaller sample count."""
+    """median(a) - median(b) within each known CPU part both arms drew; pooled by the smaller sample count."""
     ok = [r for r in rows if not r["error"] and not r["class_mismatch"]]
+    unknown = _unknown_cpu_parts(ok)
     out: dict = {}
     for cls, ms in _metrics().items():
         rs = [r for r in ok if r["expected_class"] == cls]
-        cpus = sorted(
-            {r.get("cpu_part") for r in rs if r["arm"] == a}
-            & {r.get("cpu_part") for r in rs if r["arm"] == b},
-            key=str,
-        )
+        cpus = _known_cpu_parts(rs, a, b)
         cls_out: dict = {}
         for name, f in ms.items():
             per, wsum, wdelta = {}, 0, 0.0
@@ -124,9 +140,12 @@ def compare_arms(rows: list[dict], a: str, b: str = "base") -> dict:
                 }
         if cls_out:
             out[cls] = cls_out
+    if unknown:
+        out["unknown_cpu_part_rows"] = unknown
     out["method"] = (
-        f"median({a}) - median({b}) within each CPU part both arms drew (seconds; MB for "
-        "report_max_memory_mb); pooled_delta_p50 weights the per-part deltas by the smaller sample count"
+        f"median({a}) - median({b}) within each known CPU part both arms drew (seconds; MB for "
+        "report_max_memory_mb); pooled_delta_p50 weights the per-part deltas by the smaller sample count; "
+        "rows with unknown CPU identity are excluded and counted in unknown_cpu_part_rows"
     )
     return out
 
@@ -181,7 +200,7 @@ def round_deltas(rows: list[dict], a: str, b: str = "base") -> dict:
         for name in ("first_request_total", "report_max_memory_mb"):
             f = ms[cls][name]
             per: dict = {}
-            for cpu in sorted({r.get("cpu_part") for r in ok}, key=str):
+            for cpu in _known_cpu_parts(ok, a, b):
                 ds = []
                 for rd in sorted({r["round"] for r in ok}):
 
@@ -221,9 +240,14 @@ def round_deltas(rows: list[dict], a: str, b: str = "base") -> dict:
 def host_variability(run: str, cond: dict, rows: list[dict]) -> dict:
     """The initiative's HOST VARIABILITY assessment for this run, from what the run actually recorded."""
     ok = [r for r in rows if not r["error"] and not r["class_mismatch"]]
+    unknown = _unknown_cpu_parts(ok)
     mix: dict[str, dict[str, dict[str, int]]] = defaultdict(lambda: defaultdict(dict))
     for (arm, cls, cpu), n in sorted(
-        Counter((r["arm"], r["expected_class"], str(r.get("cpu_part"))) for r in ok).items()
+        Counter(
+            (r["arm"], r["expected_class"], str(r["cpu_part"]))
+            for r in ok
+            if r.get("cpu_part") is not None
+        ).items()
     ):
         mix[cls][arm][cpu] = n
     envs = {(r["arm"], (r.get("lkai") or {}).get("env_id")) for r in ok if r.get("lkai")}
@@ -231,6 +255,7 @@ def host_variability(run: str, cond: dict, rows: list[dict]) -> dict:
         "observed": {
             "cpu_part": "/proc/cpuinfo 'CPU part', read per request (rows' cpu_part)",
             "cpu_parts_by_class_and_arm": {c: dict(v) for c, v in mix.items()},
+            "unknown_cpu_part_rows_by_class_and_arm": unknown,
             "ggml_cpu_variants_by_cpu_part": _log_fields(ok, r"ggml_cpu=(\S+)"),
             "os_cpu_count_by_cpu_part": _log_fields(ok, r"decider\.engine init .*? threads=(\d+)"),
             "runtime_version_arn": cond.get("runtime_version_arn"),
@@ -245,9 +270,11 @@ def host_variability(run: str, cond: dict, rows: list[dict]) -> dict:
         "unknown": list(HOST_UNRECORDED),
         "generation": "not claimed: the runs recorded the CPU part number only (no implementer), so no Graviton "
         "generation is named; parts are referred to by number",
-        "method": "every arm vs base is compared only within one CPU part ("
-        "<arm>_vs_base.<class>.<metric>.by_cpu_part); arms run sequentially in alternating order each round, and "
-        "per_round_deltas show each comparable round's within-part delta",
+        "method": "every arm vs base is compared only within one known CPU part ("
+        "<arm>_vs_base.<class>.<metric>.by_cpu_part); rows with unknown CPU identity are excluded from "
+        "within-part comparisons and counted under observed.unknown_cpu_part_rows_by_class_and_arm; arms run "
+        "sequentially in alternating order each round, and per_round_deltas show each comparable round's "
+        "within-part delta",
         "per_round_deltas": {arm: round_deltas(rows, arm) for arm in cond["arms"] if arm != "base"},
     }
 

@@ -1,4 +1,4 @@
-"""Deploy E4: one bucket, one role and three functions from one zip, differing only in their environment.
+"""Deploy E4: one bucket, one role and one function per configured arm from one zip, differing only in environment.
 
   python deploy_e4.py up       --build <e4-build> [--prefix lkai-e4] [--region us-east-2]
   python deploy_e4.py teardown --build <e4-build> [--all]
