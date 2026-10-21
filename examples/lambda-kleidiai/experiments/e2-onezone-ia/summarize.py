@@ -375,6 +375,47 @@ def _round_cpu_primary(rows: list[dict]) -> dict:
     }
 
 
+def _pooled_primary_by_cpu_part(rows: list[dict]) -> dict:
+    """Cold weight-download median per CPU part, both arms pooled: how much the metric depends on the host."""
+    parts = sorted({str(r.get("cpu_part")) for r in rows}, key=str)
+    cells = {}
+    for cpu in parts:
+        v = _values([r for r in rows if str(r.get("cpu_part")) == cpu], "cold", "weight_download")
+        if v:
+            cells[cpu] = {"n": len(v), "median_s": round(statistics.median(v), 4)}
+    meds = [c["median_s"] for c in cells.values()]
+    return {
+        "metric": "cold weight_download median, std and ozia pooled, per CPU part",
+        "by_cpu_part": cells,
+        "span_ratio": round(max(meds) / min(meds), 4) if meds else None,
+    }
+
+
+def _warm_by_round_and_cpu_part(rows: list[dict]) -> dict:
+    """Warm request count and latency median per (arm, round, CPU part): where a pooled warm CV comes from."""
+    out: dict = {}
+    for arm in ARMS:
+        per: dict = defaultdict(list)
+        for r in rows:
+            if (
+                r["arm"] == arm
+                and r["expected_class"] == "warm"
+                and not r["error"]
+                and not r["class_mismatch"]
+            ):
+                per[(r["round"], str(r.get("cpu_part")))].append(r["latency_ms"] / 1000)
+        out[arm] = [
+            {
+                "round": rnd,
+                "cpu_part": cpu,
+                "n": len(v),
+                "median_s": round(statistics.median(v), 4),
+            }
+            for (rnd, cpu), v in sorted(per.items(), key=lambda kv: (str(kv[0][0]), kv[0][1]))
+        ]
+    return out
+
+
 def host_variability(run: str, cond: dict, rows: list[dict], cmp_: dict) -> dict:
     """Host identity observed per invocation, what was not observed, and whether the host mix can move the result."""
     by_arm = {a: [r for r in rows if r["arm"] == a] for a in ARMS}
@@ -448,6 +489,7 @@ def host_variability(run: str, cond: dict, rows: list[dict], cmp_: dict) -> dict
             "agrees_with_primary": decide(wd.get("ratio_ci95")) == cmp_.get("outcome")
             and decide(wd.get("ratio_ci95_round_cluster")) == cmp_.get("outcome"),
         },
+        "primary_pooled_by_cpu_part": _pooled_primary_by_cpu_part(rows),
         "primary_by_round_and_cpu_part": round_cpu_primary,
         "rerun_assessment": {
             "needed": rerun_needed,
@@ -459,6 +501,7 @@ def host_variability(run: str, cond: dict, rows: list[dict], cmp_: dict) -> dict
             "limitation": "within-round signs may vary and sparse CPU parts have few or no shared cells",
         },
         "warm_round_cv": warm_cv,
+        "warm_by_round_and_cpu_part": _warm_by_round_and_cpu_part(rows),
     }
 
 

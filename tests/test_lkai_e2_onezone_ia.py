@@ -559,6 +559,15 @@ def test_committed_result_names_cpu_parts_not_generations():
     assert h["primary_by_round_and_cpu_part"]["delta_signs"] == ["negative", "positive"]
     assert h["primary_by_round_and_cpu_part"]["all_inside_equivalence_band"] is True
     assert h["rerun_assessment"]["needed"] is False
+    pooled = h["primary_pooled_by_cpu_part"]
+    assert {p: c["n"] for p, c in pooled["by_cpu_part"].items()} == {
+        "0xd0c": 4,
+        "0xd40": 84,
+        "0xd4f": 12,
+    }
+    assert pooled["span_ratio"] == 1.0123
+    warm4 = [c for c in h["warm_by_round_and_cpu_part"]["ozia"] if c["round"] == 4]
+    assert [(c["cpu_part"], c["n"]) for c in warm4] == [("0xd0c", 30), ("0xd40", 70)]
     for p in (
         os.path.join(base, "results.json"),
         os.path.join(base, "meta.json"),

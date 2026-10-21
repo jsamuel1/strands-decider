@@ -89,8 +89,9 @@ outcome does not depend on treating concurrent cold starts as independent.
     download phase.
 - **Run-to-run variance** (CV of per-round medians, Standard / One Zone-IA): cold 0.09% / 0.15%, restore 0.73% /
   0.94%, warm 1.1% / 10.3%. The warm One Zone-IA figure is the host mix, not storage: its round 4 served 30 of 100
-  warm requests from `0xd0c` environments (median 1.14 s against 0.64 s on `0xd40`). Restricted to `0xd40`, the warm
-  CV is 2.2% / 2.0% (`host_variability.warm_round_cv`).
+  warm requests from `0xd0c` environments (median 1.12 s against 0.65 s for the other 70 on `0xd40`). Restricted
+  to `0xd40`, the warm CV is 2.2% / 2.0% (`host_variability.warm_round_cv`). The warm count and median for every
+  (arm, round, CPU part) are in `host_variability.warm_by_round_and_cpu_part`.
 - **Correctness.** 1,200 of 1,200 answers are bit-identical to P1's `reference/outputs.json` for the same request and
   CPU part, with 0 choice flips and a maximum delta of 0. The SHA-256 over each arm's canonical answers per (request,
   CPU part) is `0977393b…` on both arms. Both weight copies have S3 full-object SHA-256 `8dbb8872…`.
@@ -145,8 +146,9 @@ from the part number and timings, and was removed.
 - The arms were interleaved by round, and both drew the same part mix within one or two cold starts per part (table
   above). The snapshot inits that seeded every restore ran on the same parts on both arms.
 - The primary metric, cold `weight_download`, does not depend materially on the CPU part in this run. Pooled over both arms,
-  its median is 24.85 s on `0xd0c` (n=4), 24.97 s on `0xd40` (n=84) and 25.15 s on `0xd4f` (n=12). Those medians
-  span 1.2% end to end, against a ±2% band on the arm ratio.
+  its median is 24.84 s on `0xd0c` (n=4), 24.97 s on `0xd40` (n=84) and 25.15 s on `0xd4f` (n=12). Those medians
+  span 1.2% end to end (`host_variability.primary_pooled_by_cpu_part.span_ratio` 1.0123), against a ±2% band on
+  the arm ratio.
 - Within each shared (round, CPU part) cell, the eight available arm comparisons have ratios from 0.994925 to
   1.009692 and deltas from -0.127197 s to +0.241319 s. Every ratio is inside the ±2% band; signs vary across rounds,
   so this is run timing around a null result rather than a stable storage-class direction. CPU parts absent from
