@@ -40,43 +40,131 @@ from botocore.config import Config
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+import buildcache  # noqa: E402
 import deploy  # noqa: E402
 import phases  # noqa: E402
+import summarize  # noqa: E402
 
 _lock = threading.Lock()
 observed_class = phases.observed_class
 
 
+def at_least(minimum: int):
+    """argparse type for an integer count >= minimum."""
+
+    def parse(value: str) -> int:
+        try:
+            n = int(value)
+        except ValueError:
+            raise argparse.ArgumentTypeError(
+                f"must be an integer >= {minimum}, got {value!r}"
+            ) from None
+        if n < minimum:
+            raise argparse.ArgumentTypeError(f"must be an integer >= {minimum}, got {value!r}")
+        return n
+
+    return parse
+
+
+positive_int = at_least(1)
+
+
+def nonnegative_int(value: str) -> int:
+    """argparse type for a count that may be zero."""
+    try:
+        n = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"must be a non-negative integer, got {value!r}") from None
+    if n < 0:
+        raise argparse.ArgumentTypeError(f"must be a non-negative integer, got {value!r}")
+    return n
+
+
+class CleanupError(RuntimeError):
+    """One or more published versions could not be deleted (they keep billing for SnapStart cache)."""
+
+
+def _gone(e: BaseException) -> bool:
+    return type(e).__name__ == "ResourceNotFoundException"
+
+
+def delete_versions(b, published: dict[str, dict]) -> list[str]:
+    """Delete every version in `published` ({arm: {"version": v}}), attempting each even if another fails. Returns
+    the failures; an already-deleted version is not one."""
+    failures = []
+    for arm, pub in published.items():
+        try:
+            b.delete_version(arm, pub["version"])
+        except Exception as e:  # the next version must still be deleted
+            if not _gone(e):
+                failures.append(f"{arm}:{pub['version']}: {type(e).__name__}: {e}")
+                print(f"FAILED to delete {arm} version {pub['version']}: {e}", file=sys.stderr)
+    return failures
+
+
 class Bench:
+    """Two kinds of Lambda client.
+
+    `lam` makes the lifecycle calls (configuration, publish, readiness polls, deletes). They are idempotent, so it
+    has a short read timeout and standard retries: a pooled connection that died while idle costs one retry, not a
+    900 s hang. Every cold, restore and warm wave invokes through a NEW client (new_invoke_client), so no measured
+    invoke reuses a connection pooled before the publish/SnapStart-readiness wait or by an earlier wave. A silently
+    dead connection would otherwise time out with no Lambda START/REPORT and pollute client timing. This changes
+    client round-trip timing only; REPORT lines and phase records come from Lambda."""
+
     def __init__(self, sess, st: dict, reqs: dict, out: str, concurrency: int):
-        self.st, self.out = st, out
+        self.st, self.out, self.sess = st, out, sess
+        self.concurrency = concurrency
         self.lam = sess.client(
+            "lambda",
+            config=Config(
+                read_timeout=120,
+                connect_timeout=10,
+                retries={"max_attempts": 3, "mode": "standard"},
+            ),
+        )
+        self.logs = sess.client("logs")
+        self.invoke_clients = 0
+        self.reqs = {r["id"]: r["request"] for r in reqs["requests"]}
+        self.order = [r["id"] for r in reqs["requests"]]
+        self.probe = reqs["probe"]
+        self.fh = open(os.path.join(out, "invocations.jsonl"), "a")
+
+    def new_invoke_client(self):
+        """A fresh client for one wave: no retries (a retry would hide a failed start), the function's 900 s
+        timeout, and a pool as wide as the wave."""
+        self.invoke_clients += 1
+        return self.sess.client(
             "lambda",
             config=Config(
                 read_timeout=900,
                 connect_timeout=10,
                 retries={"max_attempts": 0},
-                max_pool_connections=max(16, concurrency * 2),
+                max_pool_connections=max(16, self.concurrency * 2),
             ),
         )
-        self.logs = sess.client("logs")
-        self.reqs = {r["id"]: r["request"] for r in reqs["requests"]}
-        self.order = [r["id"] for r in reqs["requests"]]
-        self.probe = reqs["probe"]
-        self.concurrency = concurrency
-        self.fh = open(os.path.join(out, "invocations.jsonl"), "a")
 
     def write(self, rec: dict) -> None:
         with _lock:
             self.fh.write(json.dumps(rec, separators=(",", ":")) + "\n")
             self.fh.flush()
 
-    def invoke(self, arm: str, qualifier: str, rid: str, rnd: int, wave: str, seq: int) -> dict:
+    def invoke(
+        self,
+        arm: str,
+        qualifier: str,
+        rid: str,
+        rnd: int,
+        wave: str,
+        seq: int,
+        lam=None,
+    ) -> dict:
         name = self.st["functions"][arm]["name"]
+        client = lam or self.lam
         t_wall = time.time()
         t = time.perf_counter()
         try:
-            r = self.lam.invoke(
+            r = client.invoke(
                 FunctionName=name,
                 Qualifier=qualifier,
                 LogType="Tail",
@@ -121,6 +209,11 @@ class Bench:
             p = {"raw": body[:2000].decode(errors="replace")}
         if err:
             rec["payload"] = p
+        elif problem := summarize.answer_problem(p, sorted(self.reqs[rid].get("questions", {}))):
+            # Lambda and the handler returned without error, but there is no answer to check: a failure, so it is
+            # counted as an error and kept out of the latency distributions instead of vanishing from correctness.
+            rec["error"] = f"malformed:{problem}"
+            rec["payload"] = p
         else:
             rec["answers"] = p.get("answers")
             rec["latency_ms"] = p.get("latency_ms")
@@ -138,9 +231,20 @@ class Bench:
     def wave(
         self, arm: str, qualifier: str, rnd: int, wave: str, rid: str | None = None, seq0: int = 0
     ) -> list[dict]:
+        # One fresh pool per cold/restore/warm wave (see the class docstring).
+        lam = self.new_invoke_client()
         with ThreadPoolExecutor(self.concurrency) as ex:
             futs = [
-                ex.submit(self.invoke, arm, qualifier, rid or self.probe, rnd, wave, seq0 + i)
+                ex.submit(
+                    self.invoke,
+                    arm,
+                    qualifier,
+                    rid or self.probe,
+                    rnd,
+                    wave,
+                    seq0 + i,
+                    lam,
+                )
                 for i in range(self.concurrency)
             ]
             return [f.result() for f in futs]
@@ -156,11 +260,13 @@ class Bench:
         name = self.st["functions"][arm]["name"]
         t = time.time()
         v = self.lam.publish_version(FunctionName=name, Description=f"COLD_TAG {tag}")["Version"]
-        # wait_updated can sys.exit, and the caller never learns v, so delete the version here.
+        # wait_updated can sys.exit, and the caller never learns v, so delete the version here. A failed delete is
+        # reported, but the wait's failure is what propagates; run.sh's teardown is the second chance.
         try:
             c = deploy.wait_updated(self.lam, name, v)
         except BaseException:
-            self.delete_version(arm, v)
+            for f in delete_versions(self, {arm: {"version": v}}):
+                print("publish cleanup:", f, file=sys.stderr)
             raise
         return {
             "arm": arm,
@@ -199,30 +305,79 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--build", default=os.path.join(HERE, "build"))
     ap.add_argument("--requests", default=os.path.join(HERE, "requests.json"))
-    ap.add_argument("--rounds", type=int, default=5)
-    ap.add_argument("--concurrency", type=int, default=10)
+    # Two rounds is the least that gives run-to-run variance. Zero rounds, concurrency or warm passes would produce a
+    # run with no invocations, or with a whole start class missing, that could still look complete.
+    ap.add_argument("--rounds", type=at_least(2), default=5, help="at least 2")
+    ap.add_argument("--concurrency", type=positive_int, default=10)
     ap.add_argument(
         "--warm",
-        type=int,
+        type=positive_int,
         default=10,
-        help="warm passes per arm per round (each `concurrency` wide)",
+        help="warm passes per arm per round (each `concurrency` wide); at least the number of fixed requests, so "
+        "every request is answered",
     )
     ap.add_argument("--region", default="us-east-2")
-    ap.add_argument("--profile", default=os.environ.get("AWS_PROFILE"))
-    ap.add_argument("--arms", default="inst,rep")
+    # No default: an implicit credential chain could benchmark (and bill) whatever account it resolves to.
+    ap.add_argument(
+        "--profile",
+        default=os.environ.get("AWS_PROFILE"),
+        help="AWS profile (default $AWS_PROFILE); required, and must be the account deploy.py recorded",
+    )
+    ap.add_argument(
+        "--memory",
+        type=deploy.memory_mb,
+        help="function memory in MB the deployment must have (default: what deploy.py recorded); "
+        "the run refuses to start if either function differs",
+    )
+    ap.add_argument(
+        "--arms",
+        default="inst,rep",
+        help="run order of the two arms; must be exactly inst and rep (the REPORT-only control)",
+    )
     ap.add_argument("--out", required=True)
     ap.add_argument(
-        "--log-lag", type=int, default=20, help="seconds to wait for CloudWatch before fetching"
+        "--log-lag",
+        type=nonnegative_int,
+        default=20,
+        help="seconds to wait for CloudWatch before fetching",
     )
     a = ap.parse_args()
+    arms = a.arms.split(",")
+    if p := summarize.arms_problem(arms):
+        ap.error(p)
+    reqs = json.load(open(a.requests))
+    if p := summarize.request_set_problem(reqs):
+        ap.error(f"{a.requests}: {p}")
+    if p := summarize.warm_problem(a.warm, reqs):
+        ap.error(p)
+    if not a.profile:
+        ap.error("--profile or AWS_PROFILE is required: no implicit credentials")
 
+    # Cost is part of the result; a Region without a pinned price table would spend money on a run whose cost
+    # summarize.py cannot honestly compute.
+    if a.region not in summarize.PRICES_BY_REGION:
+        sys.exit(
+            f"no pinned prices for {a.region} (have {sorted(summarize.PRICES_BY_REGION)}); "
+            "add a dated price table to summarize.PRICES_BY_REGION first"
+        )
     st = deploy.load_state(a.build)
     if st.get("region") != a.region or "functions" not in st:
         sys.exit(f"no deployment for {a.region} in {a.build}; run deploy.py up")
-    reqs = json.load(open(a.requests))
+    if p := summarize.new_run_provenance_problem(st.get("manifest") or {}):
+        sys.exit(f"refusing to benchmark: {p}")
+    # The harness (bench.py, summarize.py, requests.json, ...) is part of what reproduces the result.
+    harness = buildcache.harness_provenance()
+    if harness["dirty_inputs"]:
+        sys.exit(
+            f"refusing to benchmark: harness files differ from {harness['commit']}: {harness['dirty_inputs']}"
+        )
+    memory = a.memory or st.get("memory_mb", deploy.MEMORY)
     os.makedirs(a.out, exist_ok=True)
+    # invocations.jsonl and logs/ are appended to: a reused directory would mix two runs' evidence.
+    if any(os.path.exists(os.path.join(a.out, f)) for f in ("invocations.jsonl", "logs")):
+        sys.exit(f"{a.out} already holds a run; use a new --out")
     sess = boto3.Session(profile_name=a.profile, region_name=a.region)
-    arms = a.arms.split(",")
+    deploy.check_account(sess, st)
     b = Bench(sess, st, reqs, a.out, a.concurrency)
     lam = b.lam
     fns = {}
@@ -252,9 +407,21 @@ def main() -> None:
         }
         if deploy.b64_to_hex(c["CodeSha256"]) != st["manifest"]["function_zip"]["sha256"]:
             sys.exit(f"{arm}: deployed code {c['CodeSha256']} is not build/function.zip")
+        if c.get("MemorySize") != memory:
+            sys.exit(
+                f"{arm}: deployed MemorySize {c.get('MemorySize')} MB, run wants {memory} MB; "
+                f"deploy.py up --memory {memory}"
+            )
+        # An arm is what its LKAI_PHASES says: `rep` with phases on would measure no overhead at all.
+        flag = c["Environment"]["Variables"].get("LKAI_PHASES")
+        if flag != summarize.ARM_PHASES[arm]:
+            sys.exit(
+                f"{arm}: deployed LKAI_PHASES={flag!r}, the {arm} arm needs {summarize.ARM_PHASES[arm]!r}"
+            )
     cond = {
         "schema": "lkai-conditions/1",
         "region": a.region,
+        "memory_mb": memory,
         "rounds": a.rounds,
         "concurrency": a.concurrency,
         "warm_per_arm_per_round": a.warm,
@@ -264,6 +431,7 @@ def main() -> None:
         "probe": reqs["probe"],
         "functions": fns,
         "build_manifest": st["manifest"],
+        "harness": harness,
         "runtime_version_arn": st.get("runtime_version_arn"),
         "client": {
             "python": platform.python_version(),
@@ -282,6 +450,7 @@ def main() -> None:
         t0 = time.time()
         meta = {"round": rnd, "order": order, "cold_tag": tag, "t0": t0}
         published: dict[str, dict] = {}
+        failed = True
         try:
             with ThreadPoolExecutor(len(order)) as ex:
                 list(ex.map(lambda arm, tag=tag: b.set_cold_tag(arm, tag), order))
@@ -320,11 +489,21 @@ def main() -> None:
                         seq0=i * a.concurrency,
                     )
             print(f"r{rnd} warm: {a.warm} passes x {a.concurrency} per arm", flush=True)
+            failed = False
         finally:
-            for arm, pub in published.items():
-                b.delete_version(arm, pub["version"])
+            # Every version is attempted; a failed delete must not leave the next one billing. If the round itself
+            # failed, that exception propagates and the cleanup failures are reported beside it.
+            cleanup_failures = delete_versions(b, published)
             if published:
                 meta["t_versions_deleted"] = time.time()
+            if cleanup_failures:
+                meta["cleanup_failures"] = cleanup_failures
+                cond["rounds_meta"].append(meta)
+                json.dump(cond, open(os.path.join(a.out, "conditions.json"), "w"), indent=1)
+                if not failed:
+                    raise CleanupError(
+                        f"round {rnd}: {len(cleanup_failures)} version(s) not deleted: {cleanup_failures}"
+                    )
         time.sleep(a.log_lag)
         # Each round's window starts where the last one ended, so no event is saved twice. The snapshot init runs
         # inside publish_version, after t0, so the round's own window holds it.

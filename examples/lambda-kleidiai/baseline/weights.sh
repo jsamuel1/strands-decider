@@ -23,14 +23,29 @@ pip freeze > /work/weights-pip-freeze.txt
 CK=$(python -c "from huggingface_hub import snapshot_download as s; print(s('$CKPT', revision='$CKPT_REV'))")
 echo "checkpoint $CKPT@$CKPT_REV -> $CK"
 W=/work/weights
-mkdir -p $W
-[ -f $W/merged-2b/merge_report.json ] || python /repo/examples/lambda-kleidiai/weights/merge_export.py --ckpt "$CK" --out $W/merged-2b
-[ -f $W/merged-2b-h512/hadamard_packing.json ] || \
-  python /repo/examples/lambda-kleidiai/weights/fold_hadamard.py --src $W/merged-2b --out $W/merged-2b-h512 --block 512
-[ -f $W/s2b-h512-f32.gguf ] || \
-  python /llama/convert_hf_to_gguf.py $W/merged-2b-h512 --outtype f32 --outfile $W/s2b-h512-f32.gguf 2>&1 | tail -5
-[ -f /work/model/assets/head_config.json ] || python /repo/examples/lambda/prepare_model.py "$CK" --out /work/model
-rm -rf /work/model/merged-hf  # prepare_model's fp16 torso; the GGUF comes from the H512 fold above
+mkdir -p $W /work/model
+# Each step writes beside its output and renames it into place when complete, so an existing output is a finished
+# one. build.sh deletes all of them when the stage's key changes (buildcache.py); within one key, a rerun resumes.
+if [ ! -d $W/merged-2b ]; then
+  rm -rf $W/merged-2b.tmp
+  python /repo/examples/lambda-kleidiai/weights/merge_export.py --ckpt "$CK" --out $W/merged-2b.tmp
+  mv $W/merged-2b.tmp $W/merged-2b
+fi
+if [ ! -d $W/merged-2b-h512 ]; then
+  rm -rf $W/merged-2b-h512.tmp
+  python /repo/examples/lambda-kleidiai/weights/fold_hadamard.py --src $W/merged-2b --out $W/merged-2b-h512.tmp --block 512
+  mv $W/merged-2b-h512.tmp $W/merged-2b-h512
+fi
+if [ ! -f $W/s2b-h512-f32.gguf ]; then
+  python /llama/convert_hf_to_gguf.py $W/merged-2b-h512 --outtype f32 --outfile $W/s2b-h512-f32.gguf.tmp 2>&1 | tail -5
+  mv $W/s2b-h512-f32.gguf.tmp $W/s2b-h512-f32.gguf
+fi
+if [ ! -d /work/model/assets ]; then
+  rm -rf /work/model-prep.tmp
+  python /repo/examples/lambda/prepare_model.py "$CK" --out /work/model-prep.tmp
+  mv /work/model-prep.tmp/assets /work/model/assets  # prepare_model's fp16 torso (merged-hf) is not used
+  rm -rf /work/model-prep.tmp
+fi
 cp $W/merged-2b/merge_report.json /work/merge_report.json
 chmod -R a+rX /work/model /work/merge_report.json /work/weights  # root writes them; the host user hashes them
 ls -la $W/s2b-h512-f32.gguf /work/model/assets

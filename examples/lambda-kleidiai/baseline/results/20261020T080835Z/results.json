@@ -8,7 +8,9 @@
  "commits": {
   "experiment": "4412b31988ba112dd27ad850830689f33c07e78a",
   "baseline": "4412b31988ba112dd27ad850830689f33c07e78a",
-  "repo_dirty_at_build": false
+  "repo_dirty_at_build": false,
+  "provenance_check": "tracked files only (lkai-build-manifest/1)",
+  "dirty_inputs": null
  },
  "deployment": {
   "region": "us-east-2",
@@ -105,6 +107,7 @@
   "probe": "ticket-route-1q",
   "requests_file": "requests.json",
   "started": "2026-10-20T08:13:51Z",
+  "memory_mb": 10240,
   "finished": "2026-10-20T08:39:43Z",
   "request_ids": [
    "ticket-route-1q",
@@ -4262,13 +4265,16 @@
   }
  },
  "correctness": {
+  "invocations": 1200,
   "compared": 1200,
   "bit_identical": 1200,
   "choice_flips": 0,
   "max_abs_delta": 0.0,
   "answer_shape_mismatches": 0,
   "no_reference_for_cpu_part": 0,
-  "method": "complete answer object, same request id and same CPU part as the reference",
+  "without_answers": 0,
+  "complete": true,
+  "method": "complete answer object, same request id and same CPU part as the reference; every invocation either is compared or is counted in without_answers (errors, malformed successes) or no_reference_for_cpu_part",
   "reference": "reference/outputs.json"
  },
  "profiling_artifacts": [],
@@ -4281,5 +4287,31 @@
   "git fetch https://github.com/jsamuel1/strands-decider feat/lambda-kleidiai-baseline && git checkout <commit of this file>",
   "AWS_PROFILE=<profile> examples/lambda-kleidiai/baseline/run.sh <run-id>   # arm64 Linux host with Docker"
  ],
- "conclusion": "Baseline pinned. Cold start is dominated by the weight download (p50 25.0 s of 36.0 s, 79 MiB/s from one environment) and mmap/model load (8.4 s). SnapStart restore p50 3.3 s plus a 0.67 s first request on Graviton3. Warm engine p50 0.62 s on Graviton3, 1.07 s on Graviton2. Run-to-run CV of per-round medians: cold 0.4%, restore 2.6%, warm 5.4% (instrumented arm). Instrumentation overhead within matched CPU parts is below the run-to-run spread on every class. 1,200 invocations, 0 errors, 0 class mismatches, answers bit-identical per CPU part."
+ "conclusion": "Baseline pinned. Cold start is dominated by the weight download (p50 25.0 s of 36.0 s, 79 MiB/s from one environment) and mmap/model load (8.4 s). SnapStart restore p50 3.3 s plus a 0.67 s first request on Graviton3. Warm engine p50 0.62 s on Graviton3, 1.07 s on Graviton2. Run-to-run CV of per-round medians: cold 0.4%, restore 2.6%, warm 5.4% (instrumented arm). Instrumentation overhead within matched CPU parts is below the run-to-run spread on every class. 1,200 invocations, 0 errors, 0 class mismatches, answers bit-identical per CPU part.",
+ "request_coverage": {
+  "inst": {
+   "answered": [
+    "agent-action-guard-2q",
+    "cracked-screen-2q",
+    "incident-review-4q",
+    "payouts-3q",
+    "ticket-route-1q"
+   ],
+   "missing": []
+  },
+  "rep": {
+   "answered": [
+    "agent-action-guard-2q",
+    "cracked-screen-2q",
+    "incident-review-4q",
+    "payouts-3q",
+    "ticket-route-1q"
+   ],
+   "missing": []
+  }
+ },
+ "arm_phases_env": {
+  "inst": "1",
+  "rep": "0"
+ }
 }

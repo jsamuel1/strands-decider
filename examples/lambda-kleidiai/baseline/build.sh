@@ -6,7 +6,9 @@
 #
 #   examples/lambda-kleidiai/baseline/build.sh            # about 1 h on 16 Graviton3 vCPUs, ~60 GB disk
 #
-# Rerunning skips finished steps (delete build/ to start over). Needs ~32 GB RAM for the fp32 merge.
+# Rerunning reuses a stage only when its content-addressed key matches (buildcache.py): a change to a pinned revision,
+# image digest, patch, script or source file rebuilds that stage and every stage downstream of it. Needs ~32 GB RAM
+# for the fp32 merge.
 set -euo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd)
 RECIPE=$(dirname "$HERE")
@@ -19,57 +21,97 @@ LLAMA_REV=f74e2fa6a31cc33ab4ee4ae516641cfe62df3924
 # silently use a different compiler, runtime image or weight toolchain.
 LAMBDA_IMAGE=public.ecr.aws/lambda/python@sha256:37fe9ca4183c36ec57e4c5eabb8893cd9fbc9c0f3053b903d9a57eb2bd6bafcc
 PY_IMAGE=python@sha256:5560e9ab8709f459489e5b8aa696eda8a07ef821e14bb122be62d91234bfa98b
+QUANT_TYPE=Q8_0
 [ "$(uname -m)" = aarch64 ] || { echo "build.sh needs an arm64 host (got $(uname -m))"; exit 1; }
-mkdir -p "$B/hf" "$B/model"
+mkdir -p "$B"
+CACHE=(python3 "$HERE/buildcache.py")
+# The manifest names a commit; every executable input must be that commit's bytes, or a checkout of it would build
+# something else. buildcache.py dirty lists tracked edits, untracked (also .gitignore'd) and deleted inputs.
+# LKAI_ALLOW_DIRTY_BUILD=1 builds anyway for local iteration; the manifest then lists them and deploy.py, bench.py and
+# summarize.py refuse it as a baseline.
+if ! DIRTY=$("${CACHE[@]}" dirty --repo "$REPO" --check); then
+  if [ "${LKAI_ALLOW_DIRTY_BUILD:-}" != 1 ]; then
+    echo "build inputs differ from HEAD (commit them, or LKAI_ALLOW_DIRTY_BUILD=1 for a non-baseline build):" >&2
+    echo "$DIRTY" >&2
+    exit 2
+  fi
+  echo "WARNING: dirty build, not deployable as a baseline:" >&2
+  echo "$DIRTY" >&2
+fi
 
-if [ "$(git -C "$B/llama.cpp" rev-parse HEAD 2>/dev/null)" != "$LLAMA_REV" ]; then
+# fresh STAGE KEY: 0 when STAGE's stamped key is KEY. Otherwise delete its stale outputs and those downstream of it
+# (through the build image: the containers write them as root), record KEY as begun, and return 1, so the caller runs
+# the stage. Called as `if ! fresh`, where errexit is off, so every failure here exits explicitly.
+fresh() {
+  local rc=0 stale
+  stale=$("${CACHE[@]}" check "$1" "$2" --build "$B") || rc=$?
+  [ "$rc" -eq 0 ] && { echo "   $1 up to date (${2:0:16})"; return 0; }
+  [ "$rc" -eq 10 ] || { echo "buildcache check $1 failed ($rc)"; exit 1; }
+  if [ -n "$stale" ]; then
+    echo "   $1 inputs changed (${2:0:16}): removing" $stale
+    # shellcheck disable=SC2086
+    docker run --rm --platform linux/arm64 --entrypoint bash -v "$B:/out" -w /out "$LAMBDA_IMAGE" -c \
+      'rm -rf -- "$@"' rm $stale || { echo "could not remove stale $1 outputs"; exit 1; }
+  fi
+  "${CACHE[@]}" begin "$1" "$2" --build "$B" || exit 1
+  return 1
+}
+key() { "${CACHE[@]}" key "$@" --repo "$REPO" --build "$B"; }
+
+docker pull -q --platform linux/arm64 "$LAMBDA_IMAGE" >/dev/null
+docker pull -q --platform linux/arm64 "$PY_IMAGE" >/dev/null
+
+K_LLAMA=$(key llama --pin LLAMA_REV=$LLAMA_REV)
+if ! fresh llama "$K_LLAMA"; then
   rm -rf "$B/llama.cpp" && mkdir -p "$B/llama.cpp"
   git -C "$B/llama.cpp" init -q
   git -C "$B/llama.cpp" fetch -q --depth 1 https://github.com/ggml-org/llama.cpp "$LLAMA_REV"
   git -C "$B/llama.cpp" checkout -q FETCH_HEAD
   python3 "$RECIPE/llama/patch_llama.py" "$B/llama.cpp"
+  "${CACHE[@]}" stamp llama "$K_LLAMA" --build "$B"
 fi
 
-docker pull -q --platform linux/arm64 "$LAMBDA_IMAGE" >/dev/null
-docker pull -q --platform linux/arm64 "$PY_IMAGE" >/dev/null
-
-echo ">> weights: merge, H512 fold, f32 GGUF, assets"
-docker run --rm --platform linux/arm64 -e CKPT=$CKPT -e CKPT_REV=$CKPT_REV \
-  -v "$REPO:/repo:ro" -v "$B/llama.cpp:/llama:ro" -v "$B:/work" -v "$B/hf:/hf" \
-  "$PY_IMAGE" bash /repo/examples/lambda-kleidiai/baseline/weights.sh
-
-echo ">> libraries, shim and function.zip in the Lambda python3.12 image"
-# The zip's inputs: a harness-only change (bench.py, summarize.py, docs) keeps the same zip and deployed code.
-ZIP_INPUTS="examples/lambda-kleidiai/shim examples/lambda-kleidiai/snapstart examples/lambda-kleidiai/llama
-  examples/lambda-kleidiai/baseline/lkai_entry.py examples/lambda-kleidiai/baseline/phases.py
-  examples/lambda-kleidiai/baseline/container_build.sh examples/lambda/app src/strands_decider"
-# shellcheck disable=SC2086
-ZIP_KEY=$( (cd "$REPO" && git ls-files -s -- $ZIP_INPUTS && git diff HEAD -- $ZIP_INPUTS) | sha256sum | cut -c1-16)
-if [ -f "$B/function.zip" ] && [ "$(cat "$B/.zip-inputs" 2>/dev/null)" = "$ZIP_KEY" ]; then
-  echo "   function.zip already built from these inputs ($ZIP_KEY)"
-else
-docker run --rm --platform linux/arm64 --entrypoint bash \
-  -v "$B/llama.cpp:/llama:ro" -v "$RECIPE:/recipe:ro" -v "$REPO/examples/lambda:/lambda:ro" \
-  -v "$REPO/src/strands_decider:/pkgsrc:ro" -v "$B/model/assets:/assets:ro" -v "$B:/out" \
-  "$LAMBDA_IMAGE" /recipe/baseline/container_build.sh
-printf '%s\n' "$ZIP_KEY" > "$B/.zip-inputs"
-git -C "$REPO" rev-parse HEAD > "$B/.zip-repo-commit"
+K_WEIGHTS=$(key weights --pin CKPT=$CKPT --pin CKPT_REV=$CKPT_REV --pin PY_IMAGE=$PY_IMAGE --upstream llama=$K_LLAMA)
+if ! fresh weights "$K_WEIGHTS"; then
+  echo ">> weights: merge, H512 fold, f32 GGUF, assets"
+  mkdir -p "$B/hf" "$B/model"
+  docker run --rm --platform linux/arm64 -e CKPT=$CKPT -e CKPT_REV=$CKPT_REV \
+    -v "$REPO:/repo:ro" -v "$B/llama.cpp:/llama:ro" -v "$B:/work" -v "$B/hf:/hf" \
+    "$PY_IMAGE" bash /repo/examples/lambda-kleidiai/baseline/weights.sh
+  "${CACHE[@]}" stamp weights "$K_WEIGHTS" --build "$B"
 fi
 
-G=$B/model/s2b-h512-Q8_0.gguf
-if [ ! -f "$G" ]; then
-  echo ">> quantize Q8_0"
+# The zip's inputs: a harness-only change (bench.py, summarize.py, docs) keeps the same zip and deployed code. Its key
+# covers the assets it ships by content, so it is computed after the weights stage.
+K_ZIP=$(key zip --pin LAMBDA_IMAGE=$LAMBDA_IMAGE --upstream llama=$K_LLAMA --upstream weights=$K_WEIGHTS)
+if ! fresh zip "$K_ZIP"; then
+  echo ">> libraries, shim and function.zip in the Lambda python3.12 image"
+  docker run --rm --platform linux/arm64 --entrypoint bash \
+    -v "$B/llama.cpp:/llama:ro" -v "$RECIPE:/recipe:ro" -v "$REPO/examples/lambda:/lambda:ro" \
+    -v "$REPO/src/strands_decider:/pkgsrc:ro" -v "$B/model/assets:/assets:ro" -v "$B:/out" \
+    "$LAMBDA_IMAGE" /recipe/baseline/container_build.sh
+  git -C "$REPO" rev-parse HEAD > "$B/.zip-repo-commit"
+  "${CACHE[@]}" stamp zip "$K_ZIP" --build "$B"
+fi
+
+G=$B/model/s2b-h512-$QUANT_TYPE.gguf
+K_QUANT=$(key quant --pin QUANT_TYPE=$QUANT_TYPE --upstream weights=$K_WEIGHTS --upstream zip=$K_ZIP)
+if ! fresh quant "$K_QUANT"; then
+  echo ">> quantize $QUANT_TYPE"
   docker run --rm --platform linux/arm64 --entrypoint bash -v "$B:/out" "$LAMBDA_IMAGE" -c \
-    "LD_LIBRARY_PATH=/out/quant-lib /out/bin/llama-quantize /out/weights/s2b-h512-f32.gguf /out/model/s2b-h512-Q8_0.gguf.tmp Q8_0 8 | tail -2 && mv /out/model/s2b-h512-Q8_0.gguf.tmp /out/model/s2b-h512-Q8_0.gguf && chmod a+r /out/model/s2b-h512-Q8_0.gguf"
+    "LD_LIBRARY_PATH=/out/quant-lib /out/bin/llama-quantize /out/weights/s2b-h512-f32.gguf /out/model/s2b-h512-$QUANT_TYPE.gguf.tmp $QUANT_TYPE 8 | tail -2 && mv /out/model/s2b-h512-$QUANT_TYPE.gguf.tmp /out/model/s2b-h512-$QUANT_TYPE.gguf && chmod a+r /out/model/s2b-h512-$QUANT_TYPE.gguf"
+  "${CACHE[@]}" stamp quant "$K_QUANT" --build "$B"
 fi
 # Earlier runs of weights.sh may predate its chmod: the manifest step below reads these as the host user.
 docker run --rm --platform linux/arm64 --entrypoint bash -v "$B:/out" "$LAMBDA_IMAGE" -c \
   "chmod -R a+rX /out/model /out/merge_report.json /out/function.zip /out/toolchain.txt"
 
 echo ">> manifest"
-python3 - "$B" "$REPO" <<EOF
+python3 - "$B" "$REPO" "$HERE" <<EOF
 import hashlib, json, os, subprocess, sys
-b, repo = sys.argv[1:3]
+b, repo, here = sys.argv[1:4]
+sys.path.insert(0, here)
+import buildcache
 def sha(p):
     h = hashlib.sha256()
     with open(p, "rb") as f:
@@ -82,10 +124,14 @@ def img(ref):
 git = lambda *a: subprocess.run(["git", "-C", repo, *a], capture_output=True, text=True).stdout.strip()
 g = os.path.join(b, "model", "s2b-h512-Q8_0.gguf")
 z = os.path.join(b, "function.zip")
+dirty_inputs = buildcache.dirty(repo)
 m = {
-    "schema": "lkai-build-manifest/1",
+    "schema": "lkai-build-manifest/2",
     "repo_commit": git("rev-parse", "HEAD"),
-    "repo_dirty": bool(git("status", "--porcelain", "--untracked-files=no")),
+    # Every executable input (tracked, untracked, deleted) that HEAD does not have, as buildcache.dirty reports it.
+    # Empty for a reproducible build; repo_dirty is true when it is not.
+    "dirty_inputs": dirty_inputs,
+    "repo_dirty": bool(dirty_inputs),
     "model": {"id": "$CKPT", "revision": "$CKPT_REV", "format": "GGUF Q8_0",
               "transform": "LoRA merged fp32 (weights/merge_export.py), H512 Hadamard fold (weights/fold_hadamard.py --block 512)",
               "merge_report": json.load(open(os.path.join(b, "merge_report.json"))),
@@ -94,7 +140,9 @@ m = {
                   "flags": "GGML_NATIVE=OFF GGML_BACKEND_DL=ON GGML_CPU_ALL_VARIANTS=ON GGML_CPU_KLEIDIAI=ON"},
     "function_zip": {"bytes": os.path.getsize(z), "sha256": sha(z), "handler": "lkai_entry.handler",
                      "source_commit": open(os.path.join(b, ".zip-repo-commit")).read().strip(),
-                     "inputs_sha256": open(os.path.join(b, ".zip-inputs")).read().strip()},
+                     "inputs_sha256": open(os.path.join(b, ".keys", "zip.key")).read().strip()},
+    "stage_keys": {s: open(os.path.join(b, ".keys", s + ".key")).read().strip()
+                   for s in ("llama", "weights", "zip", "quant")},
     "assets_sha256": {f: sha(os.path.join(b, "model", "assets", f)) for f in sorted(os.listdir(os.path.join(b, "model", "assets")))},
     "images": {"lambda_build": img("$LAMBDA_IMAGE"), "weights": img("$PY_IMAGE")},
     "toolchain": open(os.path.join(b, "toolchain.txt")).read().split("\n")[:2],

@@ -150,7 +150,7 @@ def test_wait_updated_waits_for_snapstart_optimization(monkeypatch):
 def test_run_script_arms_cleanup_trap_before_benchmark():
     script = (Path(BASE) / "run.sh").read_text()
     deploy = script.index('"$PY" "$HERE/deploy.py" up')
-    trap = script.index("trap cleanup_versions EXIT")
+    trap = script.index("trap on_exit EXIT")
     bench = script.index('"$PY" "$HERE/bench.py"')
     assert deploy < trap < bench
     assert "TEARDOWN must be versions, all, or none" in script
@@ -172,7 +172,9 @@ def test_bench_deletes_published_versions_if_later_publish_fails(tmp_path, monke
                 "Handler": "lkai_entry.handler",
                 "CodeSha256": "eg==",
                 "CodeSize": 1,
-                "Environment": {"Variables": {}},
+                "Environment": {
+                    "Variables": {"LKAI_PHASES": summarize.ARM_PHASES.get(FunctionName, "1")}
+                },
             }
 
         def get_runtime_management_config(self, FunctionName):
@@ -202,16 +204,34 @@ def test_bench_deletes_published_versions_if_later_publish_fails(tmp_path, monke
     state = {
         "region": "us-east-2",
         "functions": {a: {"name": a} for a in ("inst", "rep")},
-        "manifest": {"function_zip": {"sha256": "7a"}},
+        "manifest": {
+            "schema": "lkai-build-manifest/2",
+            "dirty_inputs": [],
+            "function_zip": {"sha256": "7a"},
+        },
     }
     monkeypatch.setattr(bench.deploy, "load_state", lambda build: state)
     monkeypatch.setattr(bench.deploy, "b64_to_hex", lambda value: "7a")
+    monkeypatch.setattr(bench.deploy, "check_account", lambda sess, st, expect=None: "1")
+    monkeypatch.setattr(
+        bench.buildcache, "harness_provenance", lambda: {"commit": "abc", "dirty_inputs": []}
+    )
     monkeypatch.setattr(bench.boto3, "Session", lambda **kwargs: object())
     monkeypatch.setattr(bench, "Bench", FakeBench)
     monkeypatch.setattr(
         sys,
         "argv",
-        ["bench.py", "--out", str(tmp_path), "--rounds", "1", "--concurrency", "1"],
+        [
+            "bench.py",
+            "--out",
+            str(tmp_path),
+            "--rounds",
+            "2",
+            "--concurrency",
+            "1",
+            "--profile",
+            "p",
+        ],
     )
     with pytest.raises(RuntimeError, match="publish failed"):
         bench.main()
@@ -451,7 +471,11 @@ def _run_dir(tmp_path, rows):
         "requests_file": "requests.json",
         "started": "t0",
         "finished": "t1",
-        "requests": {"requests": [{"id": "r1"}, {"id": "r2"}]},
+        "requests": {
+            "probe": "r1",
+            "requests": [{"id": "r1", "request": {}}, {"id": "r2", "request": {}}],
+        },
+        "harness": {"commit": "abc", "dirty_inputs": []},
         "client": {},
         "runtime_version_arn": "arn:aws:lambda:us-east-2::runtime:abc",
         "functions": {
@@ -469,8 +493,10 @@ def _run_dir(tmp_path, rows):
             for a in ("inst", "rep")
         },
         "build_manifest": {
+            "schema": "lkai-build-manifest/2",
             "repo_commit": "abc",
             "repo_dirty": False,
+            "dirty_inputs": [],
             "model": {"id": "m", "gguf_bytes": 2 * 2**30, "gguf_sha256": "g"},
             "llama_cpp": {"commit": "f74e"},
             "function_zip": {
