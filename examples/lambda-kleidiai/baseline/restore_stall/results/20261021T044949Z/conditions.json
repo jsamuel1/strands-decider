@@ -1,0 +1,5219 @@
+{
+ "schema": "lkai-i1-repro/1",
+ "region": "us-east-2",
+ "idles_s": [
+  30,
+  200,
+  400,
+  700,
+  1100
+ ],
+ "arms": [
+  "reuse_poll",
+  "reuse_nopoll",
+  "fresh_new",
+  "fresh_old"
+ ],
+ "concurrency": 10,
+ "measured_read_timeout_s": 120,
+ "function": {
+  "runtime": "python3.13",
+  "arch": "arm64",
+  "memory_mb": 128,
+  "snapstart": "PublishedVersions"
+ },
+ "client": {
+  "python": "3.14.6",
+  "boto3": "1.43.93",
+  "host": "ip-10-0-3-99",
+  "tcp_keepalive_time": "7200"
+ },
+ "started": "2026-10-21T04:49:49Z",
+ "arms_meta": [
+  {
+   "arm": "reuse_poll",
+   "idle_s": 30,
+   "function": "lkai-i1-df45-30-reusepoll",
+   "v1": {
+    "version": "2",
+    "t_publish": 1792558195.09298,
+    "t_ready": 1792558241.6779387,
+    "snapstart": {
+     "ApplyOn": "PublishedVersions",
+     "OptimizationStatus": "On"
+    }
+   },
+   "t_warmup_end": 1792558243.3837361,
+   "warmup_ok": 10,
+   "pool_after_warmup": [
+    {
+     "connected": true,
+     "lport": 44592,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 44592,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 40304,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 40304,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 38344,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 38344,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 46876,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 46876,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 55874,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 55874,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 46890,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 46890,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 40182,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 40182,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 46910,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 46910,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 48332,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 48332,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 48276,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 48276,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    }
+   ],
+   "v2": {
+    "version": "3",
+    "t_publish": 1792558247.4846146,
+    "t_ready": 1792558295.082792,
+    "snapstart": {
+     "ApplyOn": "PublishedVersions",
+     "OptimizationStatus": "On"
+    }
+   },
+   "measured": {
+    "target_version": "3",
+    "t_start": 1792558295.082798,
+    "idle_since_warmup_s": 51.7,
+    "target_age_since_ready_s": 0.0,
+    "pool_before": [
+     {
+      "connected": true,
+      "lport": 44592,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 44592,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 40304,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 40304,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 38344,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 38344,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 46876,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 46876,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 55874,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 55874,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 46890,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 46890,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 40182,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 40182,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 46910,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 46910,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 48332,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 48332,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 48276,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 48276,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     }
+    ],
+    "ok": 10,
+    "errors": [],
+    "t_end": 1792558296.2883277
+   },
+   "clients_made": 1
+  },
+  {
+   "arm": "reuse_nopoll",
+   "idle_s": 30,
+   "function": "lkai-i1-df45-30-reusenopoll",
+   "v1": {
+    "version": "2",
+    "t_publish": 1792558195.162265,
+    "t_ready": 1792558241.742098,
+    "snapstart": {
+     "ApplyOn": "PublishedVersions",
+     "OptimizationStatus": "On"
+    }
+   },
+   "t_warmup_end": 1792558243.5111585,
+   "warmup_ok": 10,
+   "pool_after_warmup": [
+    {
+     "connected": true,
+     "lport": 55860,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 55860,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 38434,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 38434,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 56538,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 56538,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 33816,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 33816,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 48410,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 48410,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 56628,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 56628,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 56568,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 56568,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 46992,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 46992,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 55906,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 55906,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 48346,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 48346,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    }
+   ],
+   "v2": {
+    "version": "3",
+    "t_publish": 1792558247.4792836,
+    "t_ready": 1792558295.0926902,
+    "snapstart": {
+     "ApplyOn": "PublishedVersions",
+     "OptimizationStatus": "On"
+    }
+   },
+   "measured": {
+    "target_version": "3",
+    "t_start": 1792558295.0926967,
+    "idle_since_warmup_s": 51.6,
+    "target_age_since_ready_s": 0.0,
+    "pool_before": [
+     {
+      "connected": true,
+      "lport": 55860,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 55860,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 38434,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 38434,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 56538,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 56538,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 33816,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 33816,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 48410,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 48410,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 56628,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 56628,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 56568,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 56568,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 46992,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 46992,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 55906,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 55906,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 48346,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 48346,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     }
+    ],
+    "ok": 10,
+    "errors": [],
+    "t_end": 1792558296.273345
+   },
+   "clients_made": 2
+  },
+  {
+   "arm": "fresh_new",
+   "idle_s": 30,
+   "function": "lkai-i1-df45-30-freshnew",
+   "v1": {
+    "version": "2",
+    "t_publish": 1792558195.1537883,
+    "t_ready": 1792558241.161665,
+    "snapstart": {
+     "ApplyOn": "PublishedVersions",
+     "OptimizationStatus": "On"
+    }
+   },
+   "t_warmup_end": 1792558242.7395236,
+   "warmup_ok": 10,
+   "pool_after_warmup": [
+    {
+     "connected": true,
+     "lport": 37112,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 37112,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 46808,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 46808,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 38308,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 38308,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 48210,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 48210,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 55758,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 55758,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 48216,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 48216,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 40134,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 40134,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 40138,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 40138,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 56502,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 56502,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 33694,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 33694,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    }
+   ],
+   "v2": {
+    "version": "3",
+    "t_publish": 1792558246.7607765,
+    "t_ready": 1792558295.1278098,
+    "snapstart": {
+     "ApplyOn": "PublishedVersions",
+     "OptimizationStatus": "On"
+    }
+   },
+   "measured": {
+    "target_version": "3",
+    "t_start": 1792558295.1344793,
+    "idle_since_warmup_s": 52.4,
+    "target_age_since_ready_s": 0.0,
+    "pool_before": [],
+    "ok": 10,
+    "errors": [],
+    "t_end": 1792558296.6783428
+   },
+   "clients_made": 3
+  },
+  {
+   "arm": "fresh_old",
+   "idle_s": 30,
+   "function": "lkai-i1-df45-30-freshold",
+   "v1": {
+    "version": "2",
+    "t_publish": 1792558195.1056256,
+    "t_ready": 1792558241.7540977,
+    "snapstart": {
+     "ApplyOn": "PublishedVersions",
+     "OptimizationStatus": "On"
+    }
+   },
+   "t_warmup_end": 1792558243.4053214,
+   "warmup_ok": 10,
+   "pool_after_warmup": [
+    {
+     "connected": true,
+     "lport": 37236,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 37236,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 37290,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 37290,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 40170,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 40170,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 38404,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 38404,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 56610,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 56610,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 40276,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 40276,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 55848,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 55848,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 56638,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 56638,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 37264,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 37264,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 33830,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 33830,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    }
+   ],
+   "v2": {
+    "version": "3",
+    "t_publish": 1792558247.3810363,
+    "t_ready": 1792558295.1174734,
+    "snapstart": {
+     "ApplyOn": "PublishedVersions",
+     "OptimizationStatus": "On"
+    }
+   },
+   "measured": {
+    "target_version": "2",
+    "t_start": 1792558295.121718,
+    "idle_since_warmup_s": 51.7,
+    "target_age_since_ready_s": 53.4,
+    "pool_before": [],
+    "ok": 10,
+    "errors": [],
+    "t_end": 1792558296.130298
+   },
+   "clients_made": 3
+  },
+  {
+   "arm": "reuse_poll",
+   "idle_s": 200,
+   "function": "lkai-i1-df45-200-reusepoll",
+   "v1": {
+    "version": "1",
+    "t_publish": 1792558195.163637,
+    "t_ready": 1792558241.943095,
+    "snapstart": {
+     "ApplyOn": "PublishedVersions",
+     "OptimizationStatus": "On"
+    }
+   },
+   "t_warmup_end": 1792558243.5520713,
+   "warmup_ok": 10,
+   "pool_after_warmup": [
+    {
+     "connected": true,
+     "lport": 55400,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 55400,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 33862,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 33862,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 55938,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 55938,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 37312,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 37312,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 56650,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 56650,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 38472,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 38472,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 47018,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 47018,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 48414,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 48414,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 56662,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 56662,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 40308,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 40308,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    }
+   ],
+   "v2": {
+    "version": "2",
+    "t_publish": 1792558247.5626738,
+    "t_ready": 1792558295.0670004,
+    "snapstart": {
+     "ApplyOn": "PublishedVersions",
+     "OptimizationStatus": "On"
+    }
+   },
+   "measured": {
+    "target_version": "2",
+    "t_start": 1792558446.4926128,
+    "idle_since_warmup_s": 202.9,
+    "target_age_since_ready_s": 151.4,
+    "pool_before": [
+     {
+      "connected": true,
+      "lport": 55400,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 55400,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 33862,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 33862,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 55938,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 55938,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 37312,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 37312,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 56650,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 56650,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 38472,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 38472,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 47018,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 47018,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 48414,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 48414,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 56662,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 56662,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 40308,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 40308,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     }
+    ],
+    "ok": 10,
+    "errors": [],
+    "t_end": 1792558447.5533113
+   },
+   "clients_made": 1
+  },
+  {
+   "arm": "reuse_nopoll",
+   "idle_s": 200,
+   "function": "lkai-i1-df45-200-reusenopoll",
+   "v1": {
+    "version": "1",
+    "t_publish": 1792558195.0972674,
+    "t_ready": 1792558241.7021968,
+    "snapstart": {
+     "ApplyOn": "PublishedVersions",
+     "OptimizationStatus": "On"
+    }
+   },
+   "t_warmup_end": 1792558243.4855955,
+   "warmup_ok": 10,
+   "pool_after_warmup": [
+    {
+     "connected": true,
+     "lport": 56554,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 56554,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 33748,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 33748,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 48362,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 48362,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 37242,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 37242,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 37176,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 37176,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 55808,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 55808,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 46900,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 46900,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 56580,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 56580,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 46852,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 46852,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 47008,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 47008,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    }
+   ],
+   "v2": {
+    "version": "2",
+    "t_publish": 1792558247.46479,
+    "t_ready": 1792558295.0892751,
+    "snapstart": {
+     "ApplyOn": "PublishedVersions",
+     "OptimizationStatus": "On"
+    }
+   },
+   "measured": {
+    "target_version": "2",
+    "t_start": 1792558443.486765,
+    "idle_since_warmup_s": 200.0,
+    "target_age_since_ready_s": 148.4,
+    "pool_before": [
+     {
+      "connected": true,
+      "lport": 56554,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 56554,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 33748,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 33748,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 48362,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 48362,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 37242,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 37242,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 37176,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 37176,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 55808,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 55808,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 46900,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 46900,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 56580,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 56580,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 46852,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 46852,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 47008,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 47008,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     }
+    ],
+    "ok": 10,
+    "errors": [],
+    "t_end": 1792558444.6028368
+   },
+   "clients_made": 2
+  },
+  {
+   "arm": "fresh_new",
+   "idle_s": 200,
+   "function": "lkai-i1-df45-200-freshnew",
+   "v1": {
+    "version": "1",
+    "t_publish": 1792558195.1785371,
+    "t_ready": 1792558243.2448857,
+    "snapstart": {
+     "ApplyOn": "PublishedVersions",
+     "OptimizationStatus": "On"
+    }
+   },
+   "t_warmup_end": 1792558244.8866093,
+   "warmup_ok": 10,
+   "pool_after_warmup": [
+    {
+     "connected": true,
+     "lport": 45422,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 45422,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 55728,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 55728,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 55248,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 55248,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 60128,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 60128,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 34780,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 34780,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 34792,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 34792,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 49354,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 49354,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 40624,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 40624,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 60130,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 60130,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 48912,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 48912,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    }
+   ],
+   "v2": {
+    "version": "2",
+    "t_publish": 1792558248.8702917,
+    "t_ready": 1792558295.0997438,
+    "snapstart": {
+     "ApplyOn": "PublishedVersions",
+     "OptimizationStatus": "On"
+    }
+   },
+   "measured": {
+    "target_version": "2",
+    "t_start": 1792558444.8895166,
+    "idle_since_warmup_s": 200.0,
+    "target_age_since_ready_s": 149.8,
+    "pool_before": [],
+    "ok": 10,
+    "errors": [],
+    "t_end": 1792558446.4582453
+   },
+   "clients_made": 3
+  },
+  {
+   "arm": "fresh_old",
+   "idle_s": 200,
+   "function": "lkai-i1-df45-200-freshold",
+   "v1": {
+    "version": "1",
+    "t_publish": 1792558195.1122975,
+    "t_ready": 1792558241.6984046,
+    "snapstart": {
+     "ApplyOn": "PublishedVersions",
+     "OptimizationStatus": "On"
+    }
+   },
+   "t_warmup_end": 1792558243.4728944,
+   "warmup_ok": 10,
+   "pool_after_warmup": [
+    {
+     "connected": true,
+     "lport": 37196,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 37196,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 55816,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 55816,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 56574,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 56574,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 33774,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 33774,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 55832,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 55832,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 40226,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 40226,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 33764,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 33764,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 33756,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 33756,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 40262,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 40262,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 46926,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 46926,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    }
+   ],
+   "v2": {
+    "version": "2",
+    "t_publish": 1792558247.4897792,
+    "t_ready": 1792558295.0786028,
+    "snapstart": {
+     "ApplyOn": "PublishedVersions",
+     "OptimizationStatus": "On"
+    }
+   },
+   "measured": {
+    "target_version": "1",
+    "t_start": 1792558443.4760728,
+    "idle_since_warmup_s": 200.0,
+    "target_age_since_ready_s": 201.8,
+    "pool_before": [],
+    "ok": 10,
+    "errors": [],
+    "t_end": 1792558444.5357234
+   },
+   "clients_made": 3
+  },
+  {
+   "arm": "reuse_poll",
+   "idle_s": 400,
+   "function": "lkai-i1-df45-400-reusepoll",
+   "v1": {
+    "version": "1",
+    "t_publish": 1792558195.1901376,
+    "t_ready": 1792558241.7376888,
+    "snapstart": {
+     "ApplyOn": "PublishedVersions",
+     "OptimizationStatus": "On"
+    }
+   },
+   "t_warmup_end": 1792558243.3084137,
+   "warmup_ok": 10,
+   "pool_after_warmup": [
+    {
+     "connected": true,
+     "lport": 44584,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 44584,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 46978,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 46978,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 33780,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 33780,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 55868,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 55868,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 56590,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 56590,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 38372,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 38372,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 46934,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 46934,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 38440,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 38440,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 38470,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 38470,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 55928,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 55928,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    }
+   ],
+   "v2": {
+    "version": "2",
+    "t_publish": 1792558247.3565845,
+    "t_ready": 1792558295.0874004,
+    "snapstart": {
+     "ApplyOn": "PublishedVersions",
+     "OptimizationStatus": "On"
+    }
+   },
+   "measured": {
+    "target_version": "2",
+    "t_start": 1792558645.7203832,
+    "idle_since_warmup_s": 402.4,
+    "target_age_since_ready_s": 350.6,
+    "pool_before": [
+     {
+      "connected": true,
+      "lport": 44584,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 44584,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 46978,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 46978,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 33780,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 33780,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 55868,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 55868,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 56590,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 56590,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 38372,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 38372,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 46934,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 46934,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 38440,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 38440,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 38470,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 38470,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 55928,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 55928,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     }
+    ],
+    "ok": 1,
+    "errors": [
+     "client:ReadTimeoutError"
+    ],
+    "t_end": 1792558765.8413584
+   },
+   "clients_made": 1
+  },
+  {
+   "arm": "reuse_nopoll",
+   "idle_s": 400,
+   "function": "lkai-i1-df45-400-reusenopoll",
+   "v1": {
+    "version": "1",
+    "t_publish": 1792558195.2761197,
+    "t_ready": 1792558245.1116242,
+    "snapstart": {
+     "ApplyOn": "PublishedVersions",
+     "OptimizationStatus": "On"
+    }
+   },
+   "t_warmup_end": 1792558246.6335053,
+   "warmup_ok": 10,
+   "pool_after_warmup": [
+    {
+     "connected": true,
+     "lport": 55252,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 55252,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 45434,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 45434,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 34794,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 34794,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 49364,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 49364,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 49360,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 49360,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 45442,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 45442,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 55740,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 55740,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 48916,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 48916,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 40640,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 40640,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 60140,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 60140,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    }
+   ],
+   "v2": {
+    "version": "2",
+    "t_publish": 1792558250.6111124,
+    "t_ready": 1792558295.0912433,
+    "snapstart": {
+     "ApplyOn": "PublishedVersions",
+     "OptimizationStatus": "On"
+    }
+   },
+   "measured": {
+    "target_version": "2",
+    "t_start": 1792558646.6336036,
+    "idle_since_warmup_s": 400.0,
+    "target_age_since_ready_s": 351.5,
+    "pool_before": [
+     {
+      "connected": true,
+      "lport": 55252,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 55252,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 45434,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 45434,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 34794,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 34794,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 49364,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 49364,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 49360,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 49360,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 45442,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 45442,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 55740,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 55740,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 48916,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 48916,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 40640,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 40640,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 60140,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 60140,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     }
+    ],
+    "ok": 0,
+    "errors": [
+     "client:ReadTimeoutError"
+    ],
+    "t_end": 1792558766.7517364
+   },
+   "clients_made": 2
+  },
+  {
+   "arm": "fresh_new",
+   "idle_s": 400,
+   "function": "lkai-i1-df45-400-freshnew",
+   "v1": {
+    "version": "1",
+    "t_publish": 1792558195.1229386,
+    "t_ready": 1792558241.654911,
+    "snapstart": {
+     "ApplyOn": "PublishedVersions",
+     "OptimizationStatus": "On"
+    }
+   },
+   "t_warmup_end": 1792558243.163137,
+   "warmup_ok": 10,
+   "pool_after_warmup": [
+    {
+     "connected": true,
+     "lport": 46834,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 46834,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 48250,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 48250,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 38322,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 38322,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 55782,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 55782,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 33710,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 33710,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 37140,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 37140,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 56522,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 56522,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 40150,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 40150,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 37156,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 37156,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 56520,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 56520,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    }
+   ],
+   "v2": {
+    "version": "2",
+    "t_publish": 1792558247.1816506,
+    "t_ready": 1792558295.0727592,
+    "snapstart": {
+     "ApplyOn": "PublishedVersions",
+     "OptimizationStatus": "On"
+    }
+   },
+   "measured": {
+    "target_version": "2",
+    "t_start": 1792558643.1663554,
+    "idle_since_warmup_s": 400.0,
+    "target_age_since_ready_s": 348.1,
+    "pool_before": [],
+    "ok": 10,
+    "errors": [],
+    "t_end": 1792558644.7770076
+   },
+   "clients_made": 3
+  },
+  {
+   "arm": "fresh_old",
+   "idle_s": 400,
+   "function": "lkai-i1-df45-400-freshold",
+   "v1": {
+    "version": "1",
+    "t_publish": 1792558195.1212277,
+    "t_ready": 1792558241.7278554,
+    "snapstart": {
+     "ApplyOn": "PublishedVersions",
+     "OptimizationStatus": "On"
+    }
+   },
+   "t_warmup_end": 1792558243.4598489,
+   "warmup_ok": 10,
+   "pool_after_warmup": [
+    {
+     "connected": true,
+     "lport": 56596,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 56596,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 46864,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 46864,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 40196,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 40196,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 40244,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 40244,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 40210,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 40210,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 37306,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 37306,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 48412,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 48412,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 40242,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 40242,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 37244,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 37244,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 46968,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 46968,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    }
+   ],
+   "v2": {
+    "version": "2",
+    "t_publish": 1792558247.4733412,
+    "t_ready": 1792558295.088783,
+    "snapstart": {
+     "ApplyOn": "PublishedVersions",
+     "OptimizationStatus": "On"
+    }
+   },
+   "measured": {
+    "target_version": "1",
+    "t_start": 1792558643.463101,
+    "idle_since_warmup_s": 400.0,
+    "target_age_since_ready_s": 401.7,
+    "pool_before": [],
+    "ok": 10,
+    "errors": [],
+    "t_end": 1792558644.7701588
+   },
+   "clients_made": 3
+  },
+  {
+   "arm": "reuse_poll",
+   "idle_s": 700,
+   "function": "lkai-i1-df45-700-reusepoll",
+   "v1": {
+    "version": "1",
+    "t_publish": 1792558195.1652582,
+    "t_ready": 1792558241.743985,
+    "snapstart": {
+     "ApplyOn": "PublishedVersions",
+     "OptimizationStatus": "On"
+    }
+   },
+   "t_warmup_end": 1792558243.5208266,
+   "warmup_ok": 10,
+   "pool_after_warmup": [
+    {
+     "connected": true,
+     "lport": 35088,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 35088,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 40260,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 40260,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 40212,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 40212,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 38420,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 38420,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 46950,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 46950,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 56630,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 56630,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 48378,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 48378,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 37246,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 37246,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 38456,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 38456,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 40288,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 40288,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    }
+   ],
+   "v2": {
+    "version": "2",
+    "t_publish": 1792558247.5438867,
+    "t_ready": 1792558295.0645013,
+    "snapstart": {
+     "ApplyOn": "PublishedVersions",
+     "OptimizationStatus": "On"
+    }
+   },
+   "measured": {
+    "target_version": "2",
+    "t_start": 1792558945.3478813,
+    "idle_since_warmup_s": 701.8,
+    "target_age_since_ready_s": 650.3,
+    "pool_before": [
+     {
+      "connected": true,
+      "lport": 35088,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 35088,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 40260,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 40260,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 40212,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 40212,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 38420,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 38420,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 46950,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 46950,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 56630,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 56630,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 48378,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 48378,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 37246,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 37246,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 38456,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 38456,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 40288,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 40288,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     }
+    ],
+    "ok": 1,
+    "errors": [
+     "client:ReadTimeoutError"
+    ],
+    "t_end": 1792559065.4656696
+   },
+   "clients_made": 1
+  },
+  {
+   "arm": "reuse_nopoll",
+   "idle_s": 700,
+   "function": "lkai-i1-df45-700-reusenopoll",
+   "v1": {
+    "version": "1",
+    "t_publish": 1792558195.224606,
+    "t_ready": 1792558243.227294,
+    "snapstart": {
+     "ApplyOn": "PublishedVersions",
+     "OptimizationStatus": "On"
+    }
+   },
+   "t_warmup_end": 1792558244.7723281,
+   "warmup_ok": 10,
+   "pool_after_warmup": [
+    {
+     "connected": true,
+     "lport": 49340,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 49340,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 40602,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 40602,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 55706,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 55706,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 34776,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 34776,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 45418,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 45418,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 40616,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 40616,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 48906,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 48906,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 60124,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 60124,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 55714,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 55714,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 55236,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 55236,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    }
+   ],
+   "v2": {
+    "version": "2",
+    "t_publish": 1792558250.830406,
+    "t_ready": 1792558295.094278,
+    "snapstart": {
+     "ApplyOn": "PublishedVersions",
+     "OptimizationStatus": "On"
+    }
+   },
+   "measured": {
+    "target_version": "2",
+    "t_start": 1792558944.7724223,
+    "idle_since_warmup_s": 700.0,
+    "target_age_since_ready_s": 649.7,
+    "pool_before": [
+     {
+      "connected": true,
+      "lport": 49340,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 49340,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 40602,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 40602,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 55706,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 55706,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 34776,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 34776,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 45418,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 45418,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 40616,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 40616,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 48906,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 48906,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 60124,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 60124,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 55714,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 55714,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 55236,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 55236,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     }
+    ],
+    "ok": 0,
+    "errors": [
+     "client:ReadTimeoutError"
+    ],
+    "t_end": 1792559064.8913434
+   },
+   "clients_made": 2
+  },
+  {
+   "arm": "fresh_new",
+   "idle_s": 700,
+   "function": "lkai-i1-df45-700-freshnew",
+   "v1": {
+    "version": "1",
+    "t_publish": 1792558195.0840826,
+    "t_ready": 1792558241.6692712,
+    "snapstart": {
+     "ApplyOn": "PublishedVersions",
+     "OptimizationStatus": "On"
+    }
+   },
+   "t_warmup_end": 1792558243.2367368,
+   "warmup_ok": 10,
+   "pool_after_warmup": [
+    {
+     "connected": true,
+     "lport": 38338,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 38338,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 33718,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 33718,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 40162,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 40162,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 33732,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 33732,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 37166,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 37166,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 55786,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 55786,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 56534,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 56534,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 48264,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 48264,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 46842,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 46842,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 55792,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 55792,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    }
+   ],
+   "v2": {
+    "version": "2",
+    "t_publish": 1792558247.2650902,
+    "t_ready": 1792558295.0870247,
+    "snapstart": {
+     "ApplyOn": "PublishedVersions",
+     "OptimizationStatus": "On"
+    }
+   },
+   "measured": {
+    "target_version": "2",
+    "t_start": 1792558943.2395475,
+    "idle_since_warmup_s": 700.0,
+    "target_age_since_ready_s": 648.2,
+    "pool_before": [],
+    "ok": 10,
+    "errors": [],
+    "t_end": 1792558946.834475
+   },
+   "clients_made": 3
+  },
+  {
+   "arm": "fresh_old",
+   "idle_s": 700,
+   "function": "lkai-i1-df45-700-freshold",
+   "v1": {
+    "version": "1",
+    "t_publish": 1792558195.1344233,
+    "t_ready": 1792558241.719433,
+    "snapstart": {
+     "ApplyOn": "PublishedVersions",
+     "OptimizationStatus": "On"
+    }
+   },
+   "t_warmup_end": 1792558243.3272183,
+   "warmup_ok": 10,
+   "pool_after_warmup": [
+    {
+     "connected": true,
+     "lport": 38386,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 38386,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 40188,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 40188,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 46868,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 46868,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 48292,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 48292,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 37226,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 37226,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 33784,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 33784,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 33740,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 33740,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 38358,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 38358,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 38426,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 38426,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 56576,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 56576,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    }
+   ],
+   "v2": {
+    "version": "2",
+    "t_publish": 1792558247.297976,
+    "t_ready": 1792558295.0597982,
+    "snapstart": {
+     "ApplyOn": "PublishedVersions",
+     "OptimizationStatus": "On"
+    }
+   },
+   "measured": {
+    "target_version": "1",
+    "t_start": 1792558943.3310661,
+    "idle_since_warmup_s": 700.0,
+    "target_age_since_ready_s": 701.6,
+    "pool_before": [],
+    "ok": 10,
+    "errors": [],
+    "t_end": 1792558946.8340201
+   },
+   "clients_made": 3
+  },
+  {
+   "arm": "reuse_poll",
+   "idle_s": 1100,
+   "function": "lkai-i1-df45-1100-reusepoll",
+   "v1": {
+    "version": "1",
+    "t_publish": 1792558195.1667705,
+    "t_ready": 1792558241.7231388,
+    "snapstart": {
+     "ApplyOn": "PublishedVersions",
+     "OptimizationStatus": "On"
+    }
+   },
+   "t_warmup_end": 1792558243.457609,
+   "warmup_ok": 10,
+   "pool_after_warmup": [
+    {
+     "connected": true,
+     "lport": 33786,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 33786,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 38388,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 38388,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 48318,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 48318,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 48280,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 48280,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 37186,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 37186,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 38400,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 38400,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 33826,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 33826,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 48308,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 48308,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 33794,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 33794,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 38390,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 38390,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    }
+   ],
+   "v2": {
+    "version": "2",
+    "t_publish": 1792558247.477234,
+    "t_ready": 1792558295.0978637,
+    "snapstart": {
+     "ApplyOn": "PublishedVersions",
+     "OptimizationStatus": "On"
+    }
+   },
+   "measured": {
+    "target_version": "2",
+    "t_start": 1792559346.4503136,
+    "idle_since_warmup_s": 1103.0,
+    "target_age_since_ready_s": 1051.4,
+    "pool_before": [
+     {
+      "connected": true,
+      "lport": 33786,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 33786,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 38388,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 38388,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 48318,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 48318,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 48280,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 48280,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 37186,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 37186,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 38400,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 38400,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 33826,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 33826,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 48308,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 48308,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 33794,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 33794,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 38390,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 38390,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     }
+    ],
+    "ok": 1,
+    "errors": [
+     "client:ReadTimeoutError"
+    ],
+    "t_end": 1792559466.5721319
+   },
+   "clients_made": 1
+  },
+  {
+   "arm": "reuse_nopoll",
+   "idle_s": 1100,
+   "function": "lkai-i1-df45-1100-reusenopoll",
+   "v1": {
+    "version": "1",
+    "t_publish": 1792558195.1930115,
+    "t_ready": 1792558241.7302463,
+    "snapstart": {
+     "ApplyOn": "PublishedVersions",
+     "OptimizationStatus": "On"
+    }
+   },
+   "t_warmup_end": 1792558243.4265208,
+   "warmup_ok": 10,
+   "pool_after_warmup": [
+    {
+     "connected": true,
+     "lport": 48290,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 48290,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 55850,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 55850,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 33810,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 33810,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 37210,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 37210,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 55926,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 55926,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 55890,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 55890,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 55920,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 55920,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 56606,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 56606,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 38468,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 38468,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 48394,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 48394,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    }
+   ],
+   "v2": {
+    "version": "2",
+    "t_publish": 1792558247.433345,
+    "t_ready": 1792558295.1450644,
+    "snapstart": {
+     "ApplyOn": "PublishedVersions",
+     "OptimizationStatus": "On"
+    }
+   },
+   "measured": {
+    "target_version": "2",
+    "t_start": 1792559343.4277184,
+    "idle_since_warmup_s": 1100.0,
+    "target_age_since_ready_s": 1048.3,
+    "pool_before": [
+     {
+      "connected": true,
+      "lport": 48290,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 48290,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 55850,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 55850,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 33810,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 33810,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 37210,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 37210,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 55926,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 55926,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 55890,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 55890,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 55920,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 55920,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 56606,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 56606,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 38468,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 38468,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     },
+     {
+      "connected": true,
+      "lport": 48394,
+      "urllib3_sees_dropped": false,
+      "tcp": {
+       "lport": 48394,
+       "rport": 443,
+       "state": "ESTABLISHED",
+       "tx_queue": 0,
+       "rx_queue": 0,
+       "timer": "00:00000000",
+       "retransmits": 0
+      }
+     }
+    ],
+    "ok": 0,
+    "errors": [
+     "client:ReadTimeoutError"
+    ],
+    "t_end": 1792559463.5466487
+   },
+   "clients_made": 2
+  },
+  {
+   "arm": "fresh_new",
+   "idle_s": 1100,
+   "function": "lkai-i1-df45-1100-freshnew",
+   "v1": {
+    "version": "1",
+    "t_publish": 1792558195.1600296,
+    "t_ready": 1792558241.8275359,
+    "snapstart": {
+     "ApplyOn": "PublishedVersions",
+     "OptimizationStatus": "On"
+    }
+   },
+   "t_warmup_end": 1792558243.4029481,
+   "warmup_ok": 10,
+   "pool_after_warmup": [
+    {
+     "connected": true,
+     "lport": 40302,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 40302,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 56622,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 56622,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 37280,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 37280,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 55936,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 55936,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 37252,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 37252,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 33852,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 33852,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 46956,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 46956,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 33838,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 33838,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 48370,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 48370,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 48386,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 48386,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    }
+   ],
+   "v2": {
+    "version": "2",
+    "t_publish": 1792558247.396098,
+    "t_ready": 1792558295.0772157,
+    "snapstart": {
+     "ApplyOn": "PublishedVersions",
+     "OptimizationStatus": "On"
+    }
+   },
+   "measured": {
+    "target_version": "2",
+    "t_start": 1792559343.406063,
+    "idle_since_warmup_s": 1100.0,
+    "target_age_since_ready_s": 1048.3,
+    "pool_before": [],
+    "ok": 10,
+    "errors": [],
+    "t_end": 1792559345.0630496
+   },
+   "clients_made": 3
+  },
+  {
+   "arm": "fresh_old",
+   "idle_s": 1100,
+   "function": "lkai-i1-df45-1100-freshold",
+   "v1": {
+    "version": "1",
+    "t_publish": 1792558195.099213,
+    "t_ready": 1792558241.5627673,
+    "snapstart": {
+     "ApplyOn": "PublishedVersions",
+     "OptimizationStatus": "On"
+    }
+   },
+   "t_warmup_end": 1792558243.3645747,
+   "warmup_ok": 10,
+   "pool_after_warmup": [
+    {
+     "connected": true,
+     "lport": 48232,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 48232,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 33698,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 33698,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 46830,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 46830,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 55766,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 55766,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "02:00000014",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 48234,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 48234,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 37126,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 37126,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 40144,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 40144,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 46820,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 46820,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 38320,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 38320,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    },
+    {
+     "connected": true,
+     "lport": 56506,
+     "urllib3_sees_dropped": false,
+     "tcp": {
+      "lport": 56506,
+      "rport": 443,
+      "state": "ESTABLISHED",
+      "tx_queue": 0,
+      "rx_queue": 0,
+      "timer": "00:00000000",
+      "retransmits": 0
+     }
+    }
+   ],
+   "v2": {
+    "version": "2",
+    "t_publish": 1792558247.329878,
+    "t_ready": 1792558295.0618944,
+    "snapstart": {
+     "ApplyOn": "PublishedVersions",
+     "OptimizationStatus": "On"
+    }
+   },
+   "measured": {
+    "target_version": "1",
+    "t_start": 1792559343.3686278,
+    "idle_since_warmup_s": 1100.0,
+    "target_age_since_ready_s": 1101.8,
+    "pool_before": [],
+    "ok": 10,
+    "errors": [],
+    "t_end": 1792559344.730422
+   },
+   "clients_made": 3
+  }
+ ],
+ "finished": "2026-10-21T05:11:06Z",
+ "lambda_side": {
+  "lkai-i1-df45-30-reusepoll": {
+   "2": {
+    "invocations_metric": 10.0,
+    "start_lines": 10
+   },
+   "3": {
+    "invocations_metric": 10.0,
+    "start_lines": 10
+   }
+  },
+  "lkai-i1-df45-30-reusenopoll": {
+   "2": {
+    "invocations_metric": 10.0,
+    "start_lines": 10
+   },
+   "3": {
+    "invocations_metric": 10.0,
+    "start_lines": 10
+   }
+  },
+  "lkai-i1-df45-30-freshnew": {
+   "2": {
+    "invocations_metric": 10.0,
+    "start_lines": 10
+   },
+   "3": {
+    "invocations_metric": 10.0,
+    "start_lines": 10
+   }
+  },
+  "lkai-i1-df45-30-freshold": {
+   "2": {
+    "invocations_metric": 20.0,
+    "start_lines": 20
+   },
+   "3": {
+    "invocations_metric": 0,
+    "start_lines": 0
+   }
+  },
+  "lkai-i1-df45-200-reusepoll": {
+   "1": {
+    "invocations_metric": 10.0,
+    "start_lines": 10
+   },
+   "2": {
+    "invocations_metric": 10.0,
+    "start_lines": 10
+   }
+  },
+  "lkai-i1-df45-200-reusenopoll": {
+   "1": {
+    "invocations_metric": 10.0,
+    "start_lines": 10
+   },
+   "2": {
+    "invocations_metric": 10.0,
+    "start_lines": 10
+   }
+  },
+  "lkai-i1-df45-200-freshnew": {
+   "1": {
+    "invocations_metric": 10.0,
+    "start_lines": 10
+   },
+   "2": {
+    "invocations_metric": 10.0,
+    "start_lines": 10
+   }
+  },
+  "lkai-i1-df45-200-freshold": {
+   "1": {
+    "invocations_metric": 20.0,
+    "start_lines": 20
+   },
+   "2": {
+    "invocations_metric": 0,
+    "start_lines": 0
+   }
+  },
+  "lkai-i1-df45-400-reusepoll": {
+   "1": {
+    "invocations_metric": 10.0,
+    "start_lines": 10
+   },
+   "2": {
+    "invocations_metric": 1.0,
+    "start_lines": 1
+   }
+  },
+  "lkai-i1-df45-400-reusenopoll": {
+   "1": {
+    "invocations_metric": 10.0,
+    "start_lines": 10
+   },
+   "2": {
+    "invocations_metric": 0,
+    "start_lines": 0
+   }
+  },
+  "lkai-i1-df45-400-freshnew": {
+   "1": {
+    "invocations_metric": 10.0,
+    "start_lines": 10
+   },
+   "2": {
+    "invocations_metric": 10.0,
+    "start_lines": 10
+   }
+  },
+  "lkai-i1-df45-400-freshold": {
+   "1": {
+    "invocations_metric": 20.0,
+    "start_lines": 20
+   },
+   "2": {
+    "invocations_metric": 0,
+    "start_lines": 0
+   }
+  },
+  "lkai-i1-df45-700-reusepoll": {
+   "1": {
+    "invocations_metric": 10.0,
+    "start_lines": 10
+   },
+   "2": {
+    "invocations_metric": 1.0,
+    "start_lines": 1
+   }
+  },
+  "lkai-i1-df45-700-reusenopoll": {
+   "1": {
+    "invocations_metric": 10.0,
+    "start_lines": 10
+   },
+   "2": {
+    "invocations_metric": 0,
+    "start_lines": 0
+   }
+  },
+  "lkai-i1-df45-700-freshnew": {
+   "1": {
+    "invocations_metric": 10.0,
+    "start_lines": 10
+   },
+   "2": {
+    "invocations_metric": 10.0,
+    "start_lines": 10
+   }
+  },
+  "lkai-i1-df45-700-freshold": {
+   "1": {
+    "invocations_metric": 20.0,
+    "start_lines": 20
+   },
+   "2": {
+    "invocations_metric": 0,
+    "start_lines": 0
+   }
+  },
+  "lkai-i1-df45-1100-reusepoll": {
+   "1": {
+    "invocations_metric": 10.0,
+    "start_lines": 10
+   },
+   "2": {
+    "invocations_metric": 1.0,
+    "start_lines": 1
+   }
+  },
+  "lkai-i1-df45-1100-reusenopoll": {
+   "1": {
+    "invocations_metric": 10.0,
+    "start_lines": 10
+   },
+   "2": {
+    "invocations_metric": 0,
+    "start_lines": 0
+   }
+  },
+  "lkai-i1-df45-1100-freshnew": {
+   "1": {
+    "invocations_metric": 10.0,
+    "start_lines": 10
+   },
+   "2": {
+    "invocations_metric": 10.0,
+    "start_lines": 10
+   }
+  },
+  "lkai-i1-df45-1100-freshold": {
+   "1": {
+    "invocations_metric": 20.0,
+    "start_lines": 20
+   },
+   "2": {
+    "invocations_metric": 0,
+    "start_lines": 0
+   }
+  }
+ }
+}

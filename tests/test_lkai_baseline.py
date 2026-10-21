@@ -221,6 +221,80 @@ def test_bench_deletes_published_versions_if_later_publish_fails(tmp_path, monke
 # ------------------------------------------------------------------ entry point against stand-ins
 
 
+class _RecordingSession:
+    """A boto3 Session stand-in: every client() call makes a new client that records its config and invokes."""
+
+    def __init__(self):
+        self.clients = []
+
+    def client(self, service, config=None):
+        sess = self
+
+        class Client:
+            def __init__(self):
+                self.service, self.config, self.invokes = service, config, []
+
+            def invoke(self, **kw):
+                self.invokes.append(kw["Qualifier"])
+                return {
+                    "StatusCode": 200,
+                    "Payload": types.SimpleNamespace(read=lambda: b'{"answers": []}'),
+                    "LogResult": "",
+                    "ExecutedVersion": kw["Qualifier"],
+                }
+
+        c = Client()
+        sess.clients.append(c)
+        return c
+
+
+def _recording_bench(tmp_path, monkeypatch, concurrency=3):
+    import bench
+
+    seen = []
+    monkeypatch.setattr(bench, "Config", lambda **kw: seen.append(kw) or kw)
+    sess = _RecordingSession()
+    b = bench.Bench(
+        sess,
+        {"functions": {"rep": {"name": "fn"}}},
+        {"requests": [{"id": "q", "request": {}}], "probe": "q"},
+        str(tmp_path),
+        concurrency,
+    )
+    return b, sess
+
+
+def test_every_wave_invokes_through_its_own_new_client(tmp_path, monkeypatch):
+    """I1: a pooled connection that idled through the publish phase silently loses the request, so no wave may
+    invoke through the lifecycle client or through a client an earlier wave used."""
+    b, sess = _recording_bench(tmp_path, monkeypatch)
+    lifecycle = b.lam
+    before = len(sess.clients)
+    for wave, q in (("cold", "$LATEST"), ("restore", "7"), ("warm", "7"), ("warm", "7")):
+        b.wave("rep", q, 0, wave)
+    waves = sess.clients[before:]
+    assert len(waves) == 4 == b.invoke_clients
+    assert len({id(c) for c in waves}) == 4
+    assert [c.invokes for c in waves] == [["$LATEST"] * 3, ["7"] * 3, ["7"] * 3, ["7"] * 3]
+    assert lifecycle.invokes == []
+    for c in waves:
+        assert c.service == "lambda"
+        assert c.config["retries"] == {"max_attempts": 0}  # a retry would hide a failed start
+        assert c.config["read_timeout"] == 900
+        assert c.config["max_pool_connections"] >= 3
+
+
+def test_lifecycle_client_retries_and_a_lone_invoke_still_gets_a_new_client(tmp_path, monkeypatch):
+    b, sess = _recording_bench(tmp_path, monkeypatch)
+    assert b.lam.config["retries"]["max_attempts"] > 1
+    assert b.lam.config["read_timeout"] < 900
+    n = len(sess.clients)
+    rec = b.invoke("rep", "7", "q", 0, "restore", 0)
+    assert rec["error"] is None
+    assert len(sess.clients) == n + 1
+    assert b.lam.invokes == []
+
+
 def test_publish_deletes_version_if_snapshot_wait_fails(monkeypatch):
     import bench
 

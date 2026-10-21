@@ -92,6 +92,11 @@ The harness checks each invocation's expected class against its REPORT line: `In
 `Restore Duration` means restore, and neither means warm. Mismatches are counted and excluded from the phase
 distributions; they are never relabelled. Cold and restore waves send `requests.json`'s probe request.
 
+Every wave invokes through a new Lambda client, and lifecycle calls (publish, polls, deletes) use a separate client
+with retries. Before I1 fixed this, one client did everything. A pooled connection that had idled through the
+publish phase for more than about 200 to 400 s (from this host, via NAT) silently lost the next request: no
+`START`, then a client read timeout. See [`restore_stall/README.md`](restore_stall/README.md).
+
 Lambda chooses the Graviton generation per environment, and a forward on Graviton2 takes about 1.7 times as long as
 on Graviton3. Every class therefore also reports `engine_by_cpu_part`, and the instrumentation overhead compares the
 two arms only within a CPU part both landed on (`instrumentation_overhead.<class>.<metric>.by_cpu_part`, pooled by

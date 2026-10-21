@@ -48,35 +48,62 @@ observed_class = phases.observed_class
 
 
 class Bench:
+    """Two kinds of Lambda client (I1, examples/lambda-kleidiai/baseline/restore_stall/README.md).
+
+    `lam` makes the lifecycle calls: configuration, publish, readiness polls, deletes. They are idempotent, so it
+    has a short read timeout and standard retries. Every cold, restore and warm wave invokes through a NEW client
+    from new_invoke_client(), so no measured invoke goes out on a connection pooled before a publish/SnapStart wait
+    or by an earlier wave. Reusing one client for everything let a request be written into a pooled connection
+    that had idled through the publish phase (P3: 1074 to 1112 s): the bytes were never acknowledged, the request
+    never reached Lambda (no START, Invocations short by the same count) and it ended in a client read timeout.
+    A fresh client changes only the client round trip (one TLS handshake per connection, equal on every arm), never
+    Lambda's REPORT or the function's own timings."""
+
     def __init__(self, sess, st: dict, reqs: dict, out: str, concurrency: int):
-        self.st, self.out = st, out
+        self.st, self.out, self.sess = st, out, sess
+        self.concurrency = concurrency
+        self.invoke_clients = 0
         self.lam = sess.client(
             "lambda",
             config=Config(
-                read_timeout=900,
+                read_timeout=60,
                 connect_timeout=10,
-                retries={"max_attempts": 0},
-                max_pool_connections=max(16, concurrency * 2),
+                retries={"max_attempts": 5, "mode": "standard"},
             ),
         )
         self.logs = sess.client("logs")
         self.reqs = {r["id"]: r["request"] for r in reqs["requests"]}
         self.order = [r["id"] for r in reqs["requests"]]
         self.probe = reqs["probe"]
-        self.concurrency = concurrency
         self.fh = open(os.path.join(out, "invocations.jsonl"), "a")
+
+    def new_invoke_client(self):
+        """A fresh client for one wave: no retries (a retry would hide a failed start), the function's 900 s
+        timeout, and a pool as wide as the wave."""
+        self.invoke_clients += 1
+        return self.sess.client(
+            "lambda",
+            config=Config(
+                read_timeout=900,
+                connect_timeout=10,
+                retries={"max_attempts": 0},
+                max_pool_connections=max(16, self.concurrency * 2),
+            ),
+        )
 
     def write(self, rec: dict) -> None:
         with _lock:
             self.fh.write(json.dumps(rec, separators=(",", ":")) + "\n")
             self.fh.flush()
 
-    def invoke(self, arm: str, qualifier: str, rid: str, rnd: int, wave: str, seq: int) -> dict:
+    def invoke(
+        self, arm: str, qualifier: str, rid: str, rnd: int, wave: str, seq: int, client=None
+    ) -> dict:
         name = self.st["functions"][arm]["name"]
         t_wall = time.time()
         t = time.perf_counter()
         try:
-            r = self.lam.invoke(
+            r = (client or self.new_invoke_client()).invoke(
                 FunctionName=name,
                 Qualifier=qualifier,
                 LogType="Tail",
@@ -138,9 +165,11 @@ class Bench:
     def wave(
         self, arm: str, qualifier: str, rnd: int, wave: str, rid: str | None = None, seq0: int = 0
     ) -> list[dict]:
+        # One fresh pool per cold/restore/warm wave (see the class docstring).
+        lam = self.new_invoke_client()
         with ThreadPoolExecutor(self.concurrency) as ex:
             futs = [
-                ex.submit(self.invoke, arm, qualifier, rid or self.probe, rnd, wave, seq0 + i)
+                ex.submit(self.invoke, arm, qualifier, rid or self.probe, rnd, wave, seq0 + i, lam)
                 for i in range(self.concurrency)
             ]
             return [f.result() for f in futs]
@@ -269,6 +298,7 @@ def main() -> None:
             "python": platform.python_version(),
             "boto3": boto3.__version__,
             "host": platform.machine(),
+            "invoke_client": "fresh per wave",
         },
         "started": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "rounds_meta": [],
@@ -335,6 +365,7 @@ def main() -> None:
         cond["rounds_meta"].append(meta)
         json.dump(cond, open(os.path.join(a.out, "conditions.json"), "w"), indent=1)
     cond["finished"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    cond["client"]["invoke_clients_made"] = b.invoke_clients
     json.dump(cond, open(os.path.join(a.out, "conditions.json"), "w"), indent=1)
     print("BENCH_DONE", a.out)
 
