@@ -186,7 +186,9 @@ part.
 
 Drop the text vocabulary from the deployed GGUF. It takes 0.66 s off cold deserialization and about 0.87 s off the
 cold first request (−2.4%), lowers peak memory by ~80–95 MB, and changes no output. The cold improvement holds within
-every CPU part the run drew. It does nothing for SnapStart
+every CPU part the run drew. Cold and restore waves ran one arm after the other within each round, so drift within a
+round is not controlled for them; arm order alternated between rounds, and cold E5 was below base in rounds of both
+orders. It does nothing for SnapStart
 restores or warm requests. The larger load cost, KleidiAI's ~6 s runtime repack (including ~1.7 s for the tied output
 head that is never used), cannot be removed by any file format this loader reads.
 

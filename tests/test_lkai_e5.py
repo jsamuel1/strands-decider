@@ -311,6 +311,21 @@ def test_host_variability_method_states_sequential_within_round(tmp_path):
     assert "time-within-round drift remains a limitation for cold and restore" in method
 
 
+def test_committed_host_variability_matches_generator_and_conclusion_states_drift_limit():
+    # The published payload is these files; it must say what host_variability.py says today, limitation included.
+    import host_variability as H
+
+    run = os.path.join(E5, "results", "20261020T114406Z")
+    saved = json.load(open(os.path.join(run, "host-variability.json")))
+    res = json.load(open(os.path.join(run, "results.json")))
+    meta = json.load(open(os.path.join(E5, "meta.json")))
+    generated = H.assess(run)
+    assert {k: v for k, v in saved.items() if k != "added_after_run"} == generated
+    assert res["host_variability"] == saved
+    assert res["conclusion"] == meta["conclusion"]
+    assert "drift within a round is not controlled for cold and restore" in res["conclusion"]
+
+
 def test_run_rebuilds_when_conversion_record_is_stale():
     run = open(os.path.join(E5, "run.sh")).read()
     assert "conversion_current()" in run
