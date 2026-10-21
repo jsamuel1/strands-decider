@@ -344,7 +344,7 @@ def main() -> None:
                 )
             for i in range(a.warm):
                 # One pass = `concurrency` simultaneous invokes per arm, so they land on every environment the
-                # restore wave created (and so on every Graviton generation it drew), not on one reused environment.
+                # restore wave created (and so on every CPU part it drew), not on one reused environment.
                 rid = b.order[i % len(b.order)]
                 for arm in order if i % 2 == 0 else order[::-1]:
                     b.wave(

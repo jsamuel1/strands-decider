@@ -247,6 +247,18 @@ def test_load_paths_counts_environments_by_arm_part_and_path(tmp_path: Path, mon
     assert lp["cloudwatch_lines"] == {"lkai-f1ee-e9": {"adopt kr=8": 2}}
 
 
+def test_no_unevidenced_graviton_generation_claims():
+    """E9's prose names CPU part ids only: a 'Graviton N' label would be inferred, not observed."""
+    import re
+
+    bad = re.compile(r"graviton\s*[0-9]", re.IGNORECASE)
+    for f in ("README.md", "meta.json", "host_variability.py", "summarize_e9.py", "deploy_e9.py"):
+        text = open(os.path.join(E9, f)).read()
+        assert not bad.search(text), f
+    bench = open(os.path.join(os.path.dirname(E9), "baseline", "bench.py")).read()
+    assert "Graviton generation it drew" not in bench
+
+
 def test_bench_checks_each_arms_own_zip():
     src = open(os.path.join(os.path.dirname(E9), "baseline", "bench.py")).read()
     assert (
