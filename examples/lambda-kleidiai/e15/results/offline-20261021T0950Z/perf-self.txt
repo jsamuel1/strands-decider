@@ -1,0 +1,42 @@
+# To display the perf.data header info, please use --header/--header-only options.
+#
+#
+# Total Lost Samples: 0
+#
+# Samples: 40K of event 'cycles'
+# Event count (approx.): 200241154623
+#
+# Overhead  Shared Object                                       Symbol
+# ........  ..................................................  ............................................................................................................................................................
+#
+    43.35%  libggml-cpu-armv8.6_1.so                            [.] kai_kernel_matmul_clamp_f32_qai8dxp4x8_qsi8cxp4x8_16x4_neon_i8mm
+     8.39%  libggml-cpu-armv8.6_1.so                            [.] ggml_vec_dot_f32
+     7.72%  libggml-cpu-armv8.6_1.so                            [.] ggml_compute_forward_gated_delta_net_one_chunk
+     7.41%  libggml-cpu-armv8.6_1.so                            [.] label_17
+     4.95%  libggml-cpu-armv8.6_1.so                            [.] ggml_backend_cpu_kleidiai_buffer_set_tensor
+     3.58%  libggml-cpu-armv8.6_1.so                            [.] ggml_compute_forward_fwht
+     2.23%  libggml-cpu-armv8.6_1.so                            [.] ggml_compute_forward_ssm_conv
+     2.20%  libggml-cpu-armv8.6_1.so                            [.] kai_run_rhs_pack_nxk_qsi8cxp_qsi8cx_neon
+     1.93%  libgomp.so.1                                        [.] 0x00000000000273b8
+     1.52%  libgomp.so.1                                        [.] 0x00000000000273c4
+     1.23%  libggml-cpu-armv8.6_1.so                            [.] kai_run_lhs_quant_pack_qai8dxp_f32
+     1.04%  libggml-cpu-armv8.6_1.so                            [.] ggml_compute_forward_concat
+     0.92%  libggml-cpu-armv8.6_1.so                            [.] lroundf@plt
+     0.91%  libggml-cpu-armv8.6_1.so                            [.] ggml_vec_swiglu_f32
+     0.74%  libggml-cpu-armv8.6_1.so                            [.] ggml_vec_silu_f32
+     0.71%  libggml-cpu-armv8.6_1.so                            [.] ggml_compute_forward_rms_norm_mul_fused
+     0.63%  libggml-cpu-armv8.6_1.so                            [.] ggml_compute_forward_rms_norm
+     0.61%  libgomp.so.1                                        [.] 0x00000000000273c8
+     0.58%  libgomp.so.1                                        [.] 0x00000000000273bc
+     0.55%  libc.so.6                                           [.] __GI___memcpy_sve
+     0.51%  libm.so.6                                           [.] lroundf32
+     0.49%  libggml-cpu-armv8.6_1.so                            [.] ggml_compute_forward_mul_mat
+     0.37%  libggml-cpu-armv8.6_1.so                            [.] ggml_cpu_get_sve_cnt
+     0.36%  libggml-cpu-armv8.6_1.so                            [.] ggml_compute_forward_mul
+     0.35%  libc.so.6                                           [.] __GI___memset_generic
+     0.35%  [unknown]                                           [k] 0xffff800008ba84c8
+
+
+#
+# (Tip: System-wide collection from all CPUs: perf record -a)
+#

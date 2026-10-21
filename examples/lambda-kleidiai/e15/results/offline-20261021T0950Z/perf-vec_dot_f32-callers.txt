@@ -1,0 +1,64 @@
+# To display the perf.data header info, please use --header/--header-only option
+#
+#
+# Total Lost Samples: 0
+#
+# Samples: 40K of event 'cycles'
+# Event count (approx.): 200241154623
+#
+     8.39%  [.] ggml_vec_dot_f32
+            |
+            |--1.43%--0x7dffffa2a1b21b
+            |          0x56ffffa29adb77
+            |          0x56ffffa29adb77
+            |          0xffff9b9b343f
+            |          ggml_graph_compute_thread.isra.0
+            |          |
+            |           --1.42%--ggml_compute_forward_mul_mat
+            |                     ggml_vec_dot_f32
+            |
+            |--1.42%--0x6bffffa2a1b21b
+            |          0x5effffa29adb77
+            |          0x5effffa29adb77
+            |          0xffff9b9b343f
+            |          ggml_graph_compute_thread.isra.0
+            |          |
+            |           --1.41%--ggml_compute_forward_mul_mat
+            |                     ggml_vec_dot_f32
+            |
+            |--1.41%--0x69ffffa2a1b21b
+            |          0x4bffffa29adb77
+            |          0x4bffffa29adb77
+            |          0xffff9b9b343f
+            |          ggml_graph_compute_thread.isra.0
+            |          |
+            |           --1.41%--ggml_compute_forward_mul_mat
+            |                     ggml_vec_dot_f32
+            |
+            |--1.40%--0x54ffffa2a1b21b
+            |          0x54ffffa29adb77
+            |          0x54ffffa29adb77
+            |          0xffff9b9b343f
+            |          ggml_graph_compute_thread.isra.0
+            |          |
+            |           --1.39%--ggml_compute_forward_mul_mat
+            |                     ggml_vec_dot_f32
+            |
+            |--1.38%--ggml_backend_cpu_graph_compute
+            |          |
+            |           --1.32%--0x30ffff9b65754b
+            |                     0x30ffff9b65754b
+            |                     GOMP_parallel
+            |                     ggml_graph_compute_thread.isra.0
+            |                     ggml_compute_forward_mul_mat
+            |                     ggml_vec_dot_f32
+            |
+             --1.35%--0x2fffffa2a1b21b
+                       0x57ffffa29adb77
+                       0x57ffffa29adb77
+                       0xffff9b9b343f
+                       ggml_graph_compute_thread.isra.0
+                       |
+                        --1.35%--ggml_compute_forward_mul_mat
+                                  ggml_vec_dot_f32
+

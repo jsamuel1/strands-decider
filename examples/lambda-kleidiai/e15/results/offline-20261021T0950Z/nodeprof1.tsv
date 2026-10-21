@@ -1,0 +1,777 @@
+#graphs	160
+#graph_ns	37355592536
+#overflow_ns	0
+GET_ROWS|model.input_embed|q8_0|i32||token_embd.weight|	160	2505992
+fused+1:RMS_NORM|norm|f32|-||model.input_embed|	160	5232569
+SCALE|cache_r_l0 (reshaped) (view) (view)|f32|-||cache_r_l0 (reshaped) (view)|	160	593727
+GET_ROWS|node_9|f32|i32||cache_r_l0 (reshaped)|	160	779525
+CPY|cache_r_l0 (view) (copy of node_9 (view))|f32|f32||node_9 (view)|	160	138995
+MUL|node_15|f32|f32||attn_norm|	160	1291554
+MUL_MAT|node_17|f32|f32|CPU|prism.hadamard.512|,hadamard	160	12140598
+MUL_MAT|node_19|q8_0|f32|CPU_KLEIDIAI|attn_qkv.weight|	160	203666960
+CONCAT|conv_input|f32|f32||conv_states_reshaped|src1-noncontig	2880	1843082922
+CPY|conv_state_update (copy of conv_state_last)|f32|f32||conv_state_last|	2880	74166252
+SCALE|cache_s_l0 (reshaped) (view) (view)|f32|-||cache_s_l0 (reshaped) (view)|	160	3809123
+GET_ROWS|node_29|f32|i32||cache_s_l0 (reshaped)|	160	8199959
+CPY|cache_s_l0 (view) (copy of node_29 (view))|f32|f32||node_29 (view)|	160	497713
+SSM_CONV|conv_output_raw|f32|f32||conv_input|	2880	989130373
+SILU|conv_output_silu|f32|-||conv_output_raw|	2880	278145077
+RMS_NORM|node_37|f32|-||q_conv|	160	8133814
+SCALE|q_conv_predelta|f32|-||node_37|	160	1558694
+RMS_NORM|node_40|f32|-||k_conv|	160	8724496
+SCALE|k_conv_predelta|f32|-||node_40|	160	1515982
+MUL_MAT|node_43|q8_0|f32|CPU_KLEIDIAI|ssm_alpha.weight|	160	4930346
+ADD|node_45|f32|f32||alpha|	160	252453
+SOFTPLUS|a_softplus|f32|-||node_45|	160	576543
+MUL|gate|f32|f32||a_softplus|	2880	3930373
+MUL_MAT|node_49|q8_0|f32|CPU_KLEIDIAI|ssm_beta.weight|	160	4465511
+SIGMOID|beta_sigmoid|f32|-||beta|	2880	7660930
+GATED_DELTA_NET|node_53|f32|f32||q_conv_predelta|	160	200834579
+CPY|cache_s_l0 (view) (copy of new_state)|f32|f32||new_state|	160	3332371
+fused+1:RMS_NORM|norm|f32|-||attn_output|	2880	146207020
+MUL_MAT|z|q8_0|f32|CPU_KLEIDIAI|attn_gate.weight|	2880	1277095179
+SILU|node_62|f32|-||z (reshaped)|	160	6534707
+MUL|node_63|f32|f32||node_59|	160	1371372
+MUL|node_65|f32|f32||final_output|	160	943773
+MUL_MAT|node_67|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11749128
+MUL_MAT|linear_attn_out|q8_0|f32|CPU_KLEIDIAI|ssm_out.weight|	2880	1339947422
+ADD|attn_residual|f32|f32||linear_attn_out (reshaped)|	2880	33245914
+fused+1:RMS_NORM|norm|f32|-||attn_residual|	3840	111878594
+MUL|node_74|f32|f32||attn_post_norm|	160	1670635
+MUL_MAT|node_76|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11693149
+MUL_MAT|ffn_gate|q8_0|f32|CPU_KLEIDIAI|ffn_gate.weight|	3840	4678133326
+MUL_MAT|ffn_up|q8_0|f32|CPU_KLEIDIAI|ffn_up.weight|	3840	4701537668
+SWIGLU|ffn_swiglu|f32|f32||ffn_gate|	3840	420204568
+MUL|node_81|f32|f32||ffn_swiglu|	160	2846638
+MUL_MAT|node_83|f32|f32|CPU|prism.hadamard.512|,hadamard	160	34968014
+MUL_MAT|ffn_out|q8_0|f32|CPU_KLEIDIAI|ffn_down.weight|	3840	5266368921
+ADD|l_out|f32|f32||ffn_out|	3840	71196314
+fused+1:RMS_NORM|norm|f32|-||l_out|	3840	113503437
+SCALE|cache_r_l1 (reshaped) (view) (view)|f32|-||cache_r_l1 (reshaped) (view)|	160	564196
+GET_ROWS|node_92|f32|i32||cache_r_l1 (reshaped)|	160	751398
+CPY|cache_r_l1 (view) (copy of node_92 (view))|f32|f32||node_92 (view)|	160	135693
+MUL|node_98|f32|f32||attn_norm|	160	1255141
+MUL_MAT|node_100|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11752769
+MUL_MAT|node_102|q8_0|f32|CPU_KLEIDIAI|attn_qkv.weight|	160	203264204
+SCALE|cache_s_l1 (reshaped) (view) (view)|f32|-||cache_s_l1 (reshaped) (view)|	160	3781826
+GET_ROWS|node_112|f32|i32||cache_s_l1 (reshaped)|	160	7647178
+CPY|cache_s_l1 (view) (copy of node_112 (view))|f32|f32||node_112 (view)|	160	368259
+RMS_NORM|node_120|f32|-||q_conv|	160	7995024
+SCALE|q_conv_predelta|f32|-||node_120|	160	1540030
+RMS_NORM|node_123|f32|-||k_conv|	160	8074851
+SCALE|k_conv_predelta|f32|-||node_123|	160	1522597
+MUL_MAT|node_126|q8_0|f32|CPU_KLEIDIAI|ssm_alpha.weight|	160	4896868
+ADD|node_128|f32|f32||alpha|	160	228098
+SOFTPLUS|a_softplus|f32|-||node_128|	160	532408
+MUL_MAT|node_132|q8_0|f32|CPU_KLEIDIAI|ssm_beta.weight|	160	4383512
+GATED_DELTA_NET|node_136|f32|f32||q_conv_predelta|	160	199658940
+CPY|cache_s_l1 (view) (copy of new_state)|f32|f32||new_state|	160	3394917
+SILU|node_145|f32|-||z (reshaped)|	160	6360258
+MUL|node_146|f32|f32||node_142|	160	1366681
+MUL|node_148|f32|f32||final_output|	160	941185
+MUL_MAT|node_150|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11723045
+MUL|node_157|f32|f32||attn_post_norm|	160	1657059
+MUL_MAT|node_159|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11761992
+MUL|node_164|f32|f32||ffn_swiglu|	160	2809940
+MUL_MAT|node_166|f32|f32|CPU|prism.hadamard.512|,hadamard	160	35015349
+SCALE|cache_r_l2 (reshaped) (view) (view)|f32|-||cache_r_l2 (reshaped) (view)|	160	583267
+GET_ROWS|node_175|f32|i32||cache_r_l2 (reshaped)|	160	760654
+CPY|cache_r_l2 (view) (copy of node_175 (view))|f32|f32||node_175 (view)|	160	140948
+MUL|node_181|f32|f32||attn_norm|	160	1260865
+MUL_MAT|node_183|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11779574
+MUL_MAT|node_185|q8_0|f32|CPU_KLEIDIAI|attn_qkv.weight|	160	203246358
+SCALE|cache_s_l2 (reshaped) (view) (view)|f32|-||cache_s_l2 (reshaped) (view)|	160	3803662
+GET_ROWS|node_195|f32|i32||cache_s_l2 (reshaped)|	160	7708871
+CPY|cache_s_l2 (view) (copy of node_195 (view))|f32|f32||node_195 (view)|	160	368989
+RMS_NORM|node_203|f32|-||q_conv|	160	7968840
+SCALE|q_conv_predelta|f32|-||node_203|	160	1552816
+RMS_NORM|node_206|f32|-||k_conv|	160	8037824
+SCALE|k_conv_predelta|f32|-||node_206|	160	1522977
+MUL_MAT|node_209|q8_0|f32|CPU_KLEIDIAI|ssm_alpha.weight|	160	4827135
+ADD|node_211|f32|f32||alpha|	160	222068
+SOFTPLUS|a_softplus|f32|-||node_211|	160	532888
+MUL_MAT|node_215|q8_0|f32|CPU_KLEIDIAI|ssm_beta.weight|	160	4388075
+GATED_DELTA_NET|node_219|f32|f32||q_conv_predelta|	160	200062900
+CPY|cache_s_l2 (view) (copy of new_state)|f32|f32||new_state|	160	3320781
+SILU|node_228|f32|-||z (reshaped)|	160	6346318
+MUL|node_229|f32|f32||node_225|	160	1417618
+MUL|node_231|f32|f32||final_output|	160	945882
+MUL_MAT|node_233|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11748315
+MUL|node_240|f32|f32||attn_post_norm|	160	1673388
+MUL_MAT|node_242|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11706643
+MUL|node_247|f32|f32||ffn_swiglu|	160	2814002
+MUL_MAT|node_249|f32|f32|CPU|prism.hadamard.512|,hadamard	160	34997614
+MUL|node_255|f32|f32||attn_norm|	160	1712961
+MUL_MAT|node_257|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11828664
+MUL_MAT|Qcur_full|q8_0|f32|CPU_KLEIDIAI|attn_q.weight|	960	821454486
+fused+1:RMS_NORM|norm|f32|-||Qcur_reshaped|	960	48685819
+ROPE|Qcur|f32|i32||Qcur_normed|	960	28198377
+MUL_MAT|Vcur|q8_0|f32|CPU_KLEIDIAI|attn_v.weight|	960	131134393
+MUL_MAT|Kcur|q8_0|f32|CPU_KLEIDIAI|attn_k.weight|	960	133536841
+fused+1:RMS_NORM|norm|f32|-||Kcur (reshaped)|	960	20607514
+ROPE|Kcur|f32|i32||Kcur_normed|	960	15013374
+SET_ROWS|cache_k_l3 (view)|f32|i64||Kcur (view)|	160	446763
+SET_ROWS|cache_v_l3 (reshaped) (view)|f32|i64||Vcur (reshaped) (reshaped)|	160	7670097
+MUL_MAT|kq|f32|f32|CPU|cache_k_l3 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x83x8	10	11177892
+SOFT_MAX|kq_soft_max|f32|f32||kq|	960	171661156
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l3 (view) (permuted)|,s0=256x256x2nc,s1=256x83x8	10	14117771
+CONT|attn_pregate|f32|-||kqv (permuted)|	960	9234912
+CONT|gate_reshaped|f32|-||Qcur_full (view)|	960	22077190
+SIGMOID|gate_sigmoid|f32|-||gate_reshaped|	960	100253119
+MUL|attn_gated|f32|f32||attn_pregate|	960	8162210
+MUL|node_292|f32|f32||attn_gated|	160	939142
+MUL_MAT|node_294|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11728183
+MUL_MAT|attn_output|q8_0|f32|CPU_KLEIDIAI|attn_output.weight|	960	422413163
+ADD|attn_residual|f32|f32||attn_output|	800	12851751
+MUL|node_300|f32|f32||attn_post_norm|	160	1640619
+MUL_MAT|node_302|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11660661
+MUL|node_307|f32|f32||ffn_swiglu|	160	2802362
+MUL_MAT|node_309|f32|f32|CPU|prism.hadamard.512|,hadamard	160	35000050
+SCALE|cache_r_l4 (reshaped) (view) (view)|f32|-||cache_r_l4 (reshaped) (view)|	160	580016
+GET_ROWS|node_318|f32|i32||cache_r_l4 (reshaped)|	160	742387
+CPY|cache_r_l4 (view) (copy of node_318 (view))|f32|f32||node_318 (view)|	160	157838
+MUL|node_324|f32|f32||attn_norm|	160	1304618
+MUL_MAT|node_326|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11763261
+MUL_MAT|node_328|q8_0|f32|CPU_KLEIDIAI|attn_qkv.weight|	160	203127153
+SCALE|cache_s_l4 (reshaped) (view) (view)|f32|-||cache_s_l4 (reshaped) (view)|	160	3866190
+GET_ROWS|node_338|f32|i32||cache_s_l4 (reshaped)|	160	7697276
+CPY|cache_s_l4 (view) (copy of node_338 (view))|f32|f32||node_338 (view)|	160	378561
+RMS_NORM|node_346|f32|-||q_conv|	160	8021803
+SCALE|q_conv_predelta|f32|-||node_346|	160	1536456
+RMS_NORM|node_349|f32|-||k_conv|	160	8057524
+SCALE|k_conv_predelta|f32|-||node_349|	160	1543710
+MUL_MAT|node_352|q8_0|f32|CPU_KLEIDIAI|ssm_alpha.weight|	160	4875046
+ADD|node_354|f32|f32||alpha|	160	231622
+SOFTPLUS|a_softplus|f32|-||node_354|	160	523677
+MUL_MAT|node_358|q8_0|f32|CPU_KLEIDIAI|ssm_beta.weight|	160	4353047
+GATED_DELTA_NET|node_362|f32|f32||q_conv_predelta|	160	199745696
+CPY|cache_s_l4 (view) (copy of new_state)|f32|f32||new_state|	160	3924601
+SILU|node_371|f32|-||z (reshaped)|	160	6463749
+MUL|node_372|f32|f32||node_368|	160	1374291
+MUL|node_374|f32|f32||final_output|	160	942949
+MUL_MAT|node_376|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11756126
+MUL|node_383|f32|f32||attn_post_norm|	160	1683873
+MUL_MAT|node_385|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11756127
+MUL|node_390|f32|f32||ffn_swiglu|	160	2819686
+MUL_MAT|node_392|f32|f32|CPU|prism.hadamard.512|,hadamard	160	34996633
+SCALE|cache_r_l5 (reshaped) (view) (view)|f32|-||cache_r_l5 (reshaped) (view)|	160	567859
+GET_ROWS|node_401|f32|i32||cache_r_l5 (reshaped)|	160	758028
+CPY|cache_r_l5 (view) (copy of node_401 (view))|f32|f32||node_401 (view)|	160	137795
+MUL|node_407|f32|f32||attn_norm|	160	1262480
+MUL_MAT|node_409|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11785057
+MUL_MAT|node_411|q8_0|f32|CPU_KLEIDIAI|attn_qkv.weight|	160	203567731
+SCALE|cache_s_l5 (reshaped) (view) (view)|f32|-||cache_s_l5 (reshaped) (view)|	160	3770792
+GET_ROWS|node_421|f32|i32||cache_s_l5 (reshaped)|	160	7651925
+CPY|cache_s_l5 (view) (copy of node_421 (view))|f32|f32||node_421 (view)|	160	362523
+RMS_NORM|node_429|f32|-||q_conv|	160	7954250
+SCALE|q_conv_predelta|f32|-||node_429|	160	1519482
+RMS_NORM|node_432|f32|-||k_conv|	160	8008746
+SCALE|k_conv_predelta|f32|-||node_432|	160	1524366
+MUL_MAT|node_435|q8_0|f32|CPU_KLEIDIAI|ssm_alpha.weight|	160	4866758
+ADD|node_437|f32|f32||alpha|	160	240178
+SOFTPLUS|a_softplus|f32|-||node_437|	160	532391
+MUL_MAT|node_441|q8_0|f32|CPU_KLEIDIAI|ssm_beta.weight|	160	4394749
+GATED_DELTA_NET|node_445|f32|f32||q_conv_predelta|	160	199725478
+CPY|cache_s_l5 (view) (copy of new_state)|f32|f32||new_state|	160	3481978
+SILU|node_454|f32|-||z (reshaped)|	160	6442496
+MUL|node_455|f32|f32||node_451|	160	1368366
+MUL|node_457|f32|f32||final_output|	160	950769
+MUL_MAT|node_459|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11723378
+MUL|node_466|f32|f32||attn_post_norm|	160	1680857
+MUL_MAT|node_468|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11722631
+MUL|node_473|f32|f32||ffn_swiglu|	160	2787536
+MUL_MAT|node_475|f32|f32|CPU|prism.hadamard.512|,hadamard	160	34922519
+SCALE|cache_r_l6 (reshaped) (view) (view)|f32|-||cache_r_l6 (reshaped) (view)|	160	587252
+GET_ROWS|node_484|f32|i32||cache_r_l6 (reshaped)|	160	762180
+CPY|cache_r_l6 (view) (copy of node_484 (view))|f32|f32||node_484 (view)|	160	135908
+MUL|node_490|f32|f32||attn_norm|	160	1256603
+MUL_MAT|node_492|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11779383
+MUL_MAT|node_494|q8_0|f32|CPU_KLEIDIAI|attn_qkv.weight|	160	203102841
+SCALE|cache_s_l6 (reshaped) (view) (view)|f32|-||cache_s_l6 (reshaped) (view)|	160	3784441
+GET_ROWS|node_504|f32|i32||cache_s_l6 (reshaped)|	160	7690374
+CPY|cache_s_l6 (view) (copy of node_504 (view))|f32|f32||node_504 (view)|	160	355938
+RMS_NORM|node_512|f32|-||q_conv|	160	8006727
+SCALE|q_conv_predelta|f32|-||node_512|	160	1520214
+RMS_NORM|node_515|f32|-||k_conv|	160	8054142
+SCALE|k_conv_predelta|f32|-||node_515|	160	1509981
+MUL_MAT|node_518|q8_0|f32|CPU_KLEIDIAI|ssm_alpha.weight|	160	4904383
+ADD|node_520|f32|f32||alpha|	160	217272
+SOFTPLUS|a_softplus|f32|-||node_520|	160	527040
+MUL_MAT|node_524|q8_0|f32|CPU_KLEIDIAI|ssm_beta.weight|	160	4372560
+GATED_DELTA_NET|node_528|f32|f32||q_conv_predelta|	160	199686919
+CPY|cache_s_l6 (view) (copy of new_state)|f32|f32||new_state|	160	3494436
+SILU|node_537|f32|-||z (reshaped)|	160	6386718
+MUL|node_538|f32|f32||node_534|	160	1385962
+MUL|node_540|f32|f32||final_output|	160	943129
+MUL_MAT|node_542|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11728503
+MUL|node_549|f32|f32||attn_post_norm|	160	1663304
+MUL_MAT|node_551|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11755112
+MUL|node_556|f32|f32||ffn_swiglu|	160	2783693
+MUL_MAT|node_558|f32|f32|CPU|prism.hadamard.512|,hadamard	160	34998213
+MUL|node_564|f32|f32||attn_norm|	160	1709320
+MUL_MAT|node_566|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11857616
+SET_ROWS|cache_k_l7 (view)|f32|i64||Kcur (view)|	160	414647
+SET_ROWS|cache_v_l7 (reshaped) (view)|f32|i64||Vcur (reshaped) (reshaped)|	160	7733646
+MUL_MAT|kq|f32|f32|CPU|cache_k_l7 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x83x8	10	11234010
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l7 (view) (permuted)|,s0=256x256x2nc,s1=256x83x8	10	14120017
+MUL|node_601|f32|f32||attn_gated|	160	937218
+MUL_MAT|node_603|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11718222
+MUL|node_609|f32|f32||attn_post_norm|	160	1627339
+MUL_MAT|node_611|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11716930
+MUL|node_616|f32|f32||ffn_swiglu|	160	2803990
+MUL_MAT|node_618|f32|f32|CPU|prism.hadamard.512|,hadamard	160	35106942
+SCALE|cache_r_l8 (reshaped) (view) (view)|f32|-||cache_r_l8 (reshaped) (view)|	160	577872
+GET_ROWS|node_627|f32|i32||cache_r_l8 (reshaped)|	160	992395
+CPY|cache_r_l8 (view) (copy of node_627 (view))|f32|f32||node_627 (view)|	160	148056
+MUL|node_633|f32|f32||attn_norm|	160	1646197
+MUL_MAT|node_635|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11765516
+MUL_MAT|node_637|q8_0|f32|CPU_KLEIDIAI|attn_qkv.weight|	160	203510750
+SCALE|cache_s_l8 (reshaped) (view) (view)|f32|-||cache_s_l8 (reshaped) (view)|	160	3800929
+GET_ROWS|node_647|f32|i32||cache_s_l8 (reshaped)|	160	7705085
+CPY|cache_s_l8 (view) (copy of node_647 (view))|f32|f32||node_647 (view)|	160	494937
+RMS_NORM|node_655|f32|-||q_conv|	160	8249907
+SCALE|q_conv_predelta|f32|-||node_655|	160	1647538
+RMS_NORM|node_658|f32|-||k_conv|	160	8222181
+SCALE|k_conv_predelta|f32|-||node_658|	160	1803663
+MUL_MAT|node_661|q8_0|f32|CPU_KLEIDIAI|ssm_alpha.weight|	160	5077409
+ADD|node_663|f32|f32||alpha|	160	234253
+SOFTPLUS|a_softplus|f32|-||node_663|	160	674054
+MUL_MAT|node_667|q8_0|f32|CPU_KLEIDIAI|ssm_beta.weight|	160	4673034
+GATED_DELTA_NET|node_671|f32|f32||q_conv_predelta|	160	199633536
+CPY|cache_s_l8 (view) (copy of new_state)|f32|f32||new_state|	160	3598427
+SILU|node_680|f32|-||z (reshaped)|	160	6362350
+MUL|node_681|f32|f32||node_677|	160	1361545
+MUL|node_683|f32|f32||final_output|	160	953378
+MUL_MAT|node_685|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11754161
+MUL|node_692|f32|f32||attn_post_norm|	160	1664869
+MUL_MAT|node_694|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11727186
+MUL|node_699|f32|f32||ffn_swiglu|	160	2797924
+MUL_MAT|node_701|f32|f32|CPU|prism.hadamard.512|,hadamard	160	35028499
+SCALE|cache_r_l9 (reshaped) (view) (view)|f32|-||cache_r_l9 (reshaped) (view)|	160	577712
+GET_ROWS|node_710|f32|i32||cache_r_l9 (reshaped)|	160	774807
+CPY|cache_r_l9 (view) (copy of node_710 (view))|f32|f32||node_710 (view)|	160	129605
+MUL|node_716|f32|f32||attn_norm|	160	1255911
+MUL_MAT|node_718|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11753042
+MUL_MAT|node_720|q8_0|f32|CPU_KLEIDIAI|attn_qkv.weight|	160	202681428
+SCALE|cache_s_l9 (reshaped) (view) (view)|f32|-||cache_s_l9 (reshaped) (view)|	160	3765518
+GET_ROWS|node_730|f32|i32||cache_s_l9 (reshaped)|	160	7600684
+CPY|cache_s_l9 (view) (copy of node_730 (view))|f32|f32||node_730 (view)|	160	362501
+RMS_NORM|node_738|f32|-||q_conv|	160	7973814
+SCALE|q_conv_predelta|f32|-||node_738|	160	1540781
+RMS_NORM|node_741|f32|-||k_conv|	160	8056116
+SCALE|k_conv_predelta|f32|-||node_741|	160	1515431
+MUL_MAT|node_744|q8_0|f32|CPU_KLEIDIAI|ssm_alpha.weight|	160	4876011
+ADD|node_746|f32|f32||alpha|	160	233475
+SOFTPLUS|a_softplus|f32|-||node_746|	160	519650
+MUL_MAT|node_750|q8_0|f32|CPU_KLEIDIAI|ssm_beta.weight|	160	4367213
+GATED_DELTA_NET|node_754|f32|f32||q_conv_predelta|	160	199603767
+CPY|cache_s_l9 (view) (copy of new_state)|f32|f32||new_state|	160	3475486
+SILU|node_763|f32|-||z (reshaped)|	160	6233942
+MUL|node_764|f32|f32||node_760|	160	1368675
+MUL|node_766|f32|f32||final_output|	160	929097
+MUL_MAT|node_768|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11713333
+MUL|node_775|f32|f32||attn_post_norm|	160	1671844
+MUL_MAT|node_777|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11708112
+MUL|node_782|f32|f32||ffn_swiglu|	160	2800790
+MUL_MAT|node_784|f32|f32|CPU|prism.hadamard.512|,hadamard	160	34992804
+SCALE|cache_r_l10 (reshaped) (view) (view)|f32|-||cache_r_l10 (reshaped) (view)|	160	564820
+GET_ROWS|node_793|f32|i32||cache_r_l10 (reshaped)|	160	768908
+CPY|cache_r_l10 (view) (copy of node_793 (view))|f32|f32||node_793 (view)|	160	141461
+MUL|node_799|f32|f32||attn_norm|	160	1281629
+MUL_MAT|node_801|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11758237
+MUL_MAT|node_803|q8_0|f32|CPU_KLEIDIAI|attn_qkv.weight|	160	202462646
+SCALE|cache_s_l10 (reshaped) (view) (view)|f32|-||cache_s_l10 (reshaped) (view)|	160	3749757
+GET_ROWS|node_813|f32|i32||cache_s_l10 (reshaped)|	160	7578453
+CPY|cache_s_l10 (view) (copy of node_813 (view))|f32|f32||node_813 (view)|	160	361943
+RMS_NORM|node_821|f32|-||q_conv|	160	7923558
+SCALE|q_conv_predelta|f32|-||node_821|	160	1532957
+RMS_NORM|node_824|f32|-||k_conv|	160	8031870
+SCALE|k_conv_predelta|f32|-||node_824|	160	1519820
+MUL_MAT|node_827|q8_0|f32|CPU_KLEIDIAI|ssm_alpha.weight|	160	4838307
+ADD|node_829|f32|f32||alpha|	160	234196
+SOFTPLUS|a_softplus|f32|-||node_829|	160	527697
+MUL_MAT|node_833|q8_0|f32|CPU_KLEIDIAI|ssm_beta.weight|	160	4396473
+GATED_DELTA_NET|node_837|f32|f32||q_conv_predelta|	160	199511214
+CPY|cache_s_l10 (view) (copy of new_state)|f32|f32||new_state|	160	3463211
+SILU|node_846|f32|-||z (reshaped)|	160	6362001
+MUL|node_847|f32|f32||node_843|	160	1359917
+MUL|node_849|f32|f32||final_output|	160	987631
+MUL_MAT|node_851|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11740762
+MUL|node_858|f32|f32||attn_post_norm|	160	1665419
+MUL_MAT|node_860|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11734193
+MUL|node_865|f32|f32||ffn_swiglu|	160	2787324
+MUL_MAT|node_867|f32|f32|CPU|prism.hadamard.512|,hadamard	160	35008326
+MUL|node_873|f32|f32||attn_norm|	160	1695742
+MUL_MAT|node_875|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11810243
+SET_ROWS|cache_k_l11 (view)|f32|i64||Kcur (view)|	160	424366
+SET_ROWS|cache_v_l11 (reshaped) (view)|f32|i64||Vcur (reshaped) (reshaped)|	160	7563971
+MUL_MAT|kq|f32|f32|CPU|cache_k_l11 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x83x8	10	11216457
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l11 (view) (permuted)|,s0=256x256x2nc,s1=256x83x8	10	14179392
+MUL|node_910|f32|f32||attn_gated|	160	950199
+MUL_MAT|node_912|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11734072
+MUL|node_918|f32|f32||attn_post_norm|	160	1652179
+MUL_MAT|node_920|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11648132
+MUL|node_925|f32|f32||ffn_swiglu|	160	2793595
+MUL_MAT|node_927|f32|f32|CPU|prism.hadamard.512|,hadamard	160	35035995
+SCALE|cache_r_l12 (reshaped) (view) (view)|f32|-||cache_r_l12 (reshaped) (view)|	160	551085
+GET_ROWS|node_936|f32|i32||cache_r_l12 (reshaped)|	160	749034
+CPY|cache_r_l12 (view) (copy of node_936 (view))|f32|f32||node_936 (view)|	160	142013
+MUL|node_942|f32|f32||attn_norm|	160	1298656
+MUL_MAT|node_944|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11768435
+MUL_MAT|node_946|q8_0|f32|CPU_KLEIDIAI|attn_qkv.weight|	160	202211336
+SCALE|cache_s_l12 (reshaped) (view) (view)|f32|-||cache_s_l12 (reshaped) (view)|	160	3773536
+GET_ROWS|node_956|f32|i32||cache_s_l12 (reshaped)|	160	7615572
+CPY|cache_s_l12 (view) (copy of node_956 (view))|f32|f32||node_956 (view)|	160	370676
+RMS_NORM|node_964|f32|-||q_conv|	160	7979154
+SCALE|q_conv_predelta|f32|-||node_964|	160	1530451
+RMS_NORM|node_967|f32|-||k_conv|	160	8000421
+SCALE|k_conv_predelta|f32|-||node_967|	160	1535652
+MUL_MAT|node_970|q8_0|f32|CPU_KLEIDIAI|ssm_alpha.weight|	160	4843266
+ADD|node_972|f32|f32||alpha|	160	235214
+SOFTPLUS|a_softplus|f32|-||node_972|	160	514308
+MUL_MAT|node_976|q8_0|f32|CPU_KLEIDIAI|ssm_beta.weight|	160	4392082
+GATED_DELTA_NET|node_980|f32|f32||q_conv_predelta|	160	199417273
+CPY|cache_s_l12 (view) (copy of new_state)|f32|f32||new_state|	160	3780382
+SILU|node_989|f32|-||z (reshaped)|	160	6359789
+MUL|node_990|f32|f32||node_986|	160	1367330
+MUL|node_992|f32|f32||final_output|	160	939334
+MUL_MAT|node_994|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11724781
+MUL|node_1001|f32|f32||attn_post_norm|	160	1657076
+MUL_MAT|node_1003|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11754489
+MUL|node_1008|f32|f32||ffn_swiglu|	160	2811019
+MUL_MAT|node_1010|f32|f32|CPU|prism.hadamard.512|,hadamard	160	34900960
+SCALE|cache_r_l13 (reshaped) (view) (view)|f32|-||cache_r_l13 (reshaped) (view)|	160	563854
+GET_ROWS|node_1019|f32|i32||cache_r_l13 (reshaped)|	160	765075
+CPY|cache_r_l13 (view) (copy of node_1019 (view))|f32|f32||node_1019 (view)|	160	137067
+MUL|node_1025|f32|f32||attn_norm|	160	1260593
+MUL_MAT|node_1027|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11779561
+MUL_MAT|node_1029|q8_0|f32|CPU_KLEIDIAI|attn_qkv.weight|	160	202607902
+SCALE|cache_s_l13 (reshaped) (view) (view)|f32|-||cache_s_l13 (reshaped) (view)|	160	3775267
+GET_ROWS|node_1039|f32|i32||cache_s_l13 (reshaped)|	160	7720463
+CPY|cache_s_l13 (view) (copy of node_1039 (view))|f32|f32||node_1039 (view)|	160	362060
+RMS_NORM|node_1047|f32|-||q_conv|	160	7964937
+SCALE|q_conv_predelta|f32|-||node_1047|	160	1546242
+RMS_NORM|node_1050|f32|-||k_conv|	160	8034000
+SCALE|k_conv_predelta|f32|-||node_1050|	160	1522688
+MUL_MAT|node_1053|q8_0|f32|CPU_KLEIDIAI|ssm_alpha.weight|	160	4847283
+ADD|node_1055|f32|f32||alpha|	160	218534
+SOFTPLUS|a_softplus|f32|-||node_1055|	160	526413
+MUL_MAT|node_1059|q8_0|f32|CPU_KLEIDIAI|ssm_beta.weight|	160	4369150
+GATED_DELTA_NET|node_1063|f32|f32||q_conv_predelta|	160	199153326
+CPY|cache_s_l13 (view) (copy of new_state)|f32|f32||new_state|	160	3653108
+SILU|node_1072|f32|-||z (reshaped)|	160	6404157
+MUL|node_1073|f32|f32||node_1069|	160	1356314
+MUL|node_1075|f32|f32||final_output|	160	944886
+MUL_MAT|node_1077|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11715709
+MUL|node_1084|f32|f32||attn_post_norm|	160	1660524
+MUL_MAT|node_1086|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11720434
+MUL|node_1091|f32|f32||ffn_swiglu|	160	2806351
+MUL_MAT|node_1093|f32|f32|CPU|prism.hadamard.512|,hadamard	160	34925656
+SCALE|cache_r_l14 (reshaped) (view) (view)|f32|-||cache_r_l14 (reshaped) (view)|	160	581095
+GET_ROWS|node_1102|f32|i32||cache_r_l14 (reshaped)|	160	769314
+CPY|cache_r_l14 (view) (copy of node_1102 (view))|f32|f32||node_1102 (view)|	160	142572
+MUL|node_1108|f32|f32||attn_norm|	160	1283355
+MUL_MAT|node_1110|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11768543
+MUL_MAT|node_1112|q8_0|f32|CPU_KLEIDIAI|attn_qkv.weight|	160	202589078
+SCALE|cache_s_l14 (reshaped) (view) (view)|f32|-||cache_s_l14 (reshaped) (view)|	160	3832577
+GET_ROWS|node_1122|f32|i32||cache_s_l14 (reshaped)|	160	7740153
+CPY|cache_s_l14 (view) (copy of node_1122 (view))|f32|f32||node_1122 (view)|	160	470316
+RMS_NORM|node_1130|f32|-||q_conv|	160	8355425
+SCALE|q_conv_predelta|f32|-||node_1130|	160	2113181
+RMS_NORM|node_1133|f32|-||k_conv|	160	8355867
+SCALE|k_conv_predelta|f32|-||node_1133|	160	1528044
+MUL_MAT|node_1136|q8_0|f32|CPU_KLEIDIAI|ssm_alpha.weight|	160	5053513
+ADD|node_1138|f32|f32||alpha|	160	363803
+SOFTPLUS|a_softplus|f32|-||node_1138|	160	871455
+MUL_MAT|node_1142|q8_0|f32|CPU_KLEIDIAI|ssm_beta.weight|	160	4630707
+GATED_DELTA_NET|node_1146|f32|f32||q_conv_predelta|	160	200335389
+CPY|cache_s_l14 (view) (copy of new_state)|f32|f32||new_state|	160	3691137
+SILU|node_1155|f32|-||z (reshaped)|	160	6261339
+MUL|node_1156|f32|f32||node_1152|	160	1361464
+MUL|node_1158|f32|f32||final_output|	160	934235
+MUL_MAT|node_1160|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11746310
+MUL|node_1167|f32|f32||attn_post_norm|	160	1660921
+MUL_MAT|node_1169|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11755904
+MUL|node_1174|f32|f32||ffn_swiglu|	160	2786726
+MUL_MAT|node_1176|f32|f32|CPU|prism.hadamard.512|,hadamard	160	34955660
+MUL|node_1182|f32|f32||attn_norm|	160	1726400
+MUL_MAT|node_1184|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11814408
+SET_ROWS|cache_k_l15 (view)|f32|i64||Kcur (view)|	160	433109
+SET_ROWS|cache_v_l15 (reshaped) (view)|f32|i64||Vcur (reshaped) (reshaped)|	160	7808758
+MUL_MAT|kq|f32|f32|CPU|cache_k_l15 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x83x8	10	11203365
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l15 (view) (permuted)|,s0=256x256x2nc,s1=256x83x8	10	14139570
+MUL|node_1219|f32|f32||attn_gated|	160	944372
+MUL_MAT|node_1221|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11741488
+MUL|node_1227|f32|f32||attn_post_norm|	160	1641420
+MUL_MAT|node_1229|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11679857
+MUL|node_1234|f32|f32||ffn_swiglu|	160	2789829
+MUL_MAT|node_1236|f32|f32|CPU|prism.hadamard.512|,hadamard	160	34974756
+SCALE|cache_r_l16 (reshaped) (view) (view)|f32|-||cache_r_l16 (reshaped) (view)|	160	552534
+GET_ROWS|node_1245|f32|i32||cache_r_l16 (reshaped)|	160	742015
+CPY|cache_r_l16 (view) (copy of node_1245 (view))|f32|f32||node_1245 (view)|	160	160100
+MUL|node_1251|f32|f32||attn_norm|	160	1320977
+MUL_MAT|node_1253|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11796223
+MUL_MAT|node_1255|q8_0|f32|CPU_KLEIDIAI|attn_qkv.weight|	160	202481589
+SCALE|cache_s_l16 (reshaped) (view) (view)|f32|-||cache_s_l16 (reshaped) (view)|	160	3783449
+GET_ROWS|node_1265|f32|i32||cache_s_l16 (reshaped)|	160	7701467
+CPY|cache_s_l16 (view) (copy of node_1265 (view))|f32|f32||node_1265 (view)|	160	361602
+RMS_NORM|node_1273|f32|-||q_conv|	160	7991177
+SCALE|q_conv_predelta|f32|-||node_1273|	160	1526234
+RMS_NORM|node_1276|f32|-||k_conv|	160	8016166
+SCALE|k_conv_predelta|f32|-||node_1276|	160	1515749
+MUL_MAT|node_1279|q8_0|f32|CPU_KLEIDIAI|ssm_alpha.weight|	160	4849101
+ADD|node_1281|f32|f32||alpha|	160	216585
+SOFTPLUS|a_softplus|f32|-||node_1281|	160	522423
+MUL_MAT|node_1285|q8_0|f32|CPU_KLEIDIAI|ssm_beta.weight|	160	4383309
+GATED_DELTA_NET|node_1289|f32|f32||q_conv_predelta|	160	199549137
+CPY|cache_s_l16 (view) (copy of new_state)|f32|f32||new_state|	160	3591759
+SILU|node_1298|f32|-||z (reshaped)|	160	6381098
+MUL|node_1299|f32|f32||node_1295|	160	1369197
+MUL|node_1301|f32|f32||final_output|	160	934990
+MUL_MAT|node_1303|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11767625
+MUL|node_1310|f32|f32||attn_post_norm|	160	1674113
+MUL_MAT|node_1312|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11715042
+MUL|node_1317|f32|f32||ffn_swiglu|	160	2819697
+MUL_MAT|node_1319|f32|f32|CPU|prism.hadamard.512|,hadamard	160	34985156
+SCALE|cache_r_l17 (reshaped) (view) (view)|f32|-||cache_r_l17 (reshaped) (view)|	160	564239
+GET_ROWS|node_1328|f32|i32||cache_r_l17 (reshaped)|	160	761614
+CPY|cache_r_l17 (view) (copy of node_1328 (view))|f32|f32||node_1328 (view)|	160	140106
+MUL|node_1334|f32|f32||attn_norm|	160	1293505
+MUL_MAT|node_1336|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11765284
+MUL_MAT|node_1338|q8_0|f32|CPU_KLEIDIAI|attn_qkv.weight|	160	202301813
+SCALE|cache_s_l17 (reshaped) (view) (view)|f32|-||cache_s_l17 (reshaped) (view)|	160	3788616
+GET_ROWS|node_1348|f32|i32||cache_s_l17 (reshaped)|	160	7572453
+CPY|cache_s_l17 (view) (copy of node_1348 (view))|f32|f32||node_1348 (view)|	160	359102
+RMS_NORM|node_1356|f32|-||q_conv|	160	7937253
+SCALE|q_conv_predelta|f32|-||node_1356|	160	1516668
+RMS_NORM|node_1359|f32|-||k_conv|	160	8041383
+SCALE|k_conv_predelta|f32|-||node_1359|	160	1533449
+MUL_MAT|node_1362|q8_0|f32|CPU_KLEIDIAI|ssm_alpha.weight|	160	4881729
+ADD|node_1364|f32|f32||alpha|	160	222876
+SOFTPLUS|a_softplus|f32|-||node_1364|	160	523885
+MUL_MAT|node_1368|q8_0|f32|CPU_KLEIDIAI|ssm_beta.weight|	160	4382176
+GATED_DELTA_NET|node_1372|f32|f32||q_conv_predelta|	160	199378955
+CPY|cache_s_l17 (view) (copy of new_state)|f32|f32||new_state|	160	3485793
+SILU|node_1381|f32|-||z (reshaped)|	160	6434276
+MUL|node_1382|f32|f32||node_1378|	160	1376834
+MUL|node_1384|f32|f32||final_output|	160	929392
+MUL_MAT|node_1386|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11763653
+MUL|node_1393|f32|f32||attn_post_norm|	160	1668545
+MUL_MAT|node_1395|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11717058
+MUL|node_1400|f32|f32||ffn_swiglu|	160	2826562
+MUL_MAT|node_1402|f32|f32|CPU|prism.hadamard.512|,hadamard	160	34936228
+SCALE|cache_r_l18 (reshaped) (view) (view)|f32|-||cache_r_l18 (reshaped) (view)|	160	592618
+GET_ROWS|node_1411|f32|i32||cache_r_l18 (reshaped)|	160	765393
+CPY|cache_r_l18 (view) (copy of node_1411 (view))|f32|f32||node_1411 (view)|	160	145229
+MUL|node_1417|f32|f32||attn_norm|	160	1274035
+MUL_MAT|node_1419|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11777014
+MUL_MAT|node_1421|q8_0|f32|CPU_KLEIDIAI|attn_qkv.weight|	160	202498963
+SCALE|cache_s_l18 (reshaped) (view) (view)|f32|-||cache_s_l18 (reshaped) (view)|	160	3771949
+GET_ROWS|node_1431|f32|i32||cache_s_l18 (reshaped)|	160	7669327
+CPY|cache_s_l18 (view) (copy of node_1431 (view))|f32|f32||node_1431 (view)|	160	377897
+RMS_NORM|node_1439|f32|-||q_conv|	160	7958732
+SCALE|q_conv_predelta|f32|-||node_1439|	160	1524921
+RMS_NORM|node_1442|f32|-||k_conv|	160	8059719
+SCALE|k_conv_predelta|f32|-||node_1442|	160	1524359
+MUL_MAT|node_1445|q8_0|f32|CPU_KLEIDIAI|ssm_alpha.weight|	160	4896543
+ADD|node_1447|f32|f32||alpha|	160	219093
+SOFTPLUS|a_softplus|f32|-||node_1447|	160	528179
+MUL_MAT|node_1451|q8_0|f32|CPU_KLEIDIAI|ssm_beta.weight|	160	4371290
+GATED_DELTA_NET|node_1455|f32|f32||q_conv_predelta|	160	199487402
+CPY|cache_s_l18 (view) (copy of new_state)|f32|f32||new_state|	160	3554041
+SILU|node_1464|f32|-||z (reshaped)|	160	6438305
+MUL|node_1465|f32|f32||node_1461|	160	1350008
+MUL|node_1467|f32|f32||final_output|	160	931233
+MUL_MAT|node_1469|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11768948
+MUL|node_1476|f32|f32||attn_post_norm|	160	1647153
+MUL_MAT|node_1478|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11733705
+MUL|node_1483|f32|f32||ffn_swiglu|	160	2807721
+MUL_MAT|node_1485|f32|f32|CPU|prism.hadamard.512|,hadamard	160	35164927
+MUL|node_1491|f32|f32||attn_norm|	160	1707917
+MUL_MAT|node_1493|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11851788
+SET_ROWS|cache_k_l19 (view)|f32|i64||Kcur (view)|	160	423011
+SET_ROWS|cache_v_l19 (reshaped) (view)|f32|i64||Vcur (reshaped) (reshaped)|	160	7656347
+MUL_MAT|kq|f32|f32|CPU|cache_k_l19 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x83x8	10	11201234
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l19 (view) (permuted)|,s0=256x256x2nc,s1=256x83x8	10	14149061
+MUL|node_1528|f32|f32||attn_gated|	160	919694
+MUL_MAT|node_1530|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11714928
+MUL|node_1536|f32|f32||attn_post_norm|	160	1638621
+MUL_MAT|node_1538|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11698753
+MUL|node_1543|f32|f32||ffn_swiglu|	160	2797186
+MUL_MAT|node_1545|f32|f32|CPU|prism.hadamard.512|,hadamard	160	35022212
+SCALE|cache_r_l20 (reshaped) (view) (view)|f32|-||cache_r_l20 (reshaped) (view)|	160	565897
+GET_ROWS|node_1554|f32|i32||cache_r_l20 (reshaped)|	160	739510
+CPY|cache_r_l20 (view) (copy of node_1554 (view))|f32|f32||node_1554 (view)|	160	140701
+MUL|node_1560|f32|f32||attn_norm|	160	1291139
+MUL_MAT|node_1562|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11743346
+MUL_MAT|node_1564|q8_0|f32|CPU_KLEIDIAI|attn_qkv.weight|	160	202625805
+SCALE|cache_s_l20 (reshaped) (view) (view)|f32|-||cache_s_l20 (reshaped) (view)|	160	3767573
+GET_ROWS|node_1574|f32|i32||cache_s_l20 (reshaped)|	160	7683601
+CPY|cache_s_l20 (view) (copy of node_1574 (view))|f32|f32||node_1574 (view)|	160	365209
+RMS_NORM|node_1582|f32|-||q_conv|	160	8028833
+SCALE|q_conv_predelta|f32|-||node_1582|	160	1533879
+RMS_NORM|node_1585|f32|-||k_conv|	160	8045317
+SCALE|k_conv_predelta|f32|-||node_1585|	160	1525438
+MUL_MAT|node_1588|q8_0|f32|CPU_KLEIDIAI|ssm_alpha.weight|	160	4858858
+ADD|node_1590|f32|f32||alpha|	160	230239
+SOFTPLUS|a_softplus|f32|-||node_1590|	160	511360
+MUL_MAT|node_1594|q8_0|f32|CPU_KLEIDIAI|ssm_beta.weight|	160	4376985
+GATED_DELTA_NET|node_1598|f32|f32||q_conv_predelta|	160	199341507
+CPY|cache_s_l20 (view) (copy of new_state)|f32|f32||new_state|	160	3657884
+SILU|node_1607|f32|-||z (reshaped)|	160	6418869
+MUL|node_1608|f32|f32||node_1604|	160	1373996
+MUL|node_1610|f32|f32||final_output|	160	930888
+MUL_MAT|node_1612|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11725129
+MUL|node_1619|f32|f32||attn_post_norm|	160	1664282
+MUL_MAT|node_1621|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11752551
+MUL|node_1626|f32|f32||ffn_swiglu|	160	2803826
+MUL_MAT|node_1628|f32|f32|CPU|prism.hadamard.512|,hadamard	160	35060013
+SCALE|cache_r_l21 (reshaped) (view) (view)|f32|-||cache_r_l21 (reshaped) (view)|	160	566509
+GET_ROWS|node_1637|f32|i32||cache_r_l21 (reshaped)|	160	768890
+CPY|cache_r_l21 (view) (copy of node_1637 (view))|f32|f32||node_1637 (view)|	160	144980
+MUL|node_1643|f32|f32||attn_norm|	160	1290628
+MUL_MAT|node_1645|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11779391
+MUL_MAT|node_1647|q8_0|f32|CPU_KLEIDIAI|attn_qkv.weight|	160	202530459
+SCALE|cache_s_l21 (reshaped) (view) (view)|f32|-||cache_s_l21 (reshaped) (view)|	160	3754885
+GET_ROWS|node_1657|f32|i32||cache_s_l21 (reshaped)|	160	7584595
+CPY|cache_s_l21 (view) (copy of node_1657 (view))|f32|f32||node_1657 (view)|	160	355340
+RMS_NORM|node_1665|f32|-||q_conv|	160	7911741
+SCALE|q_conv_predelta|f32|-||node_1665|	160	1516887
+RMS_NORM|node_1668|f32|-||k_conv|	160	8006084
+SCALE|k_conv_predelta|f32|-||node_1668|	160	1524052
+MUL_MAT|node_1671|q8_0|f32|CPU_KLEIDIAI|ssm_alpha.weight|	160	4846806
+ADD|node_1673|f32|f32||alpha|	160	227582
+SOFTPLUS|a_softplus|f32|-||node_1673|	160	529907
+MUL_MAT|node_1677|q8_0|f32|CPU_KLEIDIAI|ssm_beta.weight|	160	4374158
+GATED_DELTA_NET|node_1681|f32|f32||q_conv_predelta|	160	199320797
+CPY|cache_s_l21 (view) (copy of new_state)|f32|f32||new_state|	160	3592219
+SILU|node_1690|f32|-||z (reshaped)|	160	6336718
+MUL|node_1691|f32|f32||node_1687|	160	1377177
+MUL|node_1693|f32|f32||final_output|	160	942704
+MUL_MAT|node_1695|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11703806
+MUL|node_1702|f32|f32||attn_post_norm|	160	1652861
+MUL_MAT|node_1704|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11700685
+MUL|node_1709|f32|f32||ffn_swiglu|	160	2821290
+MUL_MAT|node_1711|f32|f32|CPU|prism.hadamard.512|,hadamard	160	34957574
+SCALE|cache_r_l22 (reshaped) (view) (view)|f32|-||cache_r_l22 (reshaped) (view)|	160	587832
+GET_ROWS|node_1720|f32|i32||cache_r_l22 (reshaped)|	160	769015
+CPY|cache_r_l22 (view) (copy of node_1720 (view))|f32|f32||node_1720 (view)|	160	153478
+MUL|node_1726|f32|f32||attn_norm|	160	1263704
+MUL_MAT|node_1728|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11790067
+MUL_MAT|node_1730|q8_0|f32|CPU_KLEIDIAI|attn_qkv.weight|	160	202455925
+SCALE|cache_s_l22 (reshaped) (view) (view)|f32|-||cache_s_l22 (reshaped) (view)|	160	3800742
+GET_ROWS|node_1740|f32|i32||cache_s_l22 (reshaped)|	160	7594128
+CPY|cache_s_l22 (view) (copy of node_1740 (view))|f32|f32||node_1740 (view)|	160	366303
+RMS_NORM|node_1748|f32|-||q_conv|	160	7914276
+SCALE|q_conv_predelta|f32|-||node_1748|	160	1554315
+RMS_NORM|node_1751|f32|-||k_conv|	160	8033613
+SCALE|k_conv_predelta|f32|-||node_1751|	160	1518755
+MUL_MAT|node_1754|q8_0|f32|CPU_KLEIDIAI|ssm_alpha.weight|	160	4912899
+ADD|node_1756|f32|f32||alpha|	160	223507
+SOFTPLUS|a_softplus|f32|-||node_1756|	160	538876
+MUL_MAT|node_1760|q8_0|f32|CPU_KLEIDIAI|ssm_beta.weight|	160	4409086
+GATED_DELTA_NET|node_1764|f32|f32||q_conv_predelta|	160	198823884
+CPY|cache_s_l22 (view) (copy of new_state)|f32|f32||new_state|	160	3712820
+SILU|node_1773|f32|-||z (reshaped)|	160	6304637
+MUL|node_1774|f32|f32||node_1770|	160	1359690
+MUL|node_1776|f32|f32||final_output|	160	925002
+MUL_MAT|node_1778|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11766308
+MUL|node_1785|f32|f32||attn_post_norm|	160	1669863
+MUL_MAT|node_1787|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11781171
+MUL|node_1792|f32|f32||ffn_swiglu|	160	2824669
+MUL_MAT|node_1794|f32|f32|CPU|prism.hadamard.512|,hadamard	160	35008162
+MUL|node_1800|f32|f32||attn_norm|	160	1711713
+MUL_MAT|node_1802|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11848931
+SET_ROWS|cache_k_l23 (view)|f32|i64||Kcur (view)|	160	432559
+SET_ROWS|cache_v_l23 (reshaped) (view)|f32|i64||Vcur (reshaped) (reshaped)|	160	7670709
+MUL_MAT|kq|f32|f32|CPU|cache_k_l23 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x83x8	10	11141909
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l23 (view) (permuted)|,s0=256x256x2nc,s1=256x83x8	10	14246600
+MUL|node_1837|f32|f32||attn_gated|	160	913591
+MUL_MAT|node_1839|f32|f32|CPU|prism.hadamard.512|,hadamard	160	11709726
+GET_ROWS|node_1842|f32|i32||attn_output|	160	1237410
+GET_ROWS|node_1843|f32|i32||l_out|	160	242107
+ADD|attn_residual|f32|f32||node_1842|	160	189188
+MUL|node_1847|f32|f32||attn_post_norm|	160	199185
+MUL_MAT|node_1849|f32|f32|CPU|prism.hadamard.512|,hadamard	160	563019
+MUL|node_1854|f32|f32||ffn_swiglu|	160	334452
+MUL_MAT|node_1856|f32|f32|CPU|prism.hadamard.512|,hadamard	160	1343066
+MUL_MAT|kq|f32|f32|CPU|cache_k_l3 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x21x8	10	2931559
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l3 (view) (permuted)|,s0=256x256x2nc,s1=256x21x8	10	3762494
+MUL_MAT|kq|f32|f32|CPU|cache_k_l7 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x21x8	10	2922095
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l7 (view) (permuted)|,s0=256x256x2nc,s1=256x21x8	10	3760087
+MUL_MAT|kq|f32|f32|CPU|cache_k_l11 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x21x8	10	2949827
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l11 (view) (permuted)|,s0=256x256x2nc,s1=256x21x8	10	3780637
+MUL_MAT|kq|f32|f32|CPU|cache_k_l15 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x21x8	10	2895945
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l15 (view) (permuted)|,s0=256x256x2nc,s1=256x21x8	10	3783831
+MUL_MAT|kq|f32|f32|CPU|cache_k_l19 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x21x8	10	2939379
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l19 (view) (permuted)|,s0=256x256x2nc,s1=256x21x8	10	3761208
+MUL_MAT|kq|f32|f32|CPU|cache_k_l23 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x21x8	10	2942543
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l23 (view) (permuted)|,s0=256x256x2nc,s1=256x21x8	10	3700705
+MUL_MAT|kq|f32|f32|CPU|cache_k_l3 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x141x8	10	19188177
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l3 (view) (permuted)|,s0=256x256x2nc,s1=256x141x8	10	23613638
+MUL_MAT|kq|f32|f32|CPU|cache_k_l7 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x141x8	10	19259022
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l7 (view) (permuted)|,s0=256x256x2nc,s1=256x141x8	10	23660462
+MUL_MAT|kq|f32|f32|CPU|cache_k_l11 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x141x8	10	19228482
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l11 (view) (permuted)|,s0=256x256x2nc,s1=256x141x8	10	23745275
+MUL_MAT|kq|f32|f32|CPU|cache_k_l15 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x141x8	10	19221959
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l15 (view) (permuted)|,s0=256x256x2nc,s1=256x141x8	10	23627221
+MUL_MAT|kq|f32|f32|CPU|cache_k_l19 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x141x8	10	19241682
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l19 (view) (permuted)|,s0=256x256x2nc,s1=256x141x8	10	23608763
+MUL_MAT|kq|f32|f32|CPU|cache_k_l23 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x141x8	10	19177177
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l23 (view) (permuted)|,s0=256x256x2nc,s1=256x141x8	10	23753090
+MUL_MAT|kq|f32|f32|CPU|cache_k_l3 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x32x8	10	4413803
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l3 (view) (permuted)|,s0=256x256x2nc,s1=256x32x8	10	5647001
+MUL_MAT|kq|f32|f32|CPU|cache_k_l7 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x32x8	10	4398286
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l7 (view) (permuted)|,s0=256x256x2nc,s1=256x32x8	10	5678470
+MUL_MAT|kq|f32|f32|CPU|cache_k_l11 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x32x8	10	4392303
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l11 (view) (permuted)|,s0=256x256x2nc,s1=256x32x8	10	5641298
+MUL_MAT|kq|f32|f32|CPU|cache_k_l15 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x32x8	10	4391980
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l15 (view) (permuted)|,s0=256x256x2nc,s1=256x32x8	10	5672427
+MUL_MAT|kq|f32|f32|CPU|cache_k_l19 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x32x8	10	4322207
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l19 (view) (permuted)|,s0=256x256x2nc,s1=256x32x8	10	5632912
+MUL_MAT|kq|f32|f32|CPU|cache_k_l23 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x32x8	10	4414878
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l23 (view) (permuted)|,s0=256x256x2nc,s1=256x32x8	10	5681832
+MUL_MAT|kq|f32|f32|CPU|cache_k_l3 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x2x8	10	350003
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l3 (view) (permuted)|,s0=256x256x2nc,s1=256x2x8	10	482173
+MUL_MAT|kq|f32|f32|CPU|cache_k_l7 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x2x8	10	332027
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l7 (view) (permuted)|,s0=256x256x2nc,s1=256x2x8	10	476642
+MUL_MAT|kq|f32|f32|CPU|cache_k_l11 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x2x8	10	330417
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l11 (view) (permuted)|,s0=256x256x2nc,s1=256x2x8	10	492134
+MUL_MAT|kq|f32|f32|CPU|cache_k_l15 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x2x8	10	333191
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l15 (view) (permuted)|,s0=256x256x2nc,s1=256x2x8	10	487710
+MUL_MAT|kq|f32|f32|CPU|cache_k_l19 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x2x8	10	344377
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l19 (view) (permuted)|,s0=256x256x2nc,s1=256x2x8	10	479724
+MUL_MAT|kq|f32|f32|CPU|cache_k_l23 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x2x8	10	318574
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l23 (view) (permuted)|,s0=256x256x2nc,s1=256x2x8	10	467705
+MUL_MAT|kq|f32|f32|CPU|cache_k_l3 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x28x8	10	3921510
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l3 (view) (permuted)|,s0=256x256x2nc,s1=256x28x8	10	4935437
+MUL_MAT|kq|f32|f32|CPU|cache_k_l7 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x28x8	10	3839049
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l7 (view) (permuted)|,s0=256x256x2nc,s1=256x28x8	10	5023416
+MUL_MAT|kq|f32|f32|CPU|cache_k_l11 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x28x8	10	3872857
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l11 (view) (permuted)|,s0=256x256x2nc,s1=256x28x8	10	4967792
+MUL_MAT|kq|f32|f32|CPU|cache_k_l15 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x28x8	10	3883739
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l15 (view) (permuted)|,s0=256x256x2nc,s1=256x28x8	10	4981890
+MUL_MAT|kq|f32|f32|CPU|cache_k_l19 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x28x8	10	3883995
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l19 (view) (permuted)|,s0=256x256x2nc,s1=256x28x8	10	4959295
+MUL_MAT|kq|f32|f32|CPU|cache_k_l23 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x28x8	10	3849968
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l23 (view) (permuted)|,s0=256x256x2nc,s1=256x28x8	10	4984555
+MUL_MAT|kq|f32|f32|CPU|cache_k_l3 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x108x8	10	14826746
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l3 (view) (permuted)|,s0=256x256x2nc,s1=256x108x8	10	18210972
+MUL_MAT|kq|f32|f32|CPU|cache_k_l7 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x108x8	10	14714016
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l7 (view) (permuted)|,s0=256x256x2nc,s1=256x108x8	10	18311027
+MUL_MAT|kq|f32|f32|CPU|cache_k_l11 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x108x8	10	14741791
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l11 (view) (permuted)|,s0=256x256x2nc,s1=256x108x8	10	18268073
+MUL_MAT|kq|f32|f32|CPU|cache_k_l15 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x108x8	10	14623621
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l15 (view) (permuted)|,s0=256x256x2nc,s1=256x108x8	10	18335336
+MUL_MAT|kq|f32|f32|CPU|cache_k_l19 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x108x8	10	14701287
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l19 (view) (permuted)|,s0=256x256x2nc,s1=256x108x8	10	18282173
+MUL_MAT|kq|f32|f32|CPU|cache_k_l23 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x108x8	10	14687766
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l23 (view) (permuted)|,s0=256x256x2nc,s1=256x108x8	10	18352206
+MUL_MAT|kq|f32|f32|CPU|cache_k_l3 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x11x8	10	1601168
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l3 (view) (permuted)|,s0=256x256x2nc,s1=256x11x8	10	2075636
+MUL_MAT|kq|f32|f32|CPU|cache_k_l7 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x11x8	10	1541650
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l7 (view) (permuted)|,s0=256x256x2nc,s1=256x11x8	10	2061955
+MUL_MAT|kq|f32|f32|CPU|cache_k_l11 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x11x8	10	1562685
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l11 (view) (permuted)|,s0=256x256x2nc,s1=256x11x8	10	2085209
+MUL_MAT|kq|f32|f32|CPU|cache_k_l15 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x11x8	10	1580963
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l15 (view) (permuted)|,s0=256x256x2nc,s1=256x11x8	10	2063000
+MUL_MAT|kq|f32|f32|CPU|cache_k_l19 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x11x8	10	1581987
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l19 (view) (permuted)|,s0=256x256x2nc,s1=256x11x8	10	2064500
+MUL_MAT|kq|f32|f32|CPU|cache_k_l23 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x11x8	10	1535763
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l23 (view) (permuted)|,s0=256x256x2nc,s1=256x11x8	10	2056819
+MUL_MAT|kq|f32|f32|CPU|cache_k_l3 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x166x8	10	22624857
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l3 (view) (permuted)|,s0=256x256x2nc,s1=256x166x8	10	27874161
+MUL_MAT|kq|f32|f32|CPU|cache_k_l7 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x166x8	10	22642133
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l7 (view) (permuted)|,s0=256x256x2nc,s1=256x166x8	10	27735112
+MUL_MAT|kq|f32|f32|CPU|cache_k_l11 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x166x8	10	22661531
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l11 (view) (permuted)|,s0=256x256x2nc,s1=256x166x8	10	27881830
+MUL_MAT|kq|f32|f32|CPU|cache_k_l15 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x166x8	10	22584971
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l15 (view) (permuted)|,s0=256x256x2nc,s1=256x166x8	10	27837654
+MUL_MAT|kq|f32|f32|CPU|cache_k_l19 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x166x8	10	22675128
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l19 (view) (permuted)|,s0=256x256x2nc,s1=256x166x8	10	27891660
+MUL_MAT|kq|f32|f32|CPU|cache_k_l23 (view) (permuted)|src1-noncontig,s0=256x256x2nc,s1=256x166x8	10	22615208
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l23 (view) (permuted)|,s0=256x256x2nc,s1=256x166x8	10	27886756
+MUL_MAT|kq|f32|f32|CPU|cache_k_l3 (view) (permuted)|src1-noncontig,s0=256x512x2nc,s1=256x136x8	10	37481851
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l3 (view) (permuted)|,s0=512x256x2nc,s1=512x136x8	10	37067245
+MUL_MAT|kq|f32|f32|CPU|cache_k_l7 (view) (permuted)|src1-noncontig,s0=256x512x2nc,s1=256x136x8	10	37391959
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l7 (view) (permuted)|,s0=512x256x2nc,s1=512x136x8	10	37315507
+MUL_MAT|kq|f32|f32|CPU|cache_k_l11 (view) (permuted)|src1-noncontig,s0=256x512x2nc,s1=256x136x8	10	37498457
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l11 (view) (permuted)|,s0=512x256x2nc,s1=512x136x8	10	37374556
+MUL_MAT|kq|f32|f32|CPU|cache_k_l15 (view) (permuted)|src1-noncontig,s0=256x512x2nc,s1=256x136x8	10	37556272
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l15 (view) (permuted)|,s0=512x256x2nc,s1=512x136x8	10	37235910
+MUL_MAT|kq|f32|f32|CPU|cache_k_l19 (view) (permuted)|src1-noncontig,s0=256x512x2nc,s1=256x136x8	10	37448637
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l19 (view) (permuted)|,s0=512x256x2nc,s1=512x136x8	10	37187075
+MUL_MAT|kq|f32|f32|CPU|cache_k_l23 (view) (permuted)|src1-noncontig,s0=256x512x2nc,s1=256x136x8	10	37483155
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l23 (view) (permuted)|,s0=512x256x2nc,s1=512x136x8	10	37411581
+MUL_MAT|kq|f32|f32|CPU|cache_k_l3 (view) (permuted)|src1-noncontig,s0=256x512x2nc,s1=256x4x8	10	1155828
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l3 (view) (permuted)|,s0=512x256x2nc,s1=512x4x8	10	1420166
+MUL_MAT|kq|f32|f32|CPU|cache_k_l7 (view) (permuted)|src1-noncontig,s0=256x512x2nc,s1=256x4x8	10	1254882
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l7 (view) (permuted)|,s0=512x256x2nc,s1=512x4x8	10	1377244
+MUL_MAT|kq|f32|f32|CPU|cache_k_l11 (view) (permuted)|src1-noncontig,s0=256x512x2nc,s1=256x4x8	10	1200574
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l11 (view) (permuted)|,s0=512x256x2nc,s1=512x4x8	10	1401885
+MUL_MAT|kq|f32|f32|CPU|cache_k_l15 (view) (permuted)|src1-noncontig,s0=256x512x2nc,s1=256x4x8	10	1123543
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l15 (view) (permuted)|,s0=512x256x2nc,s1=512x4x8	10	1436213
+MUL_MAT|kq|f32|f32|CPU|cache_k_l19 (view) (permuted)|src1-noncontig,s0=256x512x2nc,s1=256x4x8	10	1195317
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l19 (view) (permuted)|,s0=512x256x2nc,s1=512x4x8	10	1389662
+MUL_MAT|kq|f32|f32|CPU|cache_k_l23 (view) (permuted)|src1-noncontig,s0=256x512x2nc,s1=256x4x8	10	1198322
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l23 (view) (permuted)|,s0=512x256x2nc,s1=512x4x8	10	1410072
+MUL_MAT|kq|f32|f32|CPU|cache_k_l3 (view) (permuted)|src1-noncontig,s0=256x512x2nc,s1=256x301x8	10	83143483
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l3 (view) (permuted)|,s0=512x256x2nc,s1=512x301x8	10	81852753
+MUL_MAT|kq|f32|f32|CPU|cache_k_l7 (view) (permuted)|src1-noncontig,s0=256x512x2nc,s1=256x301x8	10	83121763
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l7 (view) (permuted)|,s0=512x256x2nc,s1=512x301x8	10	82231231
+MUL_MAT|kq|f32|f32|CPU|cache_k_l11 (view) (permuted)|src1-noncontig,s0=256x512x2nc,s1=256x301x8	10	83194656
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l11 (view) (permuted)|,s0=512x256x2nc,s1=512x301x8	10	82147635
+MUL_MAT|kq|f32|f32|CPU|cache_k_l15 (view) (permuted)|src1-noncontig,s0=256x512x2nc,s1=256x301x8	10	83086603
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l15 (view) (permuted)|,s0=512x256x2nc,s1=512x301x8	10	82086992
+MUL_MAT|kq|f32|f32|CPU|cache_k_l19 (view) (permuted)|src1-noncontig,s0=256x512x2nc,s1=256x301x8	10	83116040
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l19 (view) (permuted)|,s0=512x256x2nc,s1=512x301x8	10	81989124
+MUL_MAT|kq|f32|f32|CPU|cache_k_l23 (view) (permuted)|src1-noncontig,s0=256x512x2nc,s1=256x301x8	10	83063661
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l23 (view) (permuted)|,s0=512x256x2nc,s1=512x301x8	10	82172025
+MUL_MAT|kq|f32|f32|CPU|cache_k_l3 (view) (permuted)|src1-noncontig,s0=256x768x2nc,s1=256x276x8	10	112870451
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l3 (view) (permuted)|,s0=768x256x2nc,s1=768x276x8	10	104991807
+MUL_MAT|kq|f32|f32|CPU|cache_k_l7 (view) (permuted)|src1-noncontig,s0=256x768x2nc,s1=256x276x8	10	112849606
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l7 (view) (permuted)|,s0=768x256x2nc,s1=768x276x8	10	105174960
+MUL_MAT|kq|f32|f32|CPU|cache_k_l11 (view) (permuted)|src1-noncontig,s0=256x768x2nc,s1=256x276x8	10	112763294
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l11 (view) (permuted)|,s0=768x256x2nc,s1=768x276x8	10	105155475
+MUL_MAT|kq|f32|f32|CPU|cache_k_l15 (view) (permuted)|src1-noncontig,s0=256x768x2nc,s1=256x276x8	10	112825068
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l15 (view) (permuted)|,s0=768x256x2nc,s1=768x276x8	10	105380685
+MUL_MAT|kq|f32|f32|CPU|cache_k_l19 (view) (permuted)|src1-noncontig,s0=256x768x2nc,s1=256x276x8	10	112810800
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l19 (view) (permuted)|,s0=768x256x2nc,s1=768x276x8	10	105612049
+MUL_MAT|kq|f32|f32|CPU|cache_k_l23 (view) (permuted)|src1-noncontig,s0=256x768x2nc,s1=256x276x8	10	112809031
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l23 (view) (permuted)|,s0=768x256x2nc,s1=768x276x8	10	105140965
+MUL_MAT|kq|f32|f32|CPU|cache_k_l3 (view) (permuted)|src1-noncontig,s0=256x768x2nc,s1=256x15x8	10	6237538
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l3 (view) (permuted)|,s0=768x256x2nc,s1=768x15x8	10	6136523
+MUL_MAT|kq|f32|f32|CPU|cache_k_l7 (view) (permuted)|src1-noncontig,s0=256x768x2nc,s1=256x15x8	10	6240559
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l7 (view) (permuted)|,s0=768x256x2nc,s1=768x15x8	10	6156876
+MUL_MAT|kq|f32|f32|CPU|cache_k_l11 (view) (permuted)|src1-noncontig,s0=256x768x2nc,s1=256x15x8	10	6220903
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l11 (view) (permuted)|,s0=768x256x2nc,s1=768x15x8	10	6175276
+MUL_MAT|kq|f32|f32|CPU|cache_k_l15 (view) (permuted)|src1-noncontig,s0=256x768x2nc,s1=256x15x8	10	6299567
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l15 (view) (permuted)|,s0=768x256x2nc,s1=768x15x8	10	6143336
+MUL_MAT|kq|f32|f32|CPU|cache_k_l19 (view) (permuted)|src1-noncontig,s0=256x768x2nc,s1=256x15x8	10	6235396
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l19 (view) (permuted)|,s0=768x256x2nc,s1=768x15x8	10	6152053
+MUL_MAT|kq|f32|f32|CPU|cache_k_l23 (view) (permuted)|src1-noncontig,s0=256x768x2nc,s1=256x15x8	10	6258013
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l23 (view) (permuted)|,s0=768x256x2nc,s1=768x15x8	10	6152280
+MUL_MAT|kq|f32|f32|CPU|cache_k_l3 (view) (permuted)|src1-noncontig,s0=256x768x2nc,s1=256x4x8	10	1713241
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l3 (view) (permuted)|,s0=768x256x2nc,s1=768x4x8	10	1952822
+MUL_MAT|kq|f32|f32|CPU|cache_k_l7 (view) (permuted)|src1-noncontig,s0=256x768x2nc,s1=256x4x8	10	1773845
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l7 (view) (permuted)|,s0=768x256x2nc,s1=768x4x8	10	1890881
+MUL_MAT|kq|f32|f32|CPU|cache_k_l11 (view) (permuted)|src1-noncontig,s0=256x768x2nc,s1=256x4x8	10	1710029
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l11 (view) (permuted)|,s0=768x256x2nc,s1=768x4x8	10	1940160
+MUL_MAT|kq|f32|f32|CPU|cache_k_l15 (view) (permuted)|src1-noncontig,s0=256x768x2nc,s1=256x4x8	10	1765486
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l15 (view) (permuted)|,s0=768x256x2nc,s1=768x4x8	10	1898087
+MUL_MAT|kq|f32|f32|CPU|cache_k_l19 (view) (permuted)|src1-noncontig,s0=256x768x2nc,s1=256x4x8	10	1757758
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l19 (view) (permuted)|,s0=768x256x2nc,s1=768x4x8	10	1918723
+MUL_MAT|kq|f32|f32|CPU|cache_k_l23 (view) (permuted)|src1-noncontig,s0=256x768x2nc,s1=256x4x8	10	1758615
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l23 (view) (permuted)|,s0=768x256x2nc,s1=768x4x8	10	1906915
+MUL_MAT|kq|f32|f32|CPU|cache_k_l3 (view) (permuted)|src1-noncontig,s0=256x768x2nc,s1=256x2x8	10	928965
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l3 (view) (permuted)|,s0=768x256x2nc,s1=768x2x8	10	1006057
+MUL_MAT|kq|f32|f32|CPU|cache_k_l7 (view) (permuted)|src1-noncontig,s0=256x768x2nc,s1=256x2x8	10	943057
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l7 (view) (permuted)|,s0=768x256x2nc,s1=768x2x8	10	1007217
+MUL_MAT|kq|f32|f32|CPU|cache_k_l11 (view) (permuted)|src1-noncontig,s0=256x768x2nc,s1=256x2x8	10	900873
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l11 (view) (permuted)|,s0=768x256x2nc,s1=768x2x8	10	1012369
+MUL_MAT|kq|f32|f32|CPU|cache_k_l15 (view) (permuted)|src1-noncontig,s0=256x768x2nc,s1=256x2x8	10	879258
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l15 (view) (permuted)|,s0=768x256x2nc,s1=768x2x8	10	1019063
+MUL_MAT|kq|f32|f32|CPU|cache_k_l19 (view) (permuted)|src1-noncontig,s0=256x768x2nc,s1=256x2x8	10	958224
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l19 (view) (permuted)|,s0=768x256x2nc,s1=768x2x8	10	997845
+MUL_MAT|kq|f32|f32|CPU|cache_k_l23 (view) (permuted)|src1-noncontig,s0=256x768x2nc,s1=256x2x8	10	920361
+MUL_MAT|kqv|f32|f32|CPU|cache_v_l23 (view) (permuted)|,s0=768x256x2nc,s1=768x2x8	10	1036720
