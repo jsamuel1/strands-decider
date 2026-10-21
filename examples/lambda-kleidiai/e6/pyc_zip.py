@@ -112,7 +112,9 @@ def stale_pyc(src: zipfile.ZipFile) -> dict[str, int]:
         mtime = int.from_bytes(head[8:12], "little")
         size = int.from_bytes(head[12:16], "little")
         s = names[py]
-        zip_mtime = calendar.timegm(s.date_time + (0, 0, -1))  # Lambda extracts with the zip's (UTC) time
+        zip_mtime = calendar.timegm(
+            (*s.date_time, 0, 0, -1)
+        )  # Lambda extracts with the zip's (UTC) time
         ok = size == (s.file_size & 0xFFFFFFFF) and abs(mtime - zip_mtime) < 2
         counts["valid" if ok else "stale"] += 1
     counts["py_without_pyc"] = sum(1 for n in names if n.endswith(".py") and n not in covered)

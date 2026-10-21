@@ -92,6 +92,9 @@ ignore = [
 "evaluation/*" = ["SLF001"]  # the probes read model internals, as the tests do
 "src/strands_decider/data/policy.py" = ["SLF001"]  # attaches _cell/_rule to its own examples for balancing
 "research/scripts/*" = ["RUF001"]  # chart labels intentionally use the × multiplication sign
+# Imports P1's entry point after reading host metadata, by design; the file is deployed, so its bytes are pinned
+# by results/<run>/build-manifest.json (wrapper_sha256) and are not reformatted after measurement.
+"examples/lambda-kleidiai/e6/e6_entry.py" = ["E402"]
 
 [tool.mypy]
 # Matches the strict-ish profile used by strands-agents/harness-sdk. Type-check the
