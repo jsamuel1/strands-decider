@@ -215,8 +215,9 @@ def assess(run: str) -> dict:
         "method": (
             "post-run, from this run's own records; no new invocations. Comparisons are within one observed CPU "
             f"part; a part counts toward the verdict when both arms have >= {MIN_N} samples in it. Arm order "
-            "alternates between rounds (conditions.rounds_meta[].order); arms run sequentially within each round, "
-            "so time-within-round drift remains a limitation."
+            "alternates between rounds (conditions.rounds_meta[].order). Within a round the cold and restore waves "
+            "run one arm after the other and warm passes alternate arm order pass by pass, so time-within-round "
+            "drift remains a limitation for cold and restore."
         ),
         "metadata": METADATA,
         "ggml_cpu_variant_by_cpu_part": {k: sorted(v) for k, v in sorted(variants.items())},

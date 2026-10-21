@@ -306,8 +306,9 @@ def test_host_variability_method_states_sequential_within_round(tmp_path):
 
     method = H.assess(str(run))["method"]
     assert "alternates between rounds" in method
-    assert "sequentially within each round" in method
-    assert "time-within-round drift remains a limitation" in method
+    assert "cold and restore waves run one arm after the other" in method
+    assert "warm passes alternate arm order pass by pass" in method
+    assert "time-within-round drift remains a limitation for cold and restore" in method
 
 
 def test_run_rebuilds_when_conversion_record_is_stale():
@@ -328,8 +329,16 @@ def test_benchmark_docs_do_not_claim_within_round_pairing():
     readme = open(os.path.join(E5, "README.md")).read()
     run = open(os.path.join(E5, "run.sh")).read()
     assert "alternating between rounds" in readme
-    assert "sequentially within a round" in readme
+    assert "cold and restore waves\nrun one arm after the other" in readme
+    assert "warm passes alternate arm order pass by pass" in readme
     assert "alternating-order" in run
+
+
+def test_bench_alternates_warm_pass_order_within_round():
+    # The method prose above claims warm passes alternate arm order within a round; pin that to bench.py.
+    bench = open(os.path.join(E5, "..", "baseline", "bench.py")).read()
+    assert "order = arms if rnd % 2 == 0 else arms[::-1]" in bench
+    assert "for arm in order if i % 2 == 0 else order[::-1]:" in bench
 
 
 def test_convert_no_vocab_keeps_tensor_bytes(tmp_path):
