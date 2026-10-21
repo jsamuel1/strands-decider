@@ -5512,7 +5512,7 @@
   "cp examples/lambda-kleidiai/e6/meta.json examples/lambda-kleidiai/e6/results/<id>/ && gzip examples/lambda-kleidiai/e6/results/<id>/invocations.jsonl",
   "python examples/lambda-kleidiai/results/publish_result.py examples/lambda-kleidiai/e6/results/<id>/results.json   # P2 (feat/lambda-kleidiai-results)"
  ],
- "conclusion": "Complete unchecked-hash bytecode halves the cold imports phase on every CPU part Lambda gave us (CPU part 0xd40 as read from /proc/cpuinfo, n=49/52: 0.719 -> 0.346 s, delta -0.373 s, 95% CI [-0.380, -0.367]; 0xd0c and 0xd4f the same direction in every shared round/part cell; all 12 shared cells below 0, with 5 sparse unmatched cells reported separately) and Init Duration by -0.380 s on 0xd40. Mechanism confirmed in-function: ctl recompiles all 153-157 task-root modules from source in every environment (0 usable .pyc), pyc recompiles 1 (the e6_entry wrapper itself). The cold first request does NOT improve: on 0xd40 first_request_total delta -0.012 s, CI [-0.098, +0.079]. On 0xd0c (n=5/3 only) it is -0.685 s, CI [-1.168, -0.322]; on 0xd4f (n=6/5) +0.047 s, CI [-0.271, +0.250]. That is no consistent improvement across parts. The reason: the on-demand load runs in PR #77's background thread and the request waits for the ~25 s S3 download, which starts after imports either way; the saved ~0.37 s goes back into wait_for_load (weight_download on pyc +0.30 s, CI [+0.258, +0.383], a download that starts earlier and ends at the same time: import_total + weight_download p50 25.75 vs 25.68 s). Billed cold duration is unchanged (REPORT Billed Duration includes Init; the Init saved is spent waiting for the load inside Duration). SnapStart snapshot init imports also halve (0.665 -> 0.332 s, n=6/6), but that is publish time, not restore latency: restore first request total delta -0.045 s, CI [-0.097, +0.014] (0xd40 only). Warm inference unchanged (+0.0077 s, CI [-0.0100, +0.0251]). Answers: 420/420 pyc answers bit-identical to ctl for the same request and CPU part, and every answer P1's reference covers is bit-identical to it. Recommendation: adopt (no cost, +7 MB zip / +19 MB unzipped of the 250 MB limit, ~9 MB less peak memory) as hygiene; it pays off only where imports are on the request path, i.e. after a change that overlaps or removes the download (E4, E5, E9 or a combined ladder rung), so R should re-measure it there rather than credit it to the current baseline.",
+ "conclusion": "Complete unchecked-hash bytecode halves the cold imports phase on every CPU part Lambda gave us (CPU part 0xd40 as read from /proc/cpuinfo, n=49/52: 0.719 -> 0.346 s, delta -0.373 s, 95% CI [-0.380, -0.367]; 0xd0c and 0xd4f the same direction in every shared round/part cell; all 12 shared cells below 0, with 5 sparse unmatched cells reported separately) and Init Duration by -0.380 s on 0xd40. Mechanism confirmed in-function: ctl recompiles all 153-157 task-root modules from source in every environment (0 usable .pyc), pyc recompiles 1 (the e6_entry wrapper itself). The cold first request does NOT improve: on 0xd40 first_request_total delta -0.012 s, CI [-0.098, +0.079]. On 0xd0c (n=5/3 only) it is -0.685 s, CI [-1.168, -0.322]; on 0xd4f (n=6/5) +0.047 s, CI [-0.271, +0.250]. That is no consistent improvement across parts. The reason: the on-demand load runs in PR #77's background thread and the request waits for the ~25 s S3 download, which starts after imports either way; the saved ~0.37 s goes back into wait_for_load (weight_download on pyc +0.30 s, CI [+0.258, +0.383], a download that starts earlier and ends at the same time: import_total + weight_download p50 25.75 vs 25.68 s). Billed cold duration is unchanged (REPORT Billed Duration includes Init; the Init saved is spent waiting for the load inside Duration). SnapStart snapshot init imports also halve on both CPU parts Lambda prepared snapshots on, each record bound to the CPU part in its own log stream (0xd40 0.660 -> 0.326 s, n=3/3; 0xd0c 0.838 -> 0.408 s, n=3/3; every delta beyond the control spread across published versions; 12/12 records linked, 0 missing, 0 ambiguous), but that is publish time, not restore latency: restore first request total delta -0.045 s, CI [-0.097, +0.014] (0xd40 only). Warm inference unchanged (+0.0077 s, CI [-0.0100, +0.0251]). Answers: 420/420 pyc answers bit-identical to ctl for the same request and CPU part, and every answer P1's reference covers is bit-identical to it. Recommendation: adopt (no cost, +7 MB zip / +19 MB unzipped of the 250 MB limit, ~9 MB less peak memory) as hygiene; it pays off only where imports are on the request path, i.e. after a change that overlaps or removes the download (E4, E5, E9 or a combined ladder rung), so R should re-measure it there rather than credit it to the current baseline.",
  "request_coverage": {
   "ctl": {
    "answered": [
@@ -7175,6 +7175,349 @@
    },
    "deployment_headlines": "no consistent cold-first-request, restore, or warm benefit across observed CPU parts and rounds",
    "rerun": "not needed: host-adjusted assessed cells support one imports-phase outcome; sparse CPU parts and unmatched cells remain explicit limitations, while deployment headlines remain null"
+  },
+  "snapshot_init": {
+   "schema": "lkai-snapshot-host-variability/1",
+   "accounting": {
+    "ctl": {
+     "records": 6,
+     "linked": 6,
+     "missing": 0,
+     "ambiguous": 0,
+     "excluded_unpublished_records": 0
+    },
+    "pyc": {
+     "records": 6,
+     "linked": 6,
+     "missing": 0,
+     "ambiguous": 0,
+     "excluded_unpublished_records": 0
+    }
+   },
+   "arm_cpu_part_mix": {
+    "ctl:0xd0c": 3,
+    "ctl:0xd40": 3,
+    "pyc:0xd0c": 3,
+    "pyc:0xd40": 3
+   },
+   "records": {
+    "ctl": [
+     {
+      "version": "1",
+      "log_stream": "2026/10/21/[1]9b5bc2aaa3fd4258848d1c07e581b8e8",
+      "binding": "linked",
+      "cpu_part": "0xd40",
+      "stream_cpu_parts": [
+       "0xd40"
+      ],
+      "imports": 0.660265,
+      "import_total": 34.982289
+     },
+     {
+      "version": "1",
+      "log_stream": "2026/10/21/[1]dfc047e376104032b920f23cb735420e",
+      "binding": "linked",
+      "cpu_part": "0xd0c",
+      "stream_cpu_parts": [
+       "0xd0c"
+      ],
+      "imports": 0.837736,
+      "import_total": 47.085822
+     },
+     {
+      "version": "2",
+      "log_stream": "2026/10/21/[2]19bf30562c914ed0b4ff2d3bb3c11536",
+      "binding": "linked",
+      "cpu_part": "0xd0c",
+      "stream_cpu_parts": [
+       "0xd0c"
+      ],
+      "imports": 0.81834,
+      "import_total": 46.648222
+     },
+     {
+      "version": "2",
+      "log_stream": "2026/10/21/[2]8c072f28d78e4167b6f40e7debedb4b6",
+      "binding": "linked",
+      "cpu_part": "0xd40",
+      "stream_cpu_parts": [
+       "0xd40"
+      ],
+      "imports": 0.664829,
+      "import_total": 34.970463
+     },
+     {
+      "version": "3",
+      "log_stream": "2026/10/21/[3]660ef430dac54be28970708025364af3",
+      "binding": "linked",
+      "cpu_part": "0xd0c",
+      "stream_cpu_parts": [
+       "0xd0c"
+      ],
+      "imports": 0.840197,
+      "import_total": 46.643501
+     },
+     {
+      "version": "3",
+      "log_stream": "2026/10/21/[3]d7e186d81b7d460e9923271f9676fc04",
+      "binding": "linked",
+      "cpu_part": "0xd40",
+      "stream_cpu_parts": [
+       "0xd40"
+      ],
+      "imports": 0.659686,
+      "import_total": 34.861459
+     }
+    ],
+    "pyc": [
+     {
+      "version": "1",
+      "log_stream": "2026/10/21/[1]0c9e3093138f4be99f1e28b5dfbee5ac",
+      "binding": "linked",
+      "cpu_part": "0xd40",
+      "stream_cpu_parts": [
+       "0xd40"
+      ],
+      "imports": 0.332307,
+      "import_total": 34.69086
+     },
+     {
+      "version": "1",
+      "log_stream": "2026/10/21/[1]381bbe05e6304a58807fe123788634fd",
+      "binding": "linked",
+      "cpu_part": "0xd0c",
+      "stream_cpu_parts": [
+       "0xd0c"
+      ],
+      "imports": 0.408374,
+      "import_total": 46.178417
+     },
+     {
+      "version": "2",
+      "log_stream": "2026/10/21/[2]083364bd8cc64a09be656def42b667aa",
+      "binding": "linked",
+      "cpu_part": "0xd40",
+      "stream_cpu_parts": [
+       "0xd40"
+      ],
+      "imports": 0.325969,
+      "import_total": 34.913722
+     },
+     {
+      "version": "2",
+      "log_stream": "2026/10/21/[2]f74ff493bff34c3ea988280e8a16cc87",
+      "binding": "linked",
+      "cpu_part": "0xd0c",
+      "stream_cpu_parts": [
+       "0xd0c"
+      ],
+      "imports": 0.426797,
+      "import_total": 46.323993
+     },
+     {
+      "version": "3",
+      "log_stream": "2026/10/21/[3]2dc2a016546d441ea168e332d0981302",
+      "binding": "linked",
+      "cpu_part": "0xd0c",
+      "stream_cpu_parts": [
+       "0xd0c"
+      ],
+      "imports": 0.407682,
+      "import_total": 46.511322
+     },
+     {
+      "version": "3",
+      "log_stream": "2026/10/21/[3]89b0d474870e4e65b6e1cb3bed36c23b",
+      "binding": "linked",
+      "cpu_part": "0xd40",
+      "stream_cpu_parts": [
+       "0xd40"
+      ],
+      "imports": 0.322967,
+      "import_total": 34.969853
+     }
+    ]
+   },
+   "metrics": {
+    "imports": {
+     "by_cpu_part": {
+      "0xd0c": {
+       "n": {
+        "ctl": 3,
+        "pyc": 3
+       },
+       "per_version": {
+        "ctl": {
+         "1": 0.837736,
+         "2": 0.81834,
+         "3": 0.840197
+        },
+        "pyc": {
+         "1": 0.408374,
+         "2": 0.426797,
+         "3": 0.407682
+        }
+       },
+       "median": {
+        "ctl": 0.837736,
+        "pyc": 0.408374
+       },
+       "range": {
+        "ctl": [
+         0.81834,
+         0.840197
+        ],
+        "pyc": [
+         0.407682,
+         0.426797
+        ]
+       },
+       "control_spread": 0.021857,
+       "delta": -0.429362,
+       "ratio": 0.487473,
+       "sign": "negative",
+       "outcome": "negative-beyond-control-variation"
+      },
+      "0xd40": {
+       "n": {
+        "ctl": 3,
+        "pyc": 3
+       },
+       "per_version": {
+        "ctl": {
+         "1": 0.660265,
+         "2": 0.664829,
+         "3": 0.659686
+        },
+        "pyc": {
+         "1": 0.332307,
+         "2": 0.325969,
+         "3": 0.322967
+        }
+       },
+       "median": {
+        "ctl": 0.660265,
+        "pyc": 0.325969
+       },
+       "range": {
+        "ctl": [
+         0.659686,
+         0.664829
+        ],
+        "pyc": [
+         0.322967,
+         0.332307
+        ]
+       },
+       "control_spread": 0.005143,
+       "delta": -0.334296,
+       "ratio": 0.493694,
+       "sign": "negative",
+       "outcome": "negative-beyond-control-variation"
+      }
+     },
+     "unmatched_cpu_parts": []
+    },
+    "import_total": {
+     "by_cpu_part": {
+      "0xd0c": {
+       "n": {
+        "ctl": 3,
+        "pyc": 3
+       },
+       "per_version": {
+        "ctl": {
+         "1": 47.085822,
+         "2": 46.648222,
+         "3": 46.643501
+        },
+        "pyc": {
+         "1": 46.178417,
+         "2": 46.323993,
+         "3": 46.511322
+        }
+       },
+       "median": {
+        "ctl": 46.648222,
+        "pyc": 46.323993
+       },
+       "range": {
+        "ctl": [
+         46.643501,
+         47.085822
+        ],
+        "pyc": [
+         46.178417,
+         46.511322
+        ]
+       },
+       "control_spread": 0.442321,
+       "delta": -0.324229,
+       "ratio": 0.993049,
+       "sign": "negative",
+       "outcome": "within-control-variation"
+      },
+      "0xd40": {
+       "n": {
+        "ctl": 3,
+        "pyc": 3
+       },
+       "per_version": {
+        "ctl": {
+         "1": 34.982289,
+         "2": 34.970463,
+         "3": 34.861459
+        },
+        "pyc": {
+         "1": 34.69086,
+         "2": 34.913722,
+         "3": 34.969853
+        }
+       },
+       "median": {
+        "ctl": 34.970463,
+        "pyc": 34.913722
+       },
+       "range": {
+        "ctl": [
+         34.861459,
+         34.982289
+        ],
+        "pyc": [
+         34.69086,
+         34.969853
+        ]
+       },
+       "control_spread": 0.12083,
+       "delta": -0.056741,
+       "ratio": 0.998377,
+       "sign": "negative",
+       "outcome": "within-control-variation"
+      }
+     },
+     "unmatched_cpu_parts": []
+    }
+   },
+   "assessment": {
+    "metric": "imports",
+    "comparable": true,
+    "outcome": "negative-beyond-control-variation",
+    "by_cpu_part": {
+     "0xd0c": "negative-beyond-control-variation",
+     "0xd40": "negative-beyond-control-variation"
+    },
+    "unassessed_cpu_parts": [],
+    "unmatched_cpu_parts": [],
+    "reason": "every assessed CPU part has the same outcome against its control spread across published versions; missing, ambiguous and unpublished records are excluded and counted"
+   },
+   "method": "Each before_snapshot record is bound to the CPU part named by the `decider.engine init cpu_part=` line in its own log stream (one stream = one execution environment); binding never crosses streams. Only streams of versions this run published count. A stream with no known part is missing, one with more than one distinct part is ambiguous; neither is a comparison stratum. Within each CPU part, the pyc-minus-ctl median delta across published versions is judged against the range of ctl's per-version values (cell_outcome); a part with fewer than two control inits is unassessed.",
+   "limits": [
+    "snapshot inits run inside publish_version, so this is publish time, not a request-path latency",
+    "only the CPU part is observable for a snapshot init (the engine's init log line); variant, revision, HWCAP, features, CPU count and kernel come from e6_entry's first-invocation record, which a snapshot init does not emit, so they are unknown here",
+    "availability zone, physical host and cgroup limits are unknown",
+    "Lambda chose which CPU parts to prepare per version; one init per (version, part, arm), so spread is across versions, not within a version",
+    "no Graviton generation is inferred from the CPU part"
+   ]
   }
  },
  "e6": {

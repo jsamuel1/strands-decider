@@ -653,6 +653,179 @@ def test_part_outcome_aggregates_from_persisted_cell_outcomes():
     }
 
 
+# ---------------------------------------------------------------- snapshot-init host binding
+
+
+def _snap_run(tmp_path, streams: dict[str, dict[str, list[str]]], published=None):
+    """A run dir with saved logs: streams = {arm: {stream name: [messages]}}."""
+    import gzip as _gz
+
+    published = published if published is not None else {"ctl": ["1", "2"], "pyc": ["1", "2"]}
+    rounds = sorted({v for vs in published.values() for v in vs})
+    cond = {
+        "arms": ["ctl", "pyc"],
+        "functions": {a: {"FunctionName": f"fn-{a}"} for a in ("ctl", "pyc")},
+        "rounds_meta": [
+            {
+                "round": 100 + i,
+                "published": {a: {"version": v} for a, vs in published.items() if v in vs},
+            }
+            for i, v in enumerate(rounds)
+        ],
+    }
+    os.makedirs(tmp_path / "logs", exist_ok=True)
+    for arm, by_stream in streams.items():
+        with _gz.open(tmp_path / "logs" / f"fn-{arm}.jsonl.gz", "wt") as fh:
+            for name, msgs in by_stream.items():
+                for m in msgs:
+                    fh.write(
+                        json.dumps({"logStreamName": name, "message": m, "timestamp": 0}) + "\n"
+                    )
+    return str(tmp_path), cond
+
+
+_WALL = iter(range(10**6))
+
+
+def _snap_msgs(cpu, imports):
+    out = []
+    if cpu is not None:
+        for part in [cpu] if isinstance(cpu, str) else cpu:
+            out.append(f"2026-10-21 05:13:45,093 decider.engine init cpu_part={part} threads=6\n")
+    rec = {
+        "kind": "before_snapshot",
+        "wall_ns": next(_WALL),
+        "init": {"imports": imports, "import_total": 30.0},
+    }
+    out.append("LKAI " + json.dumps(rec) + "\n")
+    return out
+
+
+def test_snapshot_binding_uses_only_the_records_own_stream(tmp_path):
+    s = _summ()
+    streams = {
+        "ctl": {
+            "2026/10/21/[1]a": _snap_msgs("0xd40", 0.66),
+            "2026/10/21/[2]b": _snap_msgs("0xd40", 0.67),
+            # a neighbouring invocation stream names another part; it must not bind to a snapshot record
+            "2026/10/21/[1]c": ["decider.engine init cpu_part=0xd0c threads=6\n"],
+        },
+        "pyc": {
+            "2026/10/21/[1]d": _snap_msgs("0xd40", 0.33),
+            "2026/10/21/[2]e": _snap_msgs("0xd40", 0.32),
+        },
+    }
+    h = s.snapshot_host_analysis(*_snap_run(tmp_path, streams))
+    assert h["accounting"]["ctl"] == {
+        "records": 2,
+        "linked": 2,
+        "missing": 0,
+        "ambiguous": 0,
+        "excluded_unpublished_records": 0,
+    }
+    assert h["arm_cpu_part_mix"] == {"ctl:0xd40": 2, "pyc:0xd40": 2}
+    part = h["metrics"]["imports"]["by_cpu_part"]["0xd40"]
+    assert part["per_version"]["ctl"] == {"1": 0.66, "2": 0.67}
+    assert part["control_spread"] == pytest.approx(0.01)
+    assert part["outcome"] == "negative-beyond-control-variation"
+    assert h["assessment"]["comparable"] is True
+    assert set(h["metrics"]["imports"]["by_cpu_part"]) == {"0xd40"}
+
+
+def test_snapshot_missing_and_ambiguous_streams_are_counted_not_stratified(tmp_path):
+    s = _summ()
+    streams = {
+        "ctl": {
+            "2026/10/21/[1]a": _snap_msgs("0xd40", 0.66),
+            "2026/10/21/[2]b": _snap_msgs("0xd40", 0.67),
+            "2026/10/21/[1]m": _snap_msgs(None, 0.10),  # no CPU line in its stream
+            "2026/10/21/[2]u": _snap_msgs("unknown", 0.10),  # unknown is never a part
+            "2026/10/21/[2]x": _snap_msgs(["0xd40", "0xd0c"], 0.10),  # two distinct parts
+        },
+        "pyc": {
+            "2026/10/21/[1]d": _snap_msgs("0xd40", 0.33),
+            "2026/10/21/[2]e": _snap_msgs("0xd40", 0.32),
+        },
+    }
+    h = s.snapshot_host_analysis(*_snap_run(tmp_path, streams))
+    acc = h["accounting"]["ctl"]
+    assert (acc["records"], acc["linked"], acc["missing"], acc["ambiguous"]) == (5, 2, 2, 1)
+    amb = [r for r in h["records"]["ctl"] if r["binding"] == "ambiguous"]
+    assert amb[0]["cpu_part"] is None and amb[0]["stream_cpu_parts"] == ["0xd0c", "0xd40"]
+    # only linked records enter the comparison: the 0.10 values never touch the 0xd40 medians
+    part = h["metrics"]["imports"]["by_cpu_part"]["0xd40"]
+    assert part["n"] == {"ctl": 2, "pyc": 2} and part["range"]["ctl"] == [0.66, 0.67]
+    assert set(h["metrics"]["imports"]["by_cpu_part"]) == {"0xd40"}
+    assert "ctl:None" not in h["arm_cpu_part_mix"] and "ctl:unknown" not in h["arm_cpu_part_mix"]
+
+
+def test_snapshot_records_from_unpublished_versions_are_excluded(tmp_path):
+    s = _summ()
+    streams = {
+        "ctl": {
+            "2026/10/21/[1]a": _snap_msgs("0xd40", 0.66),
+            "2026/10/21/[2]b": _snap_msgs("0xd40", 0.67),
+            "2026/10/21/[9]z": _snap_msgs("0xd40", 5.0),  # a stale version from another run
+            "2026/10/21/[$LATEST]l": _snap_msgs("0xd40", 5.0),
+        },
+        "pyc": {
+            "2026/10/21/[1]d": _snap_msgs("0xd40", 0.33),
+            "2026/10/21/[2]e": _snap_msgs("0xd40", 0.32),
+        },
+    }
+    h = s.snapshot_host_analysis(*_snap_run(tmp_path, streams))
+    assert h["accounting"]["ctl"]["records"] == 2
+    assert h["accounting"]["ctl"]["excluded_unpublished_records"] == 2
+    assert {r["version"] for r in h["records"]["ctl"]} == {"1", "2"}
+    assert h["metrics"]["imports"]["by_cpu_part"]["0xd40"]["range"]["ctl"] == [0.66, 0.67]
+
+
+def test_snapshot_all_missing_is_unassessed_not_comparable(tmp_path):
+    s = _summ()
+    streams = {
+        "ctl": {
+            "2026/10/21/[1]a": _snap_msgs(None, 0.66),
+            "2026/10/21/[2]b": _snap_msgs(None, 0.67),
+        },
+        "pyc": {
+            "2026/10/21/[1]d": _snap_msgs(None, 0.33),
+            "2026/10/21/[2]e": _snap_msgs(None, 0.32),
+        },
+    }
+    h = s.snapshot_host_analysis(*_snap_run(tmp_path, streams))
+    for arm in ("ctl", "pyc"):
+        assert (h["accounting"][arm]["linked"], h["accounting"][arm]["missing"]) == (0, 2)
+    assert h["arm_cpu_part_mix"] == {}
+    assert h["metrics"]["imports"]["by_cpu_part"] == {}
+    assert h["assessment"]["comparable"] is False
+    assert h["assessment"]["outcome"] == "unassessed"
+
+
+def test_snapshot_parts_that_disagree_are_host_conditioned(tmp_path):
+    s = _summ()
+    streams = {
+        "ctl": {
+            "2026/10/21/[1]a": _snap_msgs("0xd40", 0.66),
+            "2026/10/21/[2]b": _snap_msgs("0xd40", 0.67),
+            "2026/10/21/[1]c": _snap_msgs("0xd0c", 0.80),
+            "2026/10/21/[2]f": _snap_msgs("0xd0c", 0.90),
+        },
+        "pyc": {
+            "2026/10/21/[1]d": _snap_msgs("0xd40", 0.33),
+            "2026/10/21/[2]e": _snap_msgs("0xd40", 0.32),
+            "2026/10/21/[1]g": _snap_msgs("0xd0c", 0.84),
+            "2026/10/21/[2]h": _snap_msgs("0xd0c", 0.86),
+        },
+    }
+    h = s.snapshot_host_analysis(*_snap_run(tmp_path, streams))
+    assert h["assessment"]["by_cpu_part"] == {
+        "0xd0c": "within-control-variation",
+        "0xd40": "negative-beyond-control-variation",
+    }
+    assert h["assessment"]["comparable"] is False
+    assert h["assessment"]["outcome"] == "host-conditioned"
+
+
 def test_status_follows_the_headlines_not_the_targeted_phase():
     s = _summ()
     null = (-0.1, 0.1)

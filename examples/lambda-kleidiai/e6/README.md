@@ -86,9 +86,22 @@ Run `results/20261021T045838Z/`:
 | cold `model_load_mmap` | 8.37 s | 8.38 s | +0.005 [−0.035, +0.033] | 49 / 52 |
 | **cold first request total** | 36.01 s | 36.00 s | −0.012 [−0.098, +0.079] | 49 / 52 |
 | cold max memory | 5,159 MB | 5,150 MB | −9 [−10, −6] MB | 49 / 52 |
-| SnapStart snapshot init `imports` (publish) | 0.665 s | 0.332 s | — | 6 / 6 |
+| SnapStart snapshot init `imports` (publish), see below | — | — | — | — |
 | **restore first request total** | 3.94 s | 3.90 s | −0.045 [−0.097, +0.014] | 27 / 30 |
 | **warm inference** | 0.605 s | 0.613 s | +0.008 [−0.010, +0.025] | 272 / 290 |
+
+SnapStart snapshot inits ran on two CPU parts, so they get their own per-part table. Each `before_snapshot` record
+is bound to the CPU part named in its own log stream (`results.json` → `host_variability.snapshot_init`). Only the
+versions this run published count. All 12 records (6 per arm) are linked: 0 missing, 0 ambiguous, 0 excluded.
+
+| Snapshot init `imports` (publish) | ctl median | pyc median | Δ median | ctl spread across versions | n |
+|---|---|---|---|---|---|
+| 0xd40 | 0.660 s | 0.326 s | −0.334 s | 0.005 s | 3 / 3 |
+| 0xd0c | 0.838 s | 0.408 s | −0.429 s | 0.022 s | 3 / 3 |
+
+Both deltas exceed the control spread (`negative-beyond-control-variation`), so the snapshot-phase outcome is
+comparable across parts. The earlier pooled figure (0.665 → 0.332 s) mixed both parts; P1's
+`phases.<arm>.restore.snapshot_init` block is still that pooled distribution and is not the host-attributed result.
 
 - The 0xd0c and 0xd4f parts show the same `imports` halving: −0.479 s (n = 5 / 3) and −0.291 s (n = 6 / 5).
 - On 0xd0c the cold first request is −0.69 s [−1.17, −0.32], but the sample is small, and on 0xd4f it is +0.05 s.
@@ -162,3 +175,7 @@ See `meta.json` → `reproduce`. `pyc_zip.py` needs CPython 3.12 and needs no ar
 - Lambda's Python 3.12.14 differs from the compiler's 3.12.13 in patch level only (same magic number). Lambda used
   the bytecode, as the in-function check shows.
 - The SnapStart publish-time saving (the snapshot init's `imports`) is not on any request path.
+- For snapshot inits only the CPU part is observable, from the engine's `init cpu_part=` log line in the same
+  stream. Variant, revision, HWCAP, features, CPU count and kernel come from `e6_entry`'s first-invocation record,
+  which a snapshot init does not emit, so they are unknown there. Lambda chose the parts; there is one init per
+  (version, part, arm), so the control spread is across the 3 published versions, not within one.

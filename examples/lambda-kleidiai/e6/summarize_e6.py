@@ -20,9 +20,11 @@ on, and errors, class mismatches and correctness are clean. It is `regressed` if
 from __future__ import annotations
 
 import argparse
+import gzip
 import json
 import os
 import random
+import re
 import shutil
 import statistics
 import sys
@@ -277,8 +279,10 @@ def host_variability_analysis(rows: list[dict]) -> dict:
         "positive-beyond-control-variation",
         "within-control-variation",
     }
-    imports_comparable = bool(assessed_outcomes) and len(set(assessed_outcomes.values())) == 1 and all(
-        outcome in comparable_outcomes for outcome in assessed_outcomes.values()
+    imports_comparable = (
+        bool(assessed_outcomes)
+        and len(set(assessed_outcomes.values())) == 1
+        and all(outcome in comparable_outcomes for outcome in assessed_outcomes.values())
     )
     imports_outcome = (
         next(iter(set(assessed_outcomes.values()))) if imports_comparable else "host-conditioned"
@@ -314,7 +318,9 @@ def host_variability_analysis(rows: list[dict]) -> dict:
     elif not assessed_outcomes:
         reason = "no shared known-CPU cells have enough control observations to estimate within-cell spread"
     else:
-        reason = "CPU parts have different or indeterminate outcomes after control-variation adjustment"
+        reason = (
+            "CPU parts have different or indeterminate outcomes after control-variation adjustment"
+        )
     unknown_import_rows = unknown_cpu_rows["cold_imports"]
     return {
         "schema": "lkai-host-variability/1",
@@ -359,6 +365,189 @@ def host_variability_analysis(rows: list[dict]) -> dict:
                 "accepted as a limitation"
             ),
         },
+    }
+
+
+# The engine's own init line, logged once per environment init in the same log stream as that init's LKAI records.
+ENGINE_CPU_LINE = re.compile(r"decider\.engine init cpu_part=(\S+)")
+UNKNOWN_CPU = (None, "", "unknown")
+SNAPSHOT_METRICS = ("imports", "import_total")
+
+
+def published_versions(cond: dict) -> dict[str, dict[str, str]]:
+    """{arm: {version: function name}} for every version this run published (the harness's rounds_meta)."""
+    out: dict[str, dict[str, str]] = defaultdict(dict)
+    for m in cond.get("rounds_meta", []):
+        for arm, pub in m.get("published", {}).items():
+            out[arm][str(pub["version"])] = cond["functions"][arm]["FunctionName"]
+    return dict(out)
+
+
+def snapshot_records(run: str, cond: dict) -> dict:
+    """Every before_snapshot record in the saved logs, each bound to the CPU part of its own log stream.
+
+    A Lambda log stream belongs to one execution environment, so the snapshot init's `decider.engine init
+    cpu_part=...` line and its before_snapshot record share a stream. Binding never crosses streams. Only
+    streams of versions this run published count; records from any other version are counted as excluded.
+    A stream with no known CPU part is `missing`; one naming more than one distinct part is `ambiguous`.
+    Neither is ever used as a comparison stratum."""
+    versions = published_versions(cond)
+    out: dict = {}
+    for arm in cond["arms"]:
+        fn = cond["functions"][arm]["FunctionName"]
+        path = os.path.join(run, "logs", f"{fn}.jsonl.gz")
+        streams: dict[str, dict] = defaultdict(lambda: {"records": [], "cpu_parts": set()})
+        if os.path.exists(path):
+            with gzip.open(path, "rt") as fh:
+                for line in fh:
+                    e = json.loads(line)
+                    st = streams[e.get("logStreamName", "")]
+                    msg = e.get("message", "")
+                    for part in ENGINE_CPU_LINE.findall(msg):
+                        if part not in UNKNOWN_CPU:
+                            st["cpu_parts"].add(part)
+                    st["records"] += [
+                        r for r in p1.phases.parse_lkai(msg) if r.get("kind") == "before_snapshot"
+                    ]
+        published = set(versions.get(arm, {}))
+        recs, excluded, seen = [], 0, set()
+        for name, st in sorted(streams.items()):
+            ver = name.split("[", 1)[1].split("]", 1)[0] if "[" in name else None
+            for r in st["records"]:
+                if r.get("wall_ns") in seen:
+                    continue
+                seen.add(r.get("wall_ns"))
+                if ver not in published:
+                    excluded += 1
+                    continue
+                parts = sorted(st["cpu_parts"])
+                binding = "linked" if len(parts) == 1 else "missing" if not parts else "ambiguous"
+                recs.append(
+                    {
+                        "version": ver,
+                        "log_stream": name,
+                        "binding": binding,
+                        "cpu_part": parts[0] if binding == "linked" else None,
+                        "stream_cpu_parts": parts,
+                        **{k: (r.get("init") or {}).get(k) for k in SNAPSHOT_METRICS},
+                    }
+                )
+        out[arm] = {"records": recs, "excluded_unpublished_records": excluded}
+    return out
+
+
+def snapshot_host_analysis(run: str, cond: dict) -> dict:
+    """Snapshot-init (publish-time) metrics by the CPU part bound to each record from its own log stream.
+
+    Each published version yields one snapshot init per CPU part Lambda prepares, so a (version, part) cell holds one
+    record per arm. The comparison is therefore per CPU part across the run's published versions: the control
+    spread is the range of ctl's per-version values within that part, and `cell_outcome` judges the part's delta
+    against it. Only linked records count; missing, ambiguous and unpublished-version records are reported and
+    excluded."""
+    bound = snapshot_records(run, cond)
+    accounting, mix = {}, Counter()
+    for arm, b in bound.items():
+        c = Counter(r["binding"] for r in b["records"])
+        accounting[arm] = {
+            "records": len(b["records"]),
+            "linked": c["linked"],
+            "missing": c["missing"],
+            "ambiguous": c["ambiguous"],
+            "excluded_unpublished_records": b["excluded_unpublished_records"],
+        }
+        mix.update(f"{arm}:{r['cpu_part']}" for r in b["records"] if r["binding"] == "linked")
+    linked = {
+        arm: [r for r in b["records"] if r["binding"] == "linked"] for arm, b in bound.items()
+    }
+    metrics: dict = {}
+    for metric in SNAPSHOT_METRICS:
+        parts = sorted({r["cpu_part"] for rs in linked.values() for r in rs})
+        by_part, unmatched = {}, []
+        for cpu in parts:
+            vals = {
+                arm: sorted(
+                    (r["version"], r[metric])
+                    for r in linked.get(arm, [])
+                    if r["cpu_part"] == cpu and r[metric] is not None
+                )
+                for arm in (CONTROL, EXPERIMENT)
+            }
+            if not all(vals.values()):
+                unmatched.append(
+                    {"cpu_part": cpu, "n": {arm: len(vals[arm]) for arm in (CONTROL, EXPERIMENT)}}
+                )
+                continue
+            ctl = [v for _, v in vals[CONTROL]]
+            pyc = [v for _, v in vals[EXPERIMENT]]
+            mc, mp = statistics.median(ctl), statistics.median(pyc)
+            change = round(mp - mc, 6)
+            spread = round(max(ctl) - min(ctl), 6) if len(ctl) >= 2 else None
+            by_part[cpu] = {
+                "n": {CONTROL: len(ctl), EXPERIMENT: len(pyc)},
+                "per_version": {arm: {v: round(x, 6) for v, x in vals[arm]} for arm in vals},
+                "median": {CONTROL: round(mc, 6), EXPERIMENT: round(mp, 6)},
+                "range": {
+                    CONTROL: [round(min(ctl), 6), round(max(ctl), 6)],
+                    EXPERIMENT: [round(min(pyc), 6), round(max(pyc), 6)],
+                },
+                "control_spread": spread,
+                "delta": change,
+                "ratio": round(mp / mc, 6) if mc else None,
+                "sign": "negative" if change < 0 else "positive" if change > 0 else "zero",
+                "outcome": cell_outcome(change, spread),
+            }
+        metrics[metric] = {"by_cpu_part": by_part, "unmatched_cpu_parts": unmatched}
+
+    imports = metrics["imports"]["by_cpu_part"]
+    assessed = {cpu: p["outcome"] for cpu, p in imports.items() if p["outcome"] != UNASSESSED_CELL}
+    unassessed = sorted(set(imports) - set(assessed))
+    comparable = bool(assessed) and len(set(assessed.values())) == 1
+    if not imports:
+        outcome = "unassessed"
+        reason = "no CPU part has a linked snapshot-init record on both arms"
+    elif not assessed:
+        outcome = "unassessed"
+        reason = "no shared CPU part has two control snapshot inits to estimate spread"
+    elif comparable:
+        outcome = next(iter(assessed.values()))
+        reason = (
+            "every assessed CPU part has the same outcome against its control spread across published versions; "
+            "missing, ambiguous and unpublished records are excluded and counted"
+        )
+    else:
+        outcome = "host-conditioned"
+        reason = "CPU parts disagree after control-spread adjustment"
+    return {
+        "schema": "lkai-snapshot-host-variability/1",
+        "accounting": accounting,
+        "arm_cpu_part_mix": dict(sorted(mix.items())),
+        "records": {arm: b["records"] for arm, b in bound.items()},
+        "metrics": metrics,
+        "assessment": {
+            "metric": "imports",
+            "comparable": comparable,
+            "outcome": outcome,
+            "by_cpu_part": {cpu: p["outcome"] for cpu, p in imports.items()},
+            "unassessed_cpu_parts": unassessed,
+            "unmatched_cpu_parts": metrics["imports"]["unmatched_cpu_parts"],
+            "reason": reason,
+        },
+        "method": "Each before_snapshot record is bound to the CPU part named by the `decider.engine init "
+        "cpu_part=` line in its own log stream (one stream = one execution environment); binding never crosses "
+        "streams. Only streams of versions this run published count. A stream with no known part is missing, one "
+        "with more than one distinct part is ambiguous; neither is a comparison stratum. Within each CPU part, "
+        "the pyc-minus-ctl median delta across published versions is judged against the range of ctl's "
+        "per-version values (cell_outcome); a part with fewer than two control inits is unassessed.",
+        "limits": [
+            "snapshot inits run inside publish_version, so this is publish time, not a request-path latency",
+            "only the CPU part is observable for a snapshot init (the engine's init log line); variant, revision, "
+            "HWCAP, features, CPU count and kernel come from e6_entry's first-invocation record, which a snapshot "
+            "init does not emit, so they are unknown here",
+            "availability zone, physical host and cgroup limits are unknown",
+            "Lambda chose which CPU parts to prepare per version; one init per (version, part, arm), so spread is "
+            "across versions, not within a version",
+            "no Graviton generation is inferred from the CPU part",
+        ],
     }
 
 
@@ -584,6 +773,7 @@ def main(argv: list[str] | None = None) -> int:
         "note": "both E6 arms run P1's phase timers; overhead is P1's (P1-baseline/20261020T080835Z)",
     }
     res["host_variability"] = host_variability_analysis(rows)
+    res["host_variability"]["snapshot_init"] = snapshot_host_analysis(run, cond)
     res["e6"] = {
         "delta": {
             "cold": delta(rows, "cold", COLD_KEYS),
@@ -630,6 +820,12 @@ def _fmt(res: dict) -> dict:
                 out[key + "_d"] = v["delta_p50"]
                 out[key + "_lo"], out[key + "_hi"] = v["ci95"]
                 out[key + "_n"] = v["n"]
+    snap = (res.get("host_variability") or {}).get("snapshot_init") or {}
+    for cpu, v in snap.get("metrics", {}).get("imports", {}).get("by_cpu_part", {}).items():
+        key = f"snapshot_imports_{cpu}"
+        out[key + "_ctl"], out[key + "_pyc"] = v["median"][CONTROL], v["median"][EXPERIMENT]
+        out[key + "_d"] = v["delta"]
+        out[key + "_n"] = f"{v['n'][CONTROL]}/{v['n'][EXPERIMENT]}"
     return out
 
 
