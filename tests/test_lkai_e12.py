@@ -339,3 +339,128 @@ def test_offline_compare_catches_stale_state_and_a_wrong_switch():
     joined = " ".join(res["failures"])
     assert "e12-2: 1 rows differ" in joined and "vary across positions for ['a']" in joined
     assert "dor-1: clear_data=0, expected 1" in joined
+
+
+# --- summarize_e12.py ------------------------------------------------------------------------------------------
+
+
+def _row(
+    arm,
+    cls,
+    rnd,
+    cpu,
+    *,
+    dur=None,
+    rest=None,
+    lat=0.25,
+    rid="ticket-route-1q",
+    env="e",
+    n=1,
+    tok=80,
+):
+    rep = {
+        "Duration": (dur if dur is not None else lat) * 1000,
+        "Billed Duration": 1,
+        "Max Memory Used": 5150,
+    }
+    if cls == "restore":
+        rep["Restore Duration"] = (rest or 3.2) * 1000
+    if cls == "cold":
+        rep["Init Duration"] = 800
+    return {
+        "arm": arm,
+        "expected_class": cls,
+        "observed_class": cls,
+        "class_mismatch": False,
+        "error": None,
+        "round": rnd,
+        "cpu_part": cpu,
+        "report": rep,
+        "latency_ms": lat * 1000,
+        "request_id": rid,
+        "answers": {"q": 1},
+        "usage": {"input_tokens": tok},
+        "lkai": {
+            "env_id": env,
+            "inv": {"n": n},
+            "e12": {"shim_clear_data": 1 if arm == "dor" else 0},
+        },
+    }
+
+
+def _summarize_mod():
+    import summarize_e12
+
+    return summarize_e12
+
+
+def test_host_cells_separate_rows_and_do_not_pool_cpu_parts():
+    s = _summarize_mod()
+    rows = []
+    for rnd in range(2):
+        for i in range(4):
+            rows.append(_row("dor", "restore", rnd, "0xd40", dur=0.68 + i * 0.01))
+            rows.append(_row("e12", "restore", rnd, "0xd40", dur=0.39 + i * 0.01))
+        rows.append(
+            _row("dor", "restore", rnd, "0xd40", dur=3.4)
+        )  # one slow control row widens the range
+    rows.append(
+        _row("dor", "restore", 0, "0xd0c", dur=1.06)
+    )  # a part with no e12 row: missing, not a stratum
+    rows.append(
+        _row("e12", "restore", 0, None, dur=0.3)
+    )  # no CPU identity: counted, never a stratum
+    hv = s.host_variability(rows)
+    m = hv["observed"]["metrics"]["restore_report_duration"]
+    assert [c["cpu_part"] for c in m["cells"]] == ["0xd40", "0xd40"]
+    assert all(
+        c["outcome"] == "within-control-variation" for c in m["cells"]
+    )  # the range rule alone fails
+    assert all(c["p_e12_below_dor"] == 1.0 for c in m["cells"])
+    assert m["missing_cells"] == [{"round": 0, "cpu_part": "0xd0c", "n": {"dor": 1, "e12": 0}}]
+    assert m["unknown_cpu_rows"] == {"dor": 0, "e12": 1}
+    assert hv["assessment"]["consistent_direction"] is True
+
+
+def test_host_cells_flag_a_host_conditioned_effect():
+    s = _summarize_mod()
+    rows = []
+    for rnd, (d, e) in enumerate([(0.68, 0.39), (0.40, 0.45)]):  # round 1 reverses
+        for i in range(3):
+            rows.append(_row("dor", "restore", rnd, "0xd40", dur=d + i * 0.001))
+            rows.append(_row("e12", "restore", rnd, "0xd40", dur=e + i * 0.001))
+    hv = s.host_variability(rows)
+    assert hv["assessment"]["consistent_direction"] is False
+
+
+def test_warm_by_reach_labels_the_first_longer_request_per_environment():
+    s = _summarize_mod()
+    rows = []
+    for arm, lat_new, lat_seen in (("dor", 1.0, 0.5), ("e12", 1.1, 0.45)):
+        env = f"env-{arm}"
+        rows.append(_row(arm, "restore", 0, "0xd40", env=env, n=1, tok=80))
+        rows.append(_row(arm, "warm", 0, "0xd40", lat=lat_seen, rid="short", env=env, n=2, tok=80))
+        rows.append(_row(arm, "warm", 0, "0xd40", lat=lat_new, rid="long", env=env, n=3, tok=600))
+    out = s.warm_by_reach(rows)["by_cpu_part"]["0xd40"]
+    assert out["within_seen"]["short"]["ratio"] == 0.9
+    assert out["new_max"]["long"]["ratio"] == 1.1
+
+
+def test_status_needs_the_switch_seen_from_inside_every_environment():
+    s = _summarize_mod()
+    good = {
+        "dor": {"environments": 2, "shim_clear_data": {"1": 2}},
+        "e12": {"environments": 2, "shim_clear_data": {"0": 2}},
+    }
+    assert s.switch_ok(good)
+    bad = {"dor": good["dor"], "e12": {"environments": 2, "shim_clear_data": {"0": 1, "1": 1}}}
+    assert not s.switch_ok(bad)
+    assert not s.switch_ok({"dor": good["dor"], "e12": {"environments": 0, "shim_clear_data": {}}})
+
+
+def test_meta_conclusion_names_no_generation_and_cites_template_fields():
+    m = json.load(open(os.path.join(E12, "meta.json")))
+    t = m["conclusion_template"] + m["hypothesis"]
+    assert "Graviton" not in t
+    assert "{restore_report_duration_0xd40_d" in m["conclusion_template"]
+    assert m["changed_variable"]["baseline"] and m["changed_variable"]["experiment"]

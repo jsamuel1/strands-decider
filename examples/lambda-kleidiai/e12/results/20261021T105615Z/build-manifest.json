@@ -1,0 +1,139 @@
+{
+ "schema": "lkai-e12-build-manifest/1",
+ "repo_commit": "77196356232a6e00ede4da3e8586bf2728e173b3",
+ "repo_dirty": false,
+ "dirty_inputs": [],
+ "p1_manifest": {
+  "schema": "lkai-build-manifest/1",
+  "repo_commit": "4412b31988ba112dd27ad850830689f33c07e78a",
+  "repo_dirty": false,
+  "model": {
+   "id": "StrandsAgents/strands-decider-2B-qwen3.5-v1-2610",
+   "revision": "216d1ccb46a9e9b036eb9187b248db98480f77d4",
+   "format": "GGUF Q8_0",
+   "transform": "LoRA merged fp32 (weights/merge_export.py), H512 Hadamard fold (weights/fold_hadamard.py --block 512)",
+   "merge_report": {
+    "merged": 186,
+    "scale": 2.0,
+    "unpaired_adapter": [],
+    "base_revision": "b1485b2fa6dfa1287294f269f5fb618e03d52d7c",
+    "checkpoint": "/hf/hub/models--StrandsAgents--strands-decider-2B-qwen3.5-v1-2610/snapshots/216d1ccb46a9e9b036eb9187b248db98480f77d4"
+   },
+   "gguf_bytes": 2076712416,
+   "gguf_sha256": "8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e"
+  },
+  "llama_cpp": {
+   "commit": "f74e2fa6a31cc33ab4ee4ae516641cfe62df3924",
+   "patches": "llama/patch_llama.py (prefill,gdn,kskip,sme)",
+   "flags": "GGML_NATIVE=OFF GGML_BACKEND_DL=ON GGML_CPU_ALL_VARIANTS=ON GGML_CPU_KLEIDIAI=ON"
+  },
+  "function_zip": {
+   "bytes": 51941898,
+   "sha256": "26eb2651e8915f8ad09eae899feff583a448de6b8d2bc4943bccabb66cae189b",
+   "handler": "lkai_entry.handler"
+  },
+  "assets_sha256": {
+   "head.safetensors": "2492613e72eac53becb9ff855023261ac2722c5111b9f1e03be59a87328dd799",
+   "head_config.json": "3a6a6a3a135dcdbb29d6d9179d507d511fbba934d3682f354dd3d1130b9813dd",
+   "tokenizer.json": "a2cdd2e108566b09079afa8d266e9e65e7c280f27b771218237a06de5ba9cd86"
+  },
+  "images": {
+   "lambda_build": "public.ecr.aws/lambda/python@sha256:37fe9ca4183c36ec57e4c5eabb8893cd9fbc9c0f3053b903d9a57eb2bd6bafcc",
+   "weights": "python@sha256:5560e9ab8709f459489e5b8aa696eda8a07ef821e14bb122be62d91234bfa98b"
+  },
+  "toolchain": [
+   "gcc (GCC) 11.5.0 20240719 (Red Hat 11.5.0-5)",
+   "Python 3.12.15"
+  ]
+ },
+ "model": {
+  "id": "StrandsAgents/strands-decider-2B-qwen3.5-v1-2610",
+  "revision": "216d1ccb46a9e9b036eb9187b248db98480f77d4",
+  "format": "GGUF Q8_0",
+  "transform": "LoRA merged fp32 (weights/merge_export.py), H512 Hadamard fold (weights/fold_hadamard.py --block 512)",
+  "merge_report": {
+   "merged": 186,
+   "scale": 2.0,
+   "unpaired_adapter": [],
+   "base_revision": "b1485b2fa6dfa1287294f269f5fb618e03d52d7c",
+   "checkpoint": "/hf/hub/models--StrandsAgents--strands-decider-2B-qwen3.5-v1-2610/snapshots/216d1ccb46a9e9b036eb9187b248db98480f77d4"
+  },
+  "gguf_bytes": 2076712416,
+  "gguf_sha256": "8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e"
+ },
+ "llama_cpp": {
+  "commit": "f74e2fa6a31cc33ab4ee4ae516641cfe62df3924",
+  "patches": "llama/patch_llama.py (prefill,gdn,kskip,sme)",
+  "flags": "GGML_NATIVE=OFF GGML_BACKEND_DL=ON GGML_CPU_ALL_VARIANTS=ON GGML_CPU_KLEIDIAI=ON"
+ },
+ "images": {
+  "lambda_build": "public.ecr.aws/lambda/python@sha256:37fe9ca4183c36ec57e4c5eabb8893cd9fbc9c0f3053b903d9a57eb2bd6bafcc",
+  "weights": "python@sha256:5560e9ab8709f459489e5b8aa696eda8a07ef821e14bb122be62d91234bfa98b"
+ },
+ "toolchain": [
+  "gcc (GCC) 11.5.0 20240719 (Red Hat 11.5.0-5)",
+  "Python 3.12.15"
+ ],
+ "assets_sha256": {
+  "head.safetensors": "2492613e72eac53becb9ff855023261ac2722c5111b9f1e03be59a87328dd799",
+  "head_config.json": "3a6a6a3a135dcdbb29d6d9179d507d511fbba934d3682f354dd3d1130b9813dd",
+  "tokenizer.json": "a2cdd2e108566b09079afa8d266e9e65e7c280f27b771218237a06de5ba9cd86"
+ },
+ "base": {
+  "p1_function_zip": {
+   "bytes": 51941898,
+   "sha256": "26eb2651e8915f8ad09eae899feff583a448de6b8d2bc4943bccabb66cae189b",
+   "handler": "lkai_entry.handler"
+  }
+ },
+ "shim": {
+  "source": "examples/lambda-kleidiai/shim/decshim.c",
+  "source_sha256": "20d6d4987b02ff5e90e229e6e74928e455927a1bd32ca99193ef2a6e15117f21",
+  "so_sha256": "1793f24cdbf50602d9f4ad6be8ae575bd0e02074f519156f636106b6a1bd4810",
+  "build": {
+   "image": "public.ecr.aws/lambda/python@sha256:37fe9ca4183c36ec57e4c5eabb8893cd9fbc9c0f3053b903d9a57eb2bd6bafcc",
+   "gcc": "gcc (GCC) 11.5.0 20240719 (Red Hat 11.5.0-5)",
+   "llama_cpp": "f74e2fa6a31cc33ab4ee4ae516641cfe62df3924",
+   "command": "gcc -O2 -shared -fPIC -o libdecshim.so decshim.c -I/b/include -I/b/ggml/include -L<P1 zip lib/> -lllama -lggml -Wl,-rpath,$ORIGIN",
+   "decshim_c_sha256": "20d6d4987b02ff5e90e229e6e74928e455927a1bd32ca99193ef2a6e15117f21",
+   "p1_function_zip_sha256": "26eb2651e8915f8ad09eae899feff583a448de6b8d2bc4943bccabb66cae189b",
+   "libdecshim_so_sha256": "1793f24cdbf50602d9f4ad6be8ae575bd0e02074f519156f636106b6a1bd4810"
+  }
+ },
+ "changes": {
+  "replaced": {
+   "lib/libdecshim.so": {
+    "p1_sha256": "2c800a6cc162e24aae471f815221f2d87d4383b8b7385a6ccc34fb517812f072",
+    "e12_sha256": "1793f24cdbf50602d9f4ad6be8ae575bd0e02074f519156f636106b6a1bd4810"
+   }
+  },
+  "added": {
+   "e12_entry.py": "527393f1d74e78f04abb767bdb5f36233d73f6036e353365bdf2fa70ca9c50bc"
+  },
+  "entries": 1900
+ },
+ "unchanged_entries": 1898,
+ "zips": {
+  "e12": {
+   "bytes": 51935826,
+   "sha256": "998e41c3be82930467a91c7b65f128b78bb83e9c49a0efd12c87190316ff14e8",
+   "handler": "e12_entry.handler"
+  }
+ },
+ "function_zip": {
+  "bytes": 51935826,
+  "sha256": "998e41c3be82930467a91c7b65f128b78bb83e9c49a0efd12c87190316ff14e8",
+  "handler": "e12_entry.handler",
+  "source_commit": "77196356232a6e00ede4da3e8586bf2728e173b3"
+ },
+ "arms": {
+  "dor": {
+   "DEC_CLEAR_DATA": null,
+   "meaning": "P1's full clear (dormant switch)"
+  },
+  "e12": {
+   "DEC_CLEAR_DATA": "0",
+   "meaning": "metadata-only clear"
+  }
+ }
+}

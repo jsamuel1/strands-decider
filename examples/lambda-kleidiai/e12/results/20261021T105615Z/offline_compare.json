@@ -1,0 +1,319 @@
+{
+ "failures": [],
+ "latency_ms_p50": {
+  "agent-action-guard-2q": {
+   "dor": {
+    "n": 36,
+    "p50": 870.09
+   },
+   "e12": {
+    "n": 36,
+    "p50": 863.82
+   },
+   "p1": {
+    "n": 36,
+    "p50": 872.79
+   }
+  },
+  "cracked-screen-2q": {
+   "dor": {
+    "n": 36,
+    "p50": 448.72
+   },
+   "e12": {
+    "n": 36,
+    "p50": 440.64
+   },
+   "p1": {
+    "n": 36,
+    "p50": 447.93
+   }
+  },
+  "incident-review-4q": {
+   "dor": {
+    "n": 36,
+    "p50": 1773.36
+   },
+   "e12": {
+    "n": 36,
+    "p50": 1768.21
+   },
+   "p1": {
+    "n": 36,
+    "p50": 1774.89
+   }
+  },
+  "pair-2q": {
+   "dor": {
+    "n": 36,
+    "p50": 407.9
+   },
+   "e12": {
+    "n": 36,
+    "p50": 395.72
+   },
+   "p1": {
+    "n": 36,
+    "p50": 407.22
+   }
+  },
+  "payouts-3q": {
+   "dor": {
+    "n": 36,
+    "p50": 575.78
+   },
+   "e12": {
+    "n": 36,
+    "p50": 573.92
+   },
+   "p1": {
+    "n": 36,
+    "p50": 575.57
+   }
+  },
+  "short-1q": {
+   "dor": {
+    "n": 36,
+    "p50": 243.88
+   },
+   "e12": {
+    "n": 36,
+    "p50": 233.93
+   },
+   "p1": {
+    "n": 36,
+    "p50": 242.9
+   }
+  },
+  "short-1q-b": {
+   "dor": {
+    "n": 36,
+    "p50": 260.03
+   },
+   "e12": {
+    "n": 36,
+    "p50": 249.38
+   },
+   "p1": {
+    "n": 36,
+    "p50": 260.43
+   }
+  },
+  "ticket-route-1q": {
+   "dor": {
+    "n": 36,
+    "p50": 250.82
+   },
+   "e12": {
+    "n": 36,
+    "p50": 240.56
+   },
+   "p1": {
+    "n": 36,
+    "p50": 249.1
+   }
+  },
+  "wide-16q": {
+   "dor": {
+    "n": 36,
+    "p50": 9949.71
+   },
+   "e12": {
+    "n": 36,
+    "p50": 9964.0
+   },
+   "p1": {
+    "n": 36,
+    "p50": 9934.85
+   }
+  }
+ },
+ "pass": true,
+ "requests": [
+  "agent-action-guard-2q",
+  "cracked-screen-2q",
+  "incident-review-4q",
+  "pair-2q",
+  "payouts-3q",
+  "short-1q",
+  "short-1q-b",
+  "ticket-route-1q",
+  "wide-16q"
+ ],
+ "runs": {
+  "dor-1": {
+   "arm": "dor",
+   "clear_data": 1,
+   "cpu": [
+    "0xd40"
+   ],
+   "init_info": {
+    "cpu_part": "0xd40",
+    "ggml_cpu": [
+     "libggml-cpu-armv8.2_3.so",
+     "libggml-cpu-armv8.6_1.so"
+    ],
+    "kv": "f32",
+    "n_ctx": 16384,
+    "n_seq": 17,
+    "threads": 6,
+    "ubatch": "512",
+    "unrotate": false
+   },
+   "load_s": 9.48,
+   "reference": {
+    "bit_identical": 90,
+    "different": 0,
+    "no_entry_for_cpu": 0
+   },
+   "rows": 162,
+   "rows_differing_from_p1": 0,
+   "unstable_request_ids": []
+  },
+  "dor-4": {
+   "arm": "dor",
+   "clear_data": 1,
+   "cpu": [
+    "0xd40"
+   ],
+   "init_info": {
+    "cpu_part": "0xd40",
+    "ggml_cpu": [
+     "libggml-cpu-armv8.2_3.so",
+     "libggml-cpu-armv8.6_1.so"
+    ],
+    "kv": "f32",
+    "n_ctx": 16384,
+    "n_seq": 17,
+    "threads": 6,
+    "ubatch": "512",
+    "unrotate": false
+   },
+   "load_s": 9.428,
+   "reference": {
+    "bit_identical": 90,
+    "different": 0,
+    "no_entry_for_cpu": 0
+   },
+   "rows": 162,
+   "rows_differing_from_p1": 0,
+   "unstable_request_ids": []
+  },
+  "e12-2": {
+   "arm": "e12",
+   "clear_data": 0,
+   "cpu": [
+    "0xd40"
+   ],
+   "init_info": {
+    "cpu_part": "0xd40",
+    "ggml_cpu": [
+     "libggml-cpu-armv8.2_3.so",
+     "libggml-cpu-armv8.6_1.so"
+    ],
+    "kv": "f32",
+    "n_ctx": 16384,
+    "n_seq": 17,
+    "threads": 6,
+    "ubatch": "512",
+    "unrotate": false
+   },
+   "load_s": 9.555,
+   "reference": {
+    "bit_identical": 90,
+    "different": 0,
+    "no_entry_for_cpu": 0
+   },
+   "rows": 162,
+   "rows_differing_from_p1": 0,
+   "unstable_request_ids": []
+  },
+  "e12-3": {
+   "arm": "e12",
+   "clear_data": 0,
+   "cpu": [
+    "0xd40"
+   ],
+   "init_info": {
+    "cpu_part": "0xd40",
+    "ggml_cpu": [
+     "libggml-cpu-armv8.2_3.so",
+     "libggml-cpu-armv8.6_1.so"
+    ],
+    "kv": "f32",
+    "n_ctx": 16384,
+    "n_seq": 17,
+    "threads": 6,
+    "ubatch": "512",
+    "unrotate": false
+   },
+   "load_s": 9.823,
+   "reference": {
+    "bit_identical": 90,
+    "different": 0,
+    "no_entry_for_cpu": 0
+   },
+   "rows": 162,
+   "rows_differing_from_p1": 0,
+   "unstable_request_ids": []
+  },
+  "p1-0": {
+   "arm": "p1",
+   "clear_data": null,
+   "cpu": [
+    "0xd40"
+   ],
+   "init_info": {
+    "cpu_part": "0xd40",
+    "ggml_cpu": [
+     "libggml-cpu-armv8.2_3.so",
+     "libggml-cpu-armv8.6_1.so"
+    ],
+    "kv": "f32",
+    "n_ctx": 16384,
+    "n_seq": 17,
+    "threads": 6,
+    "ubatch": "512",
+    "unrotate": false
+   },
+   "load_s": 10.975,
+   "reference": {
+    "bit_identical": 90,
+    "different": 0,
+    "no_entry_for_cpu": 0
+   },
+   "rows": 162,
+   "rows_differing_from_p1": 0,
+   "unstable_request_ids": []
+  },
+  "p1-5": {
+   "arm": "p1",
+   "clear_data": null,
+   "cpu": [
+    "0xd40"
+   ],
+   "init_info": {
+    "cpu_part": "0xd40",
+    "ggml_cpu": [
+     "libggml-cpu-armv8.2_3.so",
+     "libggml-cpu-armv8.6_1.so"
+    ],
+    "kv": "f32",
+    "n_ctx": 16384,
+    "n_seq": 17,
+    "threads": 6,
+    "ubatch": "512",
+    "unrotate": false
+   },
+   "load_s": 9.569,
+   "reference": {
+    "bit_identical": 90,
+    "different": 0,
+    "no_entry_for_cpu": 0
+   },
+   "rows": 162,
+   "rows_differing_from_p1": 0,
+   "unstable_request_ids": []
+  }
+ }
+}
