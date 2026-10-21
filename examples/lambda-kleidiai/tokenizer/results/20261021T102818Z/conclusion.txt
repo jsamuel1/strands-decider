@@ -26,3 +26,12 @@ T1–T3. These follow from the measured headroom, not from targets set in advanc
 Recommendation: cancel T1–T3, or narrow one to "cold-path tokenizer.json load" plus a restore-tail check.
 
 CORRECTNESS. The parity suite has 217 cases and 61,409 token ids, matched at 100% on aarch64 with 0.23.2 and on x86_64 with 0.23.3. A single changed id fails it.
+
+LIMITATIONS.
+- No new Lambda run. The Lambda shares come from P3's cProfile and lkaisamp arms, which ran on the P1 zip under a profiler. They are upper bounds, with n=50 per start class and 500 warm. The REPORT-only arm has no tokenizer split.
+- The fixed host is one Graviton3 DevSpace (0xd40) shared with other cards' jobs. It ran on 4 free CPUs, not Lambda's 6. Each run's host-*.txt lists the load average and the other jobs' CPU affinity.
+- The repeat runs were on the same host on the same day. No second host of the same part was available.
+- Multi-question (rayon) cases are sensitive to co-tenancy, so their r2/r3 deltas reflect the host, not the code.
+- The PMU on this VM exposes only cycles. Instruction, cache and stall counters are not supported, so no bandwidth or IPC claim is made.
+- Graviton2 (0xd0c) and Graviton4 (0xd4f) appear only in the small Lambda samples (n=7 cold, 19 warm and 2 restore on 0xd0c; n=7 cold on 0xd4f). They show the same ordering.
+- The fixed-host scripts that ran differ from commit 43d9a0f only in formatting and a helper rename (PROVENANCE.txt).

@@ -1,0 +1,18 @@
+Provenance of the fixed-host runs (r1 contended, r2, profile p1, r3, golden g1)
+
+The fixed-host scripts that ran on ds-lkai-p1-rs5ghbzv were copied from the working tree before the T0 commits.
+Lint and format changes were applied to them afterwards. The script bytes that ran therefore differ from commit
+43d9a0f. The behaviour does not differ. Comparing the ran copies against 43d9a0f:
+
+  tok_container.sh, fixed_host.sh     byte-identical (sha256 cd88138d..., c1c349bc...)
+  tokcorpus.py, toksoak.py            AST-identical (formatting only)
+  tokparity.py, tokbench.py           AST-identical after renaming tokparity._so_sha to so_sha (the helper's name)
+  stackcollapse.py                    one expression changed: `lines + [""]` became `[*lines, ""]`, the same list
+
+The corpus these runs read is data/corpus.jsonl, sha256 e436930a...; the committed corpus is the same file.
+A commit-exact rebuild reproduces the corpus byte for byte (tests/test_lkai_tokenizer_parity.py::
+test_corpus_rebuilds_byte_identically), and the golden check matches on x86_64 at 43d9a0f.
+Reproduce at 43d9a0f with the README commands. No rerun was made, because no executed statement changed.
+
+Lambda numbers are not affected: they come from P3's published logs (run 20261020T231634Z, deployed from P3
+commit 0eabd60 on P1's zip 26eb2651...), analysed by lambda_share.py at 43d9a0f.
