@@ -229,3 +229,109 @@ def test_bench_rejects_arms_other_than_off_and_rel(monkeypatch, capsys):
 def test_requests_file_is_p1s():
     reqs = json.loads((BASE / "requests.json").read_text())
     assert reqs["probe"] in {r["id"] for r in reqs["requests"]}
+
+
+# --- summary -------------------------------------------------------------------------------------------------------
+
+summ = importlib.import_module("summarize_e11")
+
+
+def _row(arm, rnd, cpu, restore_ms, cls="restore", err=None, answers=None):
+    rep = {"Duration": 600.0, "Max Memory Used": 5100.0 if arm == "off" else 3700.0}
+    if cls == "restore":
+        rep["Restore Duration"] = restore_ms
+    return {
+        "arm": arm,
+        "round": rnd,
+        "cpu_part": cpu,
+        "report": rep,
+        "error": err,
+        "class_mismatch": False,
+        "expected_class": cls,
+        "wave": cls,
+        "latency_ms": 600.0,
+        "request_id": "q",
+        "answers": answers or {"a": {"x": 1}},
+    }
+
+
+def test_host_cells_flag_a_consistent_drop_and_ignore_unknown_cpu():
+    rows = []
+    for rnd in range(3):
+        for i in range(4):
+            rows.append(_row("off", rnd, "0xd40", 3200 + 10 * i))
+            rows.append(_row("rel", rnd, "0xd40", 2400 + 10 * i))
+        rows.append(_row("off", rnd, None, 9000))
+        rows.append(_row("rel", rnd, "unknown", 100))
+    hv = summ.host_variability(rows, {"schedule": "paired"})
+    a = hv["assessment"]["restore_report_restore_duration"]
+    assert a["by_cpu_part"] == {"0xd40": "negative-beyond-control-variation"}
+    assert a["consistent_across_parts"] is True
+    assert a["unknown_cpu_rows"] == {"off": 3, "rel": 3}
+    cells = hv["observed"]["primary_metrics"]["restore_report_restore_duration"]["shared_cells"]
+    assert {c["cpu_part"] for c in cells} == {"0xd40"}
+    assert all(c["delta"] == -0.8 for c in cells)
+
+
+def test_host_cells_report_a_host_conditioned_flip():
+    rows = []
+    for rnd in range(2):
+        for i in range(3):
+            rows += [_row("off", rnd, "0xd40", 3200 + i), _row("rel", rnd, "0xd40", 2400 + i)]
+            rows += [_row("off", rnd, "0xd0c", 3200 + i), _row("rel", rnd, "0xd0c", 4000 + i)]
+    a = summ.host_variability(rows, {})["assessment"]["restore_report_restore_duration"]
+    assert a["consistent_across_parts"] is False
+    assert a["outcome"] == "host-conditioned-or-mixed"
+
+
+def test_delta_and_agreement_and_status():
+    rows = []
+    for rnd in range(2):
+        for i in range(5):
+            rows += [
+                _row("off", rnd, "0xd40", 3200 + 5 * i),
+                _row("rel", rnd, "0xd40", 2500 + 5 * i),
+            ]
+    d = summ.delta(rows, "restore", summ.KEYS["restore"])
+    v = d["report_restore_duration"]["by_cpu_part"]["0xd40"]
+    assert v["n"] == [10, 10] and v["delta_p50"] == pytest.approx(-0.7) and v["ci95"][1] < 0
+    g = summ.arm_agreement(rows)
+    assert g["compared"] == 10 and g["bit_identical"] == 10
+    res = {
+        "e11": {"delta": {"restore": d}, "arm_agreement": g},
+        "errors": {"count": 0},
+        "correctness": {"bit_identical": 20, "compared": 20, "choice_flips": 0},
+    }
+    assert summ.status_of(res) == "improved"
+    rows.append(_row("rel", 0, "0xd40", 2500, answers={"a": {"x": 2}}))
+    res["e11"]["arm_agreement"] = summ.arm_agreement(rows)
+    assert summ.status_of(res) == "inconclusive"
+
+
+def test_client_timeouts_are_counted_by_arm_and_wave():
+    rows = [
+        _row("off", 0, "0xd40", 3200, err="client:ReadTimeoutError"),
+        _row("rel", 0, "0xd40", 2400),
+    ]
+    assert summ.read_timeouts(rows) == {"off:restore:client:ReadTimeoutError": 1}
+
+
+def test_memory_summary_reads_status_memfd_and_release():
+    rec = {
+        "mem": {"status_kb": {"VmRSS": 3471736, "RssAnon": 2910736, "RssShmem": 530116}},
+        "memfd": {"7": {"size": 2076712416, "resident_bytes": 542838784}},
+        "release": {
+            "released_bytes": 1533873632,
+            "kept_bytes": 542838784,
+            "release_us": 192483,
+            "errno": 0,
+            "ranges": 74,
+            "files": 1,
+        },
+    }
+    s = summ._mem_summary([rec, rec])
+    assert s["n"] == 2
+    assert s["RssShmem"]["p50"] == pytest.approx(530116 / 1024, abs=1e-3)
+    assert s["memfd_resident"]["p50"] == pytest.approx(542838784 / 2**20, abs=1e-3)
+    assert s["release_released_bytes"] == [(1533873632, 2)] and s["release_errno"] == [(0, 2)]
+    assert summ._mem_summary([]) is None
