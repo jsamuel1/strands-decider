@@ -194,12 +194,32 @@ def sub(path: Path, old: str, new: str, what: str) -> None:
 
 def patch(root: Path) -> None:
     k = root / "ggml/src/ggml-cpu/kleidiai/kleidiai.cpp"
-    sub(k, "class tensor_traits : public ggml::cpu::tensor_traits {\n", E9_TRAILER.lstrip("\n"), "trailer")
-    sub(k, "        std::vector<float> row_f32;\n\n        if (want_q8 && slot_total > 0) {\n", ADOPT, "adopt")
-    sub(k, "            memcpy(tensor->data, data, data_size);\n        }\n\n        return 0;\n    }\n};\n", DUMP, "dump")
+    sub(
+        k,
+        "class tensor_traits : public ggml::cpu::tensor_traits {\n",
+        E9_TRAILER.lstrip("\n"),
+        "trailer",
+    )
+    sub(
+        k,
+        "        std::vector<float> row_f32;\n\n        if (want_q8 && slot_total > 0) {\n",
+        ADOPT,
+        "adopt",
+    )
+    sub(
+        k,
+        "            memcpy(tensor->data, data, data_size);\n        }\n\n        return 0;\n    }\n};\n",
+        DUMP,
+        "dump",
+    )
     sub(k, "        // Kernel selection\n", NO_I8MM, "no-i8mm")
     lm = root / "src/llama-model-loader.cpp"
-    sub(lm, "            uint8_t * data = (uint8_t *) mapping->addr() + weight->offs;\n", LOADER, "loader")
+    sub(
+        lm,
+        "            uint8_t * data = (uint8_t *) mapping->addr() + weight->offs;\n",
+        LOADER,
+        "loader",
+    )
     sub(lm, "        const bool from_mapping = use_mmap || lazy.has(cur);\n", NO_MMAP, "no-mmap")
 
 

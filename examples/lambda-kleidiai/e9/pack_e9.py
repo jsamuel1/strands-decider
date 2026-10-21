@@ -36,7 +36,9 @@ QK8_0 = 32
 Q8_0_BLOCK = 2 + QK8_0  # fp16 d + 32 int8
 KLAI_MAGIC = 0x4B4C4149
 KLAI_VERSION = 1
-HEADER_BYTES = 64  # sizeof(kleidiai_weight_header) = 40, aligned up to GGML_KLEIDIAI_PACK_ALIGN (64)
+HEADER_BYTES = (
+    64  # sizeof(kleidiai_weight_header) = 40, aligned up to GGML_KLEIDIAI_PACK_ALIGN (64)
+)
 TRAILER_MAGIC = b"E9KAIPK1"
 TRAILER_BYTES = 64
 METADATA_KEY = "strands_decider.e9.kleidiai_prepacked"
@@ -55,7 +57,9 @@ def requantize(raw: np.ndarray, n: int, k: int) -> tuple[np.ndarray, np.ndarray]
     scale = (max_abs / np.float32(127.0)).astype(np.float32)
     with np.errstate(divide="ignore"):
         inv = np.where(scale > 0, np.float32(1.0) / scale, np.float32(0.0)).astype(np.float32)
-    x = (value * inv[:, None]).astype(np.float32)  # float32 product, then std::lround (half away from zero)
+    x = (value * inv[:, None]).astype(
+        np.float32
+    )  # float32 product, then std::lround (half away from zero)
     ax = np.abs(x).astype(np.float64)
     r = np.sign(x).astype(np.float64) * np.floor(ax + 0.5)
     q = np.clip(r, -127, 127).astype(np.int8)
@@ -110,7 +114,9 @@ def prepacked_tensor(raw: np.ndarray, n: int, k: int, nr: int, kr: int) -> tuple
     size = raw.size
     if len(payload) + TRAILER_BYTES > size:
         raise ValueError(f"packed {len(payload)} + trailer does not fit in {size} Q8_0 bytes")
-    return payload + bytes(size - len(payload) - TRAILER_BYTES) + trailer(nr, kr, n, k, len(payload)), payload
+    return payload + bytes(size - len(payload) - TRAILER_BYTES) + trailer(
+        nr, kr, n, k, len(payload)
+    ), payload
 
 
 def unpack(payload: bytes, n: int, k: int, nr: int, kr: int) -> tuple[np.ndarray, np.ndarray]:
@@ -118,8 +124,15 @@ def unpack(payload: bytes, n: int, k: int, nr: int, kr: int) -> tuple[np.ndarray
     k_int = -(-k // 32) * 32
     groups = -(-n // nr)
     stride = nr * (k_int + 12)
-    slot = np.frombuffer(payload, dtype=np.uint8, offset=HEADER_BYTES, count=groups * stride).reshape(groups, stride)
-    blk = slot[:, : nr * k_int].view(np.int8).reshape(groups, k_int // kr, nr, kr).transpose(0, 2, 1, 3)
+    slot = np.frombuffer(
+        payload, dtype=np.uint8, offset=HEADER_BYTES, count=groups * stride
+    ).reshape(groups, stride)
+    blk = (
+        slot[:, : nr * k_int]
+        .view(np.int8)
+        .reshape(groups, k_int // kr, nr, kr)
+        .transpose(0, 2, 1, 3)
+    )
     q = blk.reshape(groups * nr, k_int)[:n, :k].copy()
     sc = slot[:, nr * k_int + 4 * nr : nr * k_int + 8 * nr].copy().view("<f4").reshape(-1)[:n]
     return q, sc.astype(np.float32)

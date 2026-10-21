@@ -41,7 +41,12 @@ def main() -> None:
     pkg, gguf, reqs, out = sys.argv[1:5]
     repeat = int(sys.argv[sys.argv.index("--repeat") + 1]) if "--repeat" in sys.argv else 1
     sys.path.insert(0, pkg)
-    for k, v in (("OPENBLAS_NUM_THREADS", "1"), ("DEC_KV", "f32"), ("DEC_UBATCH", "512"), ("N_SEQ", "17")):
+    for k, v in (
+        ("OPENBLAS_NUM_THREADS", "1"),
+        ("DEC_KV", "f32"),
+        ("DEC_UBATCH", "512"),
+        ("N_SEQ", "17"),
+    ):
         os.environ.setdefault(k, v)
     threads = int(os.environ.get("THREADS", "6"))
     libc = ctypes.CDLL("libc.so.6", use_errno=True)
@@ -55,15 +60,21 @@ def main() -> None:
         while b := f.read(64 << 20):
             os.write(fd, b)
     mpath = f"/proc/self/fd/{fd}"
-    res = {"gguf": os.path.basename(gguf), "bytes": os.path.getsize(gguf), "threads": threads,
-           "memfd_copy_s": round(time.monotonic() - t, 3), "env": {k: os.environ.get(k) for k in
-                                                                   ("E9_DIAG_NO_I8MM", "E9_DUMP_DIR")}, "loads": []}
+    res = {
+        "gguf": os.path.basename(gguf),
+        "bytes": os.path.getsize(gguf),
+        "threads": threads,
+        "memfd_copy_s": round(time.monotonic() - t, 3),
+        "env": {k: os.environ.get(k) for k in ("E9_DIAG_NO_I8MM", "E9_DUMP_DIR")},
+        "loads": [],
+    }
     dump = os.environ.get("E9_DUMP_DIR")
     ph = ("ggml_backend_load", "model_load_mmap", "context_init", "dec_load_total")
     for i in range(repeat):
         t = time.monotonic()
-        eng, shim = engine.load_engine(os.path.join(pkg, "lib", "libdecshim.so"), mpath, os.path.join(pkg, "assets"),
-                                       threads)
+        eng, shim = engine.load_engine(
+            os.path.join(pkg, "lib", "libdecshim.so"), mpath, os.path.join(pkg, "assets"), threads
+        )
         wall = time.monotonic() - t
         buf = (ctypes.c_int64 * 4)()
         shim.lib.dec_load_phases_ns(buf, 4)
@@ -75,14 +86,22 @@ def main() -> None:
             d = json.load(open(reqs))
             answers, lat = {}, {}
             t = time.monotonic()
-            eng.evaluate({"state": "warm up", "questions": {"q": {"type": "noul", "instructions": "A warm-up?"}}})
+            eng.evaluate(
+                {
+                    "state": "warm up",
+                    "questions": {"q": {"type": "noul", "instructions": "A warm-up?"}},
+                }
+            )
             rec["first_inference_s"] = round(time.monotonic() - t, 4)
             for r in d["requests"]:
                 t = time.monotonic()
                 answers[r["id"]] = eng.evaluate(r["request"]).model_dump(mode="json")["answers"]
                 lat[r["id"]] = round(time.monotonic() - t, 4)
             res["answers"], res["latency_s"] = answers, lat
-            res["cpu_part"], res["ggml_cpu"] = shim.init_info["cpu_part"], shim.init_info["ggml_cpu"]
+            res["cpu_part"], res["ggml_cpu"] = (
+                shim.init_info["cpu_part"],
+                shim.init_info["ggml_cpu"],
+            )
         elif dump:
             hash_dump(dump)
         res["loads"].append(rec)
@@ -90,7 +109,11 @@ def main() -> None:
         shim.lib.dec_free(shim.h)
     res["maxrss_mb"] = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024
     json.dump(res, open(out, "w"), indent=1, sort_keys=True)
-    print(json.dumps({k: v for k, v in res.items() if k not in ("answers", "payloads")}, sort_keys=True))
+    print(
+        json.dumps(
+            {k: v for k, v in res.items() if k not in ("answers", "payloads")}, sort_keys=True
+        )
+    )
     if "payloads" in res:
         print("payloads", res["payloads"]["count"], res["payloads"]["digest"])
 

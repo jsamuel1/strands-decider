@@ -1,0 +1,304 @@
+diff --git a/ggml/src/CMakeLists.txt b/ggml/src/CMakeLists.txt
+index fe001a0..864fade 100644
+--- a/ggml/src/CMakeLists.txt
++++ b/ggml/src/CMakeLists.txt
+@@ -529,8 +529,6 @@ if (GGML_CPU_ALL_VARIANTS)
+             ggml_add_cpu_backend_variant(armv8.2_3    DOTPROD FP16_VECTOR_ARITHMETIC SVE)
+             ggml_add_cpu_backend_variant(armv8.6_1    DOTPROD FP16_VECTOR_ARITHMETIC SVE MATMUL_INT8)
+             ggml_add_cpu_backend_variant(armv8.6_2    DOTPROD FP16_VECTOR_ARITHMETIC SVE MATMUL_INT8 SVE2)
+-            ggml_add_cpu_backend_variant(armv9.2_1    DOTPROD FP16_VECTOR_ARITHMETIC SVE MATMUL_INT8 SME)
+-            ggml_add_cpu_backend_variant(armv9.2_2    DOTPROD FP16_VECTOR_ARITHMETIC SVE MATMUL_INT8 SVE2 SME)
+         elseif (CMAKE_SYSTEM_NAME MATCHES "Android")
+             # Android-specific backends with SoC-compatible feature sets
+             ggml_add_cpu_backend_variant(android_armv8.0_1)
+diff --git a/ggml/src/ggml-cpu/kleidiai/kleidiai.cpp b/ggml/src/ggml-cpu/kleidiai/kleidiai.cpp
+index dd9bcbf..bdb914c 100644
+--- a/ggml/src/ggml-cpu/kleidiai/kleidiai.cpp
++++ b/ggml/src/ggml-cpu/kleidiai/kleidiai.cpp
+@@ -390,6 +390,12 @@ static void init_kleidiai_context(void) {
+             }
+         }
+ 
++        // strands-decider E9 patch (diagnostics only): E9_DIAG_NO_I8MM=1 hides i8mm from KleidiAI's kernel choice, so
++        // one host can exercise the dot-product layout (kr=4) and E9's convert path. Unset in every deployed function.
++        if (getenv("E9_DIAG_NO_I8MM")) {
++            ctx.features = static_cast<cpu_feature>(ctx.features & ~CPU_FEATURE_I8MM);
++        }
++
+         // Kernel selection
+         ctx.kernels_q4  = ggml_kleidiai_select_kernels_q4_0(ctx.features);
+         ctx.kernels_q4k = ggml_kleidiai_select_kernels_q4_k(ctx.features);
+@@ -670,6 +676,49 @@ static void transpose_f32kxn_f16nxk(size_t n, size_t k, float * dst, const uint1
+     }
+ }
+ 
++// strands-decider E9 patch: KleidiAI-packed Q8_0 weights stored in the GGUF (e9/pack_e9.py).
++struct e9_trailer {
++    char     magic[8];
++    uint32_t nr, kr, sr, reserved;
++    uint64_t n, k, payload_bytes, zero[2];
++};
++static_assert(sizeof(e9_trailer) == 64, "E9 trailer is 64 bytes");
++
++// One stderr line per load path and process (E9KAI <path> nr= kr=), so a run's logs show which path each host took.
++static void e9_note(int path, size_t nr, size_t kr) {
++    static std::atomic<int> seen{0};
++    static const char * names[] = {"adopt", "convert", "repack"};
++    if (!(seen.fetch_or(1 << path) & (1 << path))) {
++        fprintf(stderr, "E9KAI %s nr=%zu kr=%zu\n", names[path], nr, kr);
++    }
++}
++
++static const e9_trailer * e9_find_trailer(const void * data, size_t data_size, size_t n, size_t k) {
++    if (data_size < sizeof(e9_trailer)) {
++        return nullptr;
++    }
++    const auto * t = reinterpret_cast<const e9_trailer *>(static_cast<const uint8_t *>(data) + data_size - sizeof(e9_trailer));
++    if (memcmp(t->magic, "E9KAIPK1", 8) != 0) {
++        return nullptr;
++    }
++    // A trailer that does not describe this tensor would leave packed bytes to be read as Q8_0 blocks: refuse it.
++    GGML_ASSERT(t->n == n && t->k == k && t->sr == 1 && t->nr > 0 && t->kr > 0 && ((k + 31) / 32 * 32) % t->kr == 0 &&
++                t->payload_bytes <= data_size - sizeof(e9_trailer) && "E9 trailer does not match its tensor");
++    return t;
++}
++
++static void e9_dump(const struct ggml_tensor * tensor, size_t bytes) {
++    static const char * dir = getenv("E9_DUMP_DIR");
++    if (!dir || !*dir) {
++        return;
++    }
++    std::string path = std::string(dir) + "/" + tensor->name + ".bin";
++    FILE * f = fopen(path.c_str(), "wb");
++    GGML_ASSERT(f && "E9_DUMP_DIR not writable");
++    GGML_ASSERT(fwrite(tensor->data, 1, bytes, f) == bytes);
++    fclose(f);
++}
++
+ class tensor_traits : public ggml::cpu::tensor_traits {
+     bool work_size(int /* n_threads */, const struct ggml_tensor * op, size_t & size) override {
+         if (op->op != GGML_OP_MUL_MAT) {
+@@ -1525,7 +1574,60 @@ public:
+         std::vector<float>  bias;
+         std::vector<float> row_f32;
+ 
+-        if (want_q8 && slot_total > 0) {
++        // strands-decider E9 patch: adopt or convert a payload stored by e9/pack_e9.py.
++        bool e9_have_q = false;
++        const e9_trailer * t9 = tensor->type == GGML_TYPE_Q8_0 ? e9_find_trailer(data, data_size, n, k) : nullptr;
++        if (t9) {
++            GGML_ASSERT(slot_total > 0 && "E9-prepacked tensor but no KleidiAI Q8_0 kernel");
++            const kleidiai_weight_header * h9 = kleidiai_weight_header_from_ptr(data);
++            const size_t k_int = (k + 31) / 32 * 32;
++            const size_t stride = t9->nr * (k_int + 3 * sizeof(float));
++            const size_t have = (n + t9->nr - 1) / t9->nr * stride;  // kai_get_rhs_packed_size_rhs_pack_nxk_qsi8cxp_qsi8cx_neon
++            // A trailer whose payload is not one well-formed slot would be read as Q8_0 blocks below: refuse it.
++            GGML_ASSERT(kleidiai_is_weight_header_valid(h9) && h9->slot_count == 1 &&
++                        h9->offsets[0] == align_up(sizeof(kleidiai_weight_header), GGML_KLEIDIAI_PACK_ALIGN) &&
++                        h9->sizes[0] == have && h9->offsets[0] + have == t9->payload_bytes &&
++                        "E9 trailer present but its payload is malformed");
++            {
++                const kernel_info * kern = &kernel_chain[0]->gemm;
++                if (slot_total == 1 && kernel_chain[0]->rhs_type == GGML_TYPE_Q8_0 &&
++                    t9->nr == kern->get_nr() && t9->kr == kern->get_kr() && t9->sr == kern->get_sr()) {
++                    memcpy(tensor->data, data, t9->payload_bytes);
++                    e9_dump(tensor, t9->payload_bytes);
++                    e9_note(0, t9->nr, t9->kr);
++                    return 0;
++                }
++                {
++                    // Another kernel's layout (or a fallback chain): recover the int8 rows and row scales, then pack
++                    // them below exactly as the runtime repack would after its requantization.
++                    const size_t nr9 = t9->nr, kr9 = t9->kr;
++                    const uint8_t * src = static_cast<const uint8_t *>(data) + h9->offsets[0];
++                    qdata.assign(n * k, 0);
++                    scales.assign(n, 0.0f);
++                    for (size_t g = 0; g < (n + nr9 - 1) / nr9; ++g) {
++                        const int8_t * blocks = reinterpret_cast<const int8_t *>(src + g * stride);
++                        for (size_t b = 0; b < nr9 * k_int / kr9; ++b) {
++                            const size_t row = g * nr9 + b % nr9;
++                            const size_t k0  = (b / nr9) * kr9;
++                            if (row >= n) {
++                                continue;
++                            }
++                            for (size_t i = 0; i < kr9 && k0 + i < k; ++i) {
++                                qdata[row * k + k0 + i] = blocks[b * kr9 + i];
++                            }
++                        }
++                        const float * sc = reinterpret_cast<const float *>(src + g * stride + nr9 * k_int + nr9 * sizeof(int32_t));
++                        for (size_t i = 0; i < nr9 && g * nr9 + i < n; ++i) {
++                            scales[g * nr9 + i] = sc[i];
++                        }
++                    }
++                    e9_have_q = true;
++                    e9_note(1, kernel_chain[0]->gemm.get_nr(), kernel_chain[0]->gemm.get_kr());
++                }
++            }
++        }
++
++        if (want_q8 && slot_total > 0 && !e9_have_q) {
+             qdata.resize(n * k, 0);
+             scales.resize(n, 0.0f);
+ 
+@@ -1667,6 +1769,13 @@ public:
+             memcpy(tensor->data, data, data_size);
+         }
+ 
++        if (tensor->type == GGML_TYPE_Q8_0 && header->slot_count == 1) {  // strands-decider E9 patch (diagnostics)
++            e9_dump(tensor, header->offsets[0] + header->sizes[0]);
++            if (!e9_have_q) {
++                e9_note(2, kernel_chain[0]->gemm.get_nr(), kernel_chain[0]->gemm.get_kr());
++            }
++        }
++
+         return 0;
+     }
+ };
+@@ -1788,6 +1897,17 @@ class extra_buffer_type : ggml::cpu::extra_buffer_type {
+         if (op->op != GGML_OP_MUL_MAT) {
+             return false;
+         }
++        // strands-decider prefill patch: GGML_KLEIDIAI_SKIP=a,b keeps weights whose name contains a or b on ggml's
++        // own path (block-32 activation quantisation) instead of KleidiAI's per-row int8 activations.
++        if (const char * skip = getenv("GGML_KLEIDIAI_SKIP")) {
++            const std::string list(skip), name(op->src[0]->name);
++            for (size_t a = 0; a <= list.size();) {
++                size_t b = list.find(',', a);
++                if (b == std::string::npos) b = list.size();
++                if (b > a && name.find(list.substr(a, b - a)) != std::string::npos) return false;
++                a = b + 1;
++            }
++        }
+ 
+         std::array<ggml_kleidiai_kernels *, GGML_KLEIDIAI_MAX_KERNEL_SLOTS> kernel_chain;
+         const int slot_total = kleidiai_collect_kernel_chain(op, kernel_chain);
+diff --git a/ggml/src/ggml-cpu/ops.cpp b/ggml/src/ggml-cpu/ops.cpp
+index 7a73e13..66da4bd 100644
+--- a/ggml/src/ggml-cpu/ops.cpp
++++ b/ggml/src/ggml-cpu/ops.cpp
+@@ -11294,6 +11294,66 @@ static void ggml_compute_forward_gated_delta_net_one_chunk(
+         // attn output pointer for first token of this (head, seq)
+         float * attn_data = attn_out_base + (iv3 * n_tokens * H + iv1) * S_v;
+ 
++        // strands-decider prefill patch: scalar-gate, single-snapshot heads in one pass over the state per token. Each row's
++        // update S <- e^g S + k delta^T also produces the output S^T q and the next token's S^T k, instead of four
++        // separate passes (scale, S^T k, rank-1 update, S^T q). Same arithmetic, fewer trips through the 64 KB state.
++        if (!kda && K == 1 && S_v <= 512) {
++            float dotk[512];
++            {
++                const float * k0 = (const float *)((const char *)src_k->data + ik3 * nbk3 + ik1 * nbk1);
++                for (int64_t j = 0; j < S_v; ++j) {
++                    float sum = 0.0f;
++                    ggml_vec_dot_f32(S_v, &sum, 0, &s_out[j * S_v], 0, k0, 0, 1);
++                    dotk[j] = sum;
++                }
++            }
++            for (int64_t t = 0; t < n_tokens; t++) {
++                const float * q_d = (const float *)((const char *)src_q->data + iq3 * nbq3 + t * nbq2 + iq1 * nbq1);
++                const float * k_d = (const float *)((const char *)src_k->data + ik3 * nbk3 + t * nbk2 + ik1 * nbk1);
++                const float * v_d = (const float *)((const char *)src_v->data + iv3 * nbv3 + t * nbv2 + iv1 * nbv1);
++                const float * kn  = t + 1 < n_tokens
++                    ? (const float *)((const char *)src_k->data + ik3 * nbk3 + (t + 1) * nbk2 + ik1 * nbk1) : nullptr;
++                const float beta_val = *(const float *)((const char *)src_beta->data + iv3 * nbb3 + t * nbb2 + iv1 * nbb1);
++                const float eg = expf(*(const float *)((const char *)src_g->data + iv3 * nbg3 + t * nbg2 + iv1 * nbg1));
++                for (int64_t j = 0; j < S_v; ++j) {
++                    float * row = &s_out[j * S_v];
++                    const float dj = (v_d[j] - eg * dotk[j]) * beta_val;
++                    float acc = 0.0f, accn = 0.0f;
++                    int64_t i = 0;
++#if defined(__ARM_NEON)
++                    const float32x4_t veg = vdupq_n_f32(eg), vdj = vdupq_n_f32(dj);
++                    float32x4_t a0 = vdupq_n_f32(0.0f), a1 = a0, b0 = a0, b1 = a0;
++                    for (; i + 8 <= S_v; i += 8) {
++                        const float32x4_t r0 = vfmaq_f32(vmulq_f32(veg, vld1q_f32(row + i)), vdj, vld1q_f32(k_d + i));
++                        const float32x4_t r1 = vfmaq_f32(vmulq_f32(veg, vld1q_f32(row + i + 4)), vdj, vld1q_f32(k_d + i + 4));
++                        vst1q_f32(row + i, r0);
++                        vst1q_f32(row + i + 4, r1);
++                        a0 = vfmaq_f32(a0, r0, vld1q_f32(q_d + i));
++                        a1 = vfmaq_f32(a1, r1, vld1q_f32(q_d + i + 4));
++                        if (kn) {
++                            b0 = vfmaq_f32(b0, r0, vld1q_f32(kn + i));
++                            b1 = vfmaq_f32(b1, r1, vld1q_f32(kn + i + 4));
++                        }
++                    }
++                    acc = vaddvq_f32(vaddq_f32(a0, a1));
++                    accn = vaddvq_f32(vaddq_f32(b0, b1));
++#endif
++                    for (; i < S_v; ++i) {
++                        const float r = eg * row[i] + dj * k_d[i];
++                        row[i] = r;
++                        acc += r * q_d[i];
++                        if (kn) {
++                            accn += r * kn[i];
++                        }
++                    }
++                    attn_data[j] = acc * scale;
++                    dotk[j] = accn;
++                }
++                attn_data += S_v * H;
++            }
++            continue;
++        }
++
+         for (int64_t t = 0; t < n_tokens; t++) {
+             const float * q_d = (const float *)((const char *)src_q->data + iq3 * nbq3 + t * nbq2 + iq1 * nbq1);
+             const float * k_d = (const float *)((const char *)src_k->data + ik3 * nbk3 + t * nbk2 + ik1 * nbk1);
+diff --git a/src/llama-context.cpp b/src/llama-context.cpp
+index 9ee64b5..950cd85 100644
+--- a/src/llama-context.cpp
++++ b/src/llama-context.cpp
+@@ -1841,7 +1841,8 @@ int llama_context::decode(const llama_batch_ext & batch_inp) {
+     const int64_t n_vocab = vocab.n_tokens();
+ 
+     // when computing embeddings, all tokens are output
+-    const bool output_all   = cparams.embeddings;
++    // strands-decider prefill patch: with no pooling, honour the batch's output flags
++    const bool output_all   = cparams.embeddings && cparams.pooling_type != LLAMA_POOLING_TYPE_NONE;
+     // non-causal attention needs the whole sequence in one ubatch
+     const bool embd_all     = output_all || !cparams.causal_attn;
+     const bool has_samplers = !sampling.samplers.empty();
+diff --git a/src/llama-model-loader.cpp b/src/llama-model-loader.cpp
+index bc93c6f..5d6779b 100644
+--- a/src/llama-model-loader.cpp
++++ b/src/llama-model-loader.cpp
+@@ -1698,10 +1698,24 @@ bool llama_model_loader::load_all_data(
+ 
+         const bool from_mapping = use_mmap || lazy.has(cur);
+ 
++        // strands-decider E9 patch: the prepacked-tensor check above needs the mapping; refuse to read E9 files without it.
++        if (!from_mapping && gguf_find_key(metadata, "strands_decider.e9.kleidiai_prepacked") >= 0) {
++            throw std::runtime_error("an E9 KleidiAI-prepacked GGUF needs mmap loading");
++        }
++
+         if (from_mapping) {
+             const auto & mapping = mappings.at(weight->idx);
+             uint8_t * data = (uint8_t *) mapping->addr() + weight->offs;
+ 
++            // strands-decider E9 patch: a tensor carrying an E9 trailer holds KleidiAI-packed bytes, not Q8_0 blocks.
++            // Only CPU_KLEIDIAI's set_tensor can read it; anywhere else it would be used as Q8_0 silently.
++            if (cur->type == GGML_TYPE_Q8_0 && n_size >= 64 && memcmp(data + n_size - 64, "E9KAIPK1", 8) == 0 &&
++                (cur->buffer == nullptr ||
++                 strcmp(ggml_backend_buft_name(ggml_backend_buffer_get_type(cur->buffer)), "CPU_KLEIDIAI") != 0)) {
++                throw std::runtime_error(format("tensor '%s' is KleidiAI-prepacked (E9) but is not in a CPU_KLEIDIAI buffer",
++                                                ggml_get_name(cur)));
++            }
++
+             // the tensors of a file can be spread across several buffers - find the one containing this tensor's data
+             ggml_backend_buffer_t buf_mmap = nullptr;
+             for (const auto & buf : bufs) {
+diff --git a/src/models/qwen35.cpp b/src/models/qwen35.cpp
+index 802f2e2..4b75881 100644
+--- a/src/models/qwen35.cpp
++++ b/src/models/qwen35.cpp
+@@ -229,6 +229,11 @@ llama_model_qwen35::graph::graph(const llama_model & model, const llm_graph_para
+         ggml_build_forward_expand(gf, embd);
+     }
+ 
++    if (cparams.embeddings) {  // strands-decider prefill patch: hidden states only, no LM head
++        ggml_build_forward_expand(gf, res->t_embd);
++        return;
++    }
++
+     // LM head
+     cur = build_lora_mm(model.output, cur, model.output_s);
+ 

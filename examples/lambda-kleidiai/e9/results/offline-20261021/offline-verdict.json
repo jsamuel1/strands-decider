@@ -1,0 +1,108 @@
+{
+ "answers": {
+  "inert-p1zip": {
+   "bit_identical_to_reference": true,
+   "cpu_part": "0xd40",
+   "no_i8mm": false
+  },
+  "parity-adopt-kr8": {
+   "bit_identical_to_reference": true,
+   "cpu_part": "0xd40",
+   "no_i8mm": false
+  },
+  "parity-convert-kr4": {
+   "bit_identical_to_reference": true,
+   "cpu_part": "0xd40",
+   "no_i8mm": true
+  },
+  "parity-repack-kr4": {
+   "bit_identical_to_reference": true,
+   "cpu_part": "0xd40",
+   "no_i8mm": true
+  },
+  "parity-repack-kr8": {
+   "bit_identical_to_reference": true,
+   "cpu_part": "0xd40",
+   "no_i8mm": false
+  },
+  "time-1-a-base": {
+   "bit_identical_to_reference": true,
+   "cpu_part": "0xd40",
+   "no_i8mm": false
+  },
+  "time-1-b-e9": {
+   "bit_identical_to_reference": true,
+   "cpu_part": "0xd40",
+   "no_i8mm": false
+  },
+  "time-2-a-base": {
+   "bit_identical_to_reference": true,
+   "cpu_part": "0xd40",
+   "no_i8mm": false
+  },
+  "time-2-b-e9": {
+   "bit_identical_to_reference": true,
+   "cpu_part": "0xd40",
+   "no_i8mm": false
+  },
+  "time-3-a-base": {
+   "bit_identical_to_reference": true,
+   "cpu_part": "0xd40",
+   "no_i8mm": false
+  },
+  "time-3-b-e9": {
+   "bit_identical_to_reference": true,
+   "cpu_part": "0xd40",
+   "no_i8mm": false
+  }
+ },
+ "fixed_host_model_load_mmap_s": {
+  "base": {
+   "max": 8.4211,
+   "median": 8.056,
+   "min": 8.0242,
+   "n": 9
+  },
+  "delta_median": -4.844,
+  "e9": {
+   "max": 3.4386,
+   "median": 3.212,
+   "min": 3.1457,
+   "n": 9
+  }
+ },
+ "host": [
+  "6.1.188-233.386.amzn2023.aarch64",
+  "16",
+  "CPU part\t: 0xd40",
+  "Features\t: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm paca pacg dcpodp svei8mm svebf16 i8mm bf16 dgh rng",
+  " 09:57:50 up  3:20,  0 users,  load average: 12.08, 13.53, 9.47"
+ ],
+ "note": "fixed-host (arm64 DevSpace) numbers: one host, alternating arms, 3 loads per process; they isolate the load's CPU work and are not Lambda latency",
+ "parity": {
+  "kr4_convert_vs_runtime_repack": {
+   "count": [
+    187,
+    187
+   ],
+   "differing": [],
+   "digest": [
+    "20745aefac4e7e51a23eb9ce3fc4ec996204358e823642e44cae6b3e4d887ac1",
+    "20745aefac4e7e51a23eb9ce3fc4ec996204358e823642e44cae6b3e4d887ac1"
+   ],
+   "identical": true
+  },
+  "kr8_adopt_vs_runtime_repack": {
+   "count": [
+    187,
+    187
+   ],
+   "differing": [],
+   "digest": [
+    "6fe03c59e83286db57771f86844ede341a437fedf09894e24ba8d3ad78895960",
+    "6fe03c59e83286db57771f86844ede341a437fedf09894e24ba8d3ad78895960"
+   ],
+   "identical": true
+  }
+ }
+}

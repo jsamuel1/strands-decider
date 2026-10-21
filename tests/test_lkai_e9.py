@@ -16,7 +16,9 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-E9 = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "examples", "lambda-kleidiai", "e9"))
+E9 = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "examples", "lambda-kleidiai", "e9")
+)
 sys.path.insert(0, E9)
 import pack_e9 as P  # noqa: E402
 import patch_e9  # noqa: E402
@@ -80,7 +82,9 @@ def c_pack(q, scale, nr, kr):
             pos += kr
         struct.pack_into(f"<{nr}i", out, pos, *sums)
         pos += 4 * nr
-        struct.pack_into(f"<{nr}f", out, pos, *[float(scale[min(g * nr + i, n - 1)]) for i in range(nr)])
+        struct.pack_into(
+            f"<{nr}f", out, pos, *[float(scale[min(g * nr + i, n - 1)]) for i in range(nr)]
+        )
     return bytes(out)
 
 
@@ -93,7 +97,9 @@ def test_numpy_pack_matches_the_c_routines(n, k, kr):
     cq, csc = c_requantize(raw, n, k)
     assert np.array_equal(q, cq)
     assert sc.tobytes() == csc.tobytes()
-    assert P.pack(q, sc, 4, kr) == c_pack(cq, csc, 4, kr)  # includes n not a multiple of nr (row clamping)
+    assert P.pack(q, sc, 4, kr) == c_pack(
+        cq, csc, 4, kr
+    )  # includes n not a multiple of nr (row clamping)
 
 
 def test_rounding_half_away_from_zero_and_clamp():
@@ -113,7 +119,7 @@ def test_tensor_bytes_header_trailer_and_size():
     raw = q8_0(rng, n, k)
     new, payload = P.prepacked_tensor(raw, n, k, 4, 8)
     assert len(new) == raw.size  # same byte size: offsets and file size unchanged
-    magic, ver, slots, off0, off1, sz0, sz1 = struct.unpack_from("<IHH2Q2Q", payload)
+    magic, ver, slots, off0, _off1, sz0, _sz1 = struct.unpack_from("<IHH2Q2Q", payload)
     assert (magic, ver, slots, off0) == (0x4B4C4149, 1, 1, 64)
     assert sz0 == P.packed_size(n, k, 4) == len(payload) - 64
     t = new[-64:]
@@ -127,7 +133,10 @@ def test_tensor_bytes_header_trailer_and_size():
 def test_convert_path_recovers_rows_and_repacks_identically(src_kr, dst_kr):
     """A host whose kernel uses the other layout unpacks and packs; the result equals a direct pack."""
     rng = np.random.default_rng(src_kr)
-    n, k = 101, 512  # n not a multiple of nr: exercises the clamped padding rows; large enough to fit
+    n, k = (
+        101,
+        512,
+    )  # n not a multiple of nr: exercises the clamped padding rows; large enough to fit
     raw = q8_0(rng, n, k)
     q, sc = P.requantize(raw, n, k)
     _, payload = P.prepacked_tensor(raw, n, k, 4, src_kr)
@@ -163,7 +172,9 @@ def test_patch_applies_once_to_its_anchors(tmp_path: Path):
     assert "E9KAIPK1" in ks and "!e9_have_q" in ks and "E9_DIAG_NO_I8MM" in ks and "e9_note(0" in ks
     assert "CPU_KLEIDIAI" in ls and P.METADATA_KEY in ls
     with pytest.raises(AssertionError, match="anchor"):
-        patch_e9.patch(tmp_path)  # anchors are consumed: a second application is refused, not doubled
+        patch_e9.patch(
+            tmp_path
+        )  # anchors are consumed: a second application is refused, not doubled
 
 
 def test_trailer_layout_matches_the_c_struct():
