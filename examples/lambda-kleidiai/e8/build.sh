@@ -49,7 +49,8 @@ cmake -B build $COMMON -DLLAMA_BUILD_TOOLS=OFF -DGGML_NATIVE=OFF -DGGML_BACKEND_
   -DGGML_CPU_KLEIDIAI=ON >/dev/null
 cmake --build build -j "$(nproc)" --target $(cmake --build build --target help | awk "{print \$2}" | grep "^ggml-cpu" | sort -u) >/dev/null
 cp build/bin/libggml-cpu-*.so /out/libs/
-for f in /out/libs/*.so; do nm -C "$f" | grep -q kleidiai_repack_threads || { echo "FATAL: $f lacks the E8 patch"; exit 1; }; done
+# grep -c on the file itself: no pipe, so pipefail cannot turn an early grep -q exit (SIGPIPE in nm) into a failure
+for f in /out/libs/*.so; do [ "$(grep -c "kleidiai repack: threads" "$f")" -ge 1 ] || { echo "FATAL: $f lacks the E8 patch"; exit 1; }; done
 g++ -O2 -std=c++17 -o /out/kaihash /e8/kaihash.cpp -I/b/include -I/b/ggml/include -L/p1lib -lllama -lggml -lggml-base \
   -Wl,-rpath,/p1lib
 gcc --version | head -1 > /out/toolchain.txt
