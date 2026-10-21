@@ -433,19 +433,35 @@ def clean(res: dict) -> bool:
     )
 
 
-def _heads(res: dict, pair: str) -> list[dict]:
+def _heads(res: dict, pair: str, min_n: int = 0) -> list[dict]:
+    """The headline strata of a pair. With min_n, only strata where both arms have at least min_n samples."""
     p = res["e8"]["pairs"][pair]
-    return [p[cls].get(k, {}).get("by_cpu_part", {}) for cls, k in HEADLINES.items()]
+    return [
+        {
+            cpu: v
+            for cpu, v in p[cls].get(k, {}).get("by_cpu_part", {}).items()
+            if min(v["n"]) >= min_n
+        }
+        for cls, k in HEADLINES.items()
+    ]
 
 
-def status_of(res: dict) -> str:
+# Added AFTER run 20261021T110412Z was seen (disclosed in results.json -> e8.status_rule): the dormant check counts
+# only CPU-part strata with at least this many samples per arm. The pre-registered rule (min_n 0) is still computed
+# and published as e8.status_rule.preregistered.
+DORMANT_MIN_N = 5
+
+
+def status_of(res: dict, dormant_min_n: int = DORMANT_MIN_N) -> str:
     heads = _heads(res, "effect")
     if not any(heads) or not clean(res):
         return "inconclusive"
     if any(v["ci95"][0] > 0 for h in heads for v in h.values()):
         return "regressed"
     dormant_moved = any(
-        v["ci95"][0] > 0 or v["ci95"][1] < 0 for h in _heads(res, "dormant") for v in h.values()
+        v["ci95"][0] > 0 or v["ci95"][1] < 0
+        for h in _heads(res, "dormant", dormant_min_n)
+        for v in h.values()
     )
     if dormant_moved:
         return "inconclusive"
@@ -509,8 +525,31 @@ def main(argv: list[str] | None = None) -> int:
         "offline_hash": offline_hash(a.hash_dir) if a.hash_dir else {"available": False},
     }
     res["status"] = status_of(res)
+    pre = status_of(res, 0)
+    res["e8"]["status_rule"] = {
+        "applied": f"effect headlines (par - off) decide; the dormant pair (off - base) must not exclude 0 on any "
+        f"headline stratum with n >= {DORMANT_MIN_N} per arm",
+        "dormant_min_n": DORMANT_MIN_N,
+        "status_applied": res["status"],
+        "preregistered": {"dormant_min_n": 0, "status": pre},
+        "disclosure": "The min-n condition was added after this run's results were seen, at the operator's "
+        "direction. The pre-registered rule (any stratum) gives the status under preregistered.status.",
+        "dormant_strata_excluded": [
+            {"class": cls, "cpu_part": cpu, "n": v["n"], "ci95": v["ci95"]}
+            for (cls, k) in HEADLINES.items()
+            for cpu, v in res["e8"]["pairs"]["dormant"][cls]
+            .get(k, {})
+            .get("by_cpu_part", {})
+            .items()
+            if min(v["n"]) < DORMANT_MIN_N
+        ],
+    }
     tmpl = meta.get("conclusion_template")
-    res["conclusion"] = tmpl.format(**fmt_values(res)) if tmpl else meta.get("conclusion")
+    res["conclusion"] = (
+        tmpl.format(**fmt_values(res), _pre=res["e8"]["status_rule"]["preregistered"]["status"])
+        if tmpl
+        else meta.get("conclusion")
+    )
     res["profiling_artifacts"] = meta.get("profiling_artifacts", [])
     res["artifacts"] = {
         "invocations": "invocations.jsonl.gz",
@@ -519,6 +558,8 @@ def main(argv: list[str] | None = None) -> int:
         "build_manifest": "build-manifest.json",
         "meta": "meta.json",
         "offline_hash": "offline-hash/",
+        "offline_probe": "offline-probe/",
+        "zips": "zips.json",
     }
     path = os.path.join(a.run, "results.json")
     json.dump(res, open(path, "w"), indent=1, allow_nan=False)

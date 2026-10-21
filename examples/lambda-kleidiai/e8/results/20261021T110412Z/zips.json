@@ -1,0 +1,47 @@
+{
+ "p1_zip_sha256": "26eb2651e8915f8ad09eae899feff583a448de6b8d2bc4943bccabb66cae189b",
+ "replaced": {
+  "lib/libggml-cpu-armv8.0_1.so": {
+   "p1_sha256": "8390b2e80a6569dfe4907299d3c4d5c2716fb4135f1ce49c37e5848fb5a4c681",
+   "e8_sha256": "57406baca8884d467ab2b7e31bdff3c9d9e4606632f2476c6d5857bb95515b42",
+   "e8_bytes": 1347384
+  },
+  "lib/libggml-cpu-armv8.2_1.so": {
+   "p1_sha256": "1f9e27230814b16f4039179f396fc76bb2e8c2fdbe17c735ea5fb2a692c55f8d",
+   "e8_sha256": "01468bdfd92ea81b8b10d5b0f020282b285ece9d6045364bb1128efe142c36c9",
+   "e8_bytes": 1348528
+  },
+  "lib/libggml-cpu-armv8.2_2.so": {
+   "p1_sha256": "49090fbfc1f150124303bea8cb9863fc45db631f9a65860d05bb2ac9a05cc1fe",
+   "e8_sha256": "9a84589096cb1579667204b920aabc58f82935011c19ed8dd7d165cfae9cdb86",
+   "e8_bytes": 1348528
+  },
+  "lib/libggml-cpu-armv8.2_3.so": {
+   "p1_sha256": "d59b10187f698705ebefe34131ebd839e44c7dff119400477e7a2f5477b70735",
+   "e8_sha256": "51d1c0b17176347c62adb9d2a94b37758c89a73decb8e214ec0a067ba94b9b2f",
+   "e8_bytes": 1348456
+  },
+  "lib/libggml-cpu-armv8.6_1.so": {
+   "p1_sha256": "7aadff86faed937d148547ce3096e1bd440400f0cf7ea3061ee16e1d7d12376d",
+   "e8_sha256": "7f130d37db8198a64534dc57d2c23de59758481159941cb0e76e3cc136f14f6c",
+   "e8_bytes": 1348680
+  },
+  "lib/libggml-cpu-armv8.6_2.so": {
+   "p1_sha256": "170a7447d440579a0fa83cdcf1d4e6ef62c1075d81615f67287700dacca78d64",
+   "e8_sha256": "23a15e59f7946574887a113cff491aa13926a6f76026418aa5d999f055012801",
+   "e8_bytes": 1348680
+  }
+ },
+ "added": {
+  "e8_entry.py": "64d08c1ad1c4c9788a4f438b746d2e2d06acad22d5d69fe202a0d8a8d43b3272",
+  "e8_host.py": "e7c62f04e75c1c7b7a37feb79e4d75b5b0ea06fa5929bcbd056d101c81cd6127"
+ },
+ "base_zip": {
+  "sha256": "9cbe63c4fb43ab1d753c757600cf1184dbe0c7b9cd37e1717919a3b12273238d",
+  "bytes": 51936572
+ },
+ "off_zip": {
+  "sha256": "0d7f8a515fb7f11be2a0151c605a35bfd93712573501b4b1be8cfa009991e54d",
+  "bytes": 51961235
+ }
+}

@@ -472,10 +472,10 @@ def test_offline_hash_compares_every_run_with_p1s_first(tmp_path):
     assert s8.offline_hash(str(tmp_path / "none"))["available"] is False
 
 
-def _res(effect_ci, dormant_ci=(-1.0, 1.0), hashes_ok=True):
-    by = lambda ci: {"0xd40": {"ci95": list(ci)}}  # noqa: E731
-    pair = lambda ci: {  # noqa: E731
-        "cold": {"first_request_total": {"by_cpu_part": by(ci)}},
+def _res(effect_ci, dormant_ci=(-1.0, 1.0), hashes_ok=True, dormant_n=(40, 40)):
+    by = lambda ci, n=(40, 40): {"0xd40": {"ci95": list(ci), "n": list(n)}}  # noqa: E731
+    pair = lambda ci, n=(40, 40): {  # noqa: E731
+        "cold": {"first_request_total": {"by_cpu_part": by(ci, n)}},
         "restore": {"first_request_total": {"by_cpu_part": by((-1.0, 1.0))}},
         "warm": {"steady_state_inference": {"by_cpu_part": by((-1.0, 1.0))}},
     }
@@ -486,7 +486,7 @@ def _res(effect_ci, dormant_ci=(-1.0, 1.0), hashes_ok=True):
         "e8": {
             "pairs": {
                 "effect": pair(effect_ci),
-                "dormant": pair(dormant_ci),
+                "dormant": pair(dormant_ci, dormant_n),
                 "total": pair(effect_ci),
             },
             "arm_agreement": {"base_internal_disagreements": 0, "off": agree, "par": agree},
@@ -501,6 +501,14 @@ def test_status_follows_the_effect_headlines_and_needs_a_quiet_dormant_pair_and_
     assert s8.status_of(_res((0.5, 1.0))) == "regressed"
     assert s8.status_of(_res((-6.0, -4.0), dormant_ci=(0.2, 0.4))) == "inconclusive"
     assert s8.status_of(_res((-6.0, -4.0), hashes_ok=False)) == "inconclusive"
+
+
+def test_dormant_check_ignores_strata_below_min_n_but_the_preregistered_rule_does_not():
+    sparse = _res((-6.0, -4.0), dormant_ci=(-0.19, -0.02), dormant_n=(2, 4))
+    assert s8.status_of(sparse) == "improved"  # applied rule: n=2 < DORMANT_MIN_N is not a stratum
+    assert s8.status_of(sparse, 0) == "inconclusive"  # pre-registered rule: every stratum counts
+    dense = _res((-6.0, -4.0), dormant_ci=(-0.19, -0.02), dormant_n=(40, 40))
+    assert s8.status_of(dense) == "inconclusive"
 
 
 def test_no_graviton_generation_is_named_in_e8_sources():

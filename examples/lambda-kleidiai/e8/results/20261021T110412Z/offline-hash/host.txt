@@ -1,0 +1,11 @@
+Linux ip-10-0-5-180.ap-northeast-1.compute.internal 6.1.188-233.386.amzn2023.aarch64 #1 SMP Fri Sep 25 01:46:44 UTC 2026 aarch64 aarch64 aarch64 GNU/Linux
+CPU implementer	: 0x41
+CPU part	: 0xd40
+CPU variant	: 0x1
+CPU revision	: 1
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm paca pacg dcpodp svei8mm svebf16 i8mm bf16 dgh rng
+16
+cpuset 10-15
+8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e  /home/sauhsoj/w/sd/examples/lambda-kleidiai/baseline/build/model/s2b-h512-Q8_0.gguf
+ 10:44:26 up  4:07,  0 users,  load average: 12.76, 11.65, 12.86
+ 10:47:29 up  4:10,  0 users,  load average: 13.01, 12.11, 12.82

@@ -1,0 +1,113 @@
+{
+ "schema": "lkai-build-manifest/2",
+ "repo_commit": "d09ba79c88da0db668976f539d53ce1742f5f8c5",
+ "repo_dirty": false,
+ "model": {
+  "id": "StrandsAgents/strands-decider-2B-qwen3.5-v1-2610",
+  "revision": "216d1ccb46a9e9b036eb9187b248db98480f77d4",
+  "format": "GGUF Q8_0",
+  "transform": "LoRA merged fp32 (weights/merge_export.py), H512 Hadamard fold (weights/fold_hadamard.py --block 512)",
+  "merge_report": {
+   "merged": 186,
+   "scale": 2.0,
+   "unpaired_adapter": [],
+   "base_revision": "b1485b2fa6dfa1287294f269f5fb618e03d52d7c",
+   "checkpoint": "/hf/hub/models--StrandsAgents--strands-decider-2B-qwen3.5-v1-2610/snapshots/216d1ccb46a9e9b036eb9187b248db98480f77d4"
+  },
+  "gguf_bytes": 2076712416,
+  "gguf_sha256": "8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e"
+ },
+ "llama_cpp": {
+  "commit": "f74e2fa6a31cc33ab4ee4ae516641cfe62df3924",
+  "patches": "llama/patch_llama.py (prefill,gdn,kskip,sme) + e8/patch_parallel_repack.py (dormant GGML_KLEIDIAI_REPACK_THREADS switch)",
+  "flags": "GGML_NATIVE=OFF GGML_BACKEND_DL=ON GGML_CPU_ALL_VARIANTS=ON GGML_CPU_KLEIDIAI=ON",
+  "e8_patch_sha256": "56e0d05dd4a8750104b26391f5b2c397c4041838abe1afc9f84c53427e6e29c3",
+  "e8_toolchain": "gcc (GCC) 11.5.0 20240719 (Red Hat 11.5.0-5)"
+ },
+ "function_zip": null,
+ "assets_sha256": {
+  "head.safetensors": "2492613e72eac53becb9ff855023261ac2722c5111b9f1e03be59a87328dd799",
+  "head_config.json": "3a6a6a3a135dcdbb29d6d9179d507d511fbba934d3682f354dd3d1130b9813dd",
+  "tokenizer.json": "a2cdd2e108566b09079afa8d266e9e65e7c280f27b771218237a06de5ba9cd86"
+ },
+ "images": {
+  "lambda_build": "public.ecr.aws/lambda/python@sha256:37fe9ca4183c36ec57e4c5eabb8893cd9fbc9c0f3053b903d9a57eb2bd6bafcc",
+  "weights": "python@sha256:5560e9ab8709f459489e5b8aa696eda8a07ef821e14bb122be62d91234bfa98b"
+ },
+ "toolchain": [
+  "gcc (GCC) 11.5.0 20240719 (Red Hat 11.5.0-5)",
+  "Python 3.12.15"
+ ],
+ "e8_manifest": "lkai-e8-build-manifest/1",
+ "p1_build_repo_commit": "4412b31988ba112dd27ad850830689f33c07e78a",
+ "dirty_inputs": [],
+ "zips": {
+  "base": {
+   "sha256": "9cbe63c4fb43ab1d753c757600cf1184dbe0c7b9cd37e1717919a3b12273238d",
+   "bytes": 51936572
+  },
+  "off": {
+   "sha256": "0d7f8a515fb7f11be2a0151c605a35bfd93712573501b4b1be8cfa009991e54d",
+   "bytes": 51961235
+  }
+ },
+ "zips_detail": {
+  "p1_zip_sha256": "26eb2651e8915f8ad09eae899feff583a448de6b8d2bc4943bccabb66cae189b",
+  "replaced": {
+   "lib/libggml-cpu-armv8.0_1.so": {
+    "p1_sha256": "8390b2e80a6569dfe4907299d3c4d5c2716fb4135f1ce49c37e5848fb5a4c681",
+    "e8_sha256": "57406baca8884d467ab2b7e31bdff3c9d9e4606632f2476c6d5857bb95515b42",
+    "e8_bytes": 1347384
+   },
+   "lib/libggml-cpu-armv8.2_1.so": {
+    "p1_sha256": "1f9e27230814b16f4039179f396fc76bb2e8c2fdbe17c735ea5fb2a692c55f8d",
+    "e8_sha256": "01468bdfd92ea81b8b10d5b0f020282b285ece9d6045364bb1128efe142c36c9",
+    "e8_bytes": 1348528
+   },
+   "lib/libggml-cpu-armv8.2_2.so": {
+    "p1_sha256": "49090fbfc1f150124303bea8cb9863fc45db631f9a65860d05bb2ac9a05cc1fe",
+    "e8_sha256": "9a84589096cb1579667204b920aabc58f82935011c19ed8dd7d165cfae9cdb86",
+    "e8_bytes": 1348528
+   },
+   "lib/libggml-cpu-armv8.2_3.so": {
+    "p1_sha256": "d59b10187f698705ebefe34131ebd839e44c7dff119400477e7a2f5477b70735",
+    "e8_sha256": "51d1c0b17176347c62adb9d2a94b37758c89a73decb8e214ec0a067ba94b9b2f",
+    "e8_bytes": 1348456
+   },
+   "lib/libggml-cpu-armv8.6_1.so": {
+    "p1_sha256": "7aadff86faed937d148547ce3096e1bd440400f0cf7ea3061ee16e1d7d12376d",
+    "e8_sha256": "7f130d37db8198a64534dc57d2c23de59758481159941cb0e76e3cc136f14f6c",
+    "e8_bytes": 1348680
+   },
+   "lib/libggml-cpu-armv8.6_2.so": {
+    "p1_sha256": "170a7447d440579a0fa83cdcf1d4e6ef62c1075d81615f67287700dacca78d64",
+    "e8_sha256": "23a15e59f7946574887a113cff491aa13926a6f76026418aa5d999f055012801",
+    "e8_bytes": 1348680
+   }
+  },
+  "added": {
+   "e8_entry.py": "64d08c1ad1c4c9788a4f438b746d2e2d06acad22d5d69fe202a0d8a8d43b3272",
+   "e8_host.py": "e7c62f04e75c1c7b7a37feb79e4d75b5b0ea06fa5929bcbd056d101c81cd6127"
+  },
+  "base_zip": {
+   "sha256": "9cbe63c4fb43ab1d753c757600cf1184dbe0c7b9cd37e1717919a3b12273238d",
+   "bytes": 51936572
+  },
+  "off_zip": {
+   "sha256": "0d7f8a515fb7f11be2a0151c605a35bfd93712573501b4b1be8cfa009991e54d",
+   "bytes": 51961235
+  }
+ },
+ "e8_sources_sha256": {
+  "bench_e8.py": "cdf2df21753d42e293c3036aeec4f23e64650fceb0a4d60ce795789090afdf30",
+  "build.sh": "8ca9c3cc2923e12fe42b948a075a5c13b1ead994fdcdcce54805ae7811f95cb5",
+  "deploy_e8.py": "f8d714240e4c2a019116edca2a9a8aeb84960cebc2eb21b43586de63e0d08b49",
+  "e8_entry.py": "64d08c1ad1c4c9788a4f438b746d2e2d06acad22d5d69fe202a0d8a8d43b3272",
+  "e8_host.py": "e7c62f04e75c1c7b7a37feb79e4d75b5b0ea06fa5929bcbd056d101c81cd6127",
+  "hash_check.sh": "685f4cba0c75941bc031e3933901f633c9d22457c01fff9e3ddc1c70ac7b55db",
+  "kaihash.cpp": "70782aabc4cf707a8b496747cd19e7215e863f6a5beeccfac56d6d91701f5145",
+  "make_zips.py": "d2cd84ac30f0fbfefd8e27b9a05d9209b6bbef079d1976829f8a37efa1c08355",
+  "patch_parallel_repack.py": "56e0d05dd4a8750104b26391f5b2c397c4041838abe1afc9f84c53427e6e29c3",
+  "summarize_e8.py": "7eaa8f72c19ab28f941b2aa8055d149bcebc020ba9a7ca7e48d4aaee16ad8e59"
+ }
+}
