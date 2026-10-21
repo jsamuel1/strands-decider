@@ -47,7 +47,7 @@ rm -rf /b && cp -a /llama /b && cd /b
 COMMON="-DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF -DBUILD_SHARED_LIBS=ON -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_SERVER=OFF"
 cmake -B build $COMMON -DLLAMA_BUILD_TOOLS=OFF -DGGML_NATIVE=OFF -DGGML_BACKEND_DL=ON -DGGML_CPU_ALL_VARIANTS=ON \
   -DGGML_CPU_KLEIDIAI=ON >/dev/null
-cmake --build build -j "$(nproc)" $(cmake --build build --target help | awk "{print \$2}" | grep "^ggml-cpu" | sort -u) >/dev/null
+cmake --build build -j "$(nproc)" --target $(cmake --build build --target help | awk "{print \$2}" | grep "^ggml-cpu" | sort -u) >/dev/null
 cp build/bin/libggml-cpu-*.so /out/libs/
 for f in /out/libs/*.so; do nm -C "$f" | grep -q kleidiai_repack_threads || { echo "FATAL: $f lacks the E8 patch"; exit 1; }; done
 g++ -O2 -std=c++17 -o /out/kaihash /e8/kaihash.cpp -I/b/include -I/b/ggml/include -L/p1lib -lllama -lggml -lggml-base \
