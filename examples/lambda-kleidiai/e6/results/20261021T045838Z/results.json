@@ -5919,16 +5919,22 @@
       "0xd0c": {
        "shared_cell_count": 2,
        "assessed_cell_count": 0,
+       "assessed_outcome": null,
        "unassessed_cells": [
         {
          "round": 1,
+         "delta": -0.487336,
+         "sign": "negative",
          "reason": "fewer than two control observations"
         },
         {
          "round": 4,
+         "delta": -0.46808,
+         "sign": "negative",
          "reason": "fewer than two control observations"
         }
        ],
+       "unassessed_sign_conflict_rounds": [],
        "control_within_cell_spread_range": null,
        "delta_range": [
         -0.487336,
@@ -5946,7 +5952,9 @@
       "0xd40": {
        "shared_cell_count": 6,
        "assessed_cell_count": 6,
+       "assessed_outcome": "negative-beyond-control-variation",
        "unassessed_cells": [],
+       "unassessed_sign_conflict_rounds": [],
        "control_within_cell_spread_range": [
         0.024624,
         0.080467
@@ -5967,24 +5975,34 @@
       "0xd4f": {
        "shared_cell_count": 4,
        "assessed_cell_count": 0,
+       "assessed_outcome": null,
        "unassessed_cells": [
         {
          "round": 1,
+         "delta": -0.31176,
+         "sign": "negative",
          "reason": "fewer than two control observations"
         },
         {
          "round": 3,
+         "delta": -0.289803,
+         "sign": "negative",
          "reason": "fewer than two control observations"
         },
         {
          "round": 4,
+         "delta": -0.285026,
+         "sign": "negative",
          "reason": "fewer than two control observations"
         },
         {
          "round": 5,
+         "delta": -0.296955,
+         "sign": "negative",
          "reason": "fewer than two control observations"
         }
        ],
+       "unassessed_sign_conflict_rounds": [],
        "control_within_cell_spread_range": null,
        "delta_range": [
         -0.31176,
@@ -6375,16 +6393,22 @@
       "0xd0c": {
        "shared_cell_count": 2,
        "assessed_cell_count": 0,
+       "assessed_outcome": null,
        "unassessed_cells": [
         {
          "round": 1,
+         "delta": -0.8222,
+         "sign": "negative",
          "reason": "fewer than two control observations"
         },
         {
          "round": 4,
+         "delta": -0.99898,
+         "sign": "negative",
          "reason": "fewer than two control observations"
         }
        ],
+       "unassessed_sign_conflict_rounds": [],
        "control_within_cell_spread_range": null,
        "delta_range": [
         -0.99898,
@@ -6402,7 +6426,9 @@
       "0xd40": {
        "shared_cell_count": 6,
        "assessed_cell_count": 6,
+       "assessed_outcome": "within-control-variation",
        "unassessed_cells": [],
+       "unassessed_sign_conflict_rounds": [],
        "control_within_cell_spread_range": [
         0.41627,
         40.19212
@@ -6424,24 +6450,34 @@
       "0xd4f": {
        "shared_cell_count": 4,
        "assessed_cell_count": 0,
+       "assessed_outcome": null,
        "unassessed_cells": [
         {
          "round": 1,
+         "delta": -0.39022,
+         "sign": "negative",
          "reason": "fewer than two control observations"
         },
         {
          "round": 3,
+         "delta": 0.13763,
+         "sign": "positive",
          "reason": "fewer than two control observations"
         },
         {
          "round": 4,
+         "delta": 0.40694,
+         "sign": "positive",
          "reason": "fewer than two control observations"
         },
         {
          "round": 5,
+         "delta": -0.064635,
+         "sign": "negative",
          "reason": "fewer than two control observations"
         }
        ],
+       "unassessed_sign_conflict_rounds": [],
        "control_within_cell_spread_range": null,
        "delta_range": [
         -0.39022,
@@ -6566,7 +6602,9 @@
       "0xd40": {
        "shared_cell_count": 3,
        "assessed_cell_count": 3,
+       "assessed_outcome": "within-control-variation",
        "unassessed_cells": [],
+       "unassessed_sign_conflict_rounds": [],
        "control_within_cell_spread_range": [
         0.2386,
         1.43781
@@ -7057,7 +7095,9 @@
       "0xd0c": {
        "shared_cell_count": 2,
        "assessed_cell_count": 2,
+       "assessed_outcome": "within-control-variation",
        "unassessed_cells": [],
+       "unassessed_sign_conflict_rounds": [],
        "control_within_cell_spread_range": [
         3.02315,
         3.04131
@@ -7079,7 +7119,9 @@
       "0xd40": {
        "shared_cell_count": 9,
        "assessed_cell_count": 9,
+       "assessed_outcome": "within-control-variation",
        "unassessed_cells": [],
+       "unassessed_sign_conflict_rounds": [],
        "control_within_cell_spread_range": [
         0.00926,
         1.548
@@ -7101,7 +7143,9 @@
       "0xd4f": {
        "shared_cell_count": 4,
        "assessed_cell_count": 4,
+       "assessed_outcome": "within-control-variation",
        "unassessed_cells": [],
+       "unassessed_sign_conflict_rounds": [],
        "control_within_cell_spread_range": [
         1.27124,
         1.3407
@@ -7150,7 +7194,7 @@
     "cgroup memory limit"
    ]
   },
-  "method": "Within each observed CPU part, compare arm medians in each round. Arms are sequential waves whose first position alternates by round; this is alternation, not within-round interleaving. A directional effect must exceed the control observations' within-cell range in every assessed shared cell; deltas inside that range support a null outcome even if their signs vary. Every shared cell persists its own outcome (within-control-variation, negative- or positive-beyond-control-variation, or unassessed), and each CPU part's outcome is aggregated from those persisted cell outcomes. A cell with fewer than two control observations has no spread estimate and is explicitly unassessed. Missing-arm cells and rows without CPU identity are listed but never treated as comparable strata.",
+  "method": "Within each observed CPU part, compare arm medians in each round. Arms are sequential waves whose first position alternates by round; this is alternation, not within-round interleaving. A directional effect must exceed the control observations' within-cell range in every assessed shared cell; deltas inside that range support a null outcome even if their signs vary. Every shared cell persists its own outcome (within-control-variation, negative- or positive-beyond-control-variation, or unassessed), and each CPU part's outcome is aggregated from those persisted cell outcomes. A cell with fewer than two control observations has no spread estimate and is explicitly unassessed, but its observed sign is kept: an opposite sign on an unassessed cell makes its CPU part host-conditioned even when the part's assessed cells agree, and an opposite sign on a wholly unassessed part blocks a comparable directional outcome. Missing-arm cells and rows without CPU identity are listed but never treated as comparable strata.",
   "assessment": {
    "primary_effect": {
     "metric": "cold_imports",
@@ -7166,12 +7210,13 @@
      "0xd4f"
     ],
     "unassessed_conflicts": [],
+    "within_part_unassessed_conflicts": {},
     "shared_cells": 12,
     "unassessed_unknown_cpu_rows": {
      "ctl": 0,
      "pyc": 0
     },
-    "reason": "every assessed cell has a negative delta whose absolute size exceeds its control within-cell spread; sparse CPU parts are unassessed and have no opposite observed sign"
+    "reason": "every assessed cell has a negative delta whose absolute size exceeds its control within-cell spread; sparse cells and CPU parts are unassessed and have no opposite observed sign"
    },
    "deployment_headlines": "no consistent cold-first-request, restore, or warm benefit across observed CPU parts and rounds",
    "rerun": "not needed: host-adjusted assessed cells support one imports-phase outcome; sparse CPU parts and unmatched cells remain explicit limitations, while deployment headlines remain null"
@@ -7569,6 +7614,7 @@
        ]
       }
      },
+     "sparse_cpu_parts": {},
      "per_round_delta_p50": [
       -0.354406,
       -0.381274,
@@ -7624,6 +7670,7 @@
        ]
       }
      },
+     "sparse_cpu_parts": {},
      "per_round_delta_p50": [
       -0.359253,
       -0.386762,
@@ -7679,6 +7726,7 @@
        ]
       }
      },
+     "sparse_cpu_parts": {},
      "per_round_delta_p50": [
       -0.0008,
       -0.0043,
@@ -7734,6 +7782,7 @@
        ]
       }
      },
+     "sparse_cpu_parts": {},
      "per_round_delta_p50": [
       -0.361495,
       -0.394205,
@@ -7789,6 +7838,7 @@
        ]
       }
      },
+     "sparse_cpu_parts": {},
      "per_round_delta_p50": [
       0.415,
       0.43,
@@ -7844,6 +7894,7 @@
        ]
       }
      },
+     "sparse_cpu_parts": {},
      "per_round_delta_p50": [
       0.322415,
       0.251346,
@@ -7899,6 +7950,7 @@
        ]
       }
      },
+     "sparse_cpu_parts": {},
      "per_round_delta_p50": [
       0.018007,
       -0.024211,
@@ -7954,6 +8006,7 @@
        ]
       }
      },
+     "sparse_cpu_parts": {},
      "per_round_delta_p50": [
       0.04536,
       0.061095,
@@ -8009,6 +8062,7 @@
        ]
       }
      },
+     "sparse_cpu_parts": {},
      "per_round_delta_p50": [
       -8.5,
       -11.0,
@@ -8066,6 +8120,7 @@
        ]
       }
      },
+     "sparse_cpu_parts": {},
      "per_round_delta_p50": [
       0.01336,
       0.024275,
@@ -8098,6 +8153,7 @@
        ]
       }
      },
+     "sparse_cpu_parts": {},
      "per_round_delta_p50": [
       -0.08819,
       0.005735,
@@ -8122,6 +8178,7 @@
        ]
       }
      },
+     "sparse_cpu_parts": {},
      "per_round_delta_p50": [
       -0.09491,
       -0.0279,
@@ -8146,6 +8203,7 @@
        ]
       }
      },
+     "sparse_cpu_parts": {},
      "per_round_delta_p50": [
       0.000245,
       -0.00959,

@@ -152,9 +152,11 @@ observations' within-cell range and persists that cell's outcome (`within-contro
 `negative-beyond-control-variation`, `positive-beyond-control-variation`, or `unassessed` with fewer than two
 control observations). Each CPU part's outcome is aggregated from those stored cell outcomes, and `cell_outcomes`
 counts them, so a mixed part shows which cells drove it. On 0xd40, all 6 cold-import cells are
-`negative-beyond-control-variation`. The 0xd0c/0xd4f cells have one control observation each, so they are stored as
-`unassessed` supporting rows; their observed deltas have the same sign. `unassessed_conflicts` is therefore empty;
-an opposite observed sign on either sparse part would block comparability as `host-conditioned`. Unmatched cells
+`negative-beyond-control-variation` and none is sparse. The 0xd0c/0xd4f cells have one control observation each, so
+they are stored as `unassessed` supporting rows with their delta and sign; their observed deltas have the same sign.
+`unassessed_conflicts` (sparse parts) and `within_part_unassessed_conflicts` (sparse cells inside an assessed part)
+are therefore empty. An opposite observed sign on a sparse part, or on a sparse cell of an otherwise assessed part,
+would make that part and the primary effect `host-conditioned`. Unmatched cells
 are also explicit. No Graviton generation is claimed:
 the parts and features are reported as read.
 

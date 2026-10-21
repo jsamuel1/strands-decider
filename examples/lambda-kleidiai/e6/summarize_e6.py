@@ -89,7 +89,8 @@ def delta(rows: list[dict], cls: str, keys: dict) -> dict:
     out: dict = {}
     for name, f in keys.items():
         per: dict = {}
-        for cpu in sorted({r.get("cpu_part") for r in rs}, key=str):
+        sparse: dict = {}
+        for cpu in sorted({r.get("cpu_part") for r in rs} - set(UNKNOWN_CPU), key=str):
             a = [
                 v
                 for r in rs
@@ -102,9 +103,18 @@ def delta(rows: list[dict], cls: str, keys: dict) -> dict:
                 if r["arm"] == EXPERIMENT and r.get("cpu_part") == cpu
                 if (v := f(r)) is not None
             ]
-            if len(a) < 2 or len(b) < 2:
+            if not a or not b:
                 continue
             ma, mb = statistics.median(a), statistics.median(b)
+            if len(a) < 2 or len(b) < 2:
+                # No CI, but the observed sign stays evidence: status_of refuses `improved` if it opposes.
+                sparse[str(cpu)] = {
+                    "ctl_p50": round(ma, 6),
+                    "pyc_p50": round(mb, 6),
+                    "delta_p50": round(mb - ma, 6),
+                    "n": [len(a), len(b)],
+                }
+                continue
             per[str(cpu)] = {
                 "ctl_p50": round(ma, 6),
                 "pyc_p50": round(mb, 6),
@@ -132,6 +142,7 @@ def delta(rows: list[dict], cls: str, keys: dict) -> dict:
         if per:
             out[name] = {
                 "by_cpu_part": per,
+                "sparse_cpu_parts": sparse,
                 "per_round_delta_p50": rounds,
                 "rounds_below_zero": sum(d < 0 for d in rounds),
             }
@@ -152,15 +163,36 @@ def cell_outcome(delta: float, control_spread: float | None) -> str:
     return "positive-beyond-control-variation"
 
 
+DIRECTIONAL_SIGN = {
+    "negative-beyond-control-variation": "negative",
+    "positive-beyond-control-variation": "positive",
+}
+HOST_CONDITIONED = "host-conditioned"
+
+
+def opposes(sign: str, direction: str | None) -> bool:
+    """True if an observed sign contradicts a directional outcome's sign (zero never contradicts)."""
+    return direction is not None and sign not in (direction, "zero")
+
+
 def _part_variability(cells: list[dict]) -> dict:
-    """Aggregate one CPU part from the outcome persisted on each of its shared cells."""
+    """Aggregate one CPU part from the outcome persisted on each of its shared cells.
+
+    Unassessed cells (fewer than two control observations) cannot establish an outcome, but their observed sign
+    stays evidence. If the assessed cells agree on a direction and an unassessed cell of the same part has the
+    opposite non-zero sign, the part is `host-conditioned`, not the assessed direction."""
     deltas = [c["delta"] for c in cells]
     signs = sorted({c["sign"] for c in cells})
     assessed = [c for c in cells if c["outcome"] != UNASSESSED_CELL]
+    sparse = [c for c in cells if c["outcome"] == UNASSESSED_CELL]
     unassessed = [
-        {"round": c["round"], "reason": "fewer than two control observations"}
-        for c in cells
-        if c["outcome"] == UNASSESSED_CELL
+        {
+            "round": c["round"],
+            "delta": c["delta"],
+            "sign": c["sign"],
+            "reason": "fewer than two control observations",
+        }
+        for c in sparse
     ]
     cell_outcomes = [c["outcome"] for c in assessed]
     if not assessed:
@@ -169,10 +201,17 @@ def _part_variability(cells: list[dict]) -> dict:
         outcome = cell_outcomes[0]
     else:
         outcome = "mixed-or-overlapping-control-variation"
+    assessed_outcome = outcome if assessed else None
+    direction = DIRECTIONAL_SIGN.get(outcome)
+    conflicts = [c["round"] for c in sparse if opposes(c["sign"], direction)]
+    if conflicts:
+        outcome = HOST_CONDITIONED
     return {
         "shared_cell_count": len(cells),
         "assessed_cell_count": len(assessed),
+        "assessed_outcome": assessed_outcome,
         "unassessed_cells": unassessed,
+        "unassessed_sign_conflict_rounds": conflicts,
         "control_within_cell_spread_range": (
             [
                 min(c["control_spread"] for c in assessed),
@@ -289,26 +328,28 @@ def host_variability_analysis(rows: list[dict]) -> dict:
     )
     if not assessed_outcomes:
         imports_outcome = "unassessed"
-    directional_sign = {
-        "negative-beyond-control-variation": "negative",
-        "positive-beyond-control-variation": "positive",
-    }.get(imports_outcome)
+    directional_sign = DIRECTIONAL_SIGN.get(imports_outcome)
     unassessed_conflicts = [
         cpu
         for cpu in unassessed_parts
-        if directional_sign
-        and any(
-            sign not in (directional_sign, "zero")
-            for sign in imports["by_cpu_part"][cpu]["delta_signs"]
+        if any(
+            opposes(sign, directional_sign) for sign in imports["by_cpu_part"][cpu]["delta_signs"]
         )
     ]
-    if unassessed_conflicts:
+    # An assessed part whose own sparse cells contradict its assessed direction is already host-conditioned
+    # (see _part_variability); name those cells so the verdict says why.
+    within_part_conflicts = {
+        cpu: part["unassessed_sign_conflict_rounds"]
+        for cpu, part in imports["by_cpu_part"].items()
+        if part["unassessed_sign_conflict_rounds"]
+    }
+    if unassessed_conflicts or within_part_conflicts:
         imports_comparable = False
-        imports_outcome = "host-conditioned"
+        imports_outcome = HOST_CONDITIONED
     if imports_comparable and imports_outcome == "negative-beyond-control-variation":
         reason = (
             "every assessed cell has a negative delta whose absolute size exceeds its control within-cell "
-            "spread; sparse CPU parts are unassessed and have no opposite observed sign"
+            "spread; sparse cells and CPU parts are unassessed and have no opposite observed sign"
         )
     elif imports_comparable and imports_outcome == "within-control-variation":
         reason = (
@@ -320,7 +361,7 @@ def host_variability_analysis(rows: list[dict]) -> dict:
     else:
         reason = (
             "CPU parts have different or indeterminate outcomes after control-variation adjustment, or a sparse "
-            "part contradicts the assessed directional sign"
+            "part or a sparse cell within an assessed part contradicts the assessed directional sign"
         )
     unknown_import_rows = unknown_cpu_rows["cold_imports"]
     return {
@@ -341,7 +382,10 @@ def host_variability_analysis(rows: list[dict]) -> dict:
         "cell; deltas inside that range support a null outcome even if their signs vary. Every shared cell "
         "persists its own outcome (within-control-variation, negative- or positive-beyond-control-variation, or "
         "unassessed), and each CPU part's outcome is aggregated from those persisted cell outcomes. A cell with "
-        "fewer than two control observations has no spread estimate and is explicitly unassessed. Missing-arm "
+        "fewer than two control observations has no spread estimate and is explicitly unassessed, but its observed "
+        "sign is kept: an opposite sign on an unassessed cell makes its CPU part host-conditioned even when the "
+        "part's assessed cells agree, and an opposite sign on a wholly unassessed part blocks a comparable "
+        "directional outcome. Missing-arm "
         "cells and rows "
         "without CPU identity are listed but never treated as comparable strata.",
         "assessment": {
@@ -352,6 +396,7 @@ def host_variability_analysis(rows: list[dict]) -> dict:
                 "by_cpu_part": import_outcomes,
                 "unassessed_cpu_parts": unassessed_parts,
                 "unassessed_conflicts": unassessed_conflicts,
+                "within_part_unassessed_conflicts": within_part_conflicts,
                 "shared_cells": len(import_cells),
                 "unassessed_unknown_cpu_rows": unknown_import_rows,
                 "reason": reason,
@@ -711,15 +756,18 @@ def status_of(res: dict) -> str:
     warm inference), not on the phase the change targets. A phase that improves while the request it sits in
     does not is `no-change`, and the conclusion says so.
 
-    improved: some headline's CI lies entirely below 0 on every CPU part both arms ran on, no headline's CI lies
-    entirely above 0 on any part, and the answers are clean. regressed: any headline's CI lies entirely above 0.
+    improved: some headline's CI lies entirely below 0 on every CPU part both arms ran on, no CPU part too sparse
+    for a CI shows a positive observed delta on that headline, no headline's CI lies entirely above 0 on any part,
+    and the answers are clean. regressed: any headline's CI lies entirely above 0.
     inconclusive: the answers are not clean, or there is no data."""
     d = res["e6"]["delta"]
-    heads = [
-        d["cold"].get("first_request_total", {}).get("by_cpu_part", {}),
-        d["restore"].get("first_request_total", {}).get("by_cpu_part", {}),
-        d["warm"].get("steady_state_inference", {}).get("by_cpu_part", {}),
+    picks = [
+        d["cold"].get("first_request_total", {}),
+        d["restore"].get("first_request_total", {}),
+        d["warm"].get("steady_state_inference", {}),
     ]
+    heads = [p.get("by_cpu_part", {}) for p in picks]
+    sparse = [p.get("sparse_cpu_parts", {}) for p in picks]
     c = res["correctness"] or {}
     g = res["e6"]["arm_agreement"]
     # Answers: every pyc answer equals ctl's for the same request and CPU part (complete, from this run), and every
@@ -738,7 +786,12 @@ def status_of(res: dict) -> str:
         return "inconclusive"
     if any(v["ci95"][0] > 0 for h in heads for v in h.values()):
         return "regressed"
-    if any(h and all(v["ci95"][1] < 0 for v in h.values()) for h in heads):
+    if any(
+        h
+        and all(v["ci95"][1] < 0 for v in h.values())
+        and all(v["delta_p50"] <= 0 for v in s.values())
+        for h, s in zip(heads, sparse, strict=True)
+    ):
         return "improved"
     return "no-change"
 

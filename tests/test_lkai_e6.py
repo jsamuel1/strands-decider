@@ -353,12 +353,32 @@ def test_delta_is_matched_by_cpu_part_and_counts_rounds():
             rows.append(_row("ctl", "cold", rnd, imports=0.70 + i * 0.01))
             rows.append(_row("pyc", "cold", rnd, imports=0.35 + i * 0.01))
     rows.append(_row("pyc", "cold", 0, cpu="0xd0c", imports=0.1))  # an unmatched part is left out
+    # one observation per arm: too sparse for a CI, kept with its observed delta
+    rows.append(_row("ctl", "cold", 0, cpu="0xd4f", imports=0.8))
+    rows.append(_row("pyc", "cold", 0, cpu="0xd4f", imports=0.9))
+    # unknown CPU identity is never a stratum, sparse or not
+    rows.append(_row("ctl", "cold", 0, cpu=None, imports=0.8))
+    rows.append(_row("pyc", "cold", 0, cpu=None, imports=0.9))
     d = s.delta(rows, "cold", {"imports": s.COLD_KEYS["imports"]})["imports"]
     assert set(d["by_cpu_part"]) == {"0xd40"}
+    assert d["sparse_cpu_parts"] == {
+        "0xd4f": {"ctl_p50": 0.8, "pyc_p50": 0.9, "delta_p50": 0.1, "n": [1, 1]}
+    }
     cell = d["by_cpu_part"]["0xd40"]
     assert cell["delta_p50"] == pytest.approx(-0.35)
     assert cell["ci95"][1] < 0 and cell["n"] == [9, 9]
     assert d["rounds_below_zero"] == 3
+
+
+def test_status_sparse_opposite_sign_part_blocks_improved():
+    s = _summ()
+    null = (-0.1, 0.1)
+    res = _res((-0.5, -0.2), null, null)
+    head = res["e6"]["delta"]["cold"]["first_request_total"]
+    head["sparse_cpu_parts"] = {"0xd4f": {"delta_p50": -0.3, "n": [1, 1]}}
+    assert s.status_of(res) == "improved"
+    head["sparse_cpu_parts"] = {"0xd4f": {"delta_p50": 0.3, "n": [1, 1]}}
+    assert s.status_of(res) == "no-change"
 
 
 def test_arm_agreement_flags_a_differing_answer_and_a_missing_ctl_cell():
@@ -417,10 +437,22 @@ def test_host_variability_analysis_records_shared_and_missing_cells():
     assert imports["by_cpu_part"]["0xd40"] == {
         "shared_cell_count": 2,
         "assessed_cell_count": 0,
+        "assessed_outcome": None,
         "unassessed_cells": [
-            {"round": 0, "reason": "fewer than two control observations"},
-            {"round": 1, "reason": "fewer than two control observations"},
+            {
+                "round": 0,
+                "delta": -0.35,
+                "sign": "negative",
+                "reason": "fewer than two control observations",
+            },
+            {
+                "round": 1,
+                "delta": -0.38,
+                "sign": "negative",
+                "reason": "fewer than two control observations",
+            },
         ],
+        "unassessed_sign_conflict_rounds": [],
         "control_within_cell_spread_range": None,
         "delta_range": [-0.38, -0.35],
         "delta_signs": ["negative"],
@@ -570,6 +602,85 @@ def test_host_variability_sparse_opposite_sign_part_blocks_comparability():
     assert effect["unassessed_conflicts"] == ["0xd0c"]
 
 
+@pytest.mark.parametrize(
+    ("sparse_pyc", "comparable", "part_outcome", "conflict_rounds"),
+    [
+        # same sign as the assessed cells: a limitation, the directional outcome stands
+        (0.40, True, "negative-beyond-control-variation", []),
+        # opposite sign in the SAME CPU part: the part and the primary effect are host-conditioned
+        (1.10, False, "host-conditioned", [2]),
+        # zero delta never contradicts a direction
+        (0.90, True, "negative-beyond-control-variation", []),
+    ],
+)
+def test_host_variability_sparse_cell_inside_assessed_part(
+    sparse_pyc, comparable, part_outcome, conflict_rounds
+):
+    s = _summ()
+    rows = [
+        # rounds 0 and 1: assessed, negative beyond control spread on 0xd40
+        _row("ctl", "cold", 0, imports=0.70),
+        _row("ctl", "cold", 0, imports=0.72),
+        _row("pyc", "cold", 0, imports=0.35),
+        _row("ctl", "cold", 1, imports=0.71),
+        _row("ctl", "cold", 1, imports=0.73),
+        _row("pyc", "cold", 1, imports=0.34),
+        # round 2: same CPU part, one control observation, so the cell is unassessed
+        _row("ctl", "cold", 2, imports=0.90),
+        _row("pyc", "cold", 2, imports=sparse_pyc),
+    ]
+    h = s.host_variability_analysis(rows)
+    part = h["observed"]["primary_metrics"]["cold_imports"]["by_cpu_part"]["0xd40"]
+    assert part["assessed_cell_count"] == 2
+    assert part["assessed_outcome"] == "negative-beyond-control-variation"
+    assert part["unassessed_sign_conflict_rounds"] == conflict_rounds
+    assert part["outcome"] == part_outcome
+    effect = h["assessment"]["primary_effect"]
+    # 0xd40 is an assessed part, so the cross-part list stays empty either way
+    assert effect["unassessed_cpu_parts"] == []
+    assert effect["unassessed_conflicts"] == []
+    assert effect["within_part_unassessed_conflicts"] == (
+        {"0xd40": conflict_rounds} if conflict_rounds else {}
+    )
+    assert effect["comparable"] is comparable
+    assert effect["outcome"] == (
+        "negative-beyond-control-variation" if comparable else "host-conditioned"
+    )
+    assert h["assessment"]["rerun"].startswith("not needed" if comparable else "needed")
+
+
+def test_part_sparse_cell_conflict_applies_to_positive_direction_too():
+    s = _summ()
+
+    def cell(rnd, d, outcome):
+        return {
+            "round": rnd,
+            "delta": d,
+            "sign": "negative" if d < 0 else "positive",
+            "control_spread": None if outcome == "unassessed" else 0.02,
+            "outcome": outcome,
+        }
+
+    part = s._part_variability(
+        [
+            cell(0, 0.3, "positive-beyond-control-variation"),
+            cell(1, 0.3, "positive-beyond-control-variation"),
+            cell(2, -0.2, "unassessed"),
+        ]
+    )
+    assert part["outcome"] == "host-conditioned"
+    assert part["unassessed_sign_conflict_rounds"] == [2]
+    # an in-band assessed outcome has no direction, so a sparse sign cannot contradict it
+    part = s._part_variability(
+        [
+            {**cell(0, 0.01, "within-control-variation"), "control_spread": 0.1},
+            cell(1, -0.2, "unassessed"),
+        ]
+    )
+    assert part["outcome"] == "within-control-variation"
+    assert part["unassessed_sign_conflict_rounds"] == []
+
+
 def test_host_variability_persists_each_cell_outcome():
     s = _summ()
     rows = [
@@ -608,7 +719,12 @@ def test_host_variability_persists_each_cell_outcome():
     assert part["outcome"] == "mixed-or-overlapping-control-variation"
     assert part["assessed_cell_count"] == 3
     assert part["unassessed_cells"] == [
-        {"round": 3, "reason": "fewer than two control observations"}
+        {
+            "round": 3,
+            "delta": -0.35,
+            "sign": "negative",
+            "reason": "fewer than two control observations",
+        }
     ]
     assert h["assessment"]["primary_effect"]["comparable"] is False
     # every primary metric's cells carry an outcome, not only imports
