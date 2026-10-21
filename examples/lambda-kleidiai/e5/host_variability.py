@@ -11,9 +11,14 @@ conclusion? It reports
   - mix: invocations and distinct execution environments per (class, arm, CPU part), and whether any environment
     reported more than one part.
   - by_class: per class and metric, each CPU part both arms drew: n, p50, min, max per arm, the e5 - base p50
-    delta, the per-round p50s and in how many rounds e5 was below base. Next to it, the unmatched (all parts
-    pooled) delta, to show how much the CPU mix alone moves a comparison.
+    delta, the per-round p50s, their range per arm (run-to-run variation within one part) and in how many rounds e5
+    was below base. Next to it, the unmatched (all parts pooled) delta, to show how much the CPU mix alone moves a
+    comparison. A row with no CPU part is counted in the mix as "unknown" but is not a part.
   - verdict: per class, whether the delta has the same sign in every part with at least MIN_N samples per arm.
+  - snapshot_init: the same for the init that ran inside publish_version (no invocation sees it). Each saved
+    `before_snapshot` record gets the CPU part of the `cpu_part=` line in its own log stream, and only that stream;
+    a stream with no such line, or with two different parts, leaves the record's identity unknown, and it is
+    counted but kept out of the per-part comparison.
 """
 
 from __future__ import annotations
@@ -21,6 +26,7 @@ from __future__ import annotations
 import gzip
 import json
 import os
+import re
 import statistics
 import sys
 from collections import defaultdict
@@ -39,6 +45,9 @@ METADATA = {
     "architecture": "configured: arm64 (conditions.functions.*.Architectures)",
     "region": "configured: conditions.region",
     "execution_environment": "observed: row lkai.env_id and the CloudWatch log stream name (logs/*.jsonl.gz)",
+    "snapshot_init_cpu_part": "observed: the 'decider.engine init cpu_part=' line in the same CloudWatch log "
+    "stream as each before_snapshot record (logs/*.jsonl.gz); unknown when that stream has none or two parts",
+    "snapshot_init_ggml_cpu_variant": "observed: the same line's ggml_cpu= list",
     "cpu_implementer": "unknown (not recorded)",
     "cpu_variant": "unknown (not recorded)",
     "cpu_revision": "unknown (not recorded)",
@@ -96,7 +105,7 @@ def mix(rows: list[dict]) -> dict:
     envs: dict = defaultdict(set)
     parts_by_env: dict = defaultdict(set)
     for r in rows:
-        key = f"{r['expected_class']}:{r['arm']}:{r.get('cpu_part')}"
+        key = f"{r['expected_class']}:{r['arm']}:{r.get('cpu_part') or 'unknown'}"
         inv[key] += 1
         env = (r.get("lkai") or {}).get("env_id")
         envs[key].add(env)
@@ -120,15 +129,22 @@ def _vals(rs: list[dict], f, arm: str, part, rd=None) -> list[float]:
     ]
 
 
-def compare(rows: list[dict], a: str = "e5", b: str = "base") -> dict:
+def compare(
+    rows: list[dict], a: str = "e5", b: str = "base", metrics_by_class: dict | None = None
+) -> dict:
+    """Per class and metric, the per-CPU-part comparison. A row with no CPU part is not a part: it enters only the
+    unmatched (pooled) delta."""
     ok = _ok(rows)
     rounds = sorted({r["round"] for r in ok})
     out: dict = {}
-    for cls, metrics in METRICS.items():
+    for cls, metrics in (metrics_by_class or METRICS).items():
         rs = [r for r in ok if r["expected_class"] == cls]
         parts = sorted(
-            {r.get("cpu_part") for r in rs if r["arm"] == a}
-            & {r.get("cpu_part") for r in rs if r["arm"] == b},
+            (
+                {r.get("cpu_part") for r in rs if r["arm"] == a}
+                & {r.get("cpu_part") for r in rs if r["arm"] == b}
+            )
+            - {None},
             key=str,
         )
         cls_out: dict = {}
@@ -146,11 +162,24 @@ def compare(rows: list[dict], a: str = "e5", b: str = "base") -> dict:
                         per_round[str(rd)] = {a: round(ma, 6), b: round(mb, 6)}
                         below += ma < mb
                 sa, sb = _stats(xa), _stats(xb)
+                rng = (
+                    {
+                        arm: round(
+                            max(v[arm] for v in per_round.values())
+                            - min(v[arm] for v in per_round.values()),
+                            6,
+                        )
+                        for arm in (a, b)
+                    }
+                    if per_round
+                    else {}
+                )
                 per[str(part)] = {
                     a: sa,
                     b: sb,
                     "delta_p50": round(sa["p50"] - sb["p50"], 6),
                     "per_round_p50": per_round,
+                    "per_round_p50_range": rng,
                     f"rounds_{a}_below_{b}": [below, len(per_round)],
                 }
             ua = [v for r in rs if r["arm"] == a if (v := f(r)) is not None]
@@ -200,16 +229,154 @@ def log_streams(run: str) -> dict:
     return out
 
 
+SNAPSHOT_KEYS = (
+    "runtime_to_import",
+    "imports",
+    "weight_download",
+    "ggml_backend_load",
+    "model_load_mmap",
+    "context_init",
+    "assets_load",
+    "warmup_inference",
+    "model_ready",
+    "import_total",
+)
+_CPU_LINE = re.compile(r"decider\.engine init cpu_part=(\S+)(?:.*?ggml_cpu=(\S+))?")
+
+
+def _lkai(message: str) -> dict | None:
+    i = message.find("LKAI {")
+    if i < 0:
+        return None
+    try:
+        return json.loads(message[i + 5 :])
+    except ValueError:
+        return None
+
+
+def snapshot_records(run: str, cond: dict) -> list[dict]:
+    """One row per before_snapshot record of a version this run published (summarize.snapshot_inits' selection),
+    with its arm, round, log stream, and the CPU part named in that same stream only."""
+    arm_of = {f["FunctionName"]: arm for arm, f in cond.get("functions", {}).items()}
+    round_of: dict = {}
+    for m in cond.get("rounds_meta", []):
+        for arm, pub in m.get("published", {}).items():
+            round_of[(arm, str(pub["version"]))] = m["round"]
+    d = os.path.join(run, "logs")
+    out: list[dict] = []
+    for f in sorted(os.listdir(d)) if os.path.isdir(d) else []:
+        arm = arm_of.get(f.removesuffix(".jsonl.gz"))
+        if arm is None or not f.endswith(".jsonl.gz"):
+            continue
+        streams: dict = defaultdict(list)
+        with gzip.open(os.path.join(d, f), "rt") as fh:
+            for line in fh:
+                if line.strip():
+                    e = json.loads(line)
+                    streams[e.get("logStreamName", "")].append(e["message"])
+        seen = set()
+        for stream, msgs in sorted(streams.items()):
+            ver = stream.split("[", 1)[1].split("]", 1)[0] if "[" in stream else None
+            if (arm, ver) not in round_of:
+                continue
+            cpu = [m for msg in msgs if (m := _CPU_LINE.search(msg))]
+            parts = {m.group(1) for m in cpu}
+            recs = [
+                rec for msg in msgs if (rec := _lkai(msg)) and rec.get("kind") == "before_snapshot"
+            ]
+            for rec in recs:
+                if rec.get("wall_ns") in seen:
+                    continue
+                seen.add(rec.get("wall_ns"))
+                out.append(
+                    {
+                        "arm": arm,
+                        "expected_class": "snapshot_init",
+                        "round": round_of[(arm, ver)],
+                        "version": ver,
+                        "log_stream": stream,
+                        "env_id": rec.get("env_id"),
+                        "cpu_part": next(iter(parts)) if len(parts) == 1 else None,
+                        "cpu_identity": "linked"
+                        if len(parts) == 1
+                        else "missing"
+                        if not parts
+                        else "ambiguous",
+                        "ggml_cpu": sorted({m.group(2) for m in cpu if m.group(2)}),
+                        "records_in_stream": len(recs),
+                        "init": rec.get("init") or {},
+                    }
+                )
+    return out
+
+
+def snapshot_assessment(snaps: list[dict]) -> dict:
+    metrics = {
+        "snapshot_init": {
+            k: (lambda r, k=k: r["init"].get(k))
+            for k in SNAPSHOT_KEYS
+            if any(k in r["init"] for r in snaps)
+        }
+    }
+    by = compare(snaps, metrics_by_class=metrics).get("snapshot_init", {}) if snaps else {}
+    identity: dict = defaultdict(lambda: defaultdict(int))
+    mix_: dict = defaultdict(int)
+    variants: dict = defaultdict(set)
+    parts_by_env: dict = defaultdict(set)
+    for r in snaps:
+        identity[r["arm"]][r["cpu_identity"]] += 1
+        identity[r["arm"]]["records"] += 1
+        identity[r["arm"]]["streams_with_more_than_one_record"] += r["records_in_stream"] > 1
+        mix_[f"{r['arm']}:{r['cpu_part'] or 'unknown'}"] += 1
+        if r["cpu_part"]:
+            variants[r["cpu_part"]].update(r["ggml_cpu"])
+            parts_by_env[r["env_id"]].add(r["cpu_part"])
+    counts = {
+        arm: {
+            k: c.get(k, 0)
+            for k in (
+                "records",
+                "linked",
+                "missing",
+                "ambiguous",
+                "streams_with_more_than_one_record",
+            )
+        }
+        for arm, c in sorted(identity.items())
+    }
+    return {
+        "method": (
+            "before_snapshot records of the versions this run published, from the saved CloudWatch logs. A record's "
+            "CPU part is the 'decider.engine init cpu_part=' line in its own log stream; a stream with no such line "
+            "(missing) or with two different parts (ambiguous) leaves it unknown, and unknown records are counted "
+            "here and in the pooled phases but enter no per-part comparison. One record per arm and part per round "
+            "(rounds_meta), so per-round p50s are single values."
+        ),
+        "identity": counts,
+        "mix": dict(sorted(mix_.items())),
+        "ggml_cpu_variant_by_cpu_part": {k: sorted(v) for k, v in sorted(variants.items())},
+        "environments_with_more_than_one_cpu_part": sum(
+            1 for v in parts_by_env.values() if len(v) > 1
+        ),
+        "by_cpu_part": by,
+        "verdict": verdict({"snapshot_init": by}) if by else {},
+    }
+
+
 def assess(run: str) -> dict:
     rows = [
         json.loads(line) for line in open(os.path.join(run, "invocations.jsonl")) if line.strip()
     ]
+    cpath = os.path.join(run, "conditions.json")
+    cond = json.load(open(cpath)) if os.path.exists(cpath) else {}
     by_class = compare(rows)
     variants: dict = defaultdict(set)
     for r in rows:
         for line in (r.get("log_tail") or "").splitlines():
             if "decider.engine init" in line and "ggml_cpu=" in line:
-                variants[str(r.get("cpu_part"))].add(line.split("ggml_cpu=", 1)[1].split()[0])
+                variants[r.get("cpu_part") or "unknown"].add(
+                    line.split("ggml_cpu=", 1)[1].split()[0]
+                )
     return {
         "schema": "lkai-host-variability/1",
         "method": (
@@ -225,6 +392,7 @@ def assess(run: str) -> dict:
         "mix": mix(_ok(rows)),
         "by_class": by_class,
         "verdict": verdict(by_class),
+        "snapshot_init": snapshot_assessment(snapshot_records(run, cond)),
     }
 
 

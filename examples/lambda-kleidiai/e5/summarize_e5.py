@@ -74,8 +74,11 @@ def compare_arms(rows: list[dict], a: str = "e5", b: str = "base") -> dict:
     for cls, ms in _metrics().items():
         rs = [r for r in ok if r["expected_class"] == cls]
         cpus = sorted(
-            {r.get("cpu_part") for r in rs if r["arm"] == a}
-            & {r.get("cpu_part") for r in rs if r["arm"] == b},
+            (
+                {r.get("cpu_part") for r in rs if r["arm"] == a}
+                & {r.get("cpu_part") for r in rs if r["arm"] == b}
+            )
+            - {None},
             key=str,
         )
         cls_out: dict = {}
@@ -116,7 +119,8 @@ def compare_arms(rows: list[dict], a: str = "e5", b: str = "base") -> dict:
             out[cls] = cls_out
     out["method"] = (
         f"median({a}) - median({b}) within each CPU part both arms drew (seconds; MB for "
-        "report_max_memory_mb); pooled_delta_p50 weights the per-part deltas by the smaller sample count"
+        "report_max_memory_mb); rows with no CPU part enter no part; pooled_delta_p50 weights the per-part deltas "
+        "by the smaller sample count"
     )
     return out
 

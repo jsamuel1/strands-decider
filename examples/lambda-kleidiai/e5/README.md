@@ -118,12 +118,17 @@ Graviton generation (see [Host variability](#host-variability)).
 | warm | max memory used | 5,167 MB | 5,091 MB | −76 MB | −77 MB |
 
 - **Deserialize/mmap** fell on every CPU part: `0xd40` −7.9%, `0xd4f` (n = 7 baseline / 4 E5) 7.13 → 6.53 s,
-  `0xd0c` (n = 2 / 3) 19.59 → 18.84 s. The snapshot inits inside `publish_version` show the same change
-  (`model_load_mmap` p50 8.10 → 7.59 s, n = 10 each).
+  `0xd0c` (n = 2 / 3) 19.59 → 18.84 s. The snapshot inits inside `publish_version` show the same change within
+  each CPU part they drew (`model_load_mmap` p50 `0xd40` 8.09 → 7.58 s, `0xd0c` 19.13 → 18.37 s, n = 5 per arm
+  and part; see [Host variability](#host-variability)). `results.json` `phases.<arm>.restore.snapshot_init` pools
+  both parts, so its p50 and spread are not a per-part figure.
 - **Run-to-run variance** (CV of the per-round medians of the cold first request): baseline 0.36%, E5 0.30%; the
-  range of the per-round medians is 0.30 s and 0.29 s. The 0.87 s cold improvement is about three times that range,
-  and every one of E5's five per-round medians (35.01–35.30 s) is below every one of the baseline's (35.83–36.13 s).
-- **Restore and warm are unchanged** within their spread (restore CV 1.3% / 2.3%, warm 6.0% / 3.1%). This is expected:
+  range of the per-round medians is 0.30 s and 0.29 s. These pool all CPU parts; within `0xd40` alone the range is
+  0.21 s and 0.19 s (`host_variability.by_class.*.by_cpu_part.*.per_round_p50_range`). The 0.87 s cold improvement
+  is about three times the pooled range and four times the `0xd40` range, and every one of E5's five per-round
+  medians (35.01–35.30 s) is below every one of the baseline's (35.83–36.13 s).
+- **Restore and warm are unchanged** within their spread (pooled restore CV 1.3% / 2.3%, warm 6.0% / 3.1%; `0xd40`
+  per-round range restore 0.09 s / 0.25 s, warm 0.05 s / 0.01 s). This is expected:
   the snapshot already holds the loaded model, so a restore never parses the file. The warm `0xd40` +4.5% is not
   consistent across CPU parts (`0xd0c` −3.5%) and is inside the warm per-round range (0.09 s baseline).
 - **Peak memory** fell 76–98 MB in every class, about ten times the 11 MB of metadata removed. A likely cause is the
@@ -145,14 +150,14 @@ Not recorded, so unknown: CPU implementer, variant and revision, MIDR, feature f
 count, cgroup limits, kernel, and AZ. Thread count (6) is configured, not observed. No Graviton generation was
 observed; this README names parts by id only and infers nothing from timings.
 
-**What it drew.** 200 execution environments, each on one CPU part (no environment reported two). Three parts
-appeared, each with one ggml variant set on both arms:
+**What it drew.** 200 invoked execution environments, each on one CPU part (no environment reported two), plus 20
+snapshot-init environments (below). Three parts appeared, each with one ggml variant set on both arms:
 
-| CPU part | ggml CPU variants | Environments base / E5 (cold, restore, warm) |
+| CPU part | ggml CPU variants | Environments base / E5 (cold, restore, warm, snapshot init) |
 |---|---|---|
-| `0xd40` | `armv8.0_1`, `armv8.6_1` | 41 / 43, 47 / 45, 47 / 45 |
-| `0xd4f` | `armv8.0_1`, `armv8.6_2` | 7 / 4, 0 / 0, 0 / 0 |
-| `0xd0c` | `armv8.0_1`, `armv8.2_2` | 2 / 3, 3 / 5, 3 / 5 |
+| `0xd40` | `armv8.0_1`, `armv8.6_1` | 41 / 43, 47 / 45, 47 / 45, 5 / 5 |
+| `0xd4f` | `armv8.0_1`, `armv8.6_2` | 7 / 4, 0 / 0, 0 / 0, 0 / 0 |
+| `0xd0c` | `armv8.0_1`, `armv8.2_2` | 2 / 3, 3 / 5, 3 / 5, 5 / 5 |
 
 The parts differ in speed (cold `model_load_mmap` p50 7.1 s on `0xd4f`, 8.4 s on `0xd40`, 19.6 s on `0xd0c`), so the
 mix matters, and the arms' mixes are not equal.
@@ -168,6 +173,8 @@ order pass by pass), so time-within-round drift remains a limitation for cold an
 | cold max memory | −98, −71, −67 MB | 5/5, 2/2, 2/2 | −98 MB |
 | restore first request | `0xd40` −0.004 s, `0xd0c` −0.23 s | 3/5, 2/2 | +0.013 s |
 | warm steady-state inference | `0xd40` +0.028 s, `0xd0c` −0.041 s | 2/5, 2/2 | +0.007 s |
+| snapshot init `model_load_mmap` | `0xd40` −0.51 s, `0xd0c` −0.76 s | 5/5, 5/5 | −0.64 s |
+| snapshot init `model_ready` | `0xd40` −0.67 s, `0xd0c` −0.96 s | 5/5, 5/5 | −0.86 s |
 
 - **Cold** improves on every part and in every round that drew the part. The base arm drew more of the fastest part
   (`0xd4f` 7 vs 4) and E5 more of the slowest (`0xd0c` 3 vs 2), which biases an unmatched comparison against E5; the
@@ -176,8 +183,20 @@ order pass by pass), so time-within-round drift remains a limitation for cold an
 - **Restore and warm** have no consistent sign across parts or rounds, which is the "unchanged" conclusion.
   `0xd0c` has 3–5 environments per arm, too few to read its restore −0.23 s as an effect.
 - Only `0xd40` has enough samples for a tight per-part interval; `0xd4f` (cold only) and `0xd0c` are small.
+- **Snapshot inits** (the init inside `publish_version`, which no invocation sees) are assessed separately, from the
+  `before_snapshot` records in the saved CloudWatch logs (`host_variability.snapshot_init`). Each record takes the
+  CPU part of the `decider.engine init cpu_part=` line in its own log stream and no other; a stream with no such line
+  or with two parts would leave the record unknown and out of the per-part split. In this run all 20 records (10 per
+  arm, two per published version) linked to exactly one part: 0 missing, 0 ambiguous, each arm 5 on `0xd40` and 5 on
+  `0xd0c`, and in every round one of each. The parts load at very different speeds (base `model_load_mmap` p50
+  8.09 s on `0xd40`, 19.13 s on `0xd0c`), so the pooled `phases.*.snapshot_init` figures mix two populations. Within
+  each part E5 is lower in all 5 rounds, and the ranges do not overlap (`0xd40` base 8.03–8.10 s, E5 7.56–7.59 s;
+  `0xd0c` base 19.11–19.26 s, E5 18.35–18.43 s). Both arms drew the same mix, so the pooled delta (−0.64 s) is
+  not biased by it. Weight download inside the snapshot init is unchanged (−0.12 s / −0.17 s, about the 0.5% fewer
+  bytes).
 
-**Rerun: none.** No conclusion depends on the CPU mix, so the HOST VARIABILITY rules do not call for one, and no new
+**Rerun: none.** No conclusion depends on the CPU mix, snapshot inits included, so the HOST VARIABILITY rules do not
+call for one, and no new
 spend was approved. The unrecorded fields above stay unknown for this run; recording them is a harness change that
 H1 owns, and E5 does not need the fixed-host EC2 baseline because the cold effect is already measured within each
 part.
@@ -189,7 +208,8 @@ cold first request (−2.4%), lowers peak memory by ~80–95 MB, and changes no 
 every CPU part the run drew. Cold and restore waves ran one arm after the other within each round, so drift within a
 round is not controlled for them; arm order alternated between rounds, and cold E5 was below base in rounds of both
 orders. It does nothing for SnapStart
-restores or warm requests. The larger load cost, KleidiAI's ~6 s runtime repack (including ~1.7 s for the tied output
+restores or warm requests. The snapshot inits inside `publish_version` drew `0xd40` and `0xd0c` 5/5 per arm; within
+each part their `model_load_mmap` fell in all five rounds (8.09 → 7.58 s and 19.13 → 18.37 s). The larger load cost, KleidiAI's ~6 s runtime repack (including ~1.7 s for the tied output
 head that is never used), cannot be removed by any file format this loader reads.
 
 ## Follow-ups (not measured here)

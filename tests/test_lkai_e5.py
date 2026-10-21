@@ -326,6 +326,150 @@ def test_committed_host_variability_matches_generator_and_conclusion_states_drif
     assert "drift within a round is not controlled for cold and restore" in res["conclusion"]
 
 
+def _snapshot_run(tmp_path, streams):
+    """A run dir whose logs hold `streams` ({function: {stream: [messages]}}), versions 2 (round 0) and 3 (round 1)."""
+    import gzip
+
+    run = tmp_path / "run"
+    (run / "logs").mkdir(parents=True)
+    (run / "invocations.jsonl").write_text("")
+    cond = {
+        "functions": {"base": {"FunctionName": "f-base"}, "e5": {"FunctionName": "f-e5"}},
+        "rounds_meta": [
+            {"round": 0, "published": {"base": {"version": 2}, "e5": {"version": 2}}},
+            {"round": 1, "published": {"base": {"version": 3}, "e5": {"version": 3}}},
+        ],
+    }
+    (run / "conditions.json").write_text(json.dumps(cond))
+    for fn, ss in streams.items():
+        with gzip.open(run / "logs" / f"{fn}.jsonl.gz", "wt") as fh:
+            for stream, msgs in ss.items():
+                for m in msgs:
+                    fh.write(json.dumps({"logStreamName": stream, "message": m}) + "\n")
+    return str(run)
+
+
+def _cpu(part):
+    return f"2026-10-20 decider.engine init cpu_part={part} ggml_cpu=libggml-cpu-x.so threads=6\n"
+
+
+def _snap(env, mmap, wall):
+    rec = {
+        "kind": "before_snapshot",
+        "wall_ns": wall,
+        "env_id": env,
+        "init": {"model_load_mmap": mmap},
+    }
+    return "LKAI " + json.dumps(rec) + "\n"
+
+
+def test_snapshot_init_cpu_part_comes_from_its_own_stream_only(tmp_path):
+    import host_variability as H
+
+    streams = {"f-base": {}, "f-e5": {}}
+    wall = 0
+    for fn, fast, slow in (("f-base", 8.0, 19.0), ("f-e5", 7.5, 18.0)):
+        for ver in ("2", "3"):
+            for i in range(2):
+                wall += 1
+                streams[fn][f"d/[{ver}]a{i}"] = [_cpu("0xaaa"), _snap(f"{fn}{ver}a{i}", fast, wall)]
+                wall += 1
+                streams[fn][f"d/[{ver}]b{i}"] = [_cpu("0xbbb"), _snap(f"{fn}{ver}b{i}", slow, wall)]
+        # no CPU line in its own stream; a CPU line for another part sits in a sibling stream: stays unknown
+        wall += 1
+        streams[fn]["d/[2]nocpu"] = [_snap(f"{fn}-nocpu", 1.0, wall)]
+        streams[fn]["d/[2]nocpu-sibling"] = [_cpu("0xaaa")]
+        # two different parts in one stream: ambiguous, stays unknown
+        wall += 1
+        streams[fn]["d/[3]amb"] = [_cpu("0xaaa"), _cpu("0xbbb"), _snap(f"{fn}-amb", 1.0, wall)]
+        # a version this run did not publish: not counted
+        wall += 1
+        streams[fn]["d/[9]old"] = [_cpu("0xaaa"), _snap(f"{fn}-old", 1.0, wall)]
+    run = _snapshot_run(tmp_path, streams)
+
+    recs = H.snapshot_records(run, json.load(open(os.path.join(run, "conditions.json"))))
+    by_stream = {(r["arm"], r["log_stream"]): r for r in recs}
+    assert by_stream[("base", "d/[2]nocpu")]["cpu_part"] is None
+    assert by_stream[("base", "d/[2]nocpu")]["cpu_identity"] == "missing"
+    assert by_stream[("e5", "d/[3]amb")]["cpu_identity"] == "ambiguous"
+    assert by_stream[("e5", "d/[3]a0")]["round"] == 1
+    assert ("base", "d/[9]old") not in by_stream
+
+    s = H.assess(run)["snapshot_init"]
+    assert s["identity"]["base"] == {
+        "records": 10,
+        "linked": 8,
+        "missing": 1,
+        "ambiguous": 1,
+        "streams_with_more_than_one_record": 0,
+    }
+    assert s["mix"] == {
+        "base:0xaaa": 4,
+        "base:0xbbb": 4,
+        "base:unknown": 2,
+        "e5:0xaaa": 4,
+        "e5:0xbbb": 4,
+        "e5:unknown": 2,
+    }
+    m = s["by_cpu_part"]["model_load_mmap"]
+    assert set(m["by_cpu_part"]) == {"0xaaa", "0xbbb"}  # unknown is not a part
+    assert m["by_cpu_part"]["0xaaa"]["delta_p50"] == pytest.approx(-0.5)
+    assert m["by_cpu_part"]["0xbbb"]["delta_p50"] == pytest.approx(-1.0)
+    assert m["by_cpu_part"]["0xaaa"]["base"]["n"] == 4
+    assert m["by_cpu_part"]["0xbbb"]["rounds_e5_below_base"] == [2, 2]
+    assert s["verdict"]["snapshot_init.model_load_mmap"]["same_sign_in_every_part"] is True
+
+
+def test_snapshot_init_without_any_cpu_identity_has_no_comparison(tmp_path):
+    import host_variability as H
+
+    streams = {
+        fn: {f"d/[2]s{i}": [_snap(f"{fn}{i}", 8.0, 10 * k + i)] for i in range(3)}
+        for k, fn in enumerate(("f-base", "f-e5"))
+    }
+    s = H.assess(_snapshot_run(tmp_path, streams))["snapshot_init"]
+    assert s["identity"]["e5"]["missing"] == 3 and s["identity"]["e5"]["linked"] == 0
+    assert s["mix"] == {"base:unknown": 3, "e5:unknown": 3}
+    assert s["by_cpu_part"] == {} and s["verdict"] == {}
+
+
+def test_missing_cpu_part_rows_are_not_a_matched_stratum():
+    import host_variability as H
+    import summarize_e5
+
+    rows = []
+    for arm, mmap in (("base", 8.0), ("e5", 7.5)):
+        for i in range(3):
+            r = _row(
+                arm,
+                "cold",
+                None,
+                init={"model_load_mmap": mmap},
+                report={"Init Duration": 500.0, "Duration": 1000.0, "Max Memory Used": 5000},
+            )
+            r["round"], r["lkai"]["env_id"] = 0, f"{arm}-{i}"
+            rows.append(r)
+    assert H.compare(rows)["cold"] == {}
+    assert H.mix(rows)["invocations"] == {"cold:base:unknown": 3, "cold:e5:unknown": 3}
+    assert "cold" not in summarize_e5.compare_arms(rows)
+
+
+def test_committed_snapshot_init_split_matches_saved_logs():
+    # Review #4: the 20 snapshot inits drew two CPU parts 5/5 per arm; the published payload must split them.
+    run = os.path.join(E5, "results", "20261020T114406Z")
+    s = json.load(open(os.path.join(run, "host-variability.json")))["snapshot_init"]
+    for arm in ("base", "e5"):
+        assert s["identity"][arm]["records"] == 10 and s["identity"][arm]["linked"] == 10
+    assert s["mix"] == {"base:0xd0c": 5, "base:0xd40": 5, "e5:0xd0c": 5, "e5:0xd40": 5}
+    m = s["by_cpu_part"]["model_load_mmap"]["by_cpu_part"]
+    assert m["0xd40"]["base"]["p50"] == pytest.approx(8.090848)
+    assert m["0xd40"]["e5"]["p50"] == pytest.approx(7.577044)
+    assert m["0xd0c"]["base"]["p50"] == pytest.approx(19.132629)
+    assert m["0xd0c"]["e5"]["p50"] == pytest.approx(18.368265)
+    readme = open(os.path.join(E5, "README.md")).read()
+    assert "8.09 → 7.58 s" in readme and "19.13 → 18.37 s" in readme
+
+
 def test_run_rebuilds_when_conversion_record_is_stale():
     run = open(os.path.join(E5, "run.sh")).read()
     assert "conversion_current()" in run

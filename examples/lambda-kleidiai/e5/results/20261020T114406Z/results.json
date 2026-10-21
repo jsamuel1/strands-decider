@@ -5459,7 +5459,7 @@
   "AWS_PROFILE=<profile> examples/lambda-kleidiai/e5/run.sh <run-id>",
   "python examples/lambda-kleidiai/e5/host_variability.py examples/lambda-kleidiai/e5/results/<run-id>"
  ],
- "conclusion": "Small, consistent improvement, no output change. Matched by CPU part (/proc/cpuinfo 'CPU part'; no Graviton generation was observed) and pooled, cold model_load_mmap (deserialize) fell 0.66 s (part 0xd40 8.39 -> 7.72 s, -7.9%; part 0xd4f 7.13 -> 6.53 s), and the cold first request (Init + Duration) fell 0.87 s (part 0xd40 36.03 -> 35.17 s, -2.4%), about 3x the cold run-to-run range of the per-round medians (0.30 s). Restore (-0.02 s) and warm inference (+0.02 s, part 0xd40 +4.5% but -3.5% on part 0xd0c) are unchanged within their run-to-run spread, as expected: the snapshot already holds the loaded model. Peak memory (REPORT Max Memory Used) fell 76-94 MB in every class. 1,200 invocations, 0 errors, 0 class mismatches, 600/600 answers per arm bit-identical to P1's reference. Host variability (host_variability): 200 environments on three CPU parts (0xd40, 0xd4f, 0xd0c), none reporting two; the cold improvement has the same sign on every part and in every round that drew it, and the unmatched comparison (-0.83 s) is smaller than the matched one, so the CPU mix cannot explain it; restore and warm have no consistent sign. Limitation: within each round the cold and restore waves ran one arm after the other (warm passes alternate arm order pass by pass), so drift within a round is not controlled for cold and restore; arm order alternated between rounds, and cold E5 was below base in rounds of both orders. No rerun needed; CPU implementer/variant/features, HWCAPs, core count, cgroup limits, kernel and AZ were not recorded and are unknown. The other ~6 s of model_load_mmap is KleidiAI's runtime repack, which no GGUF layout this loader reads can avoid; removing it needs a loader change (a pre-packed tensor type or a cached packed buffer), not a format change, and is out of E5's scope. Weight download is unchanged by design (same path, 0.5% fewer bytes).",
+ "conclusion": "Small, consistent improvement, no output change. Matched by CPU part (/proc/cpuinfo 'CPU part'; no Graviton generation was observed) and pooled, cold model_load_mmap (deserialize) fell 0.66 s (part 0xd40 8.39 -> 7.72 s, -7.9%; part 0xd4f 7.13 -> 6.53 s), and the cold first request (Init + Duration) fell 0.87 s (part 0xd40 36.03 -> 35.17 s, -2.4%), about 3x the cold run-to-run range of the per-round medians (0.30 s). Restore (-0.02 s) and warm inference (+0.02 s, part 0xd40 +4.5% but -3.5% on part 0xd0c) are unchanged within their run-to-run spread, as expected: the snapshot already holds the loaded model. Peak memory (REPORT Max Memory Used) fell 76-94 MB in every class. 1,200 invocations, 0 errors, 0 class mismatches, 600/600 answers per arm bit-identical to P1's reference. Host variability (host_variability): 200 environments on three CPU parts (0xd40, 0xd4f, 0xd0c), none reporting two; the cold improvement has the same sign on every part and in every round that drew it, and the unmatched comparison (-0.83 s) is smaller than the matched one, so the CPU mix cannot explain it; restore and warm have no consistent sign. The 20 SnapStart snapshot inits inside publish_version split 5/5 per arm across parts 0xd40 and 0xd0c (each record's part taken from its own log stream; 0 missing, 0 ambiguous); within each part model_load_mmap fell in all 5 rounds (0xd40 8.09 -> 7.58 s, 0xd0c 19.13 -> 18.37 s), so the pooled snapshot_init phase figures mix two CPU parts and are not per-part values. Limitation: within each round the cold and restore waves ran one arm after the other (warm passes alternate arm order pass by pass), so drift within a round is not controlled for cold and restore; arm order alternated between rounds, and cold E5 was below base in rounds of both orders. No rerun needed; CPU implementer/variant/features, HWCAPs, core count, cgroup limits, kernel and AZ were not recorded and are unknown. The other ~6 s of model_load_mmap is KleidiAI's runtime repack, which no GGUF layout this loader reads can avoid; removing it needs a loader change (a pre-packed tensor type or a cached packed buffer), not a format change, and is out of E5's scope. Weight download is unchanged by design (same path, 0.5% fewer bytes).",
  "primary_arm": "e5",
  "e5_vs_base": {
   "cold": {
@@ -6158,6 +6158,8 @@
    "architecture": "configured: arm64 (conditions.functions.*.Architectures)",
    "region": "configured: conditions.region",
    "execution_environment": "observed: row lkai.env_id and the CloudWatch log stream name (logs/*.jsonl.gz)",
+   "snapshot_init_cpu_part": "observed: the 'decider.engine init cpu_part=' line in the same CloudWatch log stream as each before_snapshot record (logs/*.jsonl.gz); unknown when that stream has none or two parts",
+   "snapshot_init_ggml_cpu_variant": "observed: the same line's ggml_cpu= list",
    "cpu_implementer": "unknown (not recorded)",
    "cpu_variant": "unknown (not recorded)",
    "cpu_revision": "unknown (not recorded)",
@@ -6249,6 +6251,10 @@
          "base": 48.80642
         }
        },
+       "per_round_p50_range": {
+        "e5": 0.19856,
+        "base": 0.35353
+       },
        "rounds_e5_below_base": [
         2,
         2
@@ -6290,6 +6296,10 @@
          "base": 35.95482
         }
        },
+       "per_round_p50_range": {
+        "e5": 0.18841,
+        "base": 0.21266
+       },
        "rounds_e5_below_base": [
         5,
         5
@@ -6318,6 +6328,10 @@
          "e5": 33.75085,
          "base": 34.379735
         }
+       },
+       "per_round_p50_range": {
+        "e5": 0.11354,
+        "base": 0.059335
        },
        "rounds_e5_below_base": [
         2,
@@ -6352,6 +6366,10 @@
          "e5": 18.667675,
          "base": 19.567492
         }
+       },
+       "per_round_p50_range": {
+        "e5": 0.173245,
+        "base": 0.037815
        },
        "rounds_e5_below_base": [
         2,
@@ -6394,6 +6412,10 @@
          "base": 8.329939
         }
        },
+       "per_round_p50_range": {
+        "e5": 0.072214,
+        "base": 0.13318
+       },
        "rounds_e5_below_base": [
         5,
         5
@@ -6422,6 +6444,10 @@
          "e5": 6.539045,
          "base": 7.042395
         }
+       },
+       "per_round_p50_range": {
+        "e5": 0.050416,
+        "base": 0.170668
        },
        "rounds_e5_below_base": [
         2,
@@ -6456,6 +6482,10 @@
          "e5": 5082.0,
          "base": 5162.0
         }
+       },
+       "per_round_p50_range": {
+        "e5": 26.0,
+        "base": 26.0
        },
        "rounds_e5_below_base": [
         2,
@@ -6498,6 +6528,10 @@
          "base": 5160.0
         }
        },
+       "per_round_p50_range": {
+        "e5": 20.0,
+        "base": 21.0
+       },
        "rounds_e5_below_base": [
         5,
         5
@@ -6526,6 +6560,10 @@
          "e5": 5060.0,
          "base": 5150.5
         }
+       },
+       "per_round_p50_range": {
+        "e5": 37.0,
+        "base": 7.5
        },
        "rounds_e5_below_base": [
         2,
@@ -6562,6 +6600,10 @@
          "e5": 4.87341,
          "base": 5.34286
         }
+       },
+       "per_round_p50_range": {
+        "e5": 0.26944,
+        "base": 0.15484
        },
        "rounds_e5_below_base": [
         2,
@@ -6604,6 +6646,10 @@
          "base": 3.92111
         }
        },
+       "per_round_p50_range": {
+        "e5": 0.2454,
+        "base": 0.093595
+       },
        "rounds_e5_below_base": [
         3,
         5
@@ -6637,6 +6683,10 @@
          "e5": 5067.0,
          "base": 5154.0
         }
+       },
+       "per_round_p50_range": {
+        "e5": 4.0,
+        "base": 0.0
        },
        "rounds_e5_below_base": [
         2,
@@ -6679,6 +6729,10 @@
          "base": 5150.0
         }
        },
+       "per_round_p50_range": {
+        "e5": 6.0,
+        "base": 23.0
+       },
        "rounds_e5_below_base": [
         5,
         5
@@ -6714,6 +6768,10 @@
          "e5": 1.090635,
          "base": 1.1683
         }
+       },
+       "per_round_p50_range": {
+        "e5": 0.036505,
+        "base": 0.01748
        },
        "rounds_e5_below_base": [
         2,
@@ -6756,6 +6814,10 @@
          "base": 0.65987
         }
        },
+       "per_round_p50_range": {
+        "e5": 0.012325,
+        "base": 0.053605
+       },
        "rounds_e5_below_base": [
         2,
         5
@@ -6789,6 +6851,10 @@
          "e5": 5092.0,
          "base": 5180.0
         }
+       },
+       "per_round_p50_range": {
+        "e5": 3.0,
+        "base": 2.0
        },
        "rounds_e5_below_base": [
         2,
@@ -6830,6 +6896,10 @@
          "e5": 5093.0,
          "base": 5174.0
         }
+       },
+       "per_round_p50_range": {
+        "e5": 7.0,
+        "base": 21.0
        },
        "rounds_e5_below_base": [
         5,
@@ -6905,6 +6975,1074 @@
     "same_sign_in_every_part": true
    }
   },
-  "added_after_run": "Computed on 2026-10-21 from this run's committed invocations.jsonl and logs by host_variability.py (HOST VARIABILITY rework, operator request item-mvhbk9tt-1degq-09b); no measured value in this file changed. Regenerating results.json with summarize_e5.py from the committed records gives the same value for every other field. The method text was revised on 2026-10-21 (review #3 finding) to state the within-round arm order: cold and restore waves run one arm after the other, warm passes alternate pass by pass, so time-within-round drift remains a limitation for cold and restore. Only method and this note changed; every other field is byte-identical to the earlier version."
+  "snapshot_init": {
+   "method": "before_snapshot records of the versions this run published, from the saved CloudWatch logs. A record's CPU part is the 'decider.engine init cpu_part=' line in its own log stream; a stream with no such line (missing) or with two different parts (ambiguous) leaves it unknown, and unknown records are counted here and in the pooled phases but enter no per-part comparison. One record per arm and part per round (rounds_meta), so per-round p50s are single values.",
+   "identity": {
+    "base": {
+     "records": 10,
+     "linked": 10,
+     "missing": 0,
+     "ambiguous": 0,
+     "streams_with_more_than_one_record": 0
+    },
+    "e5": {
+     "records": 10,
+     "linked": 10,
+     "missing": 0,
+     "ambiguous": 0,
+     "streams_with_more_than_one_record": 0
+    }
+   },
+   "mix": {
+    "base:0xd0c": 5,
+    "base:0xd40": 5,
+    "e5:0xd0c": 5,
+    "e5:0xd40": 5
+   },
+   "ggml_cpu_variant_by_cpu_part": {
+    "0xd0c": [
+     "libggml-cpu-armv8.0_1.so,libggml-cpu-armv8.2_2.so"
+    ],
+    "0xd40": [
+     "libggml-cpu-armv8.0_1.so,libggml-cpu-armv8.6_1.so"
+    ]
+   },
+   "environments_with_more_than_one_cpu_part": 0,
+   "by_cpu_part": {
+    "runtime_to_import": {
+     "by_cpu_part": {
+      "0xd0c": {
+       "e5": {
+        "n": 5,
+        "p50": 0.1148,
+        "min": 0.1115,
+        "max": 0.1184
+       },
+       "base": {
+        "n": 5,
+        "p50": 0.1148,
+        "min": 0.1135,
+        "max": 0.1173
+       },
+       "delta_p50": 0.0,
+       "per_round_p50": {
+        "0": {
+         "e5": 0.1152,
+         "base": 0.1156
+        },
+        "1": {
+         "e5": 0.1145,
+         "base": 0.1147
+        },
+        "2": {
+         "e5": 0.1184,
+         "base": 0.1135
+        },
+        "3": {
+         "e5": 0.1115,
+         "base": 0.1148
+        },
+        "4": {
+         "e5": 0.1148,
+         "base": 0.1173
+        }
+       },
+       "per_round_p50_range": {
+        "e5": 0.0069,
+        "base": 0.0038
+       },
+       "rounds_e5_below_base": [
+        4,
+        5
+       ]
+      },
+      "0xd40": {
+       "e5": {
+        "n": 5,
+        "p50": 0.0869,
+        "min": 0.0864,
+        "max": 0.093
+       },
+       "base": {
+        "n": 5,
+        "p50": 0.0872,
+        "min": 0.0867,
+        "max": 0.09
+       },
+       "delta_p50": -0.0003,
+       "per_round_p50": {
+        "0": {
+         "e5": 0.0864,
+         "base": 0.0868
+        },
+        "1": {
+         "e5": 0.0867,
+         "base": 0.0872
+        },
+        "2": {
+         "e5": 0.093,
+         "base": 0.0867
+        },
+        "3": {
+         "e5": 0.0869,
+         "base": 0.09
+        },
+        "4": {
+         "e5": 0.0874,
+         "base": 0.0877
+        }
+       },
+       "per_round_p50_range": {
+        "e5": 0.0066,
+        "base": 0.0033
+       },
+       "rounds_e5_below_base": [
+        4,
+        5
+       ]
+      }
+     },
+     "unmatched_delta_p50": 0.0005
+    },
+    "imports": {
+     "by_cpu_part": {
+      "0xd0c": {
+       "e5": {
+        "n": 5,
+        "p50": 0.822624,
+        "min": 0.818044,
+        "max": 0.837163
+       },
+       "base": {
+        "n": 5,
+        "p50": 0.831368,
+        "min": 0.818521,
+        "max": 0.844989
+       },
+       "delta_p50": -0.008744,
+       "per_round_p50": {
+        "0": {
+         "e5": 0.827455,
+         "base": 0.831368
+        },
+        "1": {
+         "e5": 0.822624,
+         "base": 0.844989
+        },
+        "2": {
+         "e5": 0.837163,
+         "base": 0.818521
+        },
+        "3": {
+         "e5": 0.818603,
+         "base": 0.832945
+        },
+        "4": {
+         "e5": 0.818044,
+         "base": 0.820094
+        }
+       },
+       "per_round_p50_range": {
+        "e5": 0.019119,
+        "base": 0.026468
+       },
+       "rounds_e5_below_base": [
+        4,
+        5
+       ]
+      },
+      "0xd40": {
+       "e5": {
+        "n": 5,
+        "p50": 0.659405,
+        "min": 0.652174,
+        "max": 0.672007
+       },
+       "base": {
+        "n": 5,
+        "p50": 0.65704,
+        "min": 0.654798,
+        "max": 0.667613
+       },
+       "delta_p50": 0.002365,
+       "per_round_p50": {
+        "0": {
+         "e5": 0.653934,
+         "base": 0.65704
+        },
+        "1": {
+         "e5": 0.659406,
+         "base": 0.65511
+        },
+        "2": {
+         "e5": 0.672007,
+         "base": 0.654798
+        },
+        "3": {
+         "e5": 0.652174,
+         "base": 0.667613
+        },
+        "4": {
+         "e5": 0.659405,
+         "base": 0.66208
+        }
+       },
+       "per_round_p50_range": {
+        "e5": 0.019833,
+        "base": 0.012815
+       },
+       "rounds_e5_below_base": [
+        3,
+        5
+       ]
+      }
+     },
+     "unmatched_delta_p50": 0.001958
+    },
+    "weight_download": {
+     "by_cpu_part": {
+      "0xd0c": {
+       "e5": {
+        "n": 5,
+        "p50": 24.768428,
+        "min": 24.469226,
+        "max": 24.894206
+       },
+       "base": {
+        "n": 5,
+        "p50": 24.883695,
+        "min": 24.69952,
+        "max": 24.965178
+       },
+       "delta_p50": -0.115267,
+       "per_round_p50": {
+        "0": {
+         "e5": 24.656427,
+         "base": 24.883695
+        },
+        "1": {
+         "e5": 24.894206,
+         "base": 24.898665
+        },
+        "2": {
+         "e5": 24.811224,
+         "base": 24.756699
+        },
+        "3": {
+         "e5": 24.768428,
+         "base": 24.69952
+        },
+        "4": {
+         "e5": 24.469226,
+         "base": 24.965178
+        }
+       },
+       "per_round_p50_range": {
+        "e5": 0.42498,
+        "base": 0.265658
+       },
+       "rounds_e5_below_base": [
+        3,
+        5
+       ]
+      },
+      "0xd40": {
+       "e5": {
+        "n": 5,
+        "p50": 24.621514,
+        "min": 24.435292,
+        "max": 24.700875
+       },
+       "base": {
+        "n": 5,
+        "p50": 24.792221,
+        "min": 24.698561,
+        "max": 24.905737
+       },
+       "delta_p50": -0.170707,
+       "per_round_p50": {
+        "0": {
+         "e5": 24.700875,
+         "base": 24.698561
+        },
+        "1": {
+         "e5": 24.639174,
+         "base": 24.792221
+        },
+        "2": {
+         "e5": 24.56342,
+         "base": 24.733055
+        },
+        "3": {
+         "e5": 24.621514,
+         "base": 24.905737
+        },
+        "4": {
+         "e5": 24.435292,
+         "base": 24.795187
+        }
+       },
+       "per_round_p50_range": {
+        "e5": 0.265583,
+        "base": 0.207176
+       },
+       "rounds_e5_below_base": [
+        4,
+        5
+       ]
+      }
+     },
+     "unmatched_delta_p50": -0.145903
+    },
+    "ggml_backend_load": {
+     "by_cpu_part": {
+      "0xd0c": {
+       "e5": {
+        "n": 5,
+        "p50": 0.03785,
+        "min": 0.037376,
+        "max": 0.038079
+       },
+       "base": {
+        "n": 5,
+        "p50": 0.03814,
+        "min": 0.037921,
+        "max": 0.038601
+       },
+       "delta_p50": -0.00029,
+       "per_round_p50": {
+        "0": {
+         "e5": 0.037376,
+         "base": 0.038034
+        },
+        "1": {
+         "e5": 0.037861,
+         "base": 0.038601
+        },
+        "2": {
+         "e5": 0.038079,
+         "base": 0.03814
+        },
+        "3": {
+         "e5": 0.037486,
+         "base": 0.03845
+        },
+        "4": {
+         "e5": 0.03785,
+         "base": 0.037921
+        }
+       },
+       "per_round_p50_range": {
+        "e5": 0.000703,
+        "base": 0.00068
+       },
+       "rounds_e5_below_base": [
+        5,
+        5
+       ]
+      },
+      "0xd40": {
+       "e5": {
+        "n": 5,
+        "p50": 0.030891,
+        "min": 0.030748,
+        "max": 0.031086
+       },
+       "base": {
+        "n": 5,
+        "p50": 0.030854,
+        "min": 0.030657,
+        "max": 0.03128
+       },
+       "delta_p50": 3.7e-05,
+       "per_round_p50": {
+        "0": {
+         "e5": 0.030891,
+         "base": 0.031018
+        },
+        "1": {
+         "e5": 0.0308,
+         "base": 0.030657
+        },
+        "2": {
+         "e5": 0.031086,
+         "base": 0.030854
+        },
+        "3": {
+         "e5": 0.031001,
+         "base": 0.030803
+        },
+        "4": {
+         "e5": 0.030748,
+         "base": 0.03128
+        }
+       },
+       "per_round_p50_range": {
+        "e5": 0.000338,
+        "base": 0.000623
+       },
+       "rounds_e5_below_base": [
+        2,
+        5
+       ]
+      }
+     },
+     "unmatched_delta_p50": -0.00037
+    },
+    "model_load_mmap": {
+     "by_cpu_part": {
+      "0xd0c": {
+       "e5": {
+        "n": 5,
+        "p50": 18.368265,
+        "min": 18.345538,
+        "max": 18.431984
+       },
+       "base": {
+        "n": 5,
+        "p50": 19.132629,
+        "min": 19.112318,
+        "max": 19.261087
+       },
+       "delta_p50": -0.764364,
+       "per_round_p50": {
+        "0": {
+         "e5": 18.347353,
+         "base": 19.261087
+        },
+        "1": {
+         "e5": 18.368265,
+         "base": 19.12424
+        },
+        "2": {
+         "e5": 18.431984,
+         "base": 19.134068
+        },
+        "3": {
+         "e5": 18.345538,
+         "base": 19.132629
+        },
+        "4": {
+         "e5": 18.40327,
+         "base": 19.112318
+        }
+       },
+       "per_round_p50_range": {
+        "e5": 0.086446,
+        "base": 0.148769
+       },
+       "rounds_e5_below_base": [
+        5,
+        5
+       ]
+      },
+      "0xd40": {
+       "e5": {
+        "n": 5,
+        "p50": 7.577044,
+        "min": 7.562072,
+        "max": 7.593085
+       },
+       "base": {
+        "n": 5,
+        "p50": 8.090848,
+        "min": 8.033324,
+        "max": 8.100686
+       },
+       "delta_p50": -0.513804,
+       "per_round_p50": {
+        "0": {
+         "e5": 7.593085,
+         "base": 8.090894
+        },
+        "1": {
+         "e5": 7.577767,
+         "base": 8.090848
+        },
+        "2": {
+         "e5": 7.577044,
+         "base": 8.033324
+        },
+        "3": {
+         "e5": 7.571964,
+         "base": 8.100686
+        },
+        "4": {
+         "e5": 7.562072,
+         "base": 8.083873
+        }
+       },
+       "per_round_p50_range": {
+        "e5": 0.031013,
+        "base": 0.067362
+       },
+       "rounds_e5_below_base": [
+        5,
+        5
+       ]
+      }
+     },
+     "unmatched_delta_p50": -0.63719
+    },
+    "context_init": {
+     "by_cpu_part": {
+      "0xd0c": {
+       "e5": {
+        "n": 5,
+        "p50": 0.467841,
+        "min": 0.46414,
+        "max": 0.474558
+       },
+       "base": {
+        "n": 5,
+        "p50": 0.469853,
+        "min": 0.468026,
+        "max": 0.481074
+       },
+       "delta_p50": -0.002012,
+       "per_round_p50": {
+        "0": {
+         "e5": 0.467215,
+         "base": 0.481074
+        },
+        "1": {
+         "e5": 0.467841,
+         "base": 0.469853
+        },
+        "2": {
+         "e5": 0.473107,
+         "base": 0.473088
+        },
+        "3": {
+         "e5": 0.46414,
+         "base": 0.468026
+        },
+        "4": {
+         "e5": 0.474558,
+         "base": 0.469041
+        }
+       },
+       "per_round_p50_range": {
+        "e5": 0.010418,
+        "base": 0.013048
+       },
+       "rounds_e5_below_base": [
+        3,
+        5
+       ]
+      },
+      "0xd40": {
+       "e5": {
+        "n": 5,
+        "p50": 0.305588,
+        "min": 0.300437,
+        "max": 0.315005
+       },
+       "base": {
+        "n": 5,
+        "p50": 0.308114,
+        "min": 0.296526,
+        "max": 0.311289
+       },
+       "delta_p50": -0.002526,
+       "per_round_p50": {
+        "0": {
+         "e5": 0.304497,
+         "base": 0.311289
+        },
+        "1": {
+         "e5": 0.30947,
+         "base": 0.303768
+        },
+        "2": {
+         "e5": 0.315005,
+         "base": 0.296526
+        },
+        "3": {
+         "e5": 0.305588,
+         "base": 0.308114
+        },
+        "4": {
+         "e5": 0.300437,
+         "base": 0.309344
+        }
+       },
+       "per_round_p50_range": {
+        "e5": 0.014568,
+        "base": 0.014763
+       },
+       "rounds_e5_below_base": [
+        3,
+        5
+       ]
+      }
+     },
+     "unmatched_delta_p50": -8.5e-05
+    },
+    "assets_load": {
+     "by_cpu_part": {
+      "0xd0c": {
+       "e5": {
+        "n": 5,
+        "p50": 1.135255,
+        "min": 1.103402,
+        "max": 1.142713
+       },
+       "base": {
+        "n": 5,
+        "p50": 1.153866,
+        "min": 1.127207,
+        "max": 1.172243
+       },
+       "delta_p50": -0.018611,
+       "per_round_p50": {
+        "0": {
+         "e5": 1.103402,
+         "base": 1.172243
+        },
+        "1": {
+         "e5": 1.142713,
+         "base": 1.142412
+        },
+        "2": {
+         "e5": 1.135255,
+         "base": 1.167951
+        },
+        "3": {
+         "e5": 1.110979,
+         "base": 1.153866
+        },
+        "4": {
+         "e5": 1.14257,
+         "base": 1.127207
+        }
+       },
+       "per_round_p50_range": {
+        "e5": 0.039311,
+        "base": 0.045036
+       },
+       "rounds_e5_below_base": [
+        3,
+        5
+       ]
+      },
+      "0xd40": {
+       "e5": {
+        "n": 5,
+        "p50": 0.811797,
+        "min": 0.801083,
+        "max": 0.823723
+       },
+       "base": {
+        "n": 5,
+        "p50": 0.82962,
+        "min": 0.805661,
+        "max": 0.85157
+       },
+       "delta_p50": -0.017823,
+       "per_round_p50": {
+        "0": {
+         "e5": 0.80952,
+         "base": 0.85157
+        },
+        "1": {
+         "e5": 0.814616,
+         "base": 0.805661
+        },
+        "2": {
+         "e5": 0.823723,
+         "base": 0.82962
+        },
+        "3": {
+         "e5": 0.811797,
+         "base": 0.847229
+        },
+        "4": {
+         "e5": 0.801083,
+         "base": 0.819347
+        }
+       },
+       "per_round_p50_range": {
+        "e5": 0.02264,
+        "base": 0.045909
+       },
+       "rounds_e5_below_base": [
+        4,
+        5
+       ]
+      }
+     },
+     "unmatched_delta_p50": -0.025826
+    },
+    "warmup_inference": {
+     "by_cpu_part": {
+      "0xd0c": {
+       "e5": {
+        "n": 5,
+        "p50": 0.403172,
+        "min": 0.392048,
+        "max": 0.408322
+       },
+       "base": {
+        "n": 5,
+        "p50": 0.405194,
+        "min": 0.396775,
+        "max": 0.414897
+       },
+       "delta_p50": -0.002022,
+       "per_round_p50": {
+        "0": {
+         "e5": 0.404317,
+         "base": 0.414897
+        },
+        "1": {
+         "e5": 0.400504,
+         "base": 0.405194
+        },
+        "2": {
+         "e5": 0.403172,
+         "base": 0.396775
+        },
+        "3": {
+         "e5": 0.392048,
+         "base": 0.4085
+        },
+        "4": {
+         "e5": 0.408322,
+         "base": 0.401027
+        }
+       },
+       "per_round_p50_range": {
+        "e5": 0.016274,
+        "base": 0.018122
+       },
+       "rounds_e5_below_base": [
+        3,
+        5
+       ]
+      },
+      "0xd40": {
+       "e5": {
+        "n": 5,
+        "p50": 0.242861,
+        "min": 0.234955,
+        "max": 0.248712
+       },
+       "base": {
+        "n": 5,
+        "p50": 0.242969,
+        "min": 0.226149,
+        "max": 0.254382
+       },
+       "delta_p50": -0.000108,
+       "per_round_p50": {
+        "0": {
+         "e5": 0.248712,
+         "base": 0.254382
+        },
+        "1": {
+         "e5": 0.242861,
+         "base": 0.226149
+        },
+        "2": {
+         "e5": 0.245303,
+         "base": 0.252911
+        },
+        "3": {
+         "e5": 0.2389,
+         "base": 0.242969
+        },
+        "4": {
+         "e5": 0.234955,
+         "base": 0.240198
+        }
+       },
+       "per_round_p50_range": {
+        "e5": 0.013757,
+        "base": 0.028233
+       },
+       "rounds_e5_below_base": [
+        4,
+        5
+       ]
+      }
+     },
+     "unmatched_delta_p50": -0.005198
+    },
+    "model_ready": {
+     "by_cpu_part": {
+      "0xd0c": {
+       "e5": {
+        "n": 5,
+        "p50": 45.148949,
+        "min": 44.966272,
+        "max": 45.341942
+       },
+       "base": {
+        "n": 5,
+        "p50": 46.109655,
+        "min": 45.931426,
+        "max": 46.281539
+       },
+       "delta_p50": -0.960706,
+       "per_round_p50": {
+        "0": {
+         "e5": 45.046322,
+         "base": 46.281539
+        },
+        "1": {
+         "e5": 45.341942,
+         "base": 46.109655
+        },
+        "2": {
+         "e5": 45.323648,
+         "base": 45.99715
+        },
+        "3": {
+         "e5": 45.148949,
+         "base": 45.931426
+        },
+        "4": {
+         "e5": 44.966272,
+         "base": 46.143145
+        }
+       },
+       "per_round_p50_range": {
+        "e5": 0.37567,
+        "base": 0.350113
+       },
+       "rounds_e5_below_base": [
+        5,
+        5
+       ]
+      },
+      "0xd40": {
+       "e5": {
+        "n": 5,
+        "p50": 33.60617,
+        "min": 33.389654,
+        "max": 33.712857
+       },
+       "base": {
+        "n": 5,
+        "p50": 34.2741,
+        "min": 34.201295,
+        "max": 34.460457
+       },
+       "delta_p50": -0.66793,
+       "per_round_p50": {
+        "0": {
+         "e5": 33.712857,
+         "base": 34.262832
+        },
+        "1": {
+         "e5": 33.639891,
+         "base": 34.2741
+        },
+        "2": {
+         "e5": 33.581028,
+         "base": 34.201295
+        },
+        "3": {
+         "e5": 33.60617,
+         "base": 34.460457
+        },
+        "4": {
+         "e5": 33.389654,
+         "base": 34.304419
+        }
+       },
+       "per_round_p50_range": {
+        "e5": 0.323203,
+        "base": 0.259162
+       },
+       "rounds_e5_below_base": [
+        5,
+        5
+       ]
+      }
+     },
+     "unmatched_delta_p50": -0.856377
+    },
+    "import_total": {
+     "by_cpu_part": {
+      "0xd0c": {
+       "e5": {
+        "n": 5,
+        "p50": 45.976517,
+        "min": 45.79332,
+        "max": 46.173624
+       },
+       "base": {
+        "n": 5,
+        "p50": 46.964039,
+        "min": 46.773639,
+        "max": 47.122035
+       },
+       "delta_p50": -0.987522,
+       "per_round_p50": {
+        "0": {
+         "e5": 45.882936,
+         "base": 47.122035
+        },
+        "1": {
+         "e5": 46.173624,
+         "base": 46.964039
+        },
+        "2": {
+         "e5": 46.170187,
+         "base": 46.824733
+        },
+        "3": {
+         "e5": 45.976517,
+         "base": 46.773639
+        },
+        "4": {
+         "e5": 45.79332,
+         "base": 46.972357
+        }
+       },
+       "per_round_p50_range": {
+        "e5": 0.380304,
+        "base": 0.348396
+       },
+       "rounds_e5_below_base": [
+        5,
+        5
+       ]
+      },
+      "0xd40": {
+       "e5": {
+        "n": 5,
+        "p50": 34.265633,
+        "min": 34.056449,
+        "max": 34.374032
+       },
+       "base": {
+        "n": 5,
+        "p50": 34.936415,
+        "min": 34.863375,
+        "max": 35.135407
+       },
+       "delta_p50": -0.670782,
+       "per_round_p50": {
+        "0": {
+         "e5": 34.374032,
+         "base": 34.927194
+        },
+        "1": {
+         "e5": 34.306641,
+         "base": 34.936415
+        },
+        "2": {
+         "e5": 34.260661,
+         "base": 34.863375
+        },
+        "3": {
+         "e5": 34.265633,
+         "base": 35.135407
+        },
+        "4": {
+         "e5": 34.056449,
+         "base": 34.973843
+        }
+       },
+       "per_round_p50_range": {
+        "e5": 0.317583,
+        "base": 0.272032
+       },
+       "rounds_e5_below_base": [
+        5,
+        5
+       ]
+      }
+     },
+     "unmatched_delta_p50": -0.870847
+    }
+   },
+   "verdict": {
+    "snapshot_init.runtime_to_import": {
+     "parts_with_n_ge_min": [
+      "0xd0c",
+      "0xd40"
+     ],
+     "parts_below_min_n": [],
+     "same_sign_in_every_part": false
+    },
+    "snapshot_init.imports": {
+     "parts_with_n_ge_min": [
+      "0xd0c",
+      "0xd40"
+     ],
+     "parts_below_min_n": [],
+     "same_sign_in_every_part": false
+    },
+    "snapshot_init.weight_download": {
+     "parts_with_n_ge_min": [
+      "0xd0c",
+      "0xd40"
+     ],
+     "parts_below_min_n": [],
+     "same_sign_in_every_part": true
+    },
+    "snapshot_init.ggml_backend_load": {
+     "parts_with_n_ge_min": [
+      "0xd0c",
+      "0xd40"
+     ],
+     "parts_below_min_n": [],
+     "same_sign_in_every_part": false
+    },
+    "snapshot_init.model_load_mmap": {
+     "parts_with_n_ge_min": [
+      "0xd0c",
+      "0xd40"
+     ],
+     "parts_below_min_n": [],
+     "same_sign_in_every_part": true
+    },
+    "snapshot_init.context_init": {
+     "parts_with_n_ge_min": [
+      "0xd0c",
+      "0xd40"
+     ],
+     "parts_below_min_n": [],
+     "same_sign_in_every_part": true
+    },
+    "snapshot_init.assets_load": {
+     "parts_with_n_ge_min": [
+      "0xd0c",
+      "0xd40"
+     ],
+     "parts_below_min_n": [],
+     "same_sign_in_every_part": true
+    },
+    "snapshot_init.warmup_inference": {
+     "parts_with_n_ge_min": [
+      "0xd0c",
+      "0xd40"
+     ],
+     "parts_below_min_n": [],
+     "same_sign_in_every_part": true
+    },
+    "snapshot_init.model_ready": {
+     "parts_with_n_ge_min": [
+      "0xd0c",
+      "0xd40"
+     ],
+     "parts_below_min_n": [],
+     "same_sign_in_every_part": true
+    },
+    "snapshot_init.import_total": {
+     "parts_with_n_ge_min": [
+      "0xd0c",
+      "0xd40"
+     ],
+     "parts_below_min_n": [],
+     "same_sign_in_every_part": true
+    }
+   }
+  },
+  "added_after_run": "Computed on 2026-10-21 from this run's committed invocations.jsonl and logs by host_variability.py (HOST VARIABILITY rework, operator request item-mvhbk9tt-1degq-09b); no measured value in this file changed. Regenerating results.json with summarize_e5.py from the committed records gives the same value for every other field. The method text was revised on 2026-10-21 (review #3 finding) to state the within-round arm order: cold and restore waves run one arm after the other, warm passes alternate pass by pass, so time-within-round drift remains a limitation for cold and restore. Only method and this note changed; every other field is byte-identical to the earlier version. Revised again on 2026-10-21 (review #4 finding): added snapshot_init (the 20 before_snapshot records from the saved logs, each given the CPU part named in its own log stream, with missing/ambiguous counts and a per-part comparison), metadata.snapshot_init_cpu_part and snapshot_init_ggml_cpu_variant, and by_class.*.by_cpu_part.*.per_round_p50_range (run-to-run range within one part). Invocation-row values are unchanged."
  }
 }
