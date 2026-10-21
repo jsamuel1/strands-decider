@@ -9887,6 +9887,7 @@
      }
     }
    },
+   "unknown_cpu_part_rows_by_class_and_arm": {},
    "ggml_cpu_variants_by_cpu_part": {
     "0xd0c": {
      "libggml-cpu-armv8.0_1.so,libggml-cpu-armv8.2_2.so": 15
@@ -9931,7 +9932,7 @@
    "availability zone and physical host"
   ],
   "generation": "not claimed: the runs recorded the CPU part number only (no implementer), so no Graviton generation is named; parts are referred to by number",
-  "method": "every arm vs base is compared only within one CPU part (<arm>_vs_base.<class>.<metric>.by_cpu_part); arms run sequentially in alternating order each round, and per_round_deltas show each comparable round's within-part delta",
+  "method": "every arm vs base is compared only within one known CPU part (<arm>_vs_base.<class>.<metric>.by_cpu_part); rows with unknown CPU identity are excluded from within-part comparisons and counted under observed.unknown_cpu_part_rows_by_class_and_arm; arms run sequentially in alternating order each round, and per_round_deltas show each comparable round's within-part delta",
   "per_round_deltas": {
    "stream": {
     "cold": {
@@ -10170,7 +10171,7 @@
     }
    }
   },
-  "summarized_at_commit": "250ce50",
+  "summarized_at_commit": "223249c52e33cc6d49ac048a681955adb206ad2c",
   "assessment": "Comparable; no rerun. Observed per request: cpuinfo CPU part (0xd40, 0xd0c, 0xd4f); per cold environment the ggml CPU variants (one set per part, as in run 2) and threads=6 (os.cpu_count()); one runtime (python:3.12.mainlinev2.v43) on all 180 INIT_START streams. Not recorded by either run, so unknown: cpuinfo implementer/variant/revision, Features flags, AT_HWCAP/HWCAP2, cgroup limits, kernel release, AZ and physical host. No Graviton generation is claimed: the runs recorded only the CPU part number. Every round's within-part delta has the same sign for each conclusion: stream cold 0xd40 -4.26 to -4.73 s (5 rounds), 0xd0c -9.15 to -9.60 s (2 rounds), 0xd4f -3.00 to -4.26 s (2 rounds); stream restore 0xd40 +0.33 to +0.61 s and memory +455 to +505 MB in every round and part; streamfile cold 0xd40 -0.99 to -1.08 s. Run 2's streamdyn arm reproduced the restore and memory regression on different environments. Limits: no restore landed on 0xd4f; 0xd0c and 0xd4f deltas rest on 2-3 rounds each."
  }
 }
