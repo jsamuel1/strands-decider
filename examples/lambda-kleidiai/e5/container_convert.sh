@@ -15,10 +15,13 @@ pip install -q "numpy==2.5.4" "pyyaml==6.0.3" "tqdm==4.67.1" /b/llama.cpp/gguf-p
 python /e5/convert_no_vocab.py "$in" "$out.tmp"
 mv "$out.tmp" "$out"
 python /e5/tensor_identity.py "$in" "$out" > /tmp/id.json
-python - "$rec" <<'EOF'
+python - "$rec" "$out" <<'EOF'
+import hashlib
 import importlib.metadata
 import json, platform, subprocess, sys
 idj = json.load(open("/tmp/id.json"))
+with open(sys.argv[2], "rb") as fh:
+    converted_sha256 = hashlib.file_digest(fh, "sha256").hexdigest()
 free = subprocess.run(["pip", "freeze"], capture_output=True, text=True, check=True).stdout.splitlines()
 # /b is a host-owned read-only mount and this container runs as root, so git refuses it as "dubious
 # ownership" unless the directory is marked safe. That refusal is why the first run recorded "".
@@ -29,6 +32,7 @@ llama = subprocess.run(
     check=True,
 ).stdout.strip()
 json.dump(idj | {"image": __import__("os").environ["LKAI_E5_CONVERTER_IMAGE"],
+                 "converted_sha256": converted_sha256,
                  "tools": {"python": platform.python_version(), "llama_cpp": llama,
                            "gguf_py": importlib.metadata.version("gguf"),
                            "pip_freeze": free}},

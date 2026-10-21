@@ -56,6 +56,12 @@ def main(b: str, local_manifest: str, published: str | None = None) -> None:
     base_sha = sha(base)
     if base_sha != m["model"]["gguf_sha256"]:
         sys.exit(f"{base} is not the baseline build's GGUF")
+    converted_sha = sha(new)
+    if conv.get("converted_sha256") != converted_sha:
+        sys.exit(
+            f"conversion record names converted sha256 {conv.get('converted_sha256')!r}, "
+            f"but {new} is {converted_sha}"
+        )
     if not conv["tensors"]["identical"]:
         sys.exit("converted GGUF's tensors differ from the baseline's")
     if conv["tensors"]["count"] != [335, 335]:
@@ -76,7 +82,7 @@ def main(b: str, local_manifest: str, published: str | None = None) -> None:
             "format": "GGUF v3 Q8_0, tokenizer.ggml.model=none "
             "(LLAMA_VOCAB_TYPE_NONE), qwen35.vocab_size=248320",
             "bytes": os.path.getsize(new),
-            "sha256": sha(new),
+            "sha256": converted_sha,
             "data_offset": conv["tensors"]["data_offset"][1],
         },
         "conversion": {

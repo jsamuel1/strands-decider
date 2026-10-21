@@ -7,7 +7,7 @@
 #                                     the zip and GGUF P1's published run used, so the deployed code is that run's)
 # 2. convert_no_vocab.py              (the one variable: the GGUF without llama.cpp's text vocabulary)
 # 3. deploy_e5.py up                  (lkai-e5-base and lkai-e5-e5: same zip, same config, different MODEL_KEY)
-# 4. baseline/bench.py --arms base,e5 (P1's interleaved cold / restore / warm harness, unchanged)
+# 4. baseline/bench.py --arms base,e5 (P1's alternating-order cold / restore / warm harness, unchanged)
 # 5. baseline/summarize.py            (lkai-result/1, correctness against P1's reference/outputs.json)
 # 6. baseline/redact.py               (results/<RUN_ID>/ is what gets committed)
 # Env knobs as baseline/run.sh: REGION=us-east-2 ROUNDS=5 CONCURRENCY=10 WARM=10 PREFIX=lkai-e5
@@ -51,7 +51,26 @@ have || LKAI_BUILD=$PB "$BASE/build.sh"
 mkdir -p "$B/model"
 ln -sf "$PB/function.zip" "$B/function.zip"
 ln -sf "$PB/model/s2b-h512-Q8_0.gguf" "$B/model/s2b-h512-Q8_0.gguf"
-if [ ! -f "$B/model/s2b-h512-Q8_0-novocab.gguf" ]; then
+CONVERTED=$B/model/s2b-h512-Q8_0-novocab.gguf
+CONVERT_RECORD=$B/model/convert.json
+conversion_current() {
+  [ -f "$CONVERTED" ] && [ -f "$CONVERT_RECORD" ] && "$PY" - "$CONVERTED" "$CONVERT_RECORD" <<'EOF'
+import hashlib, json, os, sys
+model, record = sys.argv[1:]
+try:
+    rec = json.load(open(record))
+    h = hashlib.sha256()
+    with open(model, "rb") as fh:
+        for chunk in iter(lambda: fh.read(1 << 24), b""):
+            h.update(chunk)
+    ok = rec.get("converted_sha256") == h.hexdigest()
+except (OSError, ValueError, TypeError):
+    ok = False
+sys.exit(0 if ok else 1)
+EOF
+}
+if ! conversion_current; then
+  rm -f "$CONVERTED" "$CONVERT_RECORD"
   docker run --rm --platform linux/arm64 -e LKAI_E5_CONVERTER_IMAGE="$PY_IMAGE" -v "$PB:/b:ro" \
     -v "$HERE:/e5:ro" -v "$B/model:/o" "$PY_IMAGE" \
     bash /e5/container_convert.sh /b/model/s2b-h512-Q8_0.gguf /o/s2b-h512-Q8_0-novocab.gguf /o/convert.json

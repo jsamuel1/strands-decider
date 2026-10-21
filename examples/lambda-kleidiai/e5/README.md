@@ -84,8 +84,8 @@ Same quantization and the same numerical content, so the only expected output di
 (python3.12, arm64, 10,240 MB, SnapStart on published versions, runtime pinned to the same version ARN) and the same
 environment except `MODEL_KEY`, which names each arm's GGUF in the one bucket. Both arms are instrumented
 (`LKAI_PHASES=1`); P1 measured that overhead as within run-to-run spread. `baseline/bench.py --arms base,e5` runs
-unchanged: 5 rounds, arm order alternating, per round 10 cold, 10 restore and 10 warm passes of 10 per arm, with every
-expected start class checked against the REPORT line. `summarize_e5.py` adds per-arm correctness and `e5_vs_base`: the
+unchanged: 5 rounds, arm order alternating between rounds (not within-round pairing), per round 10 cold, 10 restore
+and 10 warm passes of 10 per arm, with every expected start class checked against the REPORT line. `summarize_e5.py` adds per-arm correctness and `e5_vs_base`: the
 median difference within each CPU part (`/proc/cpuinfo` "CPU part") both arms drew, pooled by sample count (P1's method for its
 overhead comparison). `host_variability.py` adds the host-variability assessment below.
 
@@ -156,8 +156,8 @@ appeared, each with one ggml variant set on both arms:
 The parts differ in speed (cold `model_load_mmap` p50 7.1 s on `0xd4f`, 8.4 s on `0xd40`, 19.6 s on `0xd0c`), so the
 mix matters, and the arms' mixes are not equal.
 
-**Could the mix change a conclusion?** No. Every comparison above is within one part, arms alternate order every
-round, and per part:
+**Could the mix change a conclusion?** No. Every comparison above is within one part, and arm order alternates
+between rounds. Arms run sequentially within a round, so time-within-round drift remains a limitation. Per part:
 
 | Class, metric | Δ p50 per part (E5 − base) | Rounds E5 below base | Unmatched Δ (all parts pooled) |
 |---|---|---|---|

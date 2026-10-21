@@ -214,8 +214,9 @@ def assess(run: str) -> dict:
         "schema": "lkai-host-variability/1",
         "method": (
             "post-run, from this run's own records; no new invocations. Comparisons are within one observed CPU "
-            f"part; a part counts toward the verdict when both arms have >= {MIN_N} samples in it. Arms alternate "
-            "order every round (conditions.rounds_meta[].order)."
+            f"part; a part counts toward the verdict when both arms have >= {MIN_N} samples in it. Arm order "
+            "alternates between rounds (conditions.rounds_meta[].order); arms run sequentially within each round, "
+            "so time-within-round drift remains a limitation."
         ),
         "metadata": METADATA,
         "ggml_cpu_variant_by_cpu_part": {k: sorted(v) for k, v in sorted(variants.items())},

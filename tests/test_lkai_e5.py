@@ -172,7 +172,7 @@ def test_deploy_e5_refuses_wrong_model_key(monkeypatch):
         deploy_e5.functions(FakeSess(), st)
 
 
-def test_manifest_refuses_converter_from_wrong_llama_checkout(tmp_path):
+def _manifest_fixture(tmp_path, *, converted_record_sha=True):
     import manifest_e5
 
     build = tmp_path / "build"
@@ -193,10 +193,12 @@ def test_manifest_refuses_converter_from_wrong_llama_checkout(tmp_path):
     }
     manifest_path = tmp_path / "manifest.json"
     manifest_path.write_text(json.dumps(manifest))
+    record_sha = manifest_e5.sha(str(converted)) if converted_record_sha else "stale"
     (model / "convert.json").write_text(
         json.dumps(
             {
                 "image": "python@sha256:5560e9ab8709f459489e5b8aa696eda8a07ef821e14bb122be62d91234bfa98b",
+                "converted_sha256": record_sha,
                 "tools": {"llama_cpp": "wrong", "gguf_py": "0.19.0"},
                 "tensors": {
                     "identical": True,
@@ -204,13 +206,30 @@ def test_manifest_refuses_converter_from_wrong_llama_checkout(tmp_path):
                     "digest": ["same", "same"],
                     "data_offset": [32, 32],
                 },
+                "removed_keys": [],
+                "added_keys": {},
             }
         )
     )
+    return manifest_e5, build, manifest_path, converted
+
+
+def test_manifest_refuses_converter_from_wrong_llama_checkout(tmp_path):
+    manifest_e5, build, manifest_path, _ = _manifest_fixture(tmp_path)
 
     with pytest.raises(
         SystemExit, match=r"conversion used llama\.cpp 'wrong', expected expected"
     ):
+        manifest_e5.main(str(build), str(manifest_path))
+
+
+def test_manifest_refuses_stale_conversion_record(tmp_path):
+    manifest_e5, build, manifest_path, _ = _manifest_fixture(tmp_path, converted_record_sha=False)
+    record = json.loads((build / "model" / "convert.json").read_text())
+    record["tools"]["llama_cpp"] = "expected"
+    (build / "model" / "convert.json").write_text(json.dumps(record))
+
+    with pytest.raises(SystemExit, match="conversion record names converted sha256 'stale'"):
         manifest_e5.main(str(build), str(manifest_path))
 
 
@@ -264,6 +283,53 @@ def test_host_variability_labels_unrecorded_fields_unknown_and_infers_no_generat
         assert H.METADATA[field].startswith("unknown")
     assert H.METADATA["graviton_generation"].startswith("unknown")
     assert H.METADATA["cpu_part"].startswith("observed")
+
+
+def test_host_variability_method_states_sequential_within_round(tmp_path):
+    import host_variability as H
+
+    run = tmp_path / "run"
+    (run / "logs").mkdir(parents=True)
+    rows = []
+    for arm, mmap in (("base", 8.0), ("e5", 7.5)):
+        for i in range(3):
+            r = _row(
+                arm,
+                "cold",
+                "0xd40",
+                init={"model_load_mmap": mmap},
+                report={"Init Duration": 500.0, "Duration": 1000.0, "Max Memory Used": 5000},
+            )
+            r["round"], r["lkai"]["env_id"] = 0, f"{arm}-{i}"
+            rows.append(r)
+    (run / "invocations.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
+
+    method = H.assess(str(run))["method"]
+    assert "alternates between rounds" in method
+    assert "sequentially within each round" in method
+    assert "time-within-round drift remains a limitation" in method
+
+
+def test_run_rebuilds_when_conversion_record_is_stale():
+    run = open(os.path.join(E5, "run.sh")).read()
+    assert "conversion_current()" in run
+    assert 'rec.get("converted_sha256") == h.hexdigest()' in run
+    assert 'rm -f "$CONVERTED" "$CONVERT_RECORD"' in run
+
+
+def test_container_conversion_records_output_digest():
+    script = open(os.path.join(E5, "container_convert.sh")).read()
+    assert 'python - "$rec" "$out"' in script
+    assert 'hashlib.file_digest(fh, "sha256").hexdigest()' in script
+    assert '"converted_sha256": converted_sha256' in script
+
+
+def test_benchmark_docs_do_not_claim_within_round_pairing():
+    readme = open(os.path.join(E5, "README.md")).read()
+    run = open(os.path.join(E5, "run.sh")).read()
+    assert "alternating between rounds" in readme
+    assert "sequentially within a round" in readme
+    assert "alternating-order" in run
 
 
 def test_convert_no_vocab_keeps_tensor_bytes(tmp_path):
