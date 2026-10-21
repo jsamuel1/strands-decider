@@ -113,8 +113,9 @@ def cluster_boot_ratio(
     """Paired round-cluster bootstrap 95% interval of median(a) / median(b).
 
     `a` and `b` map a round to that round's values. Each resample draws rounds with replacement and takes the SAME
-    rounds for both arms, pooling every value of each drawn round, so samples that share a wave (and the time window
-    that wave ran in) move together instead of being treated as independent.
+    rounds for both arms, pooling every value of each drawn round. Samples from one round (each arm's concurrent
+    wave, and the other arm's wave that ran just before or after it) move together instead of being treated as
+    independent.
     """
     rounds = sorted(set(a) & set(b), key=str)
     if len(rounds) < 2:
@@ -202,10 +203,70 @@ def _by_round(rows: list[dict], cls: str, phase: str) -> dict[object, list[float
     return out
 
 
+# How bench.py schedules the arms (baseline/bench.py, `for arm in order`): within a round, each arm's cold (and then
+# restore) invocations run as one concurrent wave of `concurrency`, and the arms' waves run one after the other, never
+# at the same time. Only the order alternates by round (std first on even rounds, ozia first on odd rounds).
+SCHEDULE = {
+    "design": "alternating sequential arm waves",
+    "detail": "within a round each arm's wave of concurrent invocations completes before the other arm's wave "
+    "starts; the arm order reverses on alternate rounds",
+    "controls": "round (the two arms' waves are adjacent in time) and, through per-invocation cpu_part, CPU identity",
+    "does_not_control": "time-within-round drift: the two arms of a round never share a time window, so any "
+    "change in S3 or Lambda behaviour between the first and second wave of a round is confounded with arm; "
+    "alternating the order balances it across rounds only on average",
+}
+
+
+def wave_schedule(rows: list[dict]) -> dict:
+    """Observed start/end of every (round, class, arm) wave from client timestamps, and whether arm waves overlapped."""
+    spans: dict = defaultdict(list)
+    for r in rows:
+        if r.get("t_start") is None or r.get("rt_s") is None or r["expected_class"] == "warm":
+            continue
+        spans[(r["round"], r["expected_class"], r["arm"])].append(
+            (r["t_start"], r["t_start"] + r["rt_s"])
+        )
+    waves: list[dict] = []
+    for rnd in sorted({k[0] for k in spans}, key=str):
+        for cls in ("cold", "restore"):
+            arms = [
+                (
+                    min(s for s, _ in spans[(rnd, cls, a)]),
+                    max(e for _, e in spans[(rnd, cls, a)]),
+                    a,
+                )
+                for a in ARMS
+                if spans.get((rnd, cls, a))
+            ]
+            if len(arms) != 2:
+                continue
+            (s0, e0, a0), (s1, e1, a1) = sorted(arms)
+            waves.append(
+                {
+                    "round": rnd,
+                    "class": cls,
+                    "order": [a0, a1],
+                    "first_wave_s": round(e0 - s0, 3),
+                    "second_wave_s": round(e1 - s1, 3),
+                    "gap_s": round(s1 - e0, 4),
+                    "overlap": s1 < e0,
+                }
+            )
+    gaps = [w["gap_s"] for w in waves]
+    return SCHEDULE | {
+        "observed_from": "invocations.jsonl t_start and rt_s (client clock)",
+        "waves": waves,
+        "arm_waves_overlapped": any(w["overlap"] for w in waves) if waves else None,
+        "gap_s_range": [min(gaps), max(gaps)] if gaps else None,
+    }
+
+
 SENSITIVITY = {
     "name": "paired round-cluster bootstrap",
-    "why": "each round's cold starts run as one concurrent wave in a shared time window, and arm order alternates "
-    "by round, so the samples within a round are not independent; the primary bootstrap treats them as if they were",
+    "why": "each arm's cold starts in a round run as one concurrent wave, and the two arms' waves run back to back "
+    "(alternating sequential arm waves, order reversed on alternate rounds), so samples within a round are not "
+    "independent; the primary bootstrap treats them as if they were. Pairing by round does not remove "
+    "time-within-round drift between the first and second wave",
     "method": "resample rounds with replacement (10,000 resamples, seed 0), the same rounds for both arms, pool "
     "each drawn round's values, ratio of medians ozia/std",
     "role": "sensitivity only: the pre-registered decision rule above sets status",
@@ -224,10 +285,19 @@ def comparison(rows: list[dict], snaps: dict[str, list[dict]]) -> dict:
                     _by_round(by_arm["ozia"], cls, ph), _by_round(by_arm["std"], cls, ph)
                 )
         # Engine-bound phases depend on the host CPU (the cpuinfo `CPU part`); compare within a CPU part as well.
+        # A row without a recorded CPU part has no host identity and enters no CPU-part stratum.
         per_cpu: dict = {}
         cpus = sorted(
-            {r.get("cpu_part") for r in by_arm["std"] if r["expected_class"] == cls}
-            & {r.get("cpu_part") for r in by_arm["ozia"] if r["expected_class"] == cls},
+            {
+                r.get("cpu_part")
+                for r in by_arm["std"]
+                if r["expected_class"] == cls and known_cpu(r)
+            }
+            & {
+                r.get("cpu_part")
+                for r in by_arm["ozia"]
+                if r["expected_class"] == cls and known_cpu(r)
+            },
             key=str,
         )
         for cpu in cpus:
@@ -241,6 +311,10 @@ def comparison(rows: list[dict], snaps: dict[str, list[dict]]) -> dict:
                     )
                 per_cpu[str(cpu)][ph] = d
         c["by_cpu_part"] = per_cpu
+        c["by_cpu_part_unassessed"] = {
+            a: sum(1 for r in by_arm[a] if r["expected_class"] == cls and not known_cpu(r))
+            for a in ARMS
+        }
         out[cls] = c
     # The snapshot init (inside publish_version) also downloads the weights, from the same object.
     snap: dict = {}
@@ -252,6 +326,7 @@ def comparison(rows: list[dict], snaps: dict[str, list[dict]]) -> dict:
     primary = out["cold"].get("weight_download") or {}
     out["outcome"] = decide(primary.get("ratio_ci95"))
     cl = primary.get("ratio_ci95_round_cluster")
+    out["schedule"] = wave_schedule(rows)
     out["sensitivity"] = SENSITIVITY | {
         "rounds": len({r["round"] for r in rows}),
         "ci95": cl,
@@ -271,12 +346,32 @@ HOST_UNOBSERVED = (
     "core count of a restored environment (threads come from the snapshotting init)",
     "cgroup CPU and memory limits",
     "kernel release",
+    "availability zone (not exposed to the function)",
+    "physical host or instance identity (two environments on the same CPU part may or may not share a host)",
     "processor generation or product name (not inferred from CPU part or from timings)",
 )
 
 
+def known_cpu(r: dict) -> bool:
+    """True when the row carries a recorded CPU part. Missing values never form a host stratum of their own."""
+    p = r.get("cpu_part")
+    return p is not None and str(p).strip() not in ("", "None", "unknown")
+
+
+def _unassessed(rows: list[dict], cls: str) -> dict:
+    return {
+        a: sum(1 for r in rows if r["arm"] == a and r["expected_class"] == cls and not known_cpu(r))
+        for a in ARMS
+    }
+
+
 def _log_hosts(run: str) -> dict[str, dict]:
-    """Per function: {cpu_part: set of ggml variants} from init lines, and the CPU part of every snapshot init."""
+    """Per function: {cpu_part: set of ggml variants} from init lines, and the CPU part of every snapshot init.
+
+    A snapshot init is attributed to a CPU part only when its log stream carries exactly one distinct `init
+    cpu_part=` value. A stream with no such line, or with more than one distinct part, counts as `unknown`, and the
+    reason is counted separately.
+    """
     out: dict[str, dict] = {}
     d = os.path.join(run, "logs")
     if not os.path.isdir(d):
@@ -296,13 +391,24 @@ def _log_hosts(run: str) -> dict[str, dict]:
                 if msg.startswith("LKAI ") and '"before_snapshot"' in msg:
                     st["snap"] += 1
         snap_parts: dict[str, int] = defaultdict(int)
+        why = {"no_cpu_part_line_in_stream": 0, "more_than_one_cpu_part_in_stream": 0}
         for st in streams.values():
-            if st["snap"]:
-                for p in st["parts"] or ["unknown"]:
-                    snap_parts[p] += 1
+            if not st["snap"]:
+                continue
+            distinct = set(st["parts"])
+            if len(distinct) == 1:
+                snap_parts[next(iter(distinct))] += st["snap"]
+            else:
+                snap_parts["unknown"] += st["snap"]
+                why[
+                    "no_cpu_part_line_in_stream"
+                    if not distinct
+                    else "more_than_one_cpu_part_in_stream"
+                ] += st["snap"]
         out[fn] = {
             "ggml_cpu_by_cpu_part": {p: sorted(v) for p, v in sorted(variants.items())},
             "snapshot_init_cpu_parts": dict(sorted(snap_parts.items())),
+            "snapshot_init_unknown_reasons": why,
         }
     return out
 
@@ -324,6 +430,8 @@ def _round_cv(rows: list[dict], cls: str, f) -> dict | None:
 def _round_cpu_primary(rows: list[dict]) -> dict:
     """Cold weight-download comparison within each shared (round, CPU part) cell."""
     cells: list[dict] = []
+    unassessed = _unassessed(rows, "cold")
+    rows = [r for r in rows if known_cpu(r)]
     rounds = sorted({r["round"] for r in rows}, key=str)
     parts = sorted({str(r.get("cpu_part")) for r in rows}, key=str)
     for cpu in parts:
@@ -371,12 +479,16 @@ def _round_cpu_primary(rows: list[dict]) -> dict:
         "delta_signs": signs,
         "all_inside_equivalence_band": bool(cells)
         and all(c["inside_equivalence_band"] for c in cells),
-        "missing": "CPU parts absent from either arm in a round have no shared-cell comparison",
+        "unassessed_cold_rows_without_cpu_part": unassessed,
+        "missing": "CPU parts absent from either arm in a round have no shared-cell comparison; rows without a "
+        "recorded CPU part are excluded and counted in unassessed_cold_rows_without_cpu_part",
     }
 
 
 def _pooled_primary_by_cpu_part(rows: list[dict]) -> dict:
     """Cold weight-download median per CPU part, both arms pooled: how much the metric depends on the host."""
+    unassessed = _unassessed(rows, "cold")
+    rows = [r for r in rows if known_cpu(r)]
     parts = sorted({str(r.get("cpu_part")) for r in rows}, key=str)
     cells = {}
     for cpu in parts:
@@ -388,18 +500,20 @@ def _pooled_primary_by_cpu_part(rows: list[dict]) -> dict:
         "metric": "cold weight_download median, std and ozia pooled, per CPU part",
         "by_cpu_part": cells,
         "span_ratio": round(max(meds) / min(meds), 4) if meds else None,
+        "unassessed_cold_rows_without_cpu_part": unassessed,
     }
 
 
 def _warm_by_round_and_cpu_part(rows: list[dict]) -> dict:
     """Warm request count and latency median per (arm, round, CPU part): where a pooled warm CV comes from."""
-    out: dict = {}
+    out: dict = {"unassessed_warm_rows_without_cpu_part": _unassessed(rows, "warm")}
     for arm in ARMS:
         per: dict = defaultdict(list)
         for r in rows:
             if (
                 r["arm"] == arm
                 and r["expected_class"] == "warm"
+                and known_cpu(r)
                 and not r["error"]
                 and not r["class_mismatch"]
             ):
@@ -427,14 +541,21 @@ def host_variability(run: str, cond: dict, rows: list[dict], cmp_: dict) -> dict
         for a in ARMS
     }
     envs: dict[str, set] = defaultdict(set)
+    envs_unknown: set = set()
     for r in rows:
         env = (r.get("lkai") or {}).get("env_id")
         if env:
-            envs[env].add(r.get("cpu_part"))
+            if known_cpu(r):
+                envs[env].add(r.get("cpu_part"))
+            else:
+                envs_unknown.add(env)
     logs = _log_hosts(run)
     fns = {a: cond["functions"][a]["FunctionName"] for a in ARMS}
-    cold_parts = _count(r.get("cpu_part") for r in rows if r["expected_class"] == "cold")
+    cold_parts = _count(
+        r.get("cpu_part") for r in rows if r["expected_class"] == "cold" and known_cpu(r)
+    )
     dominant = max(cold_parts, key=cold_parts.get) if cold_parts else None
+    cold_unassessed = _unassessed(rows, "cold")
     within = ((cmp_.get("cold") or {}).get("by_cpu_part") or {}).get(str(dominant)) or {}
     wd = within.get("weight_download") or {}
     # Warm round-to-round spread with and without the CPU-part mix (pooled vs one part only).
@@ -449,25 +570,44 @@ def host_variability(run: str, cond: dict, rows: list[dict], cmp_: dict) -> dict
         for a in ARMS
     }
     round_cpu_primary = _round_cpu_primary(rows)
-    rerun_needed = not (
-        wd.get("n")
-        and decide(wd.get("ratio_ci95")) == cmp_.get("outcome")
-        and decide(wd.get("ratio_ci95_round_cluster")) == cmp_.get("outcome")
-        and round_cpu_primary["all_inside_equivalence_band"]
-    )
+    if dominant is None:
+        # No cold start carries a CPU identity: the host mix cannot be assessed at all.
+        rerun_needed, decision = True, "unknown: rerun with host metadata"
+        reason = "no cold start recorded a CPU part, so no host-conditioned comparison exists"
+    else:
+        rerun_needed = not (
+            wd.get("n")
+            and decide(wd.get("ratio_ci95")) == cmp_.get("outcome")
+            and decide(wd.get("ratio_ci95_round_cluster")) == cmp_.get("outcome")
+            and round_cpu_primary["all_inside_equivalence_band"]
+        )
+        decision = "no rerun" if not rerun_needed else "rerun affected comparison"
+        reason = (
+            "dominant-part primary and cluster intervals agree with the pooled no-change outcome, and every shared "
+            "round/CPU-part cell is inside the +/-2% band"
+            if not rerun_needed
+            else "host-conditioned evidence does not preserve the pooled outcome and equivalence band"
+        )
     return {
         "identity_field": "cpu_part: the /proc/cpuinfo 'CPU part' line read by the handler in each environment",
         "method": "compare the primary metric within CPU part and within shared (round, CPU part) cells; retain "
-        "the pre-registered pooled result and paired round-cluster sensitivity",
+        "the pre-registered pooled result and paired round-cluster sensitivity. Rows without a recorded CPU part "
+        "enter no host-conditioned comparison and are counted as unassessed",
+        "schedule": SCHEDULE["design"] + ": " + SCHEDULE["does_not_control"],
         "observed": {
             "cpu_part_by_arm_and_class": counts,
-            "execution_environments": len(envs),
+            "cold_rows_without_cpu_part": cold_unassessed,
+            "execution_environments": len(envs | {e: set() for e in envs_unknown}),
             "environments_with_more_than_one_cpu_part": sum(len(v) > 1 for v in envs.values()),
+            "environments_with_a_row_without_cpu_part": len(envs_unknown),
             "ggml_cpu_variant_by_cpu_part": {
                 a: logs.get(fns[a], {}).get("ggml_cpu_by_cpu_part") for a in ARMS
             },
             "snapshot_init_cpu_parts": {
                 a: logs.get(fns[a], {}).get("snapshot_init_cpu_parts") for a in ARMS
+            },
+            "snapshot_init_unknown_reasons": {
+                a: logs.get(fns[a], {}).get("snapshot_init_unknown_reasons") for a in ARMS
             },
             "threads": sorted({(r.get("timing") or {}).get("threads") for r in rows}, key=str),
             "threads_source": "os.cpu_count() in the init that loaded the model (THREADS unset); a restored "
@@ -493,12 +633,11 @@ def host_variability(run: str, cond: dict, rows: list[dict], cmp_: dict) -> dict
         "primary_by_round_and_cpu_part": round_cpu_primary,
         "rerun_assessment": {
             "needed": rerun_needed,
-            "decision": "no rerun" if not rerun_needed else "rerun affected comparison",
-            "reason": "dominant-part primary and cluster intervals agree with the pooled no-change outcome, and "
-            "every shared round/CPU-part cell is inside the +/-2% band"
-            if not rerun_needed
-            else "host-conditioned evidence does not preserve the pooled outcome and equivalence band",
-            "limitation": "within-round signs may vary and sparse CPU parts have few or no shared cells",
+            "decision": decision,
+            "reason": reason,
+            "unassessed_cold_rows_without_cpu_part": cold_unassessed,
+            "limitation": "within-round signs may vary, sparse CPU parts have few or no shared cells, and the arms "
+            "ran as alternating sequential waves, so time-within-round drift is not controlled",
         },
         "warm_round_cv": warm_cv,
         "warm_by_round_and_cpu_part": _warm_by_round_and_cpu_part(rows),

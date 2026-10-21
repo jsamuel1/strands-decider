@@ -37,12 +37,17 @@ comes from a bootstrap of 10,000 resamples with seed 0. The result is **no chang
 0.98–1.02, **improved** if it lies below 0.98, **regressed** if it lies above 1.02, and **inconclusive** otherwise.
 `summarize.py` sets `status` from this rule.
 
-That bootstrap treats the 50 cold starts per arm as independent samples. They are not: each round's 10 cold starts
-run as one concurrent wave in a shared time window, and the arm order alternates by round. `summarize.py` therefore
-also reports a sensitivity analysis, a paired round-cluster bootstrap (`comparison.sensitivity` and
-`ratio_ci95_round_cluster` on every comparison). It resamples whole rounds with replacement, takes the same rounds
-for both arms, and pools each drawn round's values. It is reported beside the primary interval and does not set
-`status`. With only 5 rounds, it is coarse.
+That bootstrap treats the 50 cold starts per arm as independent samples. They are not. `bench.py` runs the arms as
+**alternating sequential waves**: within a round, one arm's 10 cold starts run as a concurrent wave, and the other
+arm's wave starts only after it ends (the committed timestamps show no overlap; gaps of 0.0013 to 0.87 s,
+`comparison.schedule`). The arm order reverses on alternate rounds. This pairs the arms by round and records CPU
+identity per invocation, but the two arms of a round never share a time window, so drift between the first and
+second wave of a round is confounded with arm. Alternating the order balances that drift across rounds only on
+average. `summarize.py` therefore also reports a sensitivity analysis, a paired round-cluster bootstrap
+(`comparison.sensitivity` and `ratio_ci95_round_cluster` on every comparison). It resamples whole rounds with
+replacement, takes the same rounds for both arms, and pools each drawn round's values. It is reported beside the
+primary interval and does not set `status`. With only 5 rounds, it is coarse, and it does not remove within-round
+drift.
 
 ## Results: run `20261020T1125Z-e2`
 
@@ -64,7 +69,7 @@ Full distributions are in `results/20261020T1125Z-e2/results.json` (`phases.<arm
 | warm | steady-state inference | 0.660 | 0.665 | 1.0063 [0.9206, 1.1393] | [0.9739, 1.0926] | 500 / 500 |
 
 The round-cluster interval for the primary metric is [0.9972, 1.0067]. It also lies inside 0.98–1.02, so the
-outcome does not depend on treating concurrent cold starts as independent.
+outcome does not depend on treating cold starts from one wave as independent.
 
 - **Download.** The two storage classes give the same download time. The p99 is 28.7 s for Standard and 25.2 s for
   One Zone-IA, a single slow Standard sample that is not a class effect. Both arms match P1's 25.04 s and 79 MiB/s.
@@ -133,17 +138,24 @@ own feature probe loaded, the log stream, and the runtime version. Three CPU par
 `armv8.2_2`), `0xd40` (`armv8.6_1`) and `0xd4f` (`armv8.6_2`). Each of the 200 environments reported a single CPU
 part. Every environment ran 6 threads (`os.cpu_count()` in the init that loaded the model), 10,240 MB, and runtime
 `…runtime:0fec05b8…`. The snapshot init for each published version ran twice, once on `0xd0c` and once on `0xd40`,
-on both arms (5 + 5 each).
+on both arms (5 + 5 each). A snapshot init is attributed to a CPU part only when its log stream carries exactly one
+distinct `init cpu_part=` line; a stream with none or with more than one counts as unknown
+(`observed.snapshot_init_unknown_reasons`). In this run every snapshot stream had exactly one, so 0 are unknown.
+Every one of the 1,200 invocations recorded a CPU part. Rows without one would be excluded from every
+CPU-part comparison and counted as unassessed (`*_without_cpu_part` keys, all 0 here); if no cold start had one,
+`rerun_assessment` would read unknown and ask for a rerun with host metadata.
 
 **Not observed, so unknown.** The `CPU implementer`, variant and revision lines, the `Features` flags and
-`AT_HWCAP`/`AT_HWCAP2`, cgroup CPU and memory limits, the kernel release, and the core count of a restored
+`AT_HWCAP`/`AT_HWCAP2`, cgroup CPU and memory limits, the kernel release, the availability zone, the physical host
+or instance (two environments on one CPU part may or may not share a host), and the core count of a restored
 environment (its thread count comes from the snapshotting init). This README names CPU parts only. It makes no claim
 about which processor generation or product a part is. The earlier wording that named generations was an inference
 from the part number and timings, and was removed.
 
 **Is the conclusion exposed to host mix?** No, and no rerun was made:
 
-- The arms were interleaved by round, and both drew the same part mix within one or two cold starts per part (table
+- The arms ran as alternating sequential waves within each round (not at the same time), and both drew the same
+  part mix within one or two cold starts per part (table
   above). The snapshot inits that seeded every restore ran on the same parts on both arms.
 - The primary metric, cold `weight_download`, does not depend materially on the CPU part in this run. Pooled over both arms,
   its median is 24.84 s on `0xd0c` (n=4), 24.97 s on `0xd40` (n=84) and 25.15 s on `0xd4f` (n=12). Those medians
@@ -159,7 +171,8 @@ from the part number and timings, and was removed.
   the host held fixed (`host_variability.primary_within_dominant_cpu_part`).
 - `host_variability.rerun_assessment` records **no rerun**: the dominant-part primary and cluster intervals preserve
   the pooled no-change outcome, and every shared round/CPU-part ratio remains inside the decision band. Sparse
-  parts and changing within-round signs remain explicit limitations.
+  parts, changing within-round signs, and time-within-round drift between the two sequential waves remain explicit
+  limitations.
 - Correctness is compared per (request, CPU part) against P1's reference: 1,200 / 1,200 bit-identical with 0
   missing references.
 - The phases where the part mix does show (probe forward, warm inference) are compute on weights already in memory.

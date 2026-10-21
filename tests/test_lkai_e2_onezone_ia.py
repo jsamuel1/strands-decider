@@ -574,3 +574,151 @@ def test_committed_result_names_cpu_parts_not_generations():
         os.path.join(E2, "README.md"),
     ):
         assert "graviton" not in open(p).read().lower(), p
+
+
+def test_wave_schedule_reports_sequential_arm_waves_and_flags_overlap():
+    s = _load("summarize")
+
+    def r(arm, rnd, t0, rt):
+        return _row(arm, rnd, "cold") | {"t_start": t0, "rt_s": rt}
+
+    seq = [r("std", 0, 0.0, 30.0), r("std", 0, 0.1, 30.0), r("ozia", 0, 30.2, 29.0)]
+    sch = s.wave_schedule(seq)
+    assert sch["design"] == "alternating sequential arm waves"
+    assert "time-within-round drift" in sch["does_not_control"]
+    assert sch["waves"][0]["order"] == ["std", "ozia"]
+    assert sch["waves"][0]["gap_s"] == pytest.approx(0.1)
+    assert sch["arm_waves_overlapped"] is False
+    over = [r("std", 0, 0.0, 30.0), r("ozia", 0, 10.0, 30.0)]
+    assert s.wave_schedule(over)["arm_waves_overlapped"] is True
+    assert s.wave_schedule([_row("std", 0, "cold")])["arm_waves_overlapped"] is None
+
+
+def test_sensitivity_and_host_method_do_not_claim_a_shared_time_window():
+    s = _load("summarize")
+    for text in (s.SENSITIVITY["why"], json.dumps(s.SCHEDULE)):
+        low = text.lower()
+        assert "shared time window" not in low and "interleav" not in low
+        assert "sequential" in low
+
+
+def _cold_pair(rnd, cpu_std, cpu_ozia, wd_std=25.0, wd_ozia=25.0):
+    return [
+        _row("std", rnd, "cold", wd=wd_std, cpu=cpu_std),
+        _row("ozia", rnd, "cold", wd=wd_ozia, cpu=cpu_ozia),
+    ]
+
+
+def test_missing_cpu_part_never_forms_a_shared_host_stratum():
+    s = _load("summarize")
+    # All missing: no cell, no pooled part, nothing assessed.
+    rows = _cold_pair(0, None, None) + _cold_pair(1, None, None, wd_ozia=30.0)
+    rc = s._round_cpu_primary(rows)
+    assert rc["shared_cells"] == 0 and rc["all_inside_equivalence_band"] is False
+    assert rc["unassessed_cold_rows_without_cpu_part"] == {"std": 2, "ozia": 2}
+    pooled = s._pooled_primary_by_cpu_part(rows)
+    assert pooled["by_cpu_part"] == {} and pooled["span_ratio"] is None
+    assert "None" not in json.dumps(rc) and "None" not in json.dumps(pooled)
+    cmp_ = s.comparison(rows, {})
+    assert cmp_["cold"]["by_cpu_part"] == {}
+    assert cmp_["cold"]["by_cpu_part_unassessed"] == {"std": 2, "ozia": 2}
+    # Mixed: only the known part forms a cell; the missing rows (which differ by 20%) are counted, not compared.
+    mixed = _cold_pair(0, "0xd40", "0xd40") + _cold_pair(0, None, None, wd_ozia=30.0)
+    rc = s._round_cpu_primary(mixed)
+    assert [c["cpu_part"] for c in rc["cells"]] == ["0xd40"]
+    assert rc["ratio_range"] == [1.0, 1.0]
+    assert rc["unassessed_cold_rows_without_cpu_part"] == {"std": 1, "ozia": 1}
+    assert list(s.comparison(mixed, {})["cold"]["by_cpu_part"]) == ["0xd40"]
+
+
+def test_all_missing_cpu_parts_make_the_rerun_assessment_unknown(tmp_path):
+    s = _load("summarize")
+    run = _run(tmp_path, 25.0)
+    rows = [json.loads(x) for x in open(os.path.join(run, "invocations.jsonl"))]
+    for r in rows:
+        r["cpu_part"] = None
+    (tmp_path / "invocations.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
+    meta = json.load(open(os.path.join(E2, "meta.json")))
+    res = s.summarize(run, str(tmp_path / "ref.json"), str(tmp_path / "dep.json"), "aac59d4", meta)
+    ra = res["host_variability"]["rerun_assessment"]
+    assert ra["needed"] is True and ra["decision"].startswith("unknown")
+    assert ra["unassessed_cold_rows_without_cpu_part"] == {"std": 20, "ozia": 20}
+    assert res["host_variability"]["primary_within_dominant_cpu_part"]["cpu_part"] is None
+
+
+def test_mixed_known_and_missing_cpu_parts_assess_only_known_rows(tmp_path):
+    s = _load("summarize")
+    run = _run(tmp_path, 25.0)
+    rows = [json.loads(x) for x in open(os.path.join(run, "invocations.jsonl"))]
+    colds = [r for r in rows if r["expected_class"] == "cold"]
+    for r in colds[::4]:
+        r["cpu_part"] = None
+    (tmp_path / "invocations.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
+    meta = json.load(open(os.path.join(E2, "meta.json")))
+    res = s.summarize(run, str(tmp_path / "ref.json"), str(tmp_path / "dep.json"), "aac59d4", meta)
+    h = res["host_variability"]
+    miss = h["observed"]["cold_rows_without_cpu_part"]
+    assert sum(miss.values()) == len(colds[::4]) and min(miss.values()) > 0
+    w = h["primary_within_dominant_cpu_part"]
+    assert w["cpu_part"] == "0xd40" and sum(w["n"]) == len(colds) - len(colds[::4])
+    assert h["rerun_assessment"]["decision"] == "no rerun"
+    assert list(res["comparison"]["cold"]["by_cpu_part"]) == ["0xd40"]
+
+
+def test_snapshot_cpu_part_requires_one_unambiguous_part_per_stream(tmp_path):
+    s = _load("summarize")
+    (tmp_path / "logs").mkdir()
+    snap = "LKAI " + json.dumps({"kind": "before_snapshot", "wall_ns": 1})
+    init = "x decider.engine init cpu_part={} ggml_cpu=v threads=6"
+    recs = [
+        ("one", init.format("0xd40")),
+        ("one", init.format("0xd40")),  # repeated same part: still one distinct part
+        ("one", snap),
+        ("two", init.format("0xd0c")),
+        ("two", init.format("0xd4f")),
+        ("two", snap),
+        ("none", snap),
+        ("nosnap", init.format("0xd4f")),
+    ]
+    with gzip.open(tmp_path / "logs" / "fn.jsonl.gz", "wt") as f:
+        for stream, m in recs:
+            f.write(json.dumps({"timestamp": 0, "logStreamName": stream, "message": m}) + "\n")
+    out = s._log_hosts(str(tmp_path))["fn"]
+    assert out["snapshot_init_cpu_parts"] == {"0xd40": 1, "unknown": 2}
+    assert out["snapshot_init_unknown_reasons"] == {
+        "no_cpu_part_line_in_stream": 1,
+        "more_than_one_cpu_part_in_stream": 1,
+    }
+
+
+def test_unobserved_names_availability_zone_and_physical_host():
+    s = _load("summarize")
+    u = " ".join(s.HOST_UNOBSERVED).lower()
+    assert "availability zone" in u and "physical host" in u
+
+
+def test_committed_result_records_sequential_schedule_and_no_unassessed_rows():
+    base = os.path.join(E2, "results", "20261020T1125Z-e2")
+    res = json.load(open(os.path.join(base, "results.json")))
+    sch = res["comparison"]["schedule"]
+    assert sch["design"] == "alternating sequential arm waves"
+    assert sch["arm_waves_overlapped"] is False
+    assert len(sch["waves"]) == 10
+    assert [w["order"] for w in sch["waves"] if w["class"] == "cold"] == [
+        ["std", "ozia"],
+        ["ozia", "std"],
+        ["std", "ozia"],
+        ["ozia", "std"],
+        ["std", "ozia"],
+    ]
+    h = res["host_variability"]
+    assert h["observed"]["cold_rows_without_cpu_part"] == {"std": 0, "ozia": 0}
+    assert h["observed"]["snapshot_init_unknown_reasons"]["std"] == {
+        "no_cpu_part_line_in_stream": 0,
+        "more_than_one_cpu_part_in_stream": 0,
+    }
+    assert any("availability zone" in u for u in h["unobserved"])
+    assert "time-within-round drift" in h["rerun_assessment"]["limitation"]
+    for p in (os.path.join(base, "results.json"), os.path.join(E2, "README.md")):
+        low = open(p).read().lower()
+        assert "shared time window" not in low and "interleaved by round" not in low, p

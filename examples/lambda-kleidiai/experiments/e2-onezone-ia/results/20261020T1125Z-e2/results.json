@@ -5967,6 +5967,10 @@
       ]
      }
     }
+   },
+   "by_cpu_part_unassessed": {
+    "std": 0,
+    "ozia": 0
    }
   },
   "restore": {
@@ -6167,6 +6171,10 @@
       ]
      }
     }
+   },
+   "by_cpu_part_unassessed": {
+    "std": 0,
+    "ozia": 0
    }
   },
   "warm": {
@@ -6277,6 +6285,10 @@
       ]
      }
     }
+   },
+   "by_cpu_part_unassessed": {
+    "std": 0,
+    "ozia": 0
    }
   },
   "snapshot_init": {
@@ -6310,9 +6322,143 @@
    }
   },
   "outcome": "no-change",
+  "schedule": {
+   "design": "alternating sequential arm waves",
+   "detail": "within a round each arm's wave of concurrent invocations completes before the other arm's wave starts; the arm order reverses on alternate rounds",
+   "controls": "round (the two arms' waves are adjacent in time) and, through per-invocation cpu_part, CPU identity",
+   "does_not_control": "time-within-round drift: the two arms of a round never share a time window, so any change in S3 or Lambda behaviour between the first and second wave of a round is confounded with arm; alternating the order balances it across rounds only on average",
+   "observed_from": "invocations.jsonl t_start and rt_s (client clock)",
+   "waves": [
+    {
+     "round": 0,
+     "class": "cold",
+     "order": [
+      "std",
+      "ozia"
+     ],
+     "first_wave_s": 37.269,
+     "second_wave_s": 36.881,
+     "gap_s": 0.0013,
+     "overlap": false
+    },
+    {
+     "round": 0,
+     "class": "restore",
+     "order": [
+      "std",
+      "ozia"
+     ],
+     "first_wave_s": 5.429,
+     "second_wave_s": 4.408,
+     "gap_s": 0.0013,
+     "overlap": false
+    },
+    {
+     "round": 1,
+     "class": "cold",
+     "order": [
+      "ozia",
+      "std"
+     ],
+     "first_wave_s": 36.685,
+     "second_wave_s": 37.161,
+     "gap_s": 0.3823,
+     "overlap": false
+    },
+    {
+     "round": 1,
+     "class": "restore",
+     "order": [
+      "ozia",
+      "std"
+     ],
+     "first_wave_s": 4.792,
+     "second_wave_s": 4.32,
+     "gap_s": 0.0019,
+     "overlap": false
+    },
+    {
+     "round": 2,
+     "class": "cold",
+     "order": [
+      "std",
+      "ozia"
+     ],
+     "first_wave_s": 36.902,
+     "second_wave_s": 49.115,
+     "gap_s": 0.0015,
+     "overlap": false
+    },
+    {
+     "round": 2,
+     "class": "restore",
+     "order": [
+      "std",
+      "ozia"
+     ],
+     "first_wave_s": 4.348,
+     "second_wave_s": 5.309,
+     "gap_s": 0.0015,
+     "overlap": false
+    },
+    {
+     "round": 3,
+     "class": "cold",
+     "order": [
+      "ozia",
+      "std"
+     ],
+     "first_wave_s": 36.86,
+     "second_wave_s": 48.818,
+     "gap_s": 0.0013,
+     "overlap": false
+    },
+    {
+     "round": 3,
+     "class": "restore",
+     "order": [
+      "ozia",
+      "std"
+     ],
+     "first_wave_s": 4.338,
+     "second_wave_s": 4.667,
+     "gap_s": 0.0028,
+     "overlap": false
+    },
+    {
+     "round": 4,
+     "class": "cold",
+     "order": [
+      "std",
+      "ozia"
+     ],
+     "first_wave_s": 36.867,
+     "second_wave_s": 48.523,
+     "gap_s": 0.003,
+     "overlap": false
+    },
+    {
+     "round": 4,
+     "class": "restore",
+     "order": [
+      "std",
+      "ozia"
+     ],
+     "first_wave_s": 4.276,
+     "second_wave_s": 5.369,
+     "gap_s": 0.8652,
+     "overlap": false
+    }
+   ],
+   "arm_waves_overlapped": false,
+   "gap_s_range": [
+    0.0013,
+    0.8652
+   ]
+  },
   "sensitivity": {
    "name": "paired round-cluster bootstrap",
-   "why": "each round's cold starts run as one concurrent wave in a shared time window, and arm order alternates by round, so the samples within a round are not independent; the primary bootstrap treats them as if they were",
+   "why": "each arm's cold starts in a round run as one concurrent wave, and the two arms' waves run back to back (alternating sequential arm waves, order reversed on alternate rounds), so samples within a round are not independent; the primary bootstrap treats them as if they were. Pairing by round does not remove time-within-round drift between the first and second wave",
    "method": "resample rounds with replacement (10,000 resamples, seed 0), the same rounds for both arms, pool each drawn round's values, ratio of medians ozia/std",
    "role": "sensitivity only: the pre-registered decision rule above sets status",
    "rounds": 5,
@@ -6326,7 +6472,8 @@
  },
  "host_variability": {
   "identity_field": "cpu_part: the /proc/cpuinfo 'CPU part' line read by the handler in each environment",
-  "method": "compare the primary metric within CPU part and within shared (round, CPU part) cells; retain the pre-registered pooled result and paired round-cluster sensitivity",
+  "method": "compare the primary metric within CPU part and within shared (round, CPU part) cells; retain the pre-registered pooled result and paired round-cluster sensitivity. Rows without a recorded CPU part enter no host-conditioned comparison and are counted as unassessed",
+  "schedule": "alternating sequential arm waves: time-within-round drift: the two arms of a round never share a time window, so any change in S3 or Lambda behaviour between the first and second wave of a round is confounded with arm; alternating the order balances it across rounds only on average",
   "observed": {
    "cpu_part_by_arm_and_class": {
     "std": {
@@ -6360,8 +6507,13 @@
      }
     }
    },
+   "cold_rows_without_cpu_part": {
+    "std": 0,
+    "ozia": 0
+   },
    "execution_environments": 200,
    "environments_with_more_than_one_cpu_part": 0,
+   "environments_with_a_row_without_cpu_part": 0,
    "ggml_cpu_variant_by_cpu_part": {
     "std": {
      "0xd0c": [
@@ -6396,6 +6548,16 @@
      "0xd40": 5
     }
    },
+   "snapshot_init_unknown_reasons": {
+    "std": {
+     "no_cpu_part_line_in_stream": 0,
+     "more_than_one_cpu_part_in_stream": 0
+    },
+    "ozia": {
+     "no_cpu_part_line_in_stream": 0,
+     "more_than_one_cpu_part_in_stream": 0
+    }
+   },
    "threads": [
     6
    ],
@@ -6413,6 +6575,8 @@
    "core count of a restored environment (threads come from the snapshotting init)",
    "cgroup CPU and memory limits",
    "kernel release",
+   "availability zone (not exposed to the function)",
+   "physical host or instance identity (two environments on the same CPU part may or may not share a host)",
    "processor generation or product name (not inferred from CPU part or from timings)"
   ],
   "generation": "unknown: not recorded, and not inferred from CPU part or timings",
@@ -6451,7 +6615,11 @@
      "median_s": 25.1511
     }
    },
-   "span_ratio": 1.0123
+   "span_ratio": 1.0123,
+   "unassessed_cold_rows_without_cpu_part": {
+    "std": 0,
+    "ozia": 0
+   }
   },
   "primary_by_round_and_cpu_part": {
    "metric": "cold weight_download median, ozia/std, within shared (round, CPU part)",
@@ -6575,13 +6743,21 @@
     "positive"
    ],
    "all_inside_equivalence_band": true,
-   "missing": "CPU parts absent from either arm in a round have no shared-cell comparison"
+   "unassessed_cold_rows_without_cpu_part": {
+    "std": 0,
+    "ozia": 0
+   },
+   "missing": "CPU parts absent from either arm in a round have no shared-cell comparison; rows without a recorded CPU part are excluded and counted in unassessed_cold_rows_without_cpu_part"
   },
   "rerun_assessment": {
    "needed": false,
    "decision": "no rerun",
    "reason": "dominant-part primary and cluster intervals agree with the pooled no-change outcome, and every shared round/CPU-part cell is inside the +/-2% band",
-   "limitation": "within-round signs may vary and sparse CPU parts have few or no shared cells"
+   "unassessed_cold_rows_without_cpu_part": {
+    "std": 0,
+    "ozia": 0
+   },
+   "limitation": "within-round signs may vary, sparse CPU parts have few or no shared cells, and the arms ran as alternating sequential waves, so time-within-round drift is not controlled"
   },
   "warm_round_cv": {
    "std": {
@@ -6630,6 +6806,10 @@
    }
   },
   "warm_by_round_and_cpu_part": {
+   "unassessed_warm_rows_without_cpu_part": {
+    "std": 0,
+    "ozia": 0
+   },
    "std": [
     {
      "round": 0,
