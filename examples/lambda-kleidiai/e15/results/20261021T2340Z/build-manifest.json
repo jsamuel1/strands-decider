@@ -1,0 +1,137 @@
+{
+ "schema": "lkai-e15-build-manifest/1",
+ "repo_commit": "116db2f343817eba2a10b9f0f4740376a4813d74",
+ "repo_dirty": false,
+ "p1_manifest": {
+  "schema": "lkai-build-manifest/1",
+  "repo_commit": "4412b31988ba112dd27ad850830689f33c07e78a",
+  "repo_dirty": false,
+  "model": {
+   "id": "StrandsAgents/strands-decider-2B-qwen3.5-v1-2610",
+   "revision": "216d1ccb46a9e9b036eb9187b248db98480f77d4",
+   "format": "GGUF Q8_0",
+   "transform": "LoRA merged fp32 (weights/merge_export.py), H512 Hadamard fold (weights/fold_hadamard.py --block 512)",
+   "merge_report": {
+    "merged": 186,
+    "scale": 2.0,
+    "unpaired_adapter": [],
+    "base_revision": "b1485b2fa6dfa1287294f269f5fb618e03d52d7c",
+    "checkpoint": "/hf/hub/models--StrandsAgents--strands-decider-2B-qwen3.5-v1-2610/snapshots/216d1ccb46a9e9b036eb9187b248db98480f77d4"
+   },
+   "gguf_bytes": 2076712416,
+   "gguf_sha256": "8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e"
+  },
+  "llama_cpp": {
+   "commit": "f74e2fa6a31cc33ab4ee4ae516641cfe62df3924",
+   "patches": "llama/patch_llama.py (prefill,gdn,kskip,sme)",
+   "flags": "GGML_NATIVE=OFF GGML_BACKEND_DL=ON GGML_CPU_ALL_VARIANTS=ON GGML_CPU_KLEIDIAI=ON"
+  },
+  "function_zip": {
+   "bytes": 51941898,
+   "sha256": "26eb2651e8915f8ad09eae899feff583a448de6b8d2bc4943bccabb66cae189b",
+   "handler": "lkai_entry.handler"
+  },
+  "assets_sha256": {
+   "head.safetensors": "2492613e72eac53becb9ff855023261ac2722c5111b9f1e03be59a87328dd799",
+   "head_config.json": "3a6a6a3a135dcdbb29d6d9179d507d511fbba934d3682f354dd3d1130b9813dd",
+   "tokenizer.json": "a2cdd2e108566b09079afa8d266e9e65e7c280f27b771218237a06de5ba9cd86"
+  },
+  "images": {
+   "lambda_build": "public.ecr.aws/lambda/python@sha256:37fe9ca4183c36ec57e4c5eabb8893cd9fbc9c0f3053b903d9a57eb2bd6bafcc",
+   "weights": "python@sha256:5560e9ab8709f459489e5b8aa696eda8a07ef821e14bb122be62d91234bfa98b"
+  },
+  "toolchain": [
+   "gcc (GCC) 11.5.0 20240719 (Red Hat 11.5.0-5)",
+   "Python 3.12.15"
+  ]
+ },
+ "model": {
+  "id": "StrandsAgents/strands-decider-2B-qwen3.5-v1-2610",
+  "revision": "216d1ccb46a9e9b036eb9187b248db98480f77d4",
+  "format": "GGUF Q8_0",
+  "transform": "LoRA merged fp32 (weights/merge_export.py), H512 Hadamard fold (weights/fold_hadamard.py --block 512)",
+  "merge_report": {
+   "merged": 186,
+   "scale": 2.0,
+   "unpaired_adapter": [],
+   "base_revision": "b1485b2fa6dfa1287294f269f5fb618e03d52d7c",
+   "checkpoint": "/hf/hub/models--StrandsAgents--strands-decider-2B-qwen3.5-v1-2610/snapshots/216d1ccb46a9e9b036eb9187b248db98480f77d4"
+  },
+  "gguf_bytes": 2076712416,
+  "gguf_sha256": "8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e"
+ },
+ "llama_cpp": {
+  "commit": "f74e2fa6a31cc33ab4ee4ae516641cfe62df3924",
+  "patches": "llama/patch_llama.py (prefill,gdn,kskip,sme)",
+  "flags": "GGML_NATIVE=OFF GGML_BACKEND_DL=ON GGML_CPU_ALL_VARIANTS=ON GGML_CPU_KLEIDIAI=ON",
+  "e15_patch": "e15/patch_a.py (candidate A, LKAI_E15_A) on cand.zip only"
+ },
+ "images": {
+  "lambda_build": "public.ecr.aws/lambda/python@sha256:37fe9ca4183c36ec57e4c5eabb8893cd9fbc9c0f3053b903d9a57eb2bd6bafcc",
+  "weights": "python@sha256:5560e9ab8709f459489e5b8aa696eda8a07ef821e14bb122be62d91234bfa98b"
+ },
+ "toolchain": [
+  "gcc (GCC) 11.5.0 20240719 (Red Hat 11.5.0-5)",
+  "Python 3.12.15"
+ ],
+ "assets_sha256": {
+  "head.safetensors": "2492613e72eac53becb9ff855023261ac2722c5111b9f1e03be59a87328dd799",
+  "head_config.json": "3a6a6a3a135dcdbb29d6d9179d507d511fbba934d3682f354dd3d1130b9813dd",
+  "tokenizer.json": "a2cdd2e108566b09079afa8d266e9e65e7c280f27b771218237a06de5ba9cd86"
+ },
+ "wrapper_sha256": "adb7532ccc5fd26c3b94471ef2fd390617a2e691aa180ad70ef4ccece66aad54",
+ "base": "P1 function.zip 26eb2651e8915f8ad09eae899feff583a448de6b8d2bc4943bccabb66cae189b",
+ "zips": {
+  "ctl": {
+   "bytes": 51936283,
+   "sha256": "02c39f7fb496b0ee47ddf4d4be10b2188bb6c7ffa8a21d4bdc12c0d72ad5ee14",
+   "handler": "e15_entry.handler"
+  },
+  "cand": {
+   "bytes": 51939748,
+   "sha256": "4a1286cd515b7d6a1d5bbeac2514f6bc718578942cb2b7e807ee06ca550c862e",
+   "handler": "e15_entry.handler"
+  }
+ },
+ "changed_entries": {
+  "lib/libggml-cpu-armv8.0_1.so": {
+   "p1_sha256": "8390b2e80a6569dfe4907299d3c4d5c2716fb4135f1ce49c37e5848fb5a4c681",
+   "cand_sha256": "f9a9095b7f3315b61e9e95db918d212dc80f537afa6115fa21c464d4b9a3220d"
+  },
+  "lib/libggml-cpu-armv8.2_1.so": {
+   "p1_sha256": "1f9e27230814b16f4039179f396fc76bb2e8c2fdbe17c735ea5fb2a692c55f8d",
+   "cand_sha256": "ac002976f558fa6c2ca3333030a3e0906111fcf66746a7df8a60b43162efa045"
+  },
+  "lib/libggml-cpu-armv8.2_2.so": {
+   "p1_sha256": "49090fbfc1f150124303bea8cb9863fc45db631f9a65860d05bb2ac9a05cc1fe",
+   "cand_sha256": "8e36c4c13dfcf7ae3d2b03b9d5d771c1d39df48ceccbaf7243c467f6d5ee5904"
+  },
+  "lib/libggml-cpu-armv8.2_3.so": {
+   "p1_sha256": "d59b10187f698705ebefe34131ebd839e44c7dff119400477e7a2f5477b70735",
+   "cand_sha256": "f34c7ade208ae1c17d4b489520e28ae1ca62a7a0faa8836294716440159ae4d3"
+  },
+  "lib/libggml-cpu-armv8.6_1.so": {
+   "p1_sha256": "7aadff86faed937d148547ce3096e1bd440400f0cf7ea3061ee16e1d7d12376d",
+   "cand_sha256": "c94c74267d52534b196b31a2baa6e0b7f2399eca031037e94c2fb55193df1436"
+  },
+  "lib/libggml-cpu-armv8.6_2.so": {
+   "p1_sha256": "170a7447d440579a0fa83cdcf1d4e6ef62c1075d81615f67287700dacca78d64",
+   "cand_sha256": "9d6d577ff2d1b39b764ac4ac5af129c03e56797deb592cf2726c19dad753cf2b"
+  }
+ },
+ "cand_build": {
+  "toolchain.txt": "gcc (GCC) 11.5.0 20240719 (Red Hat 11.5.0-5)",
+  "patch_a.sha256": "c0c28b31f3ae3534dc11cdcab4c1c1a49283472a2796c97ab3f8f54f4e7f3a57  /e15/patch_a.py\n31941eabd43a7dcac24c7c85d9bb9c1ce89289a77dd78330dc5ecb2e95c70f19  /e15/patch_candidates.py"
+ },
+ "zip": {
+  "bytes": 51936283,
+  "sha256": "02c39f7fb496b0ee47ddf4d4be10b2188bb6c7ffa8a21d4bdc12c0d72ad5ee14",
+  "handler": "e15_entry.handler"
+ },
+ "function_zip": {
+  "bytes": 51936283,
+  "sha256": "02c39f7fb496b0ee47ddf4d4be10b2188bb6c7ffa8a21d4bdc12c0d72ad5ee14",
+  "handler": "e15_entry.handler",
+  "base": "P1 function.zip 26eb2651e8915f8ad09eae899feff583a448de6b8d2bc4943bccabb66cae189b"
+ }
+}

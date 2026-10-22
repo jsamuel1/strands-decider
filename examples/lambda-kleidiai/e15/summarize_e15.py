@@ -320,7 +320,7 @@ def host(rows: list[dict]) -> dict:
     for r in rows:
         e = (r.get("lkai") or {}).get("e15")
         if e and not r["error"]:
-            omp[r["arm"]][json.dumps(e.get("omp_env"), sort_keys=True)] += 1
+            omp[r["arm"]][json.dumps(e.get("switch_env"), sort_keys=True)] += 1
     controllers: Counter = Counter()
     for r in rows:
         e = (r.get("lkai") or {}).get("e15")
@@ -341,7 +341,7 @@ def host(rows: list[dict]) -> dict:
             k: [{"environments": n, **json.loads(s)} for s, n in cnt.most_common()]
             for k, cnt in sorted(ids.items())
         },
-        "omp_env_by_arm": {
+        "switch_env_by_arm": {
             arm: [{"environments": n, **json.loads(s)} for s, n in cnt.most_common()]
             for arm, cnt in sorted(omp.items())
         },
@@ -455,8 +455,10 @@ def reference_tolerance(rows: list[dict], reference: str, arm: str) -> dict:
 
 
 def applicability(rows: list[dict]) -> dict:
-    """The ggml CPU variant each CPU part loaded (from e15_entry's /proc/self/maps read), and whether candidate A
-    changes that variant. A part with no variant record, or with more than one variant, is 'unknown'."""
+    """The ggml CPU variants each CPU part had mapped (e15_entry's /proc/self/maps read on the first invocation), and
+    whether candidate A can change that part. Every environment maps armv8.0_1 beside the variant ggml selected, so
+    the rule is conservative: `False` (a negative control) only when no mapped variant is one candidate A changes;
+    `True` when one is; 'unknown' with no record."""
     seen: dict = defaultdict(set)
     for r in rows:
         e = (r.get("lkai") or {}).get("e15")
@@ -470,7 +472,7 @@ def applicability(rows: list[dict]) -> dict:
         v = sorted(seen.get(cpu, ()))
         out[cpu] = {
             "variants": v,
-            "changed_by_candidate": (v[0] in CHANGED_VARIANTS) if len(v) == 1 else "unknown",
+            "changed_by_candidate": bool(set(v) & CHANGED_VARIANTS) if v else "unknown",
         }
     return out
 

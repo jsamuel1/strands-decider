@@ -151,6 +151,90 @@ Scope note: the shipped zip's portable libraries also serve other part IDs. On `
 llamafile is already on, so A changes nothing there. On `0xd4f` (`armv8.6_2`), A applies as on `0xd40`. It is not
 measured on either.
 
+### Lambda run of candidate A (run `20261021T2340Z`)
+
+The operator chose A, with a $50 ceiling, in P1's account, us-east-2.
+
+**Result: no deployment gain shown.** On Lambda, candidate A is about 1% faster per warm request on part `0xd40`,
+not the 1.9% measured offline, and it does not pass the pre-declared verdict rule. Answers stay within the accepted
+tolerance. Status is `no-change` for both arms.
+
+| Arm | What differs | Warm REPORT Duration vs ctl, part `0xd40`, 9 paired rounds | Status |
+|---|---|---|---|
+| ctl | P1's zip `26eb2651` plus `e15_entry.py` (zip `02c39f7f`) | median 613 ms | baseline |
+| off | zip `4a1286cd`: only the six `lib/libggml-cpu-*.so` rebuilt with `patch_a.py`, switch unset | −0.69% mean, 8/9 rounds below 0, p = 0.027 | no-change |
+| a | the same zip with `LKAI_E15_A=1` | −1.17% mean, 8/9 rounds below 0, p = 0.0078; median 607 ms | no-change |
+| a vs off | the switch alone | −0.48% mean, 7/9 rounds below 0, p = 0.043 | no-change |
+
+E13's rule calls an arm `faster` only if every round is below 0, the sign-flip p is under 0.05, and the mean exceeds
+the control's own split-half noise (1.04% on `0xd40`). `a` fails on two counts: one round of 9 is +0.36%, and its
+1.17% mean is close to that noise. The engine's own timer (−1.18%) and process CPU per request (−1.14%) agree with
+REPORT.
+
+The dormant-build control (`off`, switch unset) is not the same as `ctl` in timing: −0.69%, 8/9 rounds below 0.
+Its answers are bit-identical, so its arithmetic is P1's. That rebuilding the variant libraries alone moves warm
+time by a fraction of a percent (code layout or alignment) is an inference, not a measurement. It means about 0.7 of
+`a`'s 1.17 points vs ctl are not attributable to the switch. The switch alone is −0.48%.
+
+Other CPU parts are too few rounds for p < 0.05 (`underpowered`):
+- `0xd4f` (`armv8.6_2`, changed): `a` −2.5%, 4/4 rounds below 0.
+- `0xd0c` (`armv8.2_2`, unchanged by A): `a` −0.9%, 3/4 rounds below 0. Its answers are bit-identical to ctl
+  (144/144), as the negative control predicts.
+
+Side effects on `0xd40`, `a` − ctl, bootstrap 95% CI:
+- cold first request +0.10 s [−0.01, +0.20], n = 43/46
+- restored first request +0.03 s [−0.01, +0.07], n = 26/30
+- cold max memory +0 MB
+
+**Correctness** (tolerance accepted by the operator: max |Δprobability| ≤ 0.02, 0 choice flips):
+- `a` against ctl, same request and CPU part: 1,440 answers, max |Δ| 0.0148 (on `0xd4f`), 0 flips. On `0xd40`
+  the maximum is 0.0101.
+- `a` against P1's `reference/outputs.json`: 1,380 answers, max |Δ| 0.0101, 0 flips. Within tolerance. Only the
+  `0xd0c` answers are bit-identical.
+- `off`: 1,440/1,440 bit-identical to ctl, and 1,344/1,344 bit-identical to P1's reference.
+
+A changes floating-point summation order, from per-row dot products to tinyBLAS FMA tiles, which explains the
+non-identical answers.
+
+**Errors:** 0 function errors, 0 client errors, and 0 restore rows with `client:ReadTimeoutError` across 4,320
+invocations. Every wave used a new invoke client (I1).
+
+**Cost:** $2.97 at list prices ($1.46 of it the SnapStart cache 3-hour minimum), under the $50 ceiling. Teardown
+removed every `lkai-89cf-*` function and version, the log groups, the role and the `e15/` S3 prefix. A list of each
+afterwards returned nothing.
+
+**Host variability.** CPU identity was read in every environment from `/proc/cpuinfo` and `AT_HWCAP`/`AT_HWCAP2`:
+
+| CPU part | Variant | HWCAP / HWCAP2 | ggml variants mapped | Changed by A |
+|---|---|---|---|---|
+| `0xd40` | `0x1` | `0xfffffff` / `0x1f201` | `armv8.0_1`, `armv8.6_1` | yes |
+| `0xd4f` | `0x0` | `0x2ff3ffff` / `0x3f3bf` | `armv8.0_1`, `armv8.6_2` | yes |
+| `0xd0c` | `0x3` | `0x119fff` / `0x0` | `armv8.0_1`, `armv8.2_2` | no |
+
+Environments, counted from the first-invoke record over all arms and classes: 216 `0xd40`, 32 `0xd0c` and 22
+`0xd4f`. Every environment reported:
+- 6 CPUs, `sched_getaffinity` 6
+- kernel 5.10.255, Python 3.12.14
+- 12 threads after the first invocation
+
+The cgroup limit files are not exposed and are recorded as `unknown`. The availability zone, physical host and CPU
+frequency are also `unknown`. No CPU generation is inferred.
+
+Comparisons are within one part, and the warm arms are interleaved pass by pass within each round.
+`host_variability.observed.primary_metric_cells` holds every shared (round, part) cell. The pooled warm medians
+(`delta.warm`) are not used for the verdict.
+
+The offline-to-Lambda gap (1.9% offline vs 1.2% on Lambda, same part ID) is not attributed to code. The offline
+host runs kernel 6.1 and Lambda runs 5.10, and P3 saw the same kind of gap for `concat`.
+
+**Recommendation for R:** do not adopt A on its own; the measured gain is about 1% and not distinguishable from the
+control's split-half noise. Its correctness cost is within tolerance. More rounds would not change the verdict under
+this rule. Per-round deltas on `0xd40` have SD 0.94 points, so with a true −1.2% mean each round has about an 11%
+chance of landing above 0 (normal approximation). Requiring every round below 0 gets harder as rounds are added:
+the probability is about 25% at 9 rounds and 5% at 20. A ladder rung that wants to resolve A needs a different
+pre-declared test, such as the sign-flip p plus the split-half noise floor without the every-round condition,
+stated before it measures.
+
 ## Reproduce (Phase 1)
 
 ```bash

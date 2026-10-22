@@ -322,11 +322,9 @@ ANS = {
 
 
 def _variant_rec(cpu):
-    return {
-        "ggml_cpu_mapped": [
-            "libggml-cpu-armv8.2_2.so" if cpu == "0xd0c" else "libggml-cpu-armv8.6_1.so"
-        ]
-    }
+    # as observed on Lambda: armv8.0_1 is mapped beside the selected variant
+    sel = "armv8.2_2" if cpu == "0xd0c" else "armv8.6_1"
+    return {"ggml_cpu_mapped": ["libggml-cpu-armv8.0_1.so", f"libggml-cpu-{sel}.so"]}
 
 
 def _warm(arm, rnd, rid, ms, cpu="0xd40", answers=None):
@@ -540,3 +538,15 @@ def test_conclusion_templates_format_with_missing_values():
     ) | {"cost": 1.0}
     for arm in ("off", "a"):
         assert "n/a" in meta["arms"][arm]["conclusion_template"].format(**values)
+
+
+def test_host_reads_the_switch_env_the_wrapper_records():
+    rows = _rows({"ctl": 0, "a": -2}, rounds=1, n=1)
+    for r in rows:
+        r["lkai"]["e15"] = _variant_rec("0xd40") | {
+            "cpu": {"part": "0xd40"},
+            "switch_env": {"LKAI_E15_A": "1" if r["arm"] == "a" else "unset"},
+        }
+    h = s15.host(rows)
+    assert h["switch_env_by_arm"]["a"][0]["LKAI_E15_A"] == "1"
+    assert h["switch_env_by_arm"]["ctl"][0]["LKAI_E15_A"] == "unset"
