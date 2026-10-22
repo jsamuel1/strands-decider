@@ -1,0 +1,45 @@
+{
+ "experiment_id": "E14-concat",
+ "status": "no-change",
+ "hypothesis": "ggml's f32 CONCAT (the Gated DeltaNet conv_input concat in each of qwen35's 18 linear-attention layers) splits work by dst dim 2 only, so a one-sequence ubatch copies on one of six threads while five wait. Splitting it by rows across all threads removes most of that copy's wall time; warm requests get up to about 5 % faster, with bit-identical answers.",
+ "changed_variable": {
+  "name": "ggml_f32_concat_thread_partition",
+  "baseline": "P1 (aac59d4): ggml_compute_forward_concat_f32 at llama.cpp f74e2fa6a, work split by dst dim 2 (i2 = ith; i2 < ne2; i2 += nth)",
+  "experiment": "e14/patch_concat.py: the same element copy, dst rows (i1, i2, i3) flattened into one contiguous block per thread; only the six lib/libggml-cpu-*.so in P1's zip differ"
+ },
+ "artifacts": {
+    "lambda_cold_conditions": "cold/conditions.json",
+  "lambda_cold_invocations": "cold/invocations.jsonl.gz",
+  "lambda_cold_logs": "cold/logs/",
+  "lambda_restore_conditions": "restore/conditions.json",
+  "lambda_restore_invocations": "restore/invocations.jsonl.gz",
+  "lambda_restore_logs": "restore/logs/",
+  "zips_manifest": "zips.json",
+  "lambda_concat_probe": "probe/",
+  "lambda_sigprof_probe": "sigprof-probe/",
+  "offline_run_a": "offline-20261021a/",
+  "offline_run_b_with_probe": "offline-20261021b/",
+  "p3_concat_reanalysis": "lambda-concat-p3.json",
+  "p1_build_manifest": "p1-build-manifest.json"
+ },
+ "profiling_artifacts": [
+  {"name": "Lambda concat thread-0 timer (diagnostic function lkai-19b2-probe)", "path": "probe/probe-summary.json", "tool": "e14/patch_concat_probe.py"},
+  {"name": "Lambda SIGPROF thread-delivery check (P3's liblkaisamp.so)", "path": "sigprof-probe/", "tool": "e14/sigprof_probe.py"},
+  {"name": "P3 sampler logs re-split by class, CPU part, origin and request", "path": "lambda-concat-p3.json", "tool": "e14/analyse_lambda.py"}
+ ],
+ "reproduce": [
+  "git checkout lkai/19b2-concat   # from P1 aac59d45555ebded9357c23f6f8e4f939edf25d7",
+  "E14_WORK=<dir> E14_CPUS=10-15 examples/lambda-kleidiai/e14/offline.sh <P1 baseline/build> <out> 4 10   # arm64 host, OFFLINE NOT LAMBDA",
+  "python examples/lambda-kleidiai/e14/offline_summary.py <out> --out <out>/offline-summary.json",
+  "python examples/lambda-kleidiai/e14/concat_zip.py --p1-zip <P1 function.zip> --rows-lib <E14_WORK>/lib-rows --out examples/lambda-kleidiai/e14/build",
+  "AWS_PROFILE=<p> python examples/lambda-kleidiai/e14/e14deploy.py up",
+  "AWS_PROFILE=<p> python examples/lambda-kleidiai/e14/e14bench.py --mode cold --rounds 5 --concurrency 10 --warm-passes 4 --read-timeout 300 --out build/runs/<id>/cold",
+  "AWS_PROFILE=<p> python examples/lambda-kleidiai/e14/e14bench.py --mode restore --rounds 2 --concurrency 10 --warm-passes 2 --read-timeout 120 --out build/runs/<id>/restore",
+  "python examples/lambda-kleidiai/e14/probe_lambda.py build --p1-zip <P1 function.zip> --probe-lib <E14_WORK>/lib-probe && AWS_PROFILE=<p> python examples/lambda-kleidiai/e14/probe_lambda.py up && AWS_PROFILE=<p> python examples/lambda-kleidiai/e14/probe_lambda.py run --cold 10 --warm-passes 4 --out build/probe-<id> && AWS_PROFILE=<p> python examples/lambda-kleidiai/e14/probe_lambda.py logs --out build/probe-<id>",
+  "python examples/lambda-kleidiai/e14/probe_summary.py <probe dir> --offline <offline b>/offline-summary.json --out <probe dir>/probe-summary.json",
+  "python examples/lambda-kleidiai/e14/analyse_lambda.py <P3 run 20261020T231634Z> --out lambda-concat-p3.json",
+  "python examples/lambda-kleidiai/e14/summarize_e14.py examples/lambda-kleidiai/e14/results/<id> --reference examples/lambda-kleidiai/baseline/reference/outputs.json --meta examples/lambda-kleidiai/e14/meta.json --p1-manifest examples/lambda-kleidiai/e14/results/<id>/p1-build-manifest.json --baseline-commit aac59d45555ebded9357c23f6f8e4f939edf25d7 --experiment-commit <sha> --offline-summary <id>/offline-20261021b/offline-summary.json --lambda-concat <id>/lambda-concat-p3.json --p3-run <P3 run> --sigprof-dir <id>/sigprof-probe --out examples/lambda-kleidiai/e14/results/<id>/results.json",
+  "python examples/lambda-kleidiai/results/publish_result.py examples/lambda-kleidiai/e14/results/<id>/results.json   # from fork/feat/lambda-kleidiai-results"
+ ],
+ "conclusion": "NO-CHANGE on Lambda. Answers are bit-identical: 1126/1126 rows-arm answers against P1's reference, the same for ctl, and 1270/1270 rows answers against ctl in the same run. The warm forward did not get faster. On CPU part 0xd40 every one of 35 (round, request, leg) cells fell within the control's own spread, the median cell delta was +0.70 %, and the environment-level 95 % intervals range from -1.7 % to +3.9 % depending on request, with both signs present. Parts 0xd4f and 0xd0c also show both signs and no consistent gain. Offline on an arm64 host (part 0xd40, kernel 6.1, CPUs pinned, NOT LAMBDA) the same patch was 2-6 % faster in 4 interleaved rounds. The Lambda/offline difference is in the effect, not in the cost: a diagnostic function on Lambda timed the concat on thread 0 at the same calls per request and the same milliseconds as offline on 0xd40 (ticket-route-1q 16.8 vs 16.8 ms, agent-action-guard-2q 52.5 vs 51.8 ms), about 2.6-6.9 % of engine time. P3's 5.3-5.6 % Lambda share therefore matches the concat's real wall share. The 1.2 % offline perf figure was whole-run CPU share including model load, and the steady-state CPU share there was 2.65 %. The sampler's thread delivery was checked on Lambda (main-thread share 15.8 % vs fair 16.7 %) and does not explain the gap. Why removing the single-threaded wait does not shorten a Lambda forward is not established; one untested candidate is that idle OpenMP workers spinning at the barrier contend with the copying thread under Lambda's CPU allocation. No deployment change recommended."
+}

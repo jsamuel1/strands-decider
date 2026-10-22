@@ -1,0 +1,146 @@
+{
+ "schema": "lkai-e14-offline-summary/1",
+ "evidence": "OFFLINE, NOT LAMBDA",
+ "host": "Linux e3f867e2ba2f 6.1.188-233.386.amzn2023.aarch64 #1 SMP Fri Sep 25 01:46:44 UTC 2026 aarch64 aarch64 aarch64 GNU/Linux\nCPU implementer\t: 0x41\nCPU variant\t: 0x1\nCPU part\t: 0xd40\nCPU revision\t: 1\nFeatures\t: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm paca pacg dcpodp svei8mm svebf16 i8mm bf16 dgh rng\n6\nmax 100000\nmemory.max unknown\nPython 3.12.15\n",
+ "loadavg": "ctl1 before 1.76 6.81 7.67 1/1046 66\nctl1 after 13.44 8.92 8.31 4/1062 79\nrows1 before 13.44 8.92 8.31 7/1063 80\nrows1 after 15.07 10.13 8.76 7/1083 93\nprobe1 before 15.07 10.13 8.76 7/1083 94\nprobe1 after 11.69 9.94 8.77 3/1075 107\nprobe2 before 11.69 9.94 8.77 2/1075 108\nprobe2 after 9.96 9.70 8.75 1/1046 121\nrows2 before 9.96 9.70 8.75 1/1046 122\nrows2 after 8.35 9.28 8.65 2/1042 135\nctl2 before 8.35 9.28 8.65 2/1042 136\nctl2 after 7.66 8.90 8.54 3/1096 149\nctl3 before 7.66 8.90 8.54 4/1097 150\nctl3 after 7.53 8.64 8.47 3/1059 163\nrows3 before 7.53 8.64 8.47 2/1059 164\nrows3 after 7.64 8.49 8.43 8/1094 177\nprobe3 before 7.64 8.49 8.43 8/1094 178\nprobe3 after 7.74 8.34 8.38 2/1070 191\nprobe4 before 7.74 8.34 8.38 4/1071 192\nprobe4 after 7.32 8.13 8.30 2/1019 205\nrows4 before 7.32 8.13 8.30 2/1019 206\nrows4 after 6.46 7.75 8.16 1/998 219\nctl4 before 6.46 7.75 8.16 1/998 220\nctl4 after 5.95 7.40 8.02 1/1027 233\n",
+ "libs_sha256": "8390b2e80a6569dfe4907299d3c4d5c2716fb4135f1ce49c37e5848fb5a4c681  pkg/lib/libggml-cpu-armv8.0_1.so\n1f9e27230814b16f4039179f396fc76bb2e8c2fdbe17c735ea5fb2a692c55f8d  pkg/lib/libggml-cpu-armv8.2_1.so\n49090fbfc1f150124303bea8cb9863fc45db631f9a65860d05bb2ac9a05cc1fe  pkg/lib/libggml-cpu-armv8.2_2.so\nd59b10187f698705ebefe34131ebd839e44c7dff119400477e7a2f5477b70735  pkg/lib/libggml-cpu-armv8.2_3.so\n7aadff86faed937d148547ce3096e1bd440400f0cf7ea3061ee16e1d7d12376d  pkg/lib/libggml-cpu-armv8.6_1.so\n170a7447d440579a0fa83cdcf1d4e6ef62c1075d81615f67287700dacca78d64  pkg/lib/libggml-cpu-armv8.6_2.so\n3249da7c7abec00d552923c3a5ded6e3a83a9a71a54c879f57c65ea3d4ad353b  pkg-rows/lib/libggml-cpu-armv8.0_1.so\nc0436ac2b7b94b5e272a8c2cc2ec2757a6ddb75ede0b8e93eb5a2a2ca4b12fae  pkg-rows/lib/libggml-cpu-armv8.2_1.so\n91a6c85a9d0c3feab174f1933f32580123c4557de3349d6d40115de896e527d0  pkg-rows/lib/libggml-cpu-armv8.2_2.so\nf608997c08f929fbdb8b5d93dc362d2af2c02d2d4cdf32fb0ec500443b2b6f07  pkg-rows/lib/libggml-cpu-armv8.2_3.so\n058b4805d8f27e55c887fbdd09d615f3745e9eee03e60ac58ecd20a01b61430e  pkg-rows/lib/libggml-cpu-armv8.6_1.so\nd3b67a69d4de189dbc55b0d01f45c43e6458ff01b2e7419b05e88443985add08  pkg-rows/lib/libggml-cpu-armv8.6_2.so\n9f9bac9168a28f8f083713a96f285bb11d67613469f7b4ac7a241ec406e3f7d8  pkg-probe/lib/libggml-cpu-armv8.0_1.so\n433fb96274c928d19cb7d1a6c10440a5445ff7e88fff1cda213a22d40efbc42c  pkg-probe/lib/libggml-cpu-armv8.2_1.so\n0a403908cfb993f7a3a41fff232026a6c25961566a8d5daacf02895fd408fe11  pkg-probe/lib/libggml-cpu-armv8.2_2.so\ncc75ae8efe8225e382a2814dfa10a6603966ae5b8c8d66aa3ad636ca35611ba9  pkg-probe/lib/libggml-cpu-armv8.2_3.so\ne14aae06d4aaa1809878b3dbbc14d52472e0075e1b8afe8ec2119bb51e2682a3  pkg-probe/lib/libggml-cpu-armv8.6_1.so\na0ae725b64e58b1106aed16522041233c928c9cb57514b26f093709a2f7dd86e  pkg-probe/lib/libggml-cpu-armv8.6_2.so\n",
+ "inputs_sha256": "26eb2651e8915f8ad09eae899feff583a448de6b8d2bc4943bccabb66cae189b  function.zip\n8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e  model/s2b-h512-Q8_0.gguf\n",
+ "toolchain": "gcc (GCC) 11.5.0 20240719 (Red Hat 11.5.0-5)\n",
+ "shim_init": {
+  "cpu_part": "0xd40",
+  "ggml_cpu": [
+   "libggml-cpu-armv8.2_3.so",
+   "libggml-cpu-armv8.6_1.so"
+  ],
+  "threads": 6,
+  "ubatch": "512",
+  "kv": "f32",
+  "unrotate": false,
+  "n_ctx": 16384,
+  "n_seq": 17
+ },
+ "affinity": [
+  10,
+  11,
+  12,
+  13,
+  14,
+  15
+ ],
+ "passes_per_run": 10,
+ "rounds": [
+  1,
+  2,
+  3,
+  4
+ ],
+ "bit_identity": {
+  "runs": 8,
+  "hidden_rows_hashed": 400,
+  "all_equal_to_ctl_round1": true,
+  "answers_equal": true
+ },
+ "per_request": {
+  "ticket-route-1q": {
+   "n": [
+    40,
+    40
+   ],
+   "ctl_p50_s": 0.24559,
+   "rows_p50_s": 0.230833,
+   "pooled_delta_pct": -6.008,
+   "per_round_delta_pct": {
+    "1": -6.116,
+    "2": -5.923,
+    "3": -5.934,
+    "4": -5.998
+   }
+  },
+  "payouts-3q": {
+   "n": [
+    40,
+    40
+   ],
+   "ctl_p50_s": 0.56838,
+   "rows_p50_s": 0.556894,
+   "pooled_delta_pct": -2.021,
+   "per_round_delta_pct": {
+    "1": -1.52,
+    "2": -1.757,
+    "3": -2.027,
+    "4": -2.181
+   }
+  },
+  "cracked-screen-2q": {
+   "n": [
+    40,
+    40
+   ],
+   "ctl_p50_s": 0.442354,
+   "rows_p50_s": 0.427747,
+   "pooled_delta_pct": -3.302,
+   "per_round_delta_pct": {
+    "1": -3.156,
+    "2": -3.213,
+    "3": -3.123,
+    "4": -3.419
+   }
+  },
+  "agent-action-guard-2q": {
+   "n": [
+    40,
+    40
+   ],
+   "ctl_p50_s": 0.862788,
+   "rows_p50_s": 0.82034,
+   "pooled_delta_pct": -4.92,
+   "per_round_delta_pct": {
+    "1": -4.545,
+    "2": -4.946,
+    "3": -4.739,
+    "4": -4.877
+   }
+  },
+  "incident-review-4q": {
+   "n": [
+    40,
+    40
+   ],
+   "ctl_p50_s": 1.759061,
+   "rows_p50_s": 1.68972,
+   "pooled_delta_pct": -3.942,
+   "per_round_delta_pct": {
+    "1": -7.227,
+    "2": -3.724,
+    "3": -3.589,
+    "4": -3.908
+   }
+  }
+ },
+ "steady_state_totals": {
+  "1": {
+   "ctl_s": 68.313215,
+   "rows_s": 70.343897,
+   "ctl_cpu_over_wall": 3.547,
+   "rows_cpu_over_wall": 3.485
+  },
+  "2": {
+   "ctl_s": 38.850917,
+   "rows_s": 37.35568,
+   "ctl_cpu_over_wall": 5.593,
+   "rows_cpu_over_wall": 5.784
+  },
+  "3": {
+   "ctl_s": 38.973208,
+   "rows_s": 37.432952,
+   "ctl_cpu_over_wall": 5.591,
+   "rows_cpu_over_wall": 5.781
+  },
+  "4": {
+   "ctl_s": 38.738273,
+   "rows_s": 37.21586,
+   "ctl_cpu_over_wall": 5.602,
+   "rows_cpu_over_wall": 5.789
+  }
+ }
+}

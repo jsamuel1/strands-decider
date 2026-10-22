@@ -1,0 +1,126 @@
+{
+ "schema": "lkai-e14-probe-summary/1",
+ "evidence": "LAMBDA, diagnostic arm lkai-19b2-probe (P1 kernel + thread-0 timer); not a latency comparison",
+ "warm_invocations_logged": 190,
+ "warm_invocations_sent": 200,
+ "libs": [
+  "libggml-cpu-armv8.2_2.so",
+  "libggml-cpu-armv8.6_1.so"
+ ],
+ "by_part_request": {
+  "0xd0c": {
+   "agent-action-guard-2q": {
+    "invocations": 8,
+    "calls_per_request": 54.0,
+    "thread0_ms_p50": 122.552,
+    "thread0_ms_one_sequence_p50": 94.143,
+    "engine_ms_p50": 1686.6,
+    "thread0_share_of_engine_p50": 0.0729,
+    "offline_thread0_ms": 51.788,
+    "offline_calls_per_request": 54.0,
+    "offline_share_of_ctl_p50": 0.0579
+   },
+   "cracked-screen-2q": {
+    "invocations": 8,
+    "calls_per_request": 54.0,
+    "thread0_ms_p50": 28.029,
+    "thread0_ms_one_sequence_p50": 11.346,
+    "engine_ms_p50": 818.9,
+    "thread0_share_of_engine_p50": 0.0345,
+    "offline_thread0_ms": 17.561,
+    "offline_calls_per_request": 54.0,
+    "offline_share_of_ctl_p50": 0.0386
+   },
+   "incident-review-4q": {
+    "invocations": 8,
+    "calls_per_request": 90.0,
+    "thread0_ms_p50": 223.44,
+    "thread0_ms_one_sequence_p50": 199.711,
+    "engine_ms_p50": 3459.0,
+    "thread0_share_of_engine_p50": 0.0643,
+    "offline_thread0_ms": 88.008,
+    "offline_calls_per_request": 90.0,
+    "offline_share_of_ctl_p50": 0.0487
+   },
+   "payouts-3q": {
+    "invocations": 8,
+    "calls_per_request": 72.0,
+    "thread0_ms_p50": 28.872,
+    "thread0_ms_one_sequence_p50": 8.199,
+    "engine_ms_p50": 1110.8,
+    "thread0_share_of_engine_p50": 0.0262,
+    "offline_thread0_ms": 15.707,
+    "offline_calls_per_request": 72.0,
+    "offline_share_of_ctl_p50": 0.0269
+   },
+   "ticket-route-1q": {
+    "invocations": 6,
+    "calls_per_request": 18.0,
+    "thread0_ms_p50": 25.38,
+    "thread0_ms_one_sequence_p50": 25.38,
+    "engine_ms_p50": 439.0,
+    "thread0_share_of_engine_p50": 0.0584,
+    "offline_thread0_ms": 16.776,
+    "offline_calls_per_request": 18.0,
+    "offline_share_of_ctl_p50": 0.0663
+   }
+  },
+  "0xd40": {
+   "agent-action-guard-2q": {
+    "invocations": 32,
+    "calls_per_request": 54.0,
+    "thread0_ms_p50": 52.544,
+    "thread0_ms_one_sequence_p50": 38.467,
+    "engine_ms_p50": 872.9,
+    "thread0_share_of_engine_p50": 0.0605,
+    "offline_thread0_ms": 51.788,
+    "offline_calls_per_request": 54.0,
+    "offline_share_of_ctl_p50": 0.0579
+   },
+   "cracked-screen-2q": {
+    "invocations": 32,
+    "calls_per_request": 54.0,
+    "thread0_ms_p50": 17.73,
+    "thread0_ms_one_sequence_p50": 6.619,
+    "engine_ms_p50": 475.2,
+    "thread0_share_of_engine_p50": 0.0376,
+    "offline_thread0_ms": 17.561,
+    "offline_calls_per_request": 54.0,
+    "offline_share_of_ctl_p50": 0.0386
+   },
+   "incident-review-4q": {
+    "invocations": 32,
+    "calls_per_request": 90.0,
+    "thread0_ms_p50": 117.482,
+    "thread0_ms_one_sequence_p50": 97.513,
+    "engine_ms_p50": 1761.7,
+    "thread0_share_of_engine_p50": 0.0665,
+    "offline_thread0_ms": 88.008,
+    "offline_calls_per_request": 90.0,
+    "offline_share_of_ctl_p50": 0.0487
+   },
+   "payouts-3q": {
+    "invocations": 31,
+    "calls_per_request": 72,
+    "thread0_ms_p50": 15.789,
+    "thread0_ms_one_sequence_p50": 4.003,
+    "engine_ms_p50": 610.6,
+    "thread0_share_of_engine_p50": 0.026,
+    "offline_thread0_ms": 15.707,
+    "offline_calls_per_request": 72.0,
+    "offline_share_of_ctl_p50": 0.0269
+   },
+   "ticket-route-1q": {
+    "invocations": 25,
+    "calls_per_request": 18,
+    "thread0_ms_p50": 16.807,
+    "thread0_ms_one_sequence_p50": 16.807,
+    "engine_ms_p50": 247.3,
+    "thread0_share_of_engine_p50": 0.0686,
+    "offline_thread0_ms": 16.776,
+    "offline_calls_per_request": 18.0,
+    "offline_share_of_ctl_p50": 0.0663
+   }
+  }
+ }
+}

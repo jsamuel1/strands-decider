@@ -1,0 +1,574 @@
+{
+ "schema": "lkai-conditions/1",
+ "experiment": "E14",
+ "mode": "restore",
+ "region": "us-east-2",
+ "rounds": 2,
+ "concurrency": 10,
+ "warm_passes": 2,
+ "warm_per_arm_per_round": 10,
+ "warm_order": "per request, arms interleaved, leading arm alternating per pass",
+ "read_timeout_s": 120,
+ "arms": [
+  "ctl",
+  "rows"
+ ],
+ "requests_file": "baseline/requests.json",
+ "requests": {
+  "schema": "lkai-requests/1",
+  "note": "Fixed request set for the lambda-kleidiai baseline. Every condition sends these exact bodies; 'probe' is the first request of every new execution environment (cold and restore), so first-inference latency is comparable across arms and rounds. Warm invocations cycle through all ids in order.",
+  "probe": "ticket-route-1q",
+  "requests": [
+   {
+    "id": "ticket-route-1q",
+    "request": {
+     "state": {
+      "ticket": "Refund issued but invoice still shows the old total."
+     },
+     "questions": {
+      "q": {
+       "type": "choice",
+       "instructions": "Route this ticket.",
+       "criteria": {
+        "billing": "payment or invoice",
+        "technical": "product defect",
+        "account": "login"
+       }
+      }
+     }
+    }
+   },
+   {
+    "id": "payouts-3q",
+    "request": {
+     "state": "Help! My payouts have been failing for 3 days!",
+     "questions": {
+      "is_urgent": {
+       "type": "noul",
+       "instructions": "Does this convey urgency?"
+      },
+      "team": {
+       "type": "choice",
+       "instructions": "Which team should handle this?",
+       "criteria": {
+        "billing": "",
+        "sales": "",
+        "retail": ""
+       }
+      },
+      "frustration": {
+       "type": "score",
+       "instructions": "How frustrated is the writer?",
+       "criteria": [
+        "calm",
+        "frustrated",
+        "depressed"
+       ]
+      }
+     }
+    }
+   },
+   {
+    "id": "cracked-screen-2q",
+    "request": {
+     "state": "Order 1182 arrived with a cracked screen. The customer wants a refund today.",
+     "questions": {
+      "q": {
+       "type": "choice",
+       "instructions": "Route the ticket.",
+       "criteria": {
+        "refunds": "money back",
+        "shipping": "delivery problems",
+        "tech": "device faults"
+       }
+      },
+      "u": {
+       "type": "noul",
+       "instructions": "Is the customer upset?"
+      }
+     }
+    }
+   },
+   {
+    "id": "agent-action-guard-2q",
+    "request": {
+     "state": {
+      "user_goal": "Clean up last quarter's test fixtures in the staging bucket.",
+      "proposed_tool_call": {
+       "name": "s3_delete_prefix",
+       "arguments": {
+        "bucket": "acme-prod-invoices",
+        "prefix": "2026/"
+       }
+      },
+      "recent_messages": [
+       "user: the staging bucket is acme-staging-fixtures, only touch that one",
+       "assistant: Understood, I will list acme-staging-fixtures first.",
+       "tool(s3_list): acme-staging-fixtures/2026/Q3/ has 412 objects"
+      ]
+     },
+     "questions": {
+      "safe": {
+       "type": "noul",
+       "instructions": "Is the proposed tool call consistent with the user's instructions?"
+      },
+      "action": {
+       "type": "choice",
+       "instructions": "What should the agent do next?",
+       "criteria": {
+        "proceed": "run the tool call as proposed",
+        "revise": "fix the arguments and retry",
+        "ask": "ask the user before doing anything"
+       }
+      }
+     }
+    }
+   },
+   {
+    "id": "incident-review-4q",
+    "request": {
+     "state": "Incident 4471 timeline. 09:02 deploy of checkout-api build 8812 starts in us-east-2. 09:06 p99 latency on /cart rises from 180 ms to 2.4 s; error rate 0.2% to 6%. 09:07 on-call paged by the latency alarm. 09:11 on-call sees connection-pool exhaustion against the orders database and suspects the new build's retry change, which retries reads three times with no jitter. 09:14 rollback to build 8807 started. 09:19 rollback complete in two of three cells; the third cell is still on 8812 because its deployment was paused by a separate change freeze. 09:23 p99 back to 210 ms in the rolled-back cells; the third cell keeps failing about 9% of requests. 09:31 the freeze owner approves the rollback for the third cell. 09:38 all cells healthy. Customer impact: about 36 minutes of degraded checkout in one region, an estimated 2,100 failed carts. The retry change had passed load tests, which ran against a database with three times the production connection limit. No runbook step covered a cell stuck behind a freeze.",
+     "questions": {
+      "root_cause": {
+       "type": "choice",
+       "instructions": "What is the most direct root cause?",
+       "criteria": {
+        "retries": "retry change without jitter exhausted the connection pool",
+        "freeze": "the change freeze",
+        "alarm": "slow alarming",
+        "capacity": "database undersized for normal load"
+       }
+      },
+      "severity": {
+       "type": "score",
+       "instructions": "How severe was the customer impact?",
+       "criteria": [
+        "negligible",
+        "minor",
+        "moderate",
+        "major",
+        "critical"
+       ]
+      },
+      "test_gap": {
+       "type": "noul",
+       "instructions": "Did a test environment difference hide the problem?"
+      },
+      "runbook": {
+       "type": "noul",
+       "instructions": "Should the runbook gain a step for cells blocked by a freeze?"
+      }
+     }
+    }
+   }
+  ]
+ },
+ "probe": "ticket-route-1q",
+ "functions": {
+  "ctl": {
+   "FunctionName": "lkai-19b2-ctl",
+   "Runtime": "python3.12",
+   "Architectures": [
+    "arm64"
+   ],
+   "MemorySize": 10240,
+   "Timeout": 900,
+   "EphemeralStorage": {
+    "Size": 512
+   },
+   "SnapStart": {
+    "ApplyOn": "PublishedVersions",
+    "OptimizationStatus": "Off"
+   },
+   "Handler": "e14_entry.handler",
+   "CodeSha256": "If7ljbHfEwIA6C9Z+IAyAWsWuLV/BLOEwxqJalX1RAc=",
+   "CodeSize": 51935622,
+   "environment": {
+    "E14_ARM": "ctl",
+    "LKAI_PHASES": "1",
+    "COLD_TAG": "e14-cold-r4-1792625727.976",
+    "N_SEQ": "17",
+    "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+    "DEC_KV": "f32",
+    "DEC_UBATCH": "512"
+   },
+   "runtime_management": {
+    "UpdateRuntimeOn": "Manual",
+    "RuntimeVersionArn": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07"
+   }
+  },
+  "rows": {
+   "FunctionName": "lkai-19b2-rows",
+   "Runtime": "python3.12",
+   "Architectures": [
+    "arm64"
+   ],
+   "MemorySize": 10240,
+   "Timeout": 900,
+   "EphemeralStorage": {
+    "Size": 512
+   },
+   "SnapStart": {
+    "ApplyOn": "PublishedVersions",
+    "OptimizationStatus": "Off"
+   },
+   "Handler": "e14_entry.handler",
+   "CodeSha256": "ZKa+gfhZ5NWQbxd/79K1EBj366vdIFRTeZDGhAOZXUU=",
+   "CodeSize": 51936748,
+   "environment": {
+    "E14_ARM": "rows",
+    "LKAI_PHASES": "1",
+    "COLD_TAG": "e14-cold-r4-1792625727.976",
+    "N_SEQ": "17",
+    "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+    "DEC_KV": "f32",
+    "DEC_UBATCH": "512"
+   },
+   "runtime_management": {
+    "UpdateRuntimeOn": "Manual",
+    "RuntimeVersionArn": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07"
+   }
+  }
+ },
+ "build_manifest": {
+  "schema": "lkai-e14-zips/1",
+  "p1_zip_sha256": "26eb2651e8915f8ad09eae899feff583a448de6b8d2bc4943bccabb66cae189b",
+  "entry_sha256": "439b84bf7e50a764a68a8d267c877c6df0220c17c48b2e01e50195e8f89533ba",
+  "zips": {
+   "ctl": {
+    "sha256": "21fee58db1df130200e82f59f88032016b16b8b57f04b384c31a896a55f54407"
+   },
+   "rows": {
+    "sha256": "64a6be81f859e4d5906f177fefd2b51018f7ebabdd2054537990c68403995d45"
+   }
+  },
+  "replaced_in_rows": {
+   "lib/libggml-cpu-armv8.0_1.so": {
+    "p1_sha256": "8390b2e80a6569dfe4907299d3c4d5c2716fb4135f1ce49c37e5848fb5a4c681",
+    "rows_sha256": "3249da7c7abec00d552923c3a5ded6e3a83a9a71a54c879f57c65ea3d4ad353b"
+   },
+   "lib/libggml-cpu-armv8.2_1.so": {
+    "p1_sha256": "1f9e27230814b16f4039179f396fc76bb2e8c2fdbe17c735ea5fb2a692c55f8d",
+    "rows_sha256": "c0436ac2b7b94b5e272a8c2cc2ec2757a6ddb75ede0b8e93eb5a2a2ca4b12fae"
+   },
+   "lib/libggml-cpu-armv8.2_2.so": {
+    "p1_sha256": "49090fbfc1f150124303bea8cb9863fc45db631f9a65860d05bb2ac9a05cc1fe",
+    "rows_sha256": "91a6c85a9d0c3feab174f1933f32580123c4557de3349d6d40115de896e527d0"
+   },
+   "lib/libggml-cpu-armv8.2_3.so": {
+    "p1_sha256": "d59b10187f698705ebefe34131ebd839e44c7dff119400477e7a2f5477b70735",
+    "rows_sha256": "f608997c08f929fbdb8b5d93dc362d2af2c02d2d4cdf32fb0ec500443b2b6f07"
+   },
+   "lib/libggml-cpu-armv8.6_1.so": {
+    "p1_sha256": "7aadff86faed937d148547ce3096e1bd440400f0cf7ea3061ee16e1d7d12376d",
+    "rows_sha256": "058b4805d8f27e55c887fbdd09d615f3745e9eee03e60ac58ecd20a01b61430e"
+   },
+   "lib/libggml-cpu-armv8.6_2.so": {
+    "p1_sha256": "170a7447d440579a0fa83cdcf1d4e6ef62c1075d81615f67287700dacca78d64",
+    "rows_sha256": "d3b67a69d4de189dbc55b0d01f45c43e6458ff01b2e7419b05e88443985add08"
+   }
+  }
+ },
+ "runtime_version_arn": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+ "client": {
+  "python": "3.12.13",
+  "boto3": "1.43.114",
+  "host": "x86_64"
+ },
+ "invoke_client": "new client per wave (baseline/bench.py at I1 5764b9e)",
+ "started": "2026-10-21T23:39:15Z",
+ "rounds_meta": [
+  {
+   "round": 0,
+   "order": [
+    "ctl",
+    "rows"
+   ],
+   "cold_tag": "e14-restore-r0-1792625955.851",
+   "t0": 1792625955.8514032,
+   "warm_schedule": [
+    [
+     0,
+     "ctl",
+     "ticket-route-1q"
+    ],
+    [
+     0,
+     "rows",
+     "ticket-route-1q"
+    ],
+    [
+     0,
+     "ctl",
+     "payouts-3q"
+    ],
+    [
+     0,
+     "rows",
+     "payouts-3q"
+    ],
+    [
+     0,
+     "ctl",
+     "cracked-screen-2q"
+    ],
+    [
+     0,
+     "rows",
+     "cracked-screen-2q"
+    ],
+    [
+     0,
+     "ctl",
+     "agent-action-guard-2q"
+    ],
+    [
+     0,
+     "rows",
+     "agent-action-guard-2q"
+    ],
+    [
+     0,
+     "ctl",
+     "incident-review-4q"
+    ],
+    [
+     0,
+     "rows",
+     "incident-review-4q"
+    ],
+    [
+     1,
+     "rows",
+     "ticket-route-1q"
+    ],
+    [
+     1,
+     "ctl",
+     "ticket-route-1q"
+    ],
+    [
+     1,
+     "rows",
+     "payouts-3q"
+    ],
+    [
+     1,
+     "ctl",
+     "payouts-3q"
+    ],
+    [
+     1,
+     "rows",
+     "cracked-screen-2q"
+    ],
+    [
+     1,
+     "ctl",
+     "cracked-screen-2q"
+    ],
+    [
+     1,
+     "rows",
+     "agent-action-guard-2q"
+    ],
+    [
+     1,
+     "ctl",
+     "agent-action-guard-2q"
+    ],
+    [
+     1,
+     "rows",
+     "incident-review-4q"
+    ],
+    [
+     1,
+     "ctl",
+     "incident-review-4q"
+    ]
+   ],
+   "published": {
+    "ctl": {
+     "arm": "ctl",
+     "version": "1",
+     "publish_s": 158.2,
+     "t_publish": 1792625960.5085258,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "If7ljbHfEwIA6C9Z+IAyAWsWuLV/BLOEwxqJalX1RAc=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+     "t_deleted": 1792626312.0334501
+    },
+    "rows": {
+     "arm": "rows",
+     "version": "1",
+     "publish_s": 144.7,
+     "t_publish": 1792626118.7453375,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "ZKa+gfhZ5NWQbxd/79K1EBj366vdIFRTeZDGhAOZXUU=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+     "t_deleted": 1792626312.3722007
+    }
+   },
+   "t_versions_deleted": 1792626312.3722007,
+   "log_window": [
+    1792625955.8514032,
+    1792626332.3723028
+   ],
+   "log_events": 1204
+  },
+  {
+   "round": 1,
+   "order": [
+    "rows",
+    "ctl"
+   ],
+   "cold_tag": "e14-restore-r1-1792626336.036",
+   "t0": 1792626336.0355458,
+   "warm_schedule": [
+    [
+     0,
+     "ctl",
+     "ticket-route-1q"
+    ],
+    [
+     0,
+     "rows",
+     "ticket-route-1q"
+    ],
+    [
+     0,
+     "ctl",
+     "payouts-3q"
+    ],
+    [
+     0,
+     "rows",
+     "payouts-3q"
+    ],
+    [
+     0,
+     "ctl",
+     "cracked-screen-2q"
+    ],
+    [
+     0,
+     "rows",
+     "cracked-screen-2q"
+    ],
+    [
+     0,
+     "ctl",
+     "agent-action-guard-2q"
+    ],
+    [
+     0,
+     "rows",
+     "agent-action-guard-2q"
+    ],
+    [
+     0,
+     "ctl",
+     "incident-review-4q"
+    ],
+    [
+     0,
+     "rows",
+     "incident-review-4q"
+    ],
+    [
+     1,
+     "rows",
+     "ticket-route-1q"
+    ],
+    [
+     1,
+     "ctl",
+     "ticket-route-1q"
+    ],
+    [
+     1,
+     "rows",
+     "payouts-3q"
+    ],
+    [
+     1,
+     "ctl",
+     "payouts-3q"
+    ],
+    [
+     1,
+     "rows",
+     "cracked-screen-2q"
+    ],
+    [
+     1,
+     "ctl",
+     "cracked-screen-2q"
+    ],
+    [
+     1,
+     "rows",
+     "agent-action-guard-2q"
+    ],
+    [
+     1,
+     "ctl",
+     "agent-action-guard-2q"
+    ],
+    [
+     1,
+     "rows",
+     "incident-review-4q"
+    ],
+    [
+     1,
+     "ctl",
+     "incident-review-4q"
+    ]
+   ],
+   "published": {
+    "rows": {
+     "arm": "rows",
+     "version": "2",
+     "publish_s": 154.5,
+     "t_publish": 1792626401.6337006,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "ZKa+gfhZ5NWQbxd/79K1EBj366vdIFRTeZDGhAOZXUU=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+     "t_deleted": 1792626769.5323482
+    },
+    "ctl": {
+     "arm": "ctl",
+     "version": "2",
+     "publish_s": 154.5,
+     "t_publish": 1792626556.096684,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "If7ljbHfEwIA6C9Z+IAyAWsWuLV/BLOEwxqJalX1RAc=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+     "t_deleted": 1792626769.9016585
+    }
+   },
+   "t_versions_deleted": 1792626769.9016585,
+   "log_window": [
+    1792626336.0355458,
+    1792626789.9017606
+   ],
+   "log_events": 1204
+  }
+ ],
+ "finished": "2026-10-21T23:53:12Z",
+ "invoke_clients_made": 44
+}

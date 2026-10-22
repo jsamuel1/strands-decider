@@ -1,0 +1,12 @@
+{
+ "zip_sha256": "45777febb05a56883b90df4317efaab53a0b10c546ecfdeea10d8744ccf10024",
+ "p1_zip_sha256": "26eb2651e8915f8ad09eae899feff583a448de6b8d2bc4943bccabb66cae189b",
+ "replaced_libs": {
+  "lib/libggml-cpu-armv8.0_1.so": "713086946d7608bb1796a2e59a780b70f8fcb7fa2cee988845c80cad630b3187",
+  "lib/libggml-cpu-armv8.2_1.so": "a8fbca66e2a88dc38158db085c68a99747d9c805701f1f9499995c2d19e5d750",
+  "lib/libggml-cpu-armv8.2_2.so": "87aec60d1c93b7c8b7d60385d2648bd19d6bfd1761fc18b2c26ffb4d2d95cd48",
+  "lib/libggml-cpu-armv8.2_3.so": "3b1144cff715cca586465c0e32884ef330e836053f84210287523b13b83779ed",
+  "lib/libggml-cpu-armv8.6_1.so": "b846bfd1f597dadca6ecc6bb9b76f1100830ff275cb4800553be819d8cdda056",
+  "lib/libggml-cpu-armv8.6_2.so": "df2f6316d97e14ee67fefa7c28ef1599aaa48ffe351cbe201e01ae83f0fd9486"
+ }
+}

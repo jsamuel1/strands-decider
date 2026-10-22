@@ -1,0 +1,346 @@
+{
+ "schema": "lkai-e14-offline/1",
+ "evidence": "OFFLINE, NOT LAMBDA: P1's function.zip code and GGUF on another host; local file, not S3",
+ "label": "ctl2",
+ "host": {
+  "machine": "aarch64",
+  "kernel": "6.1.188-233.386.amzn2023.aarch64",
+  "nproc": 16,
+  "affinity": [
+   10,
+   11,
+   12,
+   13,
+   14,
+   15
+  ],
+  "cpuinfo": {
+   "Features": "fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm paca pacg dcpodp svei8mm svebf16 i8mm bf16 dgh rng",
+   "CPU implementer": "0x41",
+   "CPU variant": "0x1",
+   "CPU part": "0xd40",
+   "CPU revision": "1"
+  }
+ },
+ "threads": 6,
+ "shim_init": {
+  "cpu_part": "0xd40",
+  "ggml_cpu": [
+   "libggml-cpu-armv8.2_3.so",
+   "libggml-cpu-armv8.6_1.so"
+  ],
+  "threads": 6,
+  "ubatch": "512",
+  "kv": "f32",
+  "unrotate": false,
+  "n_ctx": 16384,
+  "n_seq": 17
+ },
+ "load_s": 9.096074,
+ "steady_state_total_s": 38.850917,
+ "steady_state_cpu_s": 217.303517,
+ "steady_state_s": {
+  "ticket-route-1q": [
+   0.245984,
+   0.244259,
+   0.245258,
+   0.244559,
+   0.245271,
+   0.244832,
+   0.249596,
+   0.274713,
+   0.245578,
+   0.244823
+  ],
+  "payouts-3q": [
+   0.571522,
+   0.564418,
+   0.567509,
+   0.566441,
+   0.566507,
+   0.563997,
+   0.565926,
+   0.577346,
+   0.569597,
+   0.565049
+  ],
+  "cracked-screen-2q": [
+   0.442399,
+   0.439068,
+   0.441529,
+   0.440515,
+   0.441265,
+   0.44107,
+   0.442634,
+   0.445859,
+   0.443255,
+   0.439992
+  ],
+  "agent-action-guard-2q": [
+   0.863707,
+   0.858951,
+   0.861308,
+   0.859973,
+   0.858626,
+   0.860504,
+   0.891129,
+   0.868324,
+   0.910274,
+   0.862649
+  ],
+  "incident-review-4q": [
+   1.751842,
+   1.751959,
+   1.749565,
+   1.753201,
+   1.763366,
+   1.756593,
+   1.772013,
+   1.761022,
+   1.752553,
+   1.759145
+  ]
+ },
+ "steady_state_cpu_s_by_request": {
+  "ticket-route-1q": [
+   1.30817,
+   1.296649,
+   1.300012,
+   1.297113,
+   1.298795,
+   1.298776,
+   1.313899,
+   1.383041,
+   1.300035,
+   1.298811
+  ],
+  "payouts-3q": [
+   3.26558,
+   3.229639,
+   3.245622,
+   3.237786,
+   3.239639,
+   3.228793,
+   3.23827,
+   3.275598,
+   3.255769,
+   3.23392
+  ],
+  "cracked-screen-2q": [
+   2.477339,
+   2.459752,
+   2.471952,
+   2.46653,
+   2.468125,
+   2.469189,
+   2.479153,
+   2.483673,
+   2.477965,
+   2.465717
+  ],
+  "agent-action-guard-2q": [
+   4.79067,
+   4.767863,
+   4.779233,
+   4.771942,
+   4.766583,
+   4.775895,
+   4.903157,
+   4.796361,
+   4.963827,
+   4.788585
+  ],
+  "incident-review-4q": [
+   9.871243,
+   9.877759,
+   9.864565,
+   9.88315,
+   9.899431,
+   9.889318,
+   9.947617,
+   9.911968,
+   9.877695,
+   9.908555
+  ]
+ },
+ "hidden_sha256": {
+  "ticket-route-1q": [
+   "28fc9ae5402ae97f17d46b4672be2b303eb6e24614b78274948f44c3be6d887d",
+   "28fc9ae5402ae97f17d46b4672be2b303eb6e24614b78274948f44c3be6d887d",
+   "28fc9ae5402ae97f17d46b4672be2b303eb6e24614b78274948f44c3be6d887d",
+   "28fc9ae5402ae97f17d46b4672be2b303eb6e24614b78274948f44c3be6d887d",
+   "28fc9ae5402ae97f17d46b4672be2b303eb6e24614b78274948f44c3be6d887d",
+   "28fc9ae5402ae97f17d46b4672be2b303eb6e24614b78274948f44c3be6d887d",
+   "28fc9ae5402ae97f17d46b4672be2b303eb6e24614b78274948f44c3be6d887d",
+   "28fc9ae5402ae97f17d46b4672be2b303eb6e24614b78274948f44c3be6d887d",
+   "28fc9ae5402ae97f17d46b4672be2b303eb6e24614b78274948f44c3be6d887d",
+   "28fc9ae5402ae97f17d46b4672be2b303eb6e24614b78274948f44c3be6d887d"
+  ],
+  "payouts-3q": [
+   "e5ab9bc9744edefd415f610808d0d9fa9ad322db42ef8457a0d4cd64f55141ad",
+   "e5ab9bc9744edefd415f610808d0d9fa9ad322db42ef8457a0d4cd64f55141ad",
+   "e5ab9bc9744edefd415f610808d0d9fa9ad322db42ef8457a0d4cd64f55141ad",
+   "e5ab9bc9744edefd415f610808d0d9fa9ad322db42ef8457a0d4cd64f55141ad",
+   "e5ab9bc9744edefd415f610808d0d9fa9ad322db42ef8457a0d4cd64f55141ad",
+   "e5ab9bc9744edefd415f610808d0d9fa9ad322db42ef8457a0d4cd64f55141ad",
+   "e5ab9bc9744edefd415f610808d0d9fa9ad322db42ef8457a0d4cd64f55141ad",
+   "e5ab9bc9744edefd415f610808d0d9fa9ad322db42ef8457a0d4cd64f55141ad",
+   "e5ab9bc9744edefd415f610808d0d9fa9ad322db42ef8457a0d4cd64f55141ad",
+   "e5ab9bc9744edefd415f610808d0d9fa9ad322db42ef8457a0d4cd64f55141ad"
+  ],
+  "cracked-screen-2q": [
+   "54e337c6d42af8e58904fc5e2284f18bcce14222c3aaabf2f6984841b43ede68",
+   "54e337c6d42af8e58904fc5e2284f18bcce14222c3aaabf2f6984841b43ede68",
+   "54e337c6d42af8e58904fc5e2284f18bcce14222c3aaabf2f6984841b43ede68",
+   "54e337c6d42af8e58904fc5e2284f18bcce14222c3aaabf2f6984841b43ede68",
+   "54e337c6d42af8e58904fc5e2284f18bcce14222c3aaabf2f6984841b43ede68",
+   "54e337c6d42af8e58904fc5e2284f18bcce14222c3aaabf2f6984841b43ede68",
+   "54e337c6d42af8e58904fc5e2284f18bcce14222c3aaabf2f6984841b43ede68",
+   "54e337c6d42af8e58904fc5e2284f18bcce14222c3aaabf2f6984841b43ede68",
+   "54e337c6d42af8e58904fc5e2284f18bcce14222c3aaabf2f6984841b43ede68",
+   "54e337c6d42af8e58904fc5e2284f18bcce14222c3aaabf2f6984841b43ede68"
+  ],
+  "agent-action-guard-2q": [
+   "3f511f9be9bdb2b219a8c344296d30e256373936787ada7ef5f6b802c8f8fa35",
+   "3f511f9be9bdb2b219a8c344296d30e256373936787ada7ef5f6b802c8f8fa35",
+   "3f511f9be9bdb2b219a8c344296d30e256373936787ada7ef5f6b802c8f8fa35",
+   "3f511f9be9bdb2b219a8c344296d30e256373936787ada7ef5f6b802c8f8fa35",
+   "3f511f9be9bdb2b219a8c344296d30e256373936787ada7ef5f6b802c8f8fa35",
+   "3f511f9be9bdb2b219a8c344296d30e256373936787ada7ef5f6b802c8f8fa35",
+   "3f511f9be9bdb2b219a8c344296d30e256373936787ada7ef5f6b802c8f8fa35",
+   "3f511f9be9bdb2b219a8c344296d30e256373936787ada7ef5f6b802c8f8fa35",
+   "3f511f9be9bdb2b219a8c344296d30e256373936787ada7ef5f6b802c8f8fa35",
+   "3f511f9be9bdb2b219a8c344296d30e256373936787ada7ef5f6b802c8f8fa35"
+  ],
+  "incident-review-4q": [
+   "941ee1bd8c6eebf32da7268a03ee96226b88e865b432ec8905d8e935892ca9a9",
+   "941ee1bd8c6eebf32da7268a03ee96226b88e865b432ec8905d8e935892ca9a9",
+   "941ee1bd8c6eebf32da7268a03ee96226b88e865b432ec8905d8e935892ca9a9",
+   "941ee1bd8c6eebf32da7268a03ee96226b88e865b432ec8905d8e935892ca9a9",
+   "941ee1bd8c6eebf32da7268a03ee96226b88e865b432ec8905d8e935892ca9a9",
+   "941ee1bd8c6eebf32da7268a03ee96226b88e865b432ec8905d8e935892ca9a9",
+   "941ee1bd8c6eebf32da7268a03ee96226b88e865b432ec8905d8e935892ca9a9",
+   "941ee1bd8c6eebf32da7268a03ee96226b88e865b432ec8905d8e935892ca9a9",
+   "941ee1bd8c6eebf32da7268a03ee96226b88e865b432ec8905d8e935892ca9a9",
+   "941ee1bd8c6eebf32da7268a03ee96226b88e865b432ec8905d8e935892ca9a9"
+  ]
+ },
+ "concat_probe": null,
+ "answers": {
+  "ticket-route-1q": {
+   "q": {
+    "type": "choice",
+    "choice": "billing",
+    "probabilities": {
+     "billing": 0.9622,
+     "technical": 0.0314,
+     "account": 0.0064
+    },
+    "confidence": 0.9433
+   }
+  },
+  "payouts-3q": {
+   "is_urgent": {
+    "type": "noul",
+    "noul": 0.8582
+   },
+   "team": {
+    "type": "choice",
+    "choice": "billing",
+    "probabilities": {
+     "billing": 0.7658,
+     "sales": 0.1236,
+     "retail": 0.1106
+    },
+    "confidence": 0.6487
+   },
+   "frustration": {
+    "type": "score",
+    "score": 1.0346,
+    "legend": {
+     "0": "calm",
+     "1": "frustrated",
+     "2": "depressed"
+    },
+    "probabilities": {
+     "0": 0.1945,
+     "1": 0.5764,
+     "2": 0.2291
+    },
+    "confidence": 0.512
+   }
+  },
+  "cracked-screen-2q": {
+   "q": {
+    "type": "choice",
+    "choice": "refunds",
+    "probabilities": {
+     "refunds": 0.6614,
+     "shipping": 0.1216,
+     "tech": 0.217
+    },
+    "confidence": 0.492
+   },
+   "u": {
+    "type": "noul",
+    "noul": 0.6251
+   }
+  },
+  "agent-action-guard-2q": {
+   "safe": {
+    "type": "noul",
+    "noul": 0.2744
+   },
+   "action": {
+    "type": "choice",
+    "choice": "proceed",
+    "probabilities": {
+     "proceed": 0.6325,
+     "revise": 0.2444,
+     "ask": 0.1231
+    },
+    "confidence": 0.4488
+   }
+  },
+  "incident-review-4q": {
+   "root_cause": {
+    "type": "choice",
+    "choice": "retries",
+    "probabilities": {
+     "retries": 0.5538,
+     "freeze": 0.3546,
+     "alarm": 0.0191,
+     "capacity": 0.0724
+    },
+    "confidence": 0.4051
+   },
+   "severity": {
+    "type": "score",
+    "score": 2.3033,
+    "legend": {
+     "0": "negligible",
+     "1": "minor",
+     "2": "moderate",
+     "3": "major",
+     "4": "critical"
+    },
+    "probabilities": {
+     "0": 0.1037,
+     "1": 0.1626,
+     "2": 0.2673,
+     "3": 0.2597,
+     "4": 0.2068
+    },
+    "confidence": 0.4432
+   },
+   "test_gap": {
+    "type": "noul",
+    "noul": 0.3864
+   },
+   "runbook": {
+    "type": "noul",
+    "noul": 0.8827
+   }
+  }
+ }
+}

@@ -1,0 +1,1 @@
+{"kernel": "5.10.255-268-309.1092.amzn2.aarch64", "machine": "aarch64", "cpu_part": "0xd40", "nproc": 6, "threads": 6, "samples": 234, "share": [0.188, 0.2009, 0.1624, 0.1111, 0.2094, 0.1282], "other_threads_share": 0.0, "main_thread_share": 0.188, "fair_share": 0.1667, "log_stream": "2026/10/21/[$LATEST]a13efdb001a946f4be0fda158b1dce19"}

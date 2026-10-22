@@ -1,0 +1,1797 @@
+{
+ "schema": "lkai-e14-offline/1",
+ "evidence": "OFFLINE, NOT LAMBDA: P1's function.zip code and GGUF on another host; local file, not S3",
+ "label": "probe4",
+ "host": {
+  "machine": "aarch64",
+  "kernel": "6.1.188-233.386.amzn2023.aarch64",
+  "nproc": 16,
+  "affinity": [
+   10,
+   11,
+   12,
+   13,
+   14,
+   15
+  ],
+  "cpuinfo": {
+   "Features": "fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm paca pacg dcpodp svei8mm svebf16 i8mm bf16 dgh rng",
+   "CPU implementer": "0x41",
+   "CPU variant": "0x1",
+   "CPU part": "0xd40",
+   "CPU revision": "1"
+  }
+ },
+ "threads": 6,
+ "shim_init": {
+  "cpu_part": "0xd40",
+  "ggml_cpu": [
+   "libggml-cpu-armv8.2_3.so",
+   "libggml-cpu-armv8.6_1.so"
+  ],
+  "threads": 6,
+  "ubatch": "512",
+  "kv": "f32",
+  "unrotate": false,
+  "n_ctx": 16384,
+  "n_seq": 17
+ },
+ "load_s": 9.174625,
+ "steady_state_total_s": 40.041402,
+ "steady_state_cpu_s": 220.945601,
+ "steady_state_s": {
+  "ticket-route-1q": [
+   0.254446,
+   0.251396,
+   0.256631,
+   0.253156,
+   0.253503,
+   0.250251,
+   0.249996,
+   0.252395,
+   0.257451,
+   0.250159
+  ],
+  "payouts-3q": [
+   0.598205,
+   0.573715,
+   0.577461,
+   0.582043,
+   0.581938,
+   0.579988,
+   0.590755,
+   0.575958,
+   0.577673,
+   0.580329
+  ],
+  "cracked-screen-2q": [
+   0.450619,
+   0.452583,
+   0.44864,
+   0.459865,
+   0.451382,
+   0.451597,
+   0.469178,
+   0.445942,
+   0.467193,
+   0.476183
+  ],
+  "agent-action-guard-2q": [
+   0.881262,
+   0.873754,
+   0.872915,
+   0.878788,
+   0.919223,
+   0.888287,
+   0.882721,
+   0.876469,
+   0.893748,
+   1.02053
+  ],
+  "incident-review-4q": [
+   1.786139,
+   1.802173,
+   1.781076,
+   1.792876,
+   1.799503,
+   1.823115,
+   1.803114,
+   1.788014,
+   1.784805,
+   1.940234
+  ]
+ },
+ "steady_state_cpu_s_by_request": {
+  "ticket-route-1q": [
+   1.333652,
+   1.323929,
+   1.339371,
+   1.328787,
+   1.329895,
+   1.323637,
+   1.321082,
+   1.327963,
+   1.325556,
+   1.319362
+  ],
+  "payouts-3q": [
+   3.362325,
+   3.277396,
+   3.293178,
+   3.302111,
+   3.300941,
+   3.30721,
+   3.330287,
+   3.289903,
+   3.292796,
+   3.301311
+  ],
+  "cracked-screen-2q": [
+   2.516585,
+   2.516117,
+   2.507054,
+   2.536182,
+   2.509093,
+   2.517537,
+   2.564781,
+   2.496844,
+   2.552259,
+   2.58299
+  ],
+  "agent-action-guard-2q": [
+   4.853979,
+   4.826345,
+   4.828802,
+   4.84225,
+   4.911828,
+   4.854723,
+   4.85739,
+   4.829966,
+   4.87697,
+   5.117028
+  ],
+  "incident-review-4q": [
+   10.004891,
+   10.040107,
+   9.991796,
+   10.016311,
+   10.042717,
+   10.084666,
+   10.032747,
+   9.994026,
+   9.988878,
+   10.289312
+  ]
+ },
+ "hidden_sha256": {
+  "ticket-route-1q": [
+   "28fc9ae5402ae97f17d46b4672be2b303eb6e24614b78274948f44c3be6d887d",
+   "28fc9ae5402ae97f17d46b4672be2b303eb6e24614b78274948f44c3be6d887d",
+   "28fc9ae5402ae97f17d46b4672be2b303eb6e24614b78274948f44c3be6d887d",
+   "28fc9ae5402ae97f17d46b4672be2b303eb6e24614b78274948f44c3be6d887d",
+   "28fc9ae5402ae97f17d46b4672be2b303eb6e24614b78274948f44c3be6d887d",
+   "28fc9ae5402ae97f17d46b4672be2b303eb6e24614b78274948f44c3be6d887d",
+   "28fc9ae5402ae97f17d46b4672be2b303eb6e24614b78274948f44c3be6d887d",
+   "28fc9ae5402ae97f17d46b4672be2b303eb6e24614b78274948f44c3be6d887d",
+   "28fc9ae5402ae97f17d46b4672be2b303eb6e24614b78274948f44c3be6d887d",
+   "28fc9ae5402ae97f17d46b4672be2b303eb6e24614b78274948f44c3be6d887d"
+  ],
+  "payouts-3q": [
+   "e5ab9bc9744edefd415f610808d0d9fa9ad322db42ef8457a0d4cd64f55141ad",
+   "e5ab9bc9744edefd415f610808d0d9fa9ad322db42ef8457a0d4cd64f55141ad",
+   "e5ab9bc9744edefd415f610808d0d9fa9ad322db42ef8457a0d4cd64f55141ad",
+   "e5ab9bc9744edefd415f610808d0d9fa9ad322db42ef8457a0d4cd64f55141ad",
+   "e5ab9bc9744edefd415f610808d0d9fa9ad322db42ef8457a0d4cd64f55141ad",
+   "e5ab9bc9744edefd415f610808d0d9fa9ad322db42ef8457a0d4cd64f55141ad",
+   "e5ab9bc9744edefd415f610808d0d9fa9ad322db42ef8457a0d4cd64f55141ad",
+   "e5ab9bc9744edefd415f610808d0d9fa9ad322db42ef8457a0d4cd64f55141ad",
+   "e5ab9bc9744edefd415f610808d0d9fa9ad322db42ef8457a0d4cd64f55141ad",
+   "e5ab9bc9744edefd415f610808d0d9fa9ad322db42ef8457a0d4cd64f55141ad"
+  ],
+  "cracked-screen-2q": [
+   "54e337c6d42af8e58904fc5e2284f18bcce14222c3aaabf2f6984841b43ede68",
+   "54e337c6d42af8e58904fc5e2284f18bcce14222c3aaabf2f6984841b43ede68",
+   "54e337c6d42af8e58904fc5e2284f18bcce14222c3aaabf2f6984841b43ede68",
+   "54e337c6d42af8e58904fc5e2284f18bcce14222c3aaabf2f6984841b43ede68",
+   "54e337c6d42af8e58904fc5e2284f18bcce14222c3aaabf2f6984841b43ede68",
+   "54e337c6d42af8e58904fc5e2284f18bcce14222c3aaabf2f6984841b43ede68",
+   "54e337c6d42af8e58904fc5e2284f18bcce14222c3aaabf2f6984841b43ede68",
+   "54e337c6d42af8e58904fc5e2284f18bcce14222c3aaabf2f6984841b43ede68",
+   "54e337c6d42af8e58904fc5e2284f18bcce14222c3aaabf2f6984841b43ede68",
+   "54e337c6d42af8e58904fc5e2284f18bcce14222c3aaabf2f6984841b43ede68"
+  ],
+  "agent-action-guard-2q": [
+   "3f511f9be9bdb2b219a8c344296d30e256373936787ada7ef5f6b802c8f8fa35",
+   "3f511f9be9bdb2b219a8c344296d30e256373936787ada7ef5f6b802c8f8fa35",
+   "3f511f9be9bdb2b219a8c344296d30e256373936787ada7ef5f6b802c8f8fa35",
+   "3f511f9be9bdb2b219a8c344296d30e256373936787ada7ef5f6b802c8f8fa35",
+   "3f511f9be9bdb2b219a8c344296d30e256373936787ada7ef5f6b802c8f8fa35",
+   "3f511f9be9bdb2b219a8c344296d30e256373936787ada7ef5f6b802c8f8fa35",
+   "3f511f9be9bdb2b219a8c344296d30e256373936787ada7ef5f6b802c8f8fa35",
+   "3f511f9be9bdb2b219a8c344296d30e256373936787ada7ef5f6b802c8f8fa35",
+   "3f511f9be9bdb2b219a8c344296d30e256373936787ada7ef5f6b802c8f8fa35",
+   "3f511f9be9bdb2b219a8c344296d30e256373936787ada7ef5f6b802c8f8fa35"
+  ],
+  "incident-review-4q": [
+   "941ee1bd8c6eebf32da7268a03ee96226b88e865b432ec8905d8e935892ca9a9",
+   "941ee1bd8c6eebf32da7268a03ee96226b88e865b432ec8905d8e935892ca9a9",
+   "941ee1bd8c6eebf32da7268a03ee96226b88e865b432ec8905d8e935892ca9a9",
+   "941ee1bd8c6eebf32da7268a03ee96226b88e865b432ec8905d8e935892ca9a9",
+   "941ee1bd8c6eebf32da7268a03ee96226b88e865b432ec8905d8e935892ca9a9",
+   "941ee1bd8c6eebf32da7268a03ee96226b88e865b432ec8905d8e935892ca9a9",
+   "941ee1bd8c6eebf32da7268a03ee96226b88e865b432ec8905d8e935892ca9a9",
+   "941ee1bd8c6eebf32da7268a03ee96226b88e865b432ec8905d8e935892ca9a9",
+   "941ee1bd8c6eebf32da7268a03ee96226b88e865b432ec8905d8e935892ca9a9",
+   "941ee1bd8c6eebf32da7268a03ee96226b88e865b432ec8905d8e935892ca9a9"
+  ]
+ },
+ "concat_probe": {
+  "ticket-route-1q": {
+   "dim=0|dst=86x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-0": [
+    10,
+    9378327,
+    21135360
+   ],
+   "dim=0|dst=86x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-1": [
+    10,
+    9310723,
+    21135360
+   ],
+   "dim=0|dst=86x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-2": [
+    10,
+    9287630,
+    21135360
+   ],
+   "dim=0|dst=86x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-4": [
+    10,
+    9272251,
+    21135360
+   ],
+   "dim=0|dst=86x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-5": [
+    10,
+    9310237,
+    21135360
+   ],
+   "dim=0|dst=86x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-6": [
+    10,
+    9240238,
+    21135360
+   ],
+   "dim=0|dst=86x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-8": [
+    10,
+    9321508,
+    21135360
+   ],
+   "dim=0|dst=86x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-9": [
+    10,
+    9362286,
+    21135360
+   ],
+   "dim=0|dst=86x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-10": [
+    10,
+    9295688,
+    21135360
+   ],
+   "dim=0|dst=86x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-12": [
+    10,
+    9282555,
+    21135360
+   ],
+   "dim=0|dst=86x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-13": [
+    10,
+    9245236,
+    21135360
+   ],
+   "dim=0|dst=86x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-14": [
+    10,
+    9279664,
+    21135360
+   ],
+   "dim=0|dst=86x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-16": [
+    10,
+    9265301,
+    21135360
+   ],
+   "dim=0|dst=86x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-17": [
+    10,
+    9387742,
+    21135360
+   ],
+   "dim=0|dst=86x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-18": [
+    10,
+    9317115,
+    21135360
+   ],
+   "dim=0|dst=86x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-20": [
+    10,
+    9272460,
+    21135360
+   ],
+   "dim=0|dst=86x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-21": [
+    10,
+    9311156,
+    21135360
+   ],
+   "dim=0|dst=86x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-22": [
+    10,
+    9375016,
+    21135360
+   ]
+  },
+  "payouts-3q": {
+   "dim=0|dst=24x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-0": [
+    10,
+    1947130,
+    5898240
+   ],
+   "dim=0|dst=24x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-1": [
+    10,
+    1914002,
+    5898240
+   ],
+   "dim=0|dst=24x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-2": [
+    10,
+    1904872,
+    5898240
+   ],
+   "dim=0|dst=24x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-4": [
+    10,
+    1910364,
+    5898240
+   ],
+   "dim=0|dst=24x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-5": [
+    10,
+    1918311,
+    5898240
+   ],
+   "dim=0|dst=24x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-6": [
+    10,
+    1952622,
+    5898240
+   ],
+   "dim=0|dst=24x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-8": [
+    10,
+    1903387,
+    5898240
+   ],
+   "dim=0|dst=24x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-9": [
+    10,
+    1905728,
+    5898240
+   ],
+   "dim=0|dst=24x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-10": [
+    10,
+    1905121,
+    5898240
+   ],
+   "dim=0|dst=24x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-12": [
+    10,
+    1911528,
+    5898240
+   ],
+   "dim=0|dst=24x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-13": [
+    10,
+    1900197,
+    5898240
+   ],
+   "dim=0|dst=24x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-14": [
+    10,
+    1915555,
+    5898240
+   ],
+   "dim=0|dst=24x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-16": [
+    10,
+    1905155,
+    5898240
+   ],
+   "dim=0|dst=24x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-17": [
+    10,
+    1912432,
+    5898240
+   ],
+   "dim=0|dst=24x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-18": [
+    10,
+    1896564,
+    5898240
+   ],
+   "dim=0|dst=24x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-20": [
+    10,
+    1905004,
+    5898240
+   ],
+   "dim=0|dst=24x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-21": [
+    10,
+    1897614,
+    5898240
+   ],
+   "dim=0|dst=24x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-22": [
+    10,
+    1907249,
+    5898240
+   ],
+   "dim=0|dst=50x6144x3x1|src0_ne0=3|src1_contig=0|conv_input-0": [
+    10,
+    5280168,
+    36864000
+   ],
+   "dim=0|dst=50x6144x3x1|src0_ne0=3|src1_contig=0|conv_input-1": [
+    10,
+    5314971,
+    36864000
+   ],
+   "dim=0|dst=50x6144x3x1|src0_ne0=3|src1_contig=0|conv_input-2": [
+    10,
+    5291482,
+    36864000
+   ],
+   "dim=0|dst=50x6144x3x1|src0_ne0=3|src1_contig=0|conv_input-4": [
+    10,
+    5304393,
+    36864000
+   ],
+   "dim=0|dst=50x6144x3x1|src0_ne0=3|src1_contig=0|conv_input-5": [
+    10,
+    5290548,
+    36864000
+   ],
+   "dim=0|dst=50x6144x3x1|src0_ne0=3|src1_contig=0|conv_input-6": [
+    10,
+    5354933,
+    36864000
+   ],
+   "dim=0|dst=50x6144x3x1|src0_ne0=3|src1_contig=0|conv_input-8": [
+    10,
+    5327179,
+    36864000
+   ],
+   "dim=0|dst=50x6144x3x1|src0_ne0=3|src1_contig=0|conv_input-9": [
+    10,
+    5368483,
+    36864000
+   ],
+   "dim=0|dst=50x6144x3x1|src0_ne0=3|src1_contig=0|conv_input-10": [
+    10,
+    5313556,
+    36864000
+   ],
+   "dim=0|dst=50x6144x3x1|src0_ne0=3|src1_contig=0|conv_input-12": [
+    10,
+    5323619,
+    36864000
+   ],
+   "dim=0|dst=50x6144x3x1|src0_ne0=3|src1_contig=0|conv_input-13": [
+    10,
+    5316376,
+    36864000
+   ],
+   "dim=0|dst=50x6144x3x1|src0_ne0=3|src1_contig=0|conv_input-14": [
+    10,
+    5312883,
+    36864000
+   ],
+   "dim=0|dst=50x6144x3x1|src0_ne0=3|src1_contig=0|conv_input-16": [
+    10,
+    5301415,
+    36864000
+   ],
+   "dim=0|dst=50x6144x3x1|src0_ne0=3|src1_contig=0|conv_input-17": [
+    10,
+    5295790,
+    36864000
+   ],
+   "dim=0|dst=50x6144x3x1|src0_ne0=3|src1_contig=0|conv_input-18": [
+    10,
+    5292520,
+    36864000
+   ],
+   "dim=0|dst=50x6144x3x1|src0_ne0=3|src1_contig=0|conv_input-20": [
+    10,
+    5327326,
+    36864000
+   ],
+   "dim=0|dst=50x6144x3x1|src0_ne0=3|src1_contig=0|conv_input-21": [
+    10,
+    5328727,
+    36864000
+   ],
+   "dim=0|dst=50x6144x3x1|src0_ne0=3|src1_contig=0|conv_input-22": [
+    10,
+    5338611,
+    36864000
+   ],
+   "dim=0|dst=19x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-0": [
+    10,
+    1152241,
+    9338880
+   ],
+   "dim=0|dst=19x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-1": [
+    10,
+    1142652,
+    9338880
+   ],
+   "dim=0|dst=19x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-2": [
+    10,
+    1143371,
+    9338880
+   ],
+   "dim=0|dst=19x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-4": [
+    10,
+    1158125,
+    9338880
+   ],
+   "dim=0|dst=19x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-5": [
+    10,
+    1167823,
+    9338880
+   ],
+   "dim=0|dst=19x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-6": [
+    10,
+    1184722,
+    9338880
+   ],
+   "dim=0|dst=19x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-8": [
+    10,
+    1147346,
+    9338880
+   ],
+   "dim=0|dst=19x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-9": [
+    10,
+    1169257,
+    9338880
+   ],
+   "dim=0|dst=19x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-10": [
+    10,
+    1144059,
+    9338880
+   ],
+   "dim=0|dst=19x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-12": [
+    10,
+    1153801,
+    9338880
+   ],
+   "dim=0|dst=19x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-13": [
+    10,
+    1145752,
+    9338880
+   ],
+   "dim=0|dst=19x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-14": [
+    10,
+    1147568,
+    9338880
+   ],
+   "dim=0|dst=19x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-16": [
+    10,
+    1141626,
+    9338880
+   ],
+   "dim=0|dst=19x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-17": [
+    10,
+    1169654,
+    9338880
+   ],
+   "dim=0|dst=19x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-18": [
+    10,
+    1144605,
+    9338880
+   ],
+   "dim=0|dst=19x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-20": [
+    10,
+    1139525,
+    9338880
+   ],
+   "dim=0|dst=19x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-21": [
+    10,
+    1144113,
+    9338880
+   ],
+   "dim=0|dst=19x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-22": [
+    10,
+    1146357,
+    9338880
+   ],
+   "dim=0|dst=5x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-0": [
+    10,
+    350758,
+    1228800
+   ],
+   "dim=0|dst=5x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-1": [
+    10,
+    312493,
+    1228800
+   ],
+   "dim=0|dst=5x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-2": [
+    10,
+    312053,
+    1228800
+   ],
+   "dim=0|dst=5x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-4": [
+    10,
+    311915,
+    1228800
+   ],
+   "dim=0|dst=5x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-5": [
+    10,
+    312551,
+    1228800
+   ],
+   "dim=0|dst=5x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-6": [
+    10,
+    311568,
+    1228800
+   ],
+   "dim=0|dst=5x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-8": [
+    10,
+    312083,
+    1228800
+   ],
+   "dim=0|dst=5x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-9": [
+    10,
+    311182,
+    1228800
+   ],
+   "dim=0|dst=5x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-10": [
+    10,
+    311045,
+    1228800
+   ],
+   "dim=0|dst=5x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-12": [
+    10,
+    312678,
+    1228800
+   ],
+   "dim=0|dst=5x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-13": [
+    10,
+    330126,
+    1228800
+   ],
+   "dim=0|dst=5x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-14": [
+    10,
+    310996,
+    1228800
+   ],
+   "dim=0|dst=5x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-16": [
+    10,
+    311827,
+    1228800
+   ],
+   "dim=0|dst=5x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-17": [
+    10,
+    310717,
+    1228800
+   ],
+   "dim=0|dst=5x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-18": [
+    10,
+    311170,
+    1228800
+   ],
+   "dim=0|dst=5x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-20": [
+    10,
+    313083,
+    1228800
+   ],
+   "dim=0|dst=5x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-21": [
+    10,
+    310960,
+    1228800
+   ],
+   "dim=0|dst=5x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-22": [
+    10,
+    310458,
+    1228800
+   ]
+  },
+  "cracked-screen-2q": {
+   "dim=0|dst=31x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-0": [
+    10,
+    2886660,
+    7618560
+   ],
+   "dim=0|dst=31x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-1": [
+    10,
+    2905531,
+    7618560
+   ],
+   "dim=0|dst=31x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-2": [
+    10,
+    2882704,
+    7618560
+   ],
+   "dim=0|dst=31x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-4": [
+    10,
+    2864339,
+    7618560
+   ],
+   "dim=0|dst=31x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-5": [
+    10,
+    2868935,
+    7618560
+   ],
+   "dim=0|dst=31x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-6": [
+    10,
+    2871120,
+    7618560
+   ],
+   "dim=0|dst=31x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-8": [
+    10,
+    2873665,
+    7618560
+   ],
+   "dim=0|dst=31x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-9": [
+    10,
+    2876326,
+    7618560
+   ],
+   "dim=0|dst=31x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-10": [
+    10,
+    2883233,
+    7618560
+   ],
+   "dim=0|dst=31x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-12": [
+    10,
+    2904538,
+    7618560
+   ],
+   "dim=0|dst=31x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-13": [
+    10,
+    2883722,
+    7618560
+   ],
+   "dim=0|dst=31x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-14": [
+    10,
+    2881121,
+    7618560
+   ],
+   "dim=0|dst=31x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-16": [
+    10,
+    2896978,
+    7618560
+   ],
+   "dim=0|dst=31x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-17": [
+    10,
+    2901917,
+    7618560
+   ],
+   "dim=0|dst=31x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-18": [
+    10,
+    2900340,
+    7618560
+   ],
+   "dim=0|dst=31x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-20": [
+    10,
+    2870649,
+    7618560
+   ],
+   "dim=0|dst=31x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-21": [
+    10,
+    2875125,
+    7618560
+   ],
+   "dim=0|dst=31x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-22": [
+    10,
+    2880238,
+    7618560
+   ],
+   "dim=0|dst=57x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-0": [
+    10,
+    5976525,
+    28016640
+   ],
+   "dim=0|dst=57x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-1": [
+    10,
+    6054874,
+    28016640
+   ],
+   "dim=0|dst=57x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-2": [
+    10,
+    6067033,
+    28016640
+   ],
+   "dim=0|dst=57x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-4": [
+    10,
+    6031441,
+    28016640
+   ],
+   "dim=0|dst=57x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-5": [
+    10,
+    6026055,
+    28016640
+   ],
+   "dim=0|dst=57x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-6": [
+    10,
+    6074485,
+    28016640
+   ],
+   "dim=0|dst=57x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-8": [
+    10,
+    6032254,
+    28016640
+   ],
+   "dim=0|dst=57x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-9": [
+    10,
+    6055030,
+    28016640
+   ],
+   "dim=0|dst=57x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-10": [
+    10,
+    6048639,
+    28016640
+   ],
+   "dim=0|dst=57x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-12": [
+    10,
+    6048741,
+    28016640
+   ],
+   "dim=0|dst=57x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-13": [
+    10,
+    6065427,
+    28016640
+   ],
+   "dim=0|dst=57x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-14": [
+    10,
+    6038868,
+    28016640
+   ],
+   "dim=0|dst=57x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-16": [
+    10,
+    6037889,
+    28016640
+   ],
+   "dim=0|dst=57x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-17": [
+    10,
+    6057295,
+    28016640
+   ],
+   "dim=0|dst=57x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-18": [
+    10,
+    6117187,
+    28016640
+   ],
+   "dim=0|dst=57x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-20": [
+    10,
+    6106105,
+    28016640
+   ],
+   "dim=0|dst=57x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-21": [
+    10,
+    6036888,
+    28016640
+   ],
+   "dim=0|dst=57x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-22": [
+    10,
+    6034235,
+    28016640
+   ],
+   "dim=0|dst=14x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-0": [
+    10,
+    760405,
+    3440640
+   ],
+   "dim=0|dst=14x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-1": [
+    10,
+    894571,
+    3440640
+   ],
+   "dim=0|dst=14x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-2": [
+    10,
+    754953,
+    3440640
+   ],
+   "dim=0|dst=14x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-4": [
+    10,
+    755081,
+    3440640
+   ],
+   "dim=0|dst=14x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-5": [
+    10,
+    752671,
+    3440640
+   ],
+   "dim=0|dst=14x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-6": [
+    10,
+    781928,
+    3440640
+   ],
+   "dim=0|dst=14x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-8": [
+    10,
+    753947,
+    3440640
+   ],
+   "dim=0|dst=14x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-9": [
+    10,
+    753694,
+    3440640
+   ],
+   "dim=0|dst=14x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-10": [
+    10,
+    772517,
+    3440640
+   ],
+   "dim=0|dst=14x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-12": [
+    10,
+    756384,
+    3440640
+   ],
+   "dim=0|dst=14x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-13": [
+    10,
+    777752,
+    3440640
+   ],
+   "dim=0|dst=14x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-14": [
+    10,
+    756644,
+    3440640
+   ],
+   "dim=0|dst=14x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-16": [
+    10,
+    752534,
+    3440640
+   ],
+   "dim=0|dst=14x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-17": [
+    10,
+    755135,
+    3440640
+   ],
+   "dim=0|dst=14x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-18": [
+    10,
+    755559,
+    3440640
+   ],
+   "dim=0|dst=14x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-20": [
+    10,
+    753897,
+    3440640
+   ],
+   "dim=0|dst=14x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-21": [
+    10,
+    753894,
+    3440640
+   ],
+   "dim=0|dst=14x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-22": [
+    10,
+    753568,
+    3440640
+   ]
+  },
+  "agent-action-guard-2q": {
+   "dim=0|dst=169x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-0": [
+    10,
+    20864214,
+    41533440
+   ],
+   "dim=0|dst=169x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-1": [
+    10,
+    20724736,
+    41533440
+   ],
+   "dim=0|dst=169x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-2": [
+    10,
+    20771759,
+    41533440
+   ],
+   "dim=0|dst=169x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-4": [
+    10,
+    20696563,
+    41533440
+   ],
+   "dim=0|dst=169x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-5": [
+    10,
+    20726024,
+    41533440
+   ],
+   "dim=0|dst=169x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-6": [
+    10,
+    20785651,
+    41533440
+   ],
+   "dim=0|dst=169x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-8": [
+    10,
+    20576907,
+    41533440
+   ],
+   "dim=0|dst=169x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-9": [
+    10,
+    20717099,
+    41533440
+   ],
+   "dim=0|dst=169x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-10": [
+    10,
+    20597427,
+    41533440
+   ],
+   "dim=0|dst=169x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-12": [
+    10,
+    20694912,
+    41533440
+   ],
+   "dim=0|dst=169x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-13": [
+    10,
+    20654680,
+    41533440
+   ],
+   "dim=0|dst=169x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-14": [
+    10,
+    20649873,
+    41533440
+   ],
+   "dim=0|dst=169x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-16": [
+    10,
+    20752640,
+    41533440
+   ],
+   "dim=0|dst=169x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-17": [
+    10,
+    20887090,
+    41533440
+   ],
+   "dim=0|dst=169x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-18": [
+    10,
+    20690231,
+    41533440
+   ],
+   "dim=0|dst=169x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-20": [
+    10,
+    20720351,
+    41533440
+   ],
+   "dim=0|dst=169x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-21": [
+    10,
+    20634784,
+    41533440
+   ],
+   "dim=0|dst=169x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-22": [
+    10,
+    20560187,
+    41533440
+   ],
+   "dim=0|dst=71x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-0": [
+    10,
+    7549780,
+    34897920
+   ],
+   "dim=0|dst=71x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-1": [
+    10,
+    7644841,
+    34897920
+   ],
+   "dim=0|dst=71x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-2": [
+    10,
+    7635554,
+    34897920
+   ],
+   "dim=0|dst=71x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-4": [
+    10,
+    7684339,
+    34897920
+   ],
+   "dim=0|dst=71x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-5": [
+    10,
+    7647507,
+    34897920
+   ],
+   "dim=0|dst=71x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-6": [
+    10,
+    7748503,
+    34897920
+   ],
+   "dim=0|dst=71x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-8": [
+    10,
+    7665722,
+    34897920
+   ],
+   "dim=0|dst=71x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-9": [
+    10,
+    7716680,
+    34897920
+   ],
+   "dim=0|dst=71x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-10": [
+    10,
+    7854913,
+    34897920
+   ],
+   "dim=0|dst=71x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-12": [
+    10,
+    7778478,
+    34897920
+   ],
+   "dim=0|dst=71x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-13": [
+    10,
+    7727946,
+    34897920
+   ],
+   "dim=0|dst=71x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-14": [
+    10,
+    7622865,
+    34897920
+   ],
+   "dim=0|dst=71x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-16": [
+    10,
+    7727509,
+    34897920
+   ],
+   "dim=0|dst=71x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-17": [
+    10,
+    7674683,
+    34897920
+   ],
+   "dim=0|dst=71x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-18": [
+    10,
+    7679571,
+    34897920
+   ],
+   "dim=0|dst=71x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-20": [
+    10,
+    7698243,
+    34897920
+   ],
+   "dim=0|dst=71x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-21": [
+    10,
+    7666697,
+    34897920
+   ],
+   "dim=0|dst=71x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-22": [
+    10,
+    7668488,
+    34897920
+   ],
+   "dim=0|dst=7x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-0": [
+    10,
+    412660,
+    1720320
+   ],
+   "dim=0|dst=7x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-1": [
+    10,
+    421309,
+    1720320
+   ],
+   "dim=0|dst=7x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-2": [
+    10,
+    408124,
+    1720320
+   ],
+   "dim=0|dst=7x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-4": [
+    10,
+    411712,
+    1720320
+   ],
+   "dim=0|dst=7x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-5": [
+    10,
+    437398,
+    1720320
+   ],
+   "dim=0|dst=7x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-6": [
+    10,
+    413242,
+    1720320
+   ],
+   "dim=0|dst=7x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-8": [
+    10,
+    418485,
+    1720320
+   ],
+   "dim=0|dst=7x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-9": [
+    10,
+    407700,
+    1720320
+   ],
+   "dim=0|dst=7x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-10": [
+    10,
+    433002,
+    1720320
+   ],
+   "dim=0|dst=7x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-12": [
+    10,
+    408320,
+    1720320
+   ],
+   "dim=0|dst=7x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-13": [
+    10,
+    409004,
+    1720320
+   ],
+   "dim=0|dst=7x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-14": [
+    10,
+    408389,
+    1720320
+   ],
+   "dim=0|dst=7x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-16": [
+    10,
+    409134,
+    1720320
+   ],
+   "dim=0|dst=7x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-17": [
+    10,
+    407381,
+    1720320
+   ],
+   "dim=0|dst=7x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-18": [
+    10,
+    416531,
+    1720320
+   ],
+   "dim=0|dst=7x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-20": [
+    10,
+    413339,
+    1720320
+   ],
+   "dim=0|dst=7x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-21": [
+    10,
+    407356,
+    1720320
+   ],
+   "dim=0|dst=7x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-22": [
+    10,
+    407894,
+    1720320
+   ]
+  },
+  "incident-review-4q": {
+   "dim=0|dst=304x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-0": [
+    10,
+    40875736,
+    74711040
+   ],
+   "dim=0|dst=304x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-1": [
+    10,
+    41042591,
+    74711040
+   ],
+   "dim=0|dst=304x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-2": [
+    10,
+    41165921,
+    74711040
+   ],
+   "dim=0|dst=304x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-4": [
+    10,
+    40868029,
+    74711040
+   ],
+   "dim=0|dst=304x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-5": [
+    10,
+    40928251,
+    74711040
+   ],
+   "dim=0|dst=304x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-6": [
+    10,
+    41194051,
+    74711040
+   ],
+   "dim=0|dst=304x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-8": [
+    10,
+    41015691,
+    74711040
+   ],
+   "dim=0|dst=304x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-9": [
+    10,
+    40866691,
+    74711040
+   ],
+   "dim=0|dst=304x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-10": [
+    10,
+    40852589,
+    74711040
+   ],
+   "dim=0|dst=304x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-12": [
+    10,
+    40897646,
+    74711040
+   ],
+   "dim=0|dst=304x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-13": [
+    10,
+    40792151,
+    74711040
+   ],
+   "dim=0|dst=304x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-14": [
+    10,
+    41184587,
+    74711040
+   ],
+   "dim=0|dst=304x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-16": [
+    10,
+    40773080,
+    74711040
+   ],
+   "dim=0|dst=304x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-17": [
+    10,
+    41088439,
+    74711040
+   ],
+   "dim=0|dst=304x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-18": [
+    10,
+    40789032,
+    74711040
+   ],
+   "dim=0|dst=304x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-20": [
+    10,
+    40578414,
+    74711040
+   ],
+   "dim=0|dst=304x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-21": [
+    10,
+    40817119,
+    74711040
+   ],
+   "dim=0|dst=304x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-22": [
+    10,
+    40882852,
+    74711040
+   ],
+   "dim=0|dst=72x6144x4x1|src0_ne0=3|src1_contig=0|conv_input-0": [
+    10,
+    7940885,
+    70778880
+   ],
+   "dim=0|dst=72x6144x4x1|src0_ne0=3|src1_contig=0|conv_input-1": [
+    10,
+    7980330,
+    70778880
+   ],
+   "dim=0|dst=72x6144x4x1|src0_ne0=3|src1_contig=0|conv_input-2": [
+    10,
+    7963943,
+    70778880
+   ],
+   "dim=0|dst=72x6144x4x1|src0_ne0=3|src1_contig=0|conv_input-4": [
+    10,
+    7974115,
+    70778880
+   ],
+   "dim=0|dst=72x6144x4x1|src0_ne0=3|src1_contig=0|conv_input-5": [
+    10,
+    7955508,
+    70778880
+   ],
+   "dim=0|dst=72x6144x4x1|src0_ne0=3|src1_contig=0|conv_input-6": [
+    10,
+    7934781,
+    70778880
+   ],
+   "dim=0|dst=72x6144x4x1|src0_ne0=3|src1_contig=0|conv_input-8": [
+    10,
+    7923336,
+    70778880
+   ],
+   "dim=0|dst=72x6144x4x1|src0_ne0=3|src1_contig=0|conv_input-9": [
+    10,
+    7931137,
+    70778880
+   ],
+   "dim=0|dst=72x6144x4x1|src0_ne0=3|src1_contig=0|conv_input-10": [
+    10,
+    7929776,
+    70778880
+   ],
+   "dim=0|dst=72x6144x4x1|src0_ne0=3|src1_contig=0|conv_input-12": [
+    10,
+    7937254,
+    70778880
+   ],
+   "dim=0|dst=72x6144x4x1|src0_ne0=3|src1_contig=0|conv_input-13": [
+    10,
+    7972133,
+    70778880
+   ],
+   "dim=0|dst=72x6144x4x1|src0_ne0=3|src1_contig=0|conv_input-14": [
+    10,
+    7875159,
+    70778880
+   ],
+   "dim=0|dst=72x6144x4x1|src0_ne0=3|src1_contig=0|conv_input-16": [
+    10,
+    7894294,
+    70778880
+   ],
+   "dim=0|dst=72x6144x4x1|src0_ne0=3|src1_contig=0|conv_input-17": [
+    10,
+    7910701,
+    70778880
+   ],
+   "dim=0|dst=72x6144x4x1|src0_ne0=3|src1_contig=0|conv_input-18": [
+    10,
+    7894539,
+    70778880
+   ],
+   "dim=0|dst=72x6144x4x1|src0_ne0=3|src1_contig=0|conv_input-20": [
+    10,
+    7976958,
+    70778880
+   ],
+   "dim=0|dst=72x6144x4x1|src0_ne0=3|src1_contig=0|conv_input-21": [
+    10,
+    8050744,
+    70778880
+   ],
+   "dim=0|dst=72x6144x4x1|src0_ne0=3|src1_contig=0|conv_input-22": [
+    10,
+    7908098,
+    70778880
+   ],
+   "dim=0|dst=8x6144x3x1|src0_ne0=3|src1_contig=0|conv_input-0": [
+    10,
+    460849,
+    5898240
+   ],
+   "dim=0|dst=8x6144x3x1|src0_ne0=3|src1_contig=0|conv_input-1": [
+    10,
+    470283,
+    5898240
+   ],
+   "dim=0|dst=8x6144x3x1|src0_ne0=3|src1_contig=0|conv_input-2": [
+    10,
+    479673,
+    5898240
+   ],
+   "dim=0|dst=8x6144x3x1|src0_ne0=3|src1_contig=0|conv_input-4": [
+    10,
+    455718,
+    5898240
+   ],
+   "dim=0|dst=8x6144x3x1|src0_ne0=3|src1_contig=0|conv_input-5": [
+    10,
+    456378,
+    5898240
+   ],
+   "dim=0|dst=8x6144x3x1|src0_ne0=3|src1_contig=0|conv_input-6": [
+    10,
+    455429,
+    5898240
+   ],
+   "dim=0|dst=8x6144x3x1|src0_ne0=3|src1_contig=0|conv_input-8": [
+    10,
+    457012,
+    5898240
+   ],
+   "dim=0|dst=8x6144x3x1|src0_ne0=3|src1_contig=0|conv_input-9": [
+    10,
+    456293,
+    5898240
+   ],
+   "dim=0|dst=8x6144x3x1|src0_ne0=3|src1_contig=0|conv_input-10": [
+    10,
+    456055,
+    5898240
+   ],
+   "dim=0|dst=8x6144x3x1|src0_ne0=3|src1_contig=0|conv_input-12": [
+    10,
+    455756,
+    5898240
+   ],
+   "dim=0|dst=8x6144x3x1|src0_ne0=3|src1_contig=0|conv_input-13": [
+    10,
+    455363,
+    5898240
+   ],
+   "dim=0|dst=8x6144x3x1|src0_ne0=3|src1_contig=0|conv_input-14": [
+    10,
+    454762,
+    5898240
+   ],
+   "dim=0|dst=8x6144x3x1|src0_ne0=3|src1_contig=0|conv_input-16": [
+    10,
+    461039,
+    5898240
+   ],
+   "dim=0|dst=8x6144x3x1|src0_ne0=3|src1_contig=0|conv_input-17": [
+    10,
+    456714,
+    5898240
+   ],
+   "dim=0|dst=8x6144x3x1|src0_ne0=3|src1_contig=0|conv_input-18": [
+    10,
+    457888,
+    5898240
+   ],
+   "dim=0|dst=8x6144x3x1|src0_ne0=3|src1_contig=0|conv_input-20": [
+    10,
+    458094,
+    5898240
+   ],
+   "dim=0|dst=8x6144x3x1|src0_ne0=3|src1_contig=0|conv_input-21": [
+    10,
+    457804,
+    5898240
+   ],
+   "dim=0|dst=8x6144x3x1|src0_ne0=3|src1_contig=0|conv_input-22": [
+    10,
+    468482,
+    5898240
+   ],
+   "dim=0|dst=5x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-0": [
+    10,
+    327808,
+    2457600
+   ],
+   "dim=0|dst=5x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-1": [
+    10,
+    312579,
+    2457600
+   ],
+   "dim=0|dst=5x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-2": [
+    10,
+    312449,
+    2457600
+   ],
+   "dim=0|dst=5x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-4": [
+    10,
+    313505,
+    2457600
+   ],
+   "dim=0|dst=5x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-5": [
+    10,
+    311910,
+    2457600
+   ],
+   "dim=0|dst=5x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-6": [
+    10,
+    353027,
+    2457600
+   ],
+   "dim=0|dst=5x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-8": [
+    10,
+    312862,
+    2457600
+   ],
+   "dim=0|dst=5x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-9": [
+    10,
+    312644,
+    2457600
+   ],
+   "dim=0|dst=5x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-10": [
+    10,
+    313608,
+    2457600
+   ],
+   "dim=0|dst=5x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-12": [
+    10,
+    314013,
+    2457600
+   ],
+   "dim=0|dst=5x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-13": [
+    10,
+    313230,
+    2457600
+   ],
+   "dim=0|dst=5x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-14": [
+    10,
+    312628,
+    2457600
+   ],
+   "dim=0|dst=5x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-16": [
+    10,
+    313836,
+    2457600
+   ],
+   "dim=0|dst=5x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-17": [
+    10,
+    311934,
+    2457600
+   ],
+   "dim=0|dst=5x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-18": [
+    10,
+    313477,
+    2457600
+   ],
+   "dim=0|dst=5x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-20": [
+    10,
+    312063,
+    2457600
+   ],
+   "dim=0|dst=5x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-21": [
+    10,
+    312343,
+    2457600
+   ],
+   "dim=0|dst=5x6144x2x1|src0_ne0=3|src1_contig=0|conv_input-22": [
+    10,
+    312114,
+    2457600
+   ],
+   "dim=0|dst=5x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-0": [
+    10,
+    321347,
+    1228800
+   ],
+   "dim=0|dst=5x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-1": [
+    10,
+    311641,
+    1228800
+   ],
+   "dim=0|dst=5x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-2": [
+    10,
+    311699,
+    1228800
+   ],
+   "dim=0|dst=5x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-4": [
+    10,
+    348972,
+    1228800
+   ],
+   "dim=0|dst=5x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-5": [
+    10,
+    312531,
+    1228800
+   ],
+   "dim=0|dst=5x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-6": [
+    10,
+    311875,
+    1228800
+   ],
+   "dim=0|dst=5x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-8": [
+    10,
+    312783,
+    1228800
+   ],
+   "dim=0|dst=5x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-9": [
+    10,
+    326249,
+    1228800
+   ],
+   "dim=0|dst=5x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-10": [
+    10,
+    323154,
+    1228800
+   ],
+   "dim=0|dst=5x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-12": [
+    10,
+    312911,
+    1228800
+   ],
+   "dim=0|dst=5x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-13": [
+    10,
+    323223,
+    1228800
+   ],
+   "dim=0|dst=5x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-14": [
+    10,
+    312156,
+    1228800
+   ],
+   "dim=0|dst=5x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-16": [
+    10,
+    312904,
+    1228800
+   ],
+   "dim=0|dst=5x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-17": [
+    10,
+    321891,
+    1228800
+   ],
+   "dim=0|dst=5x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-18": [
+    10,
+    312776,
+    1228800
+   ],
+   "dim=0|dst=5x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-20": [
+    10,
+    311602,
+    1228800
+   ],
+   "dim=0|dst=5x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-21": [
+    10,
+    311977,
+    1228800
+   ],
+   "dim=0|dst=5x6144x1x1|src0_ne0=3|src1_contig=0|conv_input-22": [
+    10,
+    312015,
+    1228800
+   ]
+  }
+ },
+ "answers": {
+  "ticket-route-1q": {
+   "q": {
+    "type": "choice",
+    "choice": "billing",
+    "probabilities": {
+     "billing": 0.9622,
+     "technical": 0.0314,
+     "account": 0.0064
+    },
+    "confidence": 0.9433
+   }
+  },
+  "payouts-3q": {
+   "is_urgent": {
+    "type": "noul",
+    "noul": 0.8582
+   },
+   "team": {
+    "type": "choice",
+    "choice": "billing",
+    "probabilities": {
+     "billing": 0.7658,
+     "sales": 0.1236,
+     "retail": 0.1106
+    },
+    "confidence": 0.6487
+   },
+   "frustration": {
+    "type": "score",
+    "score": 1.0346,
+    "legend": {
+     "0": "calm",
+     "1": "frustrated",
+     "2": "depressed"
+    },
+    "probabilities": {
+     "0": 0.1945,
+     "1": 0.5764,
+     "2": 0.2291
+    },
+    "confidence": 0.512
+   }
+  },
+  "cracked-screen-2q": {
+   "q": {
+    "type": "choice",
+    "choice": "refunds",
+    "probabilities": {
+     "refunds": 0.6614,
+     "shipping": 0.1216,
+     "tech": 0.217
+    },
+    "confidence": 0.492
+   },
+   "u": {
+    "type": "noul",
+    "noul": 0.6251
+   }
+  },
+  "agent-action-guard-2q": {
+   "safe": {
+    "type": "noul",
+    "noul": 0.2744
+   },
+   "action": {
+    "type": "choice",
+    "choice": "proceed",
+    "probabilities": {
+     "proceed": 0.6325,
+     "revise": 0.2444,
+     "ask": 0.1231
+    },
+    "confidence": 0.4488
+   }
+  },
+  "incident-review-4q": {
+   "root_cause": {
+    "type": "choice",
+    "choice": "retries",
+    "probabilities": {
+     "retries": 0.5538,
+     "freeze": 0.3546,
+     "alarm": 0.0191,
+     "capacity": 0.0724
+    },
+    "confidence": 0.4051
+   },
+   "severity": {
+    "type": "score",
+    "score": 2.3033,
+    "legend": {
+     "0": "negligible",
+     "1": "minor",
+     "2": "moderate",
+     "3": "major",
+     "4": "critical"
+    },
+    "probabilities": {
+     "0": 0.1037,
+     "1": 0.1626,
+     "2": 0.2673,
+     "3": 0.2597,
+     "4": 0.2068
+    },
+    "confidence": 0.4432
+   },
+   "test_gap": {
+    "type": "noul",
+    "noul": 0.3864
+   },
+   "runbook": {
+    "type": "noul",
+    "noul": 0.8827
+   }
+  }
+ }
+}

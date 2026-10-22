@@ -1,0 +1,39 @@
+{
+ "schema": "lkai-e14-zips/1",
+ "p1_zip_sha256": "26eb2651e8915f8ad09eae899feff583a448de6b8d2bc4943bccabb66cae189b",
+ "entry_sha256": "439b84bf7e50a764a68a8d267c877c6df0220c17c48b2e01e50195e8f89533ba",
+ "zips": {
+  "ctl": {
+   "sha256": "21fee58db1df130200e82f59f88032016b16b8b57f04b384c31a896a55f54407"
+  },
+  "rows": {
+   "sha256": "64a6be81f859e4d5906f177fefd2b51018f7ebabdd2054537990c68403995d45"
+  }
+ },
+ "replaced_in_rows": {
+  "lib/libggml-cpu-armv8.0_1.so": {
+   "p1_sha256": "8390b2e80a6569dfe4907299d3c4d5c2716fb4135f1ce49c37e5848fb5a4c681",
+   "rows_sha256": "3249da7c7abec00d552923c3a5ded6e3a83a9a71a54c879f57c65ea3d4ad353b"
+  },
+  "lib/libggml-cpu-armv8.2_1.so": {
+   "p1_sha256": "1f9e27230814b16f4039179f396fc76bb2e8c2fdbe17c735ea5fb2a692c55f8d",
+   "rows_sha256": "c0436ac2b7b94b5e272a8c2cc2ec2757a6ddb75ede0b8e93eb5a2a2ca4b12fae"
+  },
+  "lib/libggml-cpu-armv8.2_2.so": {
+   "p1_sha256": "49090fbfc1f150124303bea8cb9863fc45db631f9a65860d05bb2ac9a05cc1fe",
+   "rows_sha256": "91a6c85a9d0c3feab174f1933f32580123c4557de3349d6d40115de896e527d0"
+  },
+  "lib/libggml-cpu-armv8.2_3.so": {
+   "p1_sha256": "d59b10187f698705ebefe34131ebd839e44c7dff119400477e7a2f5477b70735",
+   "rows_sha256": "f608997c08f929fbdb8b5d93dc362d2af2c02d2d4cdf32fb0ec500443b2b6f07"
+  },
+  "lib/libggml-cpu-armv8.6_1.so": {
+   "p1_sha256": "7aadff86faed937d148547ce3096e1bd440400f0cf7ea3061ee16e1d7d12376d",
+   "rows_sha256": "058b4805d8f27e55c887fbdd09d615f3745e9eee03e60ac58ecd20a01b61430e"
+  },
+  "lib/libggml-cpu-armv8.6_2.so": {
+   "p1_sha256": "170a7447d440579a0fa83cdcf1d4e6ef62c1075d81615f67287700dacca78d64",
+   "rows_sha256": "d3b67a69d4de189dbc55b0d01f45c43e6458ff01b2e7419b05e88443985add08"
+  }
+ }
+}

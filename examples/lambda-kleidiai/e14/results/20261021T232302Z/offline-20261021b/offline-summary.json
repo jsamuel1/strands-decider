@@ -1,0 +1,217 @@
+{
+ "schema": "lkai-e14-offline-summary/1",
+ "evidence": "OFFLINE, NOT LAMBDA",
+ "host": "Linux 0d7bb9696628 6.1.188-233.386.amzn2023.aarch64 #1 SMP Fri Sep 25 01:46:44 UTC 2026 aarch64 aarch64 aarch64 GNU/Linux\nCPU implementer\t: 0x41\nCPU variant\t: 0x1\nCPU part\t: 0xd40\nCPU revision\t: 1\nFeatures\t: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm paca pacg dcpodp svei8mm svebf16 i8mm bf16 dgh rng\n6\nmax 100000\nmemory.max unknown\nPython 3.12.15\n",
+ "loadavg": "ctl1 before 8.32 6.32 7.25 9/1092 66\nctl1 after 9.66 6.96 7.42 4/1098 79\nrows1 before 9.66 6.96 7.42 4/1098 80\nrows1 after 19.12 10.48 8.60 11/1118 93\nprobe1 before 19.12 10.48 8.60 9/1117 94\nprobe1 after 20.58 12.98 9.65 10/1104 107\nprobe2 before 20.58 12.98 9.65 17/1104 108\nprobe2 after 14.29 12.52 9.68 4/1148 121\nrows2 before 14.29 12.52 9.68 6/1149 122\nrows2 after 17.83 14.27 10.56 29/1173 135\nctl2 before 17.83 14.27 10.56 30/1174 136\nctl2 after 19.81 15.77 11.39 14/1156 149\nctl3 before 19.81 15.77 11.39 9/1156 150\nctl3 after 16.61 15.50 11.55 9/1116 163\nrows3 before 16.61 15.50 11.55 8/1116 164\nrows3 after 18.75 16.40 12.15 10/1173 177\nprobe3 before 18.75 16.40 12.15 10/1173 178\nprobe3 after 17.75 16.40 12.39 14/1171 191\nprobe4 before 17.75 16.40 12.39 12/1172 192\nprobe4 after 19.42 17.02 12.81 16/1269 205\nrows4 before 19.42 17.02 12.81 16/1271 206\nrows4 after 22.63 18.15 13.43 21/1270 219\nctl4 before 22.63 18.15 13.43 20/1271 220\nctl4 after 22.53 18.83 13.93 13/1236 233\n",
+ "libs_sha256": "8390b2e80a6569dfe4907299d3c4d5c2716fb4135f1ce49c37e5848fb5a4c681  pkg/lib/libggml-cpu-armv8.0_1.so\n1f9e27230814b16f4039179f396fc76bb2e8c2fdbe17c735ea5fb2a692c55f8d  pkg/lib/libggml-cpu-armv8.2_1.so\n49090fbfc1f150124303bea8cb9863fc45db631f9a65860d05bb2ac9a05cc1fe  pkg/lib/libggml-cpu-armv8.2_2.so\nd59b10187f698705ebefe34131ebd839e44c7dff119400477e7a2f5477b70735  pkg/lib/libggml-cpu-armv8.2_3.so\n7aadff86faed937d148547ce3096e1bd440400f0cf7ea3061ee16e1d7d12376d  pkg/lib/libggml-cpu-armv8.6_1.so\n170a7447d440579a0fa83cdcf1d4e6ef62c1075d81615f67287700dacca78d64  pkg/lib/libggml-cpu-armv8.6_2.so\n3249da7c7abec00d552923c3a5ded6e3a83a9a71a54c879f57c65ea3d4ad353b  pkg-rows/lib/libggml-cpu-armv8.0_1.so\nc0436ac2b7b94b5e272a8c2cc2ec2757a6ddb75ede0b8e93eb5a2a2ca4b12fae  pkg-rows/lib/libggml-cpu-armv8.2_1.so\n91a6c85a9d0c3feab174f1933f32580123c4557de3349d6d40115de896e527d0  pkg-rows/lib/libggml-cpu-armv8.2_2.so\nf608997c08f929fbdb8b5d93dc362d2af2c02d2d4cdf32fb0ec500443b2b6f07  pkg-rows/lib/libggml-cpu-armv8.2_3.so\n058b4805d8f27e55c887fbdd09d615f3745e9eee03e60ac58ecd20a01b61430e  pkg-rows/lib/libggml-cpu-armv8.6_1.so\nd3b67a69d4de189dbc55b0d01f45c43e6458ff01b2e7419b05e88443985add08  pkg-rows/lib/libggml-cpu-armv8.6_2.so\n713086946d7608bb1796a2e59a780b70f8fcb7fa2cee988845c80cad630b3187  pkg-probe/lib/libggml-cpu-armv8.0_1.so\na8fbca66e2a88dc38158db085c68a99747d9c805701f1f9499995c2d19e5d750  pkg-probe/lib/libggml-cpu-armv8.2_1.so\n87aec60d1c93b7c8b7d60385d2648bd19d6bfd1761fc18b2c26ffb4d2d95cd48  pkg-probe/lib/libggml-cpu-armv8.2_2.so\n3b1144cff715cca586465c0e32884ef330e836053f84210287523b13b83779ed  pkg-probe/lib/libggml-cpu-armv8.2_3.so\nb846bfd1f597dadca6ecc6bb9b76f1100830ff275cb4800553be819d8cdda056  pkg-probe/lib/libggml-cpu-armv8.6_1.so\ndf2f6316d97e14ee67fefa7c28ef1599aaa48ffe351cbe201e01ae83f0fd9486  pkg-probe/lib/libggml-cpu-armv8.6_2.so\n",
+ "inputs_sha256": "26eb2651e8915f8ad09eae899feff583a448de6b8d2bc4943bccabb66cae189b  function.zip\n8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e  model/s2b-h512-Q8_0.gguf\n",
+ "toolchain": "gcc (GCC) 11.5.0 20240719 (Red Hat 11.5.0-5)\n",
+ "shim_init": {
+  "cpu_part": "0xd40",
+  "ggml_cpu": [
+   "libggml-cpu-armv8.2_3.so",
+   "libggml-cpu-armv8.6_1.so"
+  ],
+  "threads": 6,
+  "ubatch": "512",
+  "kv": "f32",
+  "unrotate": false,
+  "n_ctx": 16384,
+  "n_seq": 17
+ },
+ "affinity": [
+  10,
+  11,
+  12,
+  13,
+  14,
+  15
+ ],
+ "passes_per_run": 10,
+ "rounds": [
+  1,
+  2,
+  3,
+  4
+ ],
+ "bit_identity": {
+  "runs": 12,
+  "hidden_rows_hashed": 600,
+  "all_equal_to_ctl_round1": true,
+  "answers_equal": true
+ },
+ "per_request": {
+  "ticket-route-1q": {
+   "n": [
+    40,
+    40
+   ],
+   "ctl_p50_s": 0.253088,
+   "rows_p50_s": 0.245098,
+   "pooled_delta_pct": -3.157,
+   "per_round_delta_pct": {
+    "1": 1.082,
+    "2": -5.721,
+    "3": -5.879,
+    "4": -6.292
+   },
+   "concat_probe": {
+    "requests_probed": 40,
+    "calls_per_request": 18.0,
+    "one_sequence_calls_per_request": 18.0,
+    "dst_bytes_per_request": 38043648,
+    "thread0_ms_per_request": 16.776,
+    "thread0_ms_per_request_one_sequence": 16.776,
+    "thread0_share_of_ctl_p50": 0.0663,
+    "dst_shapes_calls_per_request": {
+     "86x6144x1x1": 18.0
+    }
+   }
+  },
+  "payouts-3q": {
+   "n": [
+    40,
+    40
+   ],
+   "ctl_p50_s": 0.584748,
+   "rows_p50_s": 0.578863,
+   "pooled_delta_pct": -1.006,
+   "per_round_delta_pct": {
+    "1": -0.32,
+    "2": -1.671,
+    "3": 0.35,
+    "4": 3.596
+   },
+   "concat_probe": {
+    "requests_probed": 40,
+    "calls_per_request": 72.0,
+    "one_sequence_calls_per_request": 36.0,
+    "dst_bytes_per_request": 95993856,
+    "thread0_ms_per_request": 15.707,
+    "thread0_ms_per_request_one_sequence": 4.033,
+    "thread0_share_of_ctl_p50": 0.0269,
+    "dst_shapes_calls_per_request": {
+     "19x6144x2x1": 18.0,
+     "24x6144x1x1": 18.0,
+     "50x6144x3x1": 18.0,
+     "5x6144x1x1": 18.0
+    }
+   }
+  },
+  "cracked-screen-2q": {
+   "n": [
+    40,
+    40
+   ],
+   "ctl_p50_s": 0.455405,
+   "rows_p50_s": 0.447039,
+   "pooled_delta_pct": -1.837,
+   "per_round_delta_pct": {
+    "1": -1.444,
+    "2": -3.684,
+    "3": -6.245,
+    "4": -1.943
+   },
+   "concat_probe": {
+    "requests_probed": 40,
+    "calls_per_request": 54.0,
+    "one_sequence_calls_per_request": 36.0,
+    "dst_bytes_per_request": 70336512,
+    "thread0_ms_per_request": 17.561,
+    "thread0_ms_per_request_one_sequence": 6.617,
+    "thread0_share_of_ctl_p50": 0.0386,
+    "dst_shapes_calls_per_request": {
+     "14x6144x1x1": 18.0,
+     "31x6144x1x1": 18.0,
+     "57x6144x2x1": 18.0
+    }
+   }
+  },
+  "agent-action-guard-2q": {
+   "n": [
+    40,
+    40
+   ],
+   "ctl_p50_s": 0.893888,
+   "rows_p50_s": 0.854494,
+   "pooled_delta_pct": -4.407,
+   "per_round_delta_pct": {
+    "1": -3.273,
+    "2": -6.497,
+    "3": -6.303,
+    "4": -3.294
+   },
+   "concat_probe": {
+    "requests_probed": 40,
+    "calls_per_request": 54.0,
+    "one_sequence_calls_per_request": 36.0,
+    "dst_bytes_per_request": 140673024,
+    "thread0_ms_per_request": 51.788,
+    "thread0_ms_per_request_one_sequence": 37.895,
+    "thread0_share_of_ctl_p50": 0.0579,
+    "dst_shapes_calls_per_request": {
+     "169x6144x1x1": 18.0,
+     "71x6144x2x1": 18.0,
+     "7x6144x1x1": 18.0
+    }
+   }
+  },
+  "incident-review-4q": {
+   "n": [
+    40,
+    40
+   ],
+   "ctl_p50_s": 1.808267,
+   "rows_p50_s": 1.823206,
+   "pooled_delta_pct": 0.826,
+   "per_round_delta_pct": {
+    "1": -1.53,
+    "2": 37.87,
+    "3": 11.796,
+    "4": 2.461
+   },
+   "concat_probe": {
+    "requests_probed": 40,
+    "calls_per_request": 90.0,
+    "one_sequence_calls_per_request": 36.0,
+    "dst_bytes_per_request": 279134208,
+    "thread0_ms_per_request": 88.008,
+    "thread0_ms_per_request_one_sequence": 72.285,
+    "thread0_share_of_ctl_p50": 0.0487,
+    "dst_shapes_calls_per_request": {
+     "304x6144x1x1": 18.0,
+     "5x6144x1x1": 18.0,
+     "5x6144x2x1": 18.0,
+     "72x6144x4x1": 18.0,
+     "8x6144x3x1": 18.0
+    }
+   }
+  }
+ },
+ "steady_state_totals": {
+  "1": {
+   "ctl_s": 39.486741,
+   "rows_s": 72.145077,
+   "ctl_cpu_over_wall": 5.552,
+   "rows_cpu_over_wall": 3.326
+  },
+  "2": {
+   "ctl_s": 69.745048,
+   "rows_s": 76.946538,
+   "ctl_cpu_over_wall": 3.446,
+   "rows_cpu_over_wall": 3.238
+  },
+  "3": {
+   "ctl_s": 46.46708,
+   "rows_s": 59.178645,
+   "ctl_cpu_over_wall": 5.095,
+   "rows_cpu_over_wall": 4.173
+  },
+  "4": {
+   "ctl_s": 44.682465,
+   "rows_s": 47.194949,
+   "ctl_cpu_over_wall": 5.129,
+   "rows_cpu_over_wall": 5.094
+  }
+ }
+}

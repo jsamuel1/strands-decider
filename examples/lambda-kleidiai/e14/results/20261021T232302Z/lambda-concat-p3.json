@@ -1,0 +1,176 @@
+{
+ "schema": "lkai-e14-lambda-concat/1",
+ "evidence": "LAMBDA, P3's published sampler-arm logs (profiler attribution, not latency)",
+ "source_run": "20261020T231634Z",
+ "records": 600,
+ "unlinked_note": "records are LKAI_PROF lines joined to the LKAI invoke line of the same stream and n",
+ "by_class_part": {
+  "cold|0xd0c": {
+   "invocations": 10,
+   "samples": 392,
+   "concat_samples": 14,
+   "concat_share": 0.0357,
+   "cpu_s_per_engine_s_p50": 5.109
+  },
+  "cold|0xd40": {
+   "invocations": 36,
+   "samples": 667,
+   "concat_samples": 57,
+   "concat_share": 0.0855,
+   "cpu_s_per_engine_s_p50": 4.552
+  },
+  "cold|0xd4f": {
+   "invocations": 4,
+   "samples": 71,
+   "concat_samples": 1,
+   "concat_share": 0.0141,
+   "cpu_s_per_engine_s_p50": 4.465
+  },
+  "restore|0xd0c": {
+   "invocations": 4,
+   "samples": 404,
+   "concat_samples": 17,
+   "concat_share": 0.0421,
+   "cpu_s_per_engine_s_p50": 3.413
+  },
+  "restore|0xd40": {
+   "invocations": 46,
+   "samples": 2670,
+   "concat_samples": 45,
+   "concat_share": 0.0169,
+   "cpu_s_per_engine_s_p50": 2.989
+  },
+  "warm|0xd0c": {
+   "invocations": 41,
+   "samples": 5299,
+   "concat_samples": 343,
+   "concat_share": 0.0647,
+   "cpu_s_per_engine_s_p50": 4.964
+  },
+  "warm|0xd40": {
+   "invocations": 459,
+   "samples": 27899,
+   "concat_samples": 1573,
+   "concat_share": 0.0564,
+   "cpu_s_per_engine_s_p50": 4.545
+  }
+ },
+ "warm_by_part_origin": {
+  "0xd0c|origin=restore": {
+   "invocations": 41,
+   "samples": 5299,
+   "concat_samples": 343,
+   "concat_share": 0.0647,
+   "cpu_s_per_engine_s_p50": 4.964
+  },
+  "0xd40|origin=restore": {
+   "invocations": 459,
+   "samples": 27899,
+   "concat_samples": 1573,
+   "concat_share": 0.0564,
+   "cpu_s_per_engine_s_p50": 4.545
+  }
+ },
+ "warm_by_part_n": {
+  "0xd0c|n=2": {
+   "invocations": 4,
+   "samples": 160,
+   "concat_samples": 2,
+   "concat_share": 0.0125,
+   "cpu_s_per_engine_s_p50": 5.159
+  },
+  "0xd0c|n>=3": {
+   "invocations": 37,
+   "samples": 5139,
+   "concat_samples": 341,
+   "concat_share": 0.0664,
+   "cpu_s_per_engine_s_p50": 4.962
+  },
+  "0xd40|n=2": {
+   "invocations": 46,
+   "samples": 1065,
+   "concat_samples": 69,
+   "concat_share": 0.0648,
+   "cpu_s_per_engine_s_p50": 4.519
+  },
+  "0xd40|n>=3": {
+   "invocations": 413,
+   "samples": 26834,
+   "concat_samples": 1504,
+   "concat_share": 0.056,
+   "cpu_s_per_engine_s_p50": 4.548
+  }
+ },
+ "warm_by_part_request": {
+  "0xd0c|agent-action-guard-2q": {
+   "invocations": 8,
+   "samples": 1181,
+   "concat_samples": 72,
+   "concat_share": 0.061,
+   "cpu_s_per_engine_s_p50": 4.935
+  },
+  "0xd0c|cracked-screen-2q": {
+   "invocations": 8,
+   "samples": 553,
+   "concat_samples": 8,
+   "concat_share": 0.0145,
+   "cpu_s_per_engine_s_p50": 5.023
+  },
+  "0xd0c|incident-review-4q": {
+   "invocations": 8,
+   "samples": 2437,
+   "concat_samples": 232,
+   "concat_share": 0.0952,
+   "cpu_s_per_engine_s_p50": 4.795
+  },
+  "0xd0c|payouts-3q": {
+   "invocations": 8,
+   "samples": 764,
+   "concat_samples": 23,
+   "concat_share": 0.0301,
+   "cpu_s_per_engine_s_p50": 4.979
+  },
+  "0xd0c|ticket-route-1q": {
+   "invocations": 9,
+   "samples": 364,
+   "concat_samples": 8,
+   "concat_share": 0.022,
+   "cpu_s_per_engine_s_p50": 5.162
+  },
+  "0xd40|agent-action-guard-2q": {
+   "invocations": 92,
+   "samples": 6169,
+   "concat_samples": 328,
+   "concat_share": 0.0532,
+   "cpu_s_per_engine_s_p50": 4.518
+  },
+  "0xd40|cracked-screen-2q": {
+   "invocations": 92,
+   "samples": 3278,
+   "concat_samples": 295,
+   "concat_share": 0.09,
+   "cpu_s_per_engine_s_p50": 4.571
+  },
+  "0xd40|incident-review-4q": {
+   "invocations": 92,
+   "samples": 12535,
+   "concat_samples": 701,
+   "concat_share": 0.0559,
+   "cpu_s_per_engine_s_p50": 4.515
+  },
+  "0xd40|payouts-3q": {
+   "invocations": 92,
+   "samples": 4169,
+   "concat_samples": 115,
+   "concat_share": 0.0276,
+   "cpu_s_per_engine_s_p50": 4.581
+  },
+  "0xd40|ticket-route-1q": {
+   "invocations": 91,
+   "samples": 1748,
+   "concat_samples": 134,
+   "concat_share": 0.0767,
+   "cpu_s_per_engine_s_p50": 4.516
+  }
+ }
+}
