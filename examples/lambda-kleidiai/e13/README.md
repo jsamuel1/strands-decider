@@ -5,26 +5,29 @@ spin/barrier code, called from `ggml_graph_compute_thread`. In the pinned llama.
 `#pragma omp barrier`. libgomp 11, with `OMP_WAIT_POLICY` unset, spins 300,000 times before it sleeps on a futex
 (`libgomp/env.c`, `config/linux/wait.h`). The engine runs 6 OpenMP threads on Lambda's 6 vCPUs.
 
-**Result (run `20261021T103304Z`).**
-- A short spin or no spin makes warm requests about 5% faster.
-- A spin that never sleeps makes them 55% slower.
+**Result (run `20261021T103304Z`, corrected host/noise assessment).**
+- Passive and spin30k each show a repeatable paired warm shift near −5%, but homogeneous request cells mix
+  directional and control-noise-band outcomes. Both deployment verdicts are **inconclusive**.
+- Active waiting remains a conservative **do-not-use** result: all 45 powered 0xd40 request cells are slower, and
+  cold/restore first-request CIs are wholly positive. Sparse-part mixing limits effect-size generalization.
 - Answers are bit-identical on every arm.
 - Thread count was not varied.
 
 | Arm | Environment | libgomp spin count (logged) | Warm REPORT Duration, paired, CPU part 0xd40 | Status |
 |---|---|---|---|---|
 | ctl | none (P1) | 300,000 | baseline (median 605 ms) | — |
-| passive | `OMP_WAIT_POLICY=passive` | 0 | **−5.15%**, 9/9 rounds below 0, p = 0.0039 (587 ms) | improved |
-| spin30k | `GOMP_SPINCOUNT=30000` | 30,000 | **−5.40%**, 9/9 rounds below 0, p = 0.0039 (577 ms) | improved |
-| active | `OMP_WAIT_POLICY=active` | 30,000,000,000 | **+55.3%**, 9/9 rounds above 0, p = 0.0039 (935 ms) | regressed |
+| passive | `OMP_WAIT_POLICY=passive` | 0 | **−5.15%**, 9/9 rounds below 0, p = 0.0039 (587 ms); cells 12 faster / 33 in-band | inconclusive |
+| spin30k | `GOMP_SPINCOUNT=30000` | 30,000 | **−5.40%**, 9/9 rounds below 0, p = 0.0039 (577 ms); cells 11 faster / 34 in-band | inconclusive |
+| active | `OMP_WAIT_POLICY=active` | 30,000,000,000 | **+55.3%**, 9/9 rounds above 0, p = 0.0039 (935 ms); cells 45 slower | regressed |
 
 passive and spin30k cannot be told apart: spin30k − passive = −0.24 percentage points per round, 6 of 9 rounds
 below 0, p = 0.32. The gain comes from not spinning for the default 300,000 iterations, not from any particular
 short count.
 
-**Recommendation:** set `OMP_WAIT_POLICY=passive` in the function environment. It costs nothing, needs no code
-change, and does not change answers. Since the wait policy has a clear effect, the thread-count follow-up
-(5 against 6) is optional. If it is filed, it should be measured with `passive` set.
+**Recommendation:** do not adopt passive or spin30k from this run. Their paired round means show a promising
+~5% shift, but many homogeneous request cells remain inside the control's within-cell spread. A rerun would need
+enough within-cell precision to separate that shift from noise; this reanalysis spends nothing and does not rerun.
+Do not use `OMP_WAIT_POLICY=active`. Thread count remains unchanged and outside this card.
 
 ## The one variable
 
@@ -133,14 +136,17 @@ Every comparison is made within one CPU part, and rows without a CPU part are ne
 - spin30k: 0xd0c −7.7% (3), 0xd4f −4.8% (4)
 - active: 0xd0c +14.6% (3), 0xd4f +55.7% (1)
 
-`results.json` → `host_variability` lists every shared (round, CPU part) cell. Host variation therefore cannot
-explain the result:
-- The arms are interleaved within each round.
-- Each cell compares one CPU part.
-- The effect has the same sign in every round and on every part.
+For host/noise assessment, `results.json` → `host_variability` lists every homogeneous `(round, CPU part,
+request)` cell. Each cell compares its arm/control median delta with that control cell's max−min spread and persists
+`faster`, `slower`, `in-band`, or `unassessed`. The result is mixed:
+- passive: 0xd40 12 faster / 33 in-band; 0xd0c 4 / 1; 0xd4f 5 / 5.
+- spin30k: 0xd40 11 faster / 34 in-band; 0xd0c 13 / 2; 0xd4f 10 / 10.
+- active: 0xd40 45 slower; 0xd0c 14 slower / 1 in-band; 0xd4f 5 slower.
 
-The effect is also larger than the control's own split-half noise. No rerun is needed, and H1's fixed-host box was
-not needed: this is a Lambda deployment setting, and it was measured on Lambda.
+Host variation therefore does not reverse any observed directional cell, but control spread prevents a clean
+speedup verdict for passive and spin30k. Their status is `inconclusive`; a no-spend reanalysis cannot resolve that.
+Active remains `regressed` conservatively because its powered 0xd40 cells are uniformly slower and its cold and
+restore first-request CIs are wholly positive. H1's fixed-host box was not used; Lambda remains deployment evidence.
 
 ## Limits
 
@@ -149,7 +155,8 @@ not needed: this is a Lambda deployment setting, and it was measured on Lambda.
 - Cold and restore waves ran sequentially within a round, with the arm order rotating across rounds (a Latin square
   over 4 rounds). That controls order and round drift, but not drift within a round. Warm is interleaved within the
   round.
-- The 0xd0c and 0xd4f strata are small. Their direction agrees with 0xd40, but they are not tested on their own.
+- The 0xd0c and 0xd4f strata are small. Their raw direction agrees with 0xd40, but their homogeneous cells are
+  mixed or sparse and do not establish an independent directional verdict.
 - libgomp is the gcc 11 build that P1's zip ships. The default spin count is that version's.
 - Thread count (5 against 6) was not run here, as the card specified.
 
@@ -159,7 +166,8 @@ not needed: this is a Lambda deployment setting, and it was measured on Lambda.
 - `e13_zip.py`: P1's zip plus the wrapper.
 - `e13deploy.py`: the four arms, `up` / `show` / `teardown --all`.
 - `e13bench.py`: cold/restore legs, with the warm passes interleaved.
-- `summarize_e13.py`: one `lkai-result/1` file per experiment arm, and `--stage` for P2 publication.
+- `summarize_e13.py`: one `lkai-result/1` file per experiment arm, `--host-only` for no-rerun analysis amendment,
+  and `--stage` for P2 publication.
 - `results/20261021T103304Z/`:
   - `<arm>/results.json` for each experiment arm
   - shared `invocations.jsonl.gz`, `logs/`, `conditions.json`, `build-manifest.json` and `meta.json`

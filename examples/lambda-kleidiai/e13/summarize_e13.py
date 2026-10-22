@@ -227,52 +227,110 @@ def delta(rows: list[dict], arm: str, cls: str, keys: dict) -> dict:
     return out
 
 
+def _cell_outcome(delta: float, control_spread: float | None) -> str:
+    if control_spread is None:
+        return "unassessed"
+    if abs(delta) <= control_spread:
+        return "in-band"
+    return "faster" if delta < 0 else "slower"
+
+
+def _aggregate_cells(cells: list[dict]) -> dict:
+    """Fail-safe outcome from homogeneous cells; sparse opposite signs remain visible conflicts."""
+    counts = Counter(c["outcome"] for c in cells)
+    directional = {x for x in ("faster", "slower") if counts[x]}
+    sparse_signs = {c["sign"] for c in cells if c["outcome"] == "unassessed"}
+    opposite_sparse = ("faster" in directional and "positive" in sparse_signs) or (
+        "slower" in directional and "negative" in sparse_signs
+    )
+    if len(directional) > 1 or opposite_sparse:
+        outcome = "host-conditioned"
+    elif directional and counts["in-band"]:
+        outcome = "mixed"
+    elif directional:
+        outcome = next(iter(directional))
+    elif counts["in-band"]:
+        outcome = "null"
+    else:
+        outcome = "unknown"
+    return {
+        "outcome": outcome,
+        "comparable": outcome in ("faster", "slower", "null"),
+        "counts": dict(sorted(counts.items())),
+        "unassessed_signs": sorted(sparse_signs),
+        "unassessed_conflict": opposite_sparse,
+    }
+
+
 def round_cells(rows: list[dict], arm: str, cls: str, f) -> dict:
-    """Primary metrics by shared (round, CPU part) cell, with the control's within-cell spread as the margin."""
+    """Metrics by homogeneous (round, CPU part, request) cell, with control spread as the margin."""
     rs = [r for r in ok_rows(rows, cls) if known_cpu(r)]
-    keys = sorted({(r["round"], str(r["cpu_part"])) for r in rs})
+    keys = sorted({(r["round"], str(r["cpu_part"]), r["request_id"]) for r in rs})
     shared, missing = [], []
     by_part: dict = defaultdict(list)
-    for rnd, cpu in keys:
+    for rnd, cpu, request_id in keys:
         v = {
             a: [
                 x
                 for r in rs
-                if r["arm"] == a and r["round"] == rnd and str(r["cpu_part"]) == cpu
+                if r["arm"] == a
+                and r["round"] == rnd
+                and str(r["cpu_part"]) == cpu
+                and r["request_id"] == request_id
                 if (x := f(r)) is not None
             ]
             for a in (CONTROL, arm)
         }
+        key = {"round": rnd, "cpu_part": cpu, "request_id": request_id}
         if not all(v.values()):
-            missing.append({"round": rnd, "cpu_part": cpu, "n": {a: len(v[a]) for a in v}})
+            missing.append(key | {"n": {a: len(v[a]) for a in v}})
             continue
         mc, ma = statistics.median(v[CONTROL]), statistics.median(v[arm])
-        cell = {
-            "round": rnd,
-            "cpu_part": cpu,
+        spread = max(v[CONTROL]) - min(v[CONTROL]) if len(v[CONTROL]) > 1 else None
+        delta = ma - mc
+        cell = key | {
             "n": {a: len(v[a]) for a in v},
             "median": {CONTROL: round(mc, 6), arm: round(ma, 6)},
-            "control_spread": round(max(v[CONTROL]) - min(v[CONTROL]), 6)
-            if len(v[CONTROL]) > 1
-            else None,
-            "delta": round(ma - mc, 6),
+            "control_within_cell_spread": round(spread, 6) if spread is not None else None,
+            "delta": round(delta, 6),
             "ratio": round(ma / mc, 6) if mc else None,
-            "sign": "negative" if ma < mc else "positive" if ma > mc else "zero",
+            "sign": "negative" if delta < 0 else "positive" if delta > 0 else "zero",
+            "outcome": _cell_outcome(delta, spread),
         }
         shared.append(cell)
         by_part[cpu].append(cell)
+    by_cpu = {
+        cpu: {
+            "cells": len(cs),
+            "delta_range": [min(c["delta"] for c in cs), max(c["delta"] for c in cs)],
+            "delta_signs": sorted({c["sign"] for c in cs}),
+            **_aggregate_cells(cs),
+        }
+        for cpu, cs in sorted(by_part.items())
+    }
+    assessed = [v for v in by_cpu.values() if v["outcome"] != "unknown"]
+    overall = _aggregate_cells(shared)
+    # Part-level mixed/null/conditioned states cannot be collapsed back into a directional headline.
+    part_outcomes = {v["outcome"] for v in assessed}
+    if "host-conditioned" in part_outcomes or {"faster", "slower"} <= part_outcomes:
+        overall["outcome"], overall["comparable"] = "host-conditioned", False
+    elif "mixed" in part_outcomes or (
+        part_outcomes & {"faster", "slower"} and "null" in part_outcomes
+    ):
+        overall["outcome"], overall["comparable"] = "mixed", False
+    elif part_outcomes == {"null"}:
+        overall["outcome"], overall["comparable"] = "null", True
+    elif len(part_outcomes) == 1 and part_outcomes <= {"faster", "slower"}:
+        overall["outcome"], overall["comparable"] = next(iter(part_outcomes)), True
+    else:
+        overall["outcome"], overall["comparable"] = "unknown", False
     return {
         "class": cls,
+        "cell_key": ["round", "cpu_part", "request_id"],
         "shared_cells": shared,
         "missing_cells": missing,
-        "by_cpu_part": {
-            cpu: {
-                "cells": len(cs),
-                "delta_range": [min(c["delta"] for c in cs), max(c["delta"] for c in cs)],
-                "delta_signs": sorted({c["sign"] for c in cs}),
-            }
-            for cpu, cs in sorted(by_part.items())
-        },
+        "by_cpu_part": by_cpu,
+        "assessment": overall,
     }
 
 
@@ -511,8 +569,10 @@ def status_of(arm_res: dict, function_errors: int, correctness: dict | None) -> 
 
     improved: every powered part (enough rounds for p < 0.05) is faster, no underpowered part has a round of the
     opposite sign, and neither the cold nor the restore first-request CI lies entirely above 0 on any part.
-    regressed: any powered part is slower, or a cold/restore first-request CI lies entirely above 0.
-    inconclusive: a function error, an answer that differs, or no powered part. no-change otherwise."""
+    regressed: any powered part is slower, or a cold/restore first-request CI lies entirely above 0. This is a
+    conservative do-not-use result even when sparse host cells are mixed; that limits effect-size generalization.
+    inconclusive: a function error, an answer that differs, no powered part, or a claimed speedup whose homogeneous
+    host cells are not all directional. no-change otherwise."""
     g = arm_res["arm_agreement"]
     c = correctness or {}
     clean = (
@@ -538,6 +598,7 @@ def status_of(arm_res: dict, function_errors: int, correctness: dict | None) -> 
         .get("by_cpu_part", {})
         .values()
     ]
+    host_outcome = arm_res["round_cells"]["warm_report_duration"]["assessment"]["outcome"]
     if "slower" in powered.values() or any(v["ci95"][0] > 0 for v in side):
         return "regressed"
     if set(powered.values()) == {"faster"}:
@@ -546,7 +607,9 @@ def status_of(arm_res: dict, function_errors: int, correctness: dict | None) -> 
             for cpu, v in wp.items()
             if v["verdict"] in ("underpowered", "insufficient") and v["rounds_above_zero"] > 0
         ]
-        return "no-change" if contrary else "improved"
+        if contrary:
+            return "no-change"
+        return "improved" if host_outcome == "faster" else "inconclusive"
     return "no-change"
 
 
@@ -617,7 +680,10 @@ def host_variability(rows: list[dict], per_arm: dict) -> dict:
         "are sequential arm waves whose position rotates across rounds (a Latin square over 4 rounds): that controls "
         "order and round drift but not time-within-round drift. Rows without a CPU part are counted, never compared.",
         "assessment": {
-            arm: {cpu: v.get("verdict") for cpu, v in a["warm_paired"]["report_duration"].items()}
+            arm: {
+                "overall": a["round_cells"]["warm_report_duration"]["assessment"],
+                "by_cpu_part": a["round_cells"]["warm_report_duration"]["by_cpu_part"],
+            }
             for arm, a in per_arm.items()
         },
     }
@@ -633,11 +699,19 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--meta")
     ap.add_argument("--out", required=True)
     ap.add_argument(
+        "--host-only",
+        metavar="RUN_DIR",
+        help="recompute host/cell analysis and conclusions in an existing committed run; raw measurements stay unchanged",
+    )
+    ap.add_argument(
         "--stage",
         metavar="RUN_DIR",
         help="only copy a committed run into per-arm publish directories in --out",
     )
     a = ap.parse_args(argv)
+    if a.host_only:
+        amend_host_analysis(a.host_only, a.meta or os.path.join(a.host_only, "meta.json"))
+        return 0
     if a.stage:
         for p in stage_for_publish(a.stage, a.out):
             print("staged", p)
@@ -829,6 +903,13 @@ def fmt(res: dict, arm: str, cpu: str = "0xd40") -> dict:
         "function_errors": e["error_kinds"]["function_errors"],
         "spin": ",".join(sorted(e["spincount"][arm]["gomp_spincount"])),
         "ctl_spin": ",".join(sorted(e["spincount"]["ctl"]["gomp_spincount"])),
+        "host_outcome": e["round_cells"]["warm_report_duration"]["assessment"]["outcome"],
+        "host_primary_counts": ", ".join(
+            f"{k}={v}"
+            for k, v in sorted(
+                e["round_cells"]["warm_report_duration"]["by_cpu_part"][cpu]["counts"].items()
+            )
+        ),
         "cost": res["cost"]["total_usd"],
         **{
             f"vs_{o}_{k}": v[k]
@@ -842,6 +923,50 @@ def fmt(res: dict, arm: str, cpu: str = "0xd40") -> dict:
             if v
         },
     }
+
+
+def amend_host_analysis(run_dir: str, meta_path: str) -> None:
+    """Recompute only analysis derived from committed rows; preserve raw measurements and unrelated result fields."""
+    inv = os.path.join(run_dir, "invocations.jsonl.gz")
+    with gzip.open(inv, "rt") as fh:
+        rows = [json.loads(line) for line in fh if line.strip()]
+    meta = json.load(open(meta_path))
+    per_arm = {arm: analyse(rows, arm) for arm in EXPERIMENTS}
+    hv = host_variability(rows, per_arm)
+    for arm, ana in per_arm.items():
+        path = os.path.join(run_dir, arm, "results.json")
+        res = json.load(open(path))
+        res["e13"]["round_cells"] = ana["round_cells"]
+        res["host_variability"] = hv
+        function_errors = res["e13"]["error_kinds"]["function_errors"]
+        res["status"] = status_of(ana, function_errors, res.get("correctness"))
+        # Keep all measured values from the original result while deriving prose from the corrected host verdict.
+        original = res["e13"]
+        ana["spincount"] = original["spincount"]
+        ana["error_kinds"] = original["error_kinds"]
+        ana["_warm_inv"] = {
+            a2: {
+                "0xd40": {
+                    "nivcsw": [
+                        r["lkai"]["e13_inv"]["nivcsw"]
+                        for r in ok_rows(rows, "warm")
+                        if r["arm"] == a2
+                        and str(r.get("cpu_part")) == "0xd40"
+                        and "e13_inv" in (r.get("lkai") or {})
+                    ]
+                }
+            }
+            for a2 in (CONTROL, arm)
+        }
+        ana["vs_sibling_arms"] = {
+            other: between_arms(per_arm, arm, other) for other in sorted(per_arm) if other != arm
+        }
+        res["e13"] = original | ana
+        values = fmt(res, arm)
+        res["conclusion"] = meta["arms"][arm]["conclusion_template"].format(**values)
+        del res["e13"]["_warm_inv"]
+        json.dump(res, open(path, "w"), indent=1, allow_nan=False)
+        print("amended", path, res["status"], values["host_outcome"])
 
 
 SHARED = ("invocations.jsonl.gz", "logs", "conditions.json", "build-manifest.json", "meta.json")

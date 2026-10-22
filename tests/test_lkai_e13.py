@@ -415,6 +415,64 @@ def test_improved_needs_no_contrary_sign_on_an_underpowered_part():
     )
 
 
+def test_host_cells_keep_request_grain_and_classify_control_spread():
+    rows = _rows({"ctl": 0, "passive": -4})
+    cells = s13.round_cells(rows, "passive", "warm", s13.WARM_KEYS["report_duration"])
+    assert cells["cell_key"] == ["round", "cpu_part", "request_id"]
+    assert len(cells["shared_cells"]) == 6 * len(REQS)
+    assert all("control_within_cell_spread" in c and "outcome" in c for c in cells["shared_cells"])
+    assert cells["assessment"]["outcome"] == "faster"
+
+
+def test_host_cell_assessment_is_mixed_when_some_effects_are_inside_control_spread():
+    rows = _rows({"ctl": 0, "passive": -4}, jitter=0.002)
+    for r in rows:
+        if r["arm"] == "passive" and r["request_id"] == "a":
+            r["report"]["Duration"] /= 0.96  # null for one request; others remain directional
+    cells = s13.round_cells(rows, "passive", "warm", s13.WARM_KEYS["report_duration"])
+    assert {c["outcome"] for c in cells["shared_cells"]} == {"faster", "in-band"}
+    assert cells["assessment"] == {
+        "outcome": "mixed",
+        "comparable": False,
+        "counts": {"faster": 24, "in-band": 6},
+        "unassessed_signs": [],
+        "unassessed_conflict": False,
+    }
+
+
+def test_host_cell_assessment_is_null_when_all_effects_are_in_band():
+    rows = _rows({"ctl": 0, "passive": 0}, jitter=0.03)
+    cells = s13.round_cells(rows, "passive", "warm", s13.WARM_KEYS["report_duration"])
+    assert cells["assessment"]["outcome"] == "null"
+    assert cells["assessment"]["comparable"] is True
+
+
+def test_sparse_opposite_cell_blocks_directional_assessment():
+    rows = _rows({"ctl": 0, "passive": -4})
+    sparse = [r for r in rows if r["round"] == 0 and r["request_id"] == "a"]
+    sparse = [r for r in sparse if r["arm"] == "passive"] + [
+        next(r for r in sparse if r["arm"] == "ctl")
+    ]
+    for r in sparse:
+        if r["arm"] == "passive":
+            r["report"]["Duration"] *= 1.2
+    rest = [r for r in rows if not (r["round"] == 0 and r["request_id"] == "a")]
+    cells = s13.round_cells(rest + sparse, "passive", "warm", s13.WARM_KEYS["report_duration"])
+    assert cells["by_cpu_part"]["0xd40"]["outcome"] == "host-conditioned"
+    assert cells["by_cpu_part"]["0xd40"]["unassessed_conflict"] is True
+
+
+def test_status_does_not_claim_improved_for_mixed_host_cells():
+    rows = _rows({"ctl": 0, "passive": -4}, jitter=0.002)
+    for r in rows:
+        if r["arm"] == "passive" and r["request_id"] == "a":
+            r["report"]["Duration"] /= 0.96
+    ana = s13.analyse(rows, "passive")
+    assert ana["warm_paired"]["report_duration"]["0xd40"]["verdict"] == "faster"
+    assert ana["round_cells"]["warm_report_duration"]["assessment"]["outcome"] == "mixed"
+    assert s13.status_of(ana, 0, {"compared": 1, "bit_identical": 1}) == "inconclusive"
+
+
 def test_client_error_is_transport_only_without_an_unmatched_report():
     rows = _rows({"ctl": 0, "passive": -4}, rounds=2, n=1)
     for i, r in enumerate(rows):

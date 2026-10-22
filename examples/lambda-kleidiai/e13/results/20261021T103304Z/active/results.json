@@ -10766,7 +10766,7 @@
   "python examples/lambda-kleidiai/e13/summarize_e13.py --stage examples/lambda-kleidiai/e13/results/<id> --out build/publish-<id>",
   "for a in passive spin30k active; do python examples/lambda-kleidiai/results/publish_result.py build/publish-<id>/$a/results.json; done   # P2 (feat/lambda-kleidiai-results)"
  ],
- "conclusion": "OMP_WAIT_POLICY=active (idle workers effectively never sleep) makes warm requests much slower: a measured negative result. Warm REPORT Duration paired by (round, request) on CPU part 0xd40: +55.32% mean over 9 rounds (every round above 0, range +54.03 to +56.54%; sign-flip p=0.00391). Median 605 -> 935 ms; engine timer +54.80%. Mechanism (measured): process CPU per warm request +67.62%, voluntary context switches 370 -> 7 and involuntary ones 30 -> 381 per request. Workers no longer sleep, and threads are preempted more often. The process has 12 threads on 6 vCPUs after its first invocation; that spinning workers delay the other runnable threads is an inference from these counters, not measured directly. Other CPU parts: 0xd0c: +14.6% over 3 round(s) (0 below 0, 3 above), underpowered; 0xd4f: +55.7% over 1 round(s) (0 below 0, 1 above), insufficient. Side effects: cold first request +0.265 s, 95% CI [+0.194, +0.362] (n=[52, 49]), from its first inference (+141 ms); restored first request +0.521 s [+0.440, +0.603] (n=[29, 27]). Recommendation: do not use. It confirms the direction of the effect: more spinning is worse on this 6-thread, 6-vCPU sandbox. Correctness: 1440/1440 answers bit-identical to ctl for the same request and CPU part in this run, and 5579/5579 bit-identical to P1's reference where it covers the CPU part. libgomp's own start-up print (OMP_DISPLAY_ENV=VERBOSE) shows GOMP_SPINCOUNT=30000000000 on this arm and 300000 on ctl, so the variable reached the library. Errors in the whole run: 0 function errors and 1 client-side transport error (passive warm, restore leg round 2: SSL EOF after 0.4 s, no REPORT line in the saved logs, so Lambda never ran it); it is published, and carries no answer or latency. Restore rows with client:ReadTimeoutError: 0. Host: CPU parts 0xd40, 0xd0c and 0xd4f as read from /proc/cpuinfo, every comparison is within one part, and no CPU generation is inferred. Warm arms are interleaved pass by pass within each round; cold and restore are sequential arm waves whose order rotates across rounds. Run cost $3.98 (all four arms).",
+ "conclusion": "OMP_WAIT_POLICY=active is a conservative do-not-use result despite a mixed host-cell assessment: every 0xd40 homogeneous warm cell is slower, and cold/restore first-request CIs are wholly positive. Warm REPORT Duration paired by (round, request) on CPU part 0xd40: +55.32% mean over 9 rounds (every round above 0, range +54.03 to +56.54%; sign-flip p=0.00391; homogeneous (round, CPU part, request) cells on 0xd40: slower=45, aggregate mixed). Median 605 -> 935 ms; engine timer +54.80%. Mechanism (measured): process CPU per warm request +67.62%, voluntary context switches 370 -> 7 and involuntary ones 30 -> 381 per request. Workers no longer sleep, and threads are preempted more often. The process has 12 threads on 6 vCPUs after its first invocation; that spinning workers delay the other runnable threads is an inference from these counters, not measured directly. Other CPU parts: 0xd0c: +14.6% over 3 round(s) (0 below 0, 3 above), underpowered; 0xd4f: +55.7% over 1 round(s) (0 below 0, 1 above), insufficient. Side effects: cold first request +0.265 s, 95% CI [+0.194, +0.362] (n=[52, 49]), from its first inference (+141 ms); restored first request +0.521 s [+0.440, +0.603] (n=[29, 27]). Recommendation: do not use. The mixed sparse-part host assessment limits generalization of the +55% size; it does not make active waiting safe because the powered 0xd40 cells are uniformly slower and cold/restore also regress. Correctness: 1440/1440 answers bit-identical to ctl for the same request and CPU part in this run, and 5579/5579 bit-identical to P1's reference where it covers the CPU part. libgomp's own start-up print (OMP_DISPLAY_ENV=VERBOSE) shows GOMP_SPINCOUNT=30000000000 on this arm and 300000 on ctl, so the variable reached the library. Errors in the whole run: 0 function errors and 1 client-side transport error (passive warm, restore leg round 2: SSL EOF after 0.4 s, no REPORT line in the saved logs, so Lambda never ran it); it is published, and carries no answer or latency. Restore rows with client:ReadTimeoutError: 0. Host: CPU parts 0xd40, 0xd0c and 0xd4f as read from /proc/cpuinfo, every comparison is within one part, and no CPU generation is inferred. Warm arms are interleaved pass by pass within each round; cold and restore are sequential arm waves whose order rotates across rounds. Run cost $3.98 (all four arms).",
  "request_coverage": {
   "ctl": {
    "answered": [
@@ -10882,220 +10882,1224 @@
    "primary_metric_cells": {
     "passive": {
      "class": "warm",
+     "cell_key": [
+      "round",
+      "cpu_part",
+      "request_id"
+     ],
      "shared_cells": [
       {
        "round": 0,
        "cpu_part": "0xd40",
+       "request_id": "agent-action-guard-2q",
        "n": {
-        "ctl": 120,
-        "passive": 135
+        "ctl": 24,
+        "passive": 27
+       },
+       "median": {
+        "ctl": 0.86146,
+        "passive": 0.80295
+       },
+       "control_within_cell_spread": 0.0474,
+       "delta": -0.05851,
+       "ratio": 0.93208,
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 0,
+       "cpu_part": "0xd40",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 24,
+        "passive": 27
+       },
+       "median": {
+        "ctl": 0.46835,
+        "passive": 0.44333
+       },
+       "control_within_cell_spread": 0.03208,
+       "delta": -0.02502,
+       "ratio": 0.946578,
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 0,
+       "cpu_part": "0xd40",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 24,
+        "passive": 27
+       },
+       "median": {
+        "ctl": 1.76648,
+        "passive": 1.6419
+       },
+       "control_within_cell_spread": 0.09696,
+       "delta": -0.12458,
+       "ratio": 0.929476,
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 0,
+       "cpu_part": "0xd40",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 24,
+        "passive": 27
        },
        "median": {
         "ctl": 0.603955,
         "passive": 0.58843
        },
-       "control_spread": 1.58836,
+       "control_within_cell_spread": 0.05746,
        "delta": -0.015525,
        "ratio": 0.974294,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 0,
+       "cpu_part": "0xd40",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 24,
+        "passive": 27
+       },
+       "median": {
+        "ctl": 0.247885,
+        "passive": 0.23171
+       },
+       "control_within_cell_spread": 0.10387,
+       "delta": -0.016175,
+       "ratio": 0.934748,
+       "sign": "negative",
+       "outcome": "in-band"
       },
       {
        "round": 0,
        "cpu_part": "0xd4f",
+       "request_id": "agent-action-guard-2q",
        "n": {
-        "ctl": 15,
-        "passive": 15
+        "ctl": 3,
+        "passive": 3
+       },
+       "median": {
+        "ctl": 0.73395,
+        "passive": 0.69723
+       },
+       "control_within_cell_spread": 0.02136,
+       "delta": -0.03672,
+       "ratio": 0.949969,
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 0,
+       "cpu_part": "0xd4f",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 3,
+        "passive": 3
+       },
+       "median": {
+        "ctl": 0.40285,
+        "passive": 0.38842
+       },
+       "control_within_cell_spread": 0.01263,
+       "delta": -0.01443,
+       "ratio": 0.96418,
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 0,
+       "cpu_part": "0xd4f",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 3,
+        "passive": 3
+       },
+       "median": {
+        "ctl": 1.5308,
+        "passive": 1.45517
+       },
+       "control_within_cell_spread": 0.02176,
+       "delta": -0.07563,
+       "ratio": 0.950594,
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 0,
+       "cpu_part": "0xd4f",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 3,
+        "passive": 3
        },
        "median": {
         "ctl": 0.53156,
         "passive": 0.50927
        },
-       "control_spread": 1.32753,
+       "control_within_cell_spread": 0.00886,
        "delta": -0.02229,
        "ratio": 0.958067,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 0,
+       "cpu_part": "0xd4f",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 3,
+        "passive": 3
+       },
+       "median": {
+        "ctl": 0.21457,
+        "passive": 0.20363
+       },
+       "control_within_cell_spread": 0.01348,
+       "delta": -0.01094,
+       "ratio": 0.949014,
+       "sign": "negative",
+       "outcome": "in-band"
       },
       {
        "round": 1,
        "cpu_part": "0xd40",
+       "request_id": "agent-action-guard-2q",
        "n": {
-        "ctl": 150,
-        "passive": 135
+        "ctl": 30,
+        "passive": 27
+       },
+       "median": {
+        "ctl": 0.85329,
+        "passive": 0.80363
+       },
+       "control_within_cell_spread": 0.0503,
+       "delta": -0.04966,
+       "ratio": 0.941802,
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 1,
+       "cpu_part": "0xd40",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 30,
+        "passive": 27
+       },
+       "median": {
+        "ctl": 0.46208,
+        "passive": 0.44856
+       },
+       "control_within_cell_spread": 0.04421,
+       "delta": -0.01352,
+       "ratio": 0.970741,
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 1,
+       "cpu_part": "0xd40",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 30,
+        "passive": 27
+       },
+       "median": {
+        "ctl": 1.757935,
+        "passive": 1.65557
+       },
+       "control_within_cell_spread": 0.07291,
+       "delta": -0.102365,
+       "ratio": 0.94177,
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 1,
+       "cpu_part": "0xd40",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 30,
+        "passive": 27
        },
        "median": {
         "ctl": 0.60359,
         "passive": 0.59024
        },
-       "control_spread": 1.56085,
+       "control_within_cell_spread": 0.05294,
        "delta": -0.01335,
        "ratio": 0.977882,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 1,
+       "cpu_part": "0xd40",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 30,
+        "passive": 27
+       },
+       "median": {
+        "ctl": 0.243585,
+        "passive": 0.23237
+       },
+       "control_within_cell_spread": 0.02704,
+       "delta": -0.011215,
+       "ratio": 0.953959,
+       "sign": "negative",
+       "outcome": "in-band"
       },
       {
        "round": 2,
        "cpu_part": "0xd0c",
+       "request_id": "agent-action-guard-2q",
        "n": {
-        "ctl": 15,
-        "passive": 30
+        "ctl": 3,
+        "passive": 6
+       },
+       "median": {
+        "ctl": 1.66328,
+        "passive": 1.548725
+       },
+       "control_within_cell_spread": 0.05884,
+       "delta": -0.114555,
+       "ratio": 0.931127,
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 2,
+       "cpu_part": "0xd0c",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 3,
+        "passive": 6
+       },
+       "median": {
+        "ctl": 0.81182,
+        "passive": 0.77175
+       },
+       "control_within_cell_spread": 0.0313,
+       "delta": -0.04007,
+       "ratio": 0.950642,
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 2,
+       "cpu_part": "0xd0c",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 3,
+        "passive": 6
+       },
+       "median": {
+        "ctl": 3.47412,
+        "passive": 3.238315
+       },
+       "control_within_cell_spread": 0.0337,
+       "delta": -0.235805,
+       "ratio": 0.932125,
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 2,
+       "cpu_part": "0xd0c",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 3,
+        "passive": 6
        },
        "median": {
         "ctl": 1.12506,
         "passive": 1.0354
        },
-       "control_spread": 3.04874,
+       "control_within_cell_spread": 0.01392,
        "delta": -0.08966,
        "ratio": 0.920306,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 2,
+       "cpu_part": "0xd0c",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 3,
+        "passive": 6
+       },
+       "median": {
+        "ctl": 0.45566,
+        "passive": 0.433585
+       },
+       "control_within_cell_spread": 0.03378,
+       "delta": -0.022075,
+       "ratio": 0.951554,
+       "sign": "negative",
+       "outcome": "in-band"
       },
       {
        "round": 2,
        "cpu_part": "0xd40",
+       "request_id": "agent-action-guard-2q",
        "n": {
-        "ctl": 120,
-        "passive": 120
+        "ctl": 24,
+        "passive": 24
+       },
+       "median": {
+        "ctl": 0.859565,
+        "passive": 0.800855
+       },
+       "control_within_cell_spread": 0.05167,
+       "delta": -0.05871,
+       "ratio": 0.931698,
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 2,
+       "cpu_part": "0xd40",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 24,
+        "passive": 24
+       },
+       "median": {
+        "ctl": 0.461695,
+        "passive": 0.44376
+       },
+       "control_within_cell_spread": 0.10507,
+       "delta": -0.017935,
+       "ratio": 0.961154,
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 2,
+       "cpu_part": "0xd40",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 24,
+        "passive": 24
+       },
+       "median": {
+        "ctl": 1.74619,
+        "passive": 1.637925
+       },
+       "control_within_cell_spread": 0.08665,
+       "delta": -0.108265,
+       "ratio": 0.937999,
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 2,
+       "cpu_part": "0xd40",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 24,
+        "passive": 24
        },
        "median": {
         "ctl": 0.60254,
         "passive": 0.58446
        },
-       "control_spread": 1.56804,
+       "control_within_cell_spread": 0.06401,
        "delta": -0.01808,
        "ratio": 0.969994,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 2,
+       "cpu_part": "0xd40",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 24,
+        "passive": 24
+       },
+       "median": {
+        "ctl": 0.24804,
+        "passive": 0.23138
+       },
+       "control_within_cell_spread": 0.07714,
+       "delta": -0.01666,
+       "ratio": 0.932833,
+       "sign": "negative",
+       "outcome": "in-band"
       },
       {
        "round": 3,
        "cpu_part": "0xd40",
+       "request_id": "agent-action-guard-2q",
        "n": {
-        "ctl": 150,
-        "passive": 150
+        "ctl": 30,
+        "passive": 30
+       },
+       "median": {
+        "ctl": 0.85935,
+        "passive": 0.80319
+       },
+       "control_within_cell_spread": 0.04596,
+       "delta": -0.05616,
+       "ratio": 0.934648,
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 3,
+       "cpu_part": "0xd40",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 30,
+        "passive": 30
+       },
+       "median": {
+        "ctl": 0.466055,
+        "passive": 0.44772
+       },
+       "control_within_cell_spread": 0.0486,
+       "delta": -0.018335,
+       "ratio": 0.960659,
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 3,
+       "cpu_part": "0xd40",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 30,
+        "passive": 30
+       },
+       "median": {
+        "ctl": 1.74646,
+        "passive": 1.64702
+       },
+       "control_within_cell_spread": 0.12632,
+       "delta": -0.09944,
+       "ratio": 0.943062,
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 3,
+       "cpu_part": "0xd40",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 30,
+        "passive": 30
        },
        "median": {
         "ctl": 0.604395,
         "passive": 0.58767
        },
-       "control_spread": 1.59865,
+       "control_within_cell_spread": 0.04458,
        "delta": -0.016725,
        "ratio": 0.972328,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 3,
+       "cpu_part": "0xd40",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 30,
+        "passive": 30
+       },
+       "median": {
+        "ctl": 0.24218,
+        "passive": 0.23289
+       },
+       "control_within_cell_spread": 0.02131,
+       "delta": -0.00929,
+       "ratio": 0.96164,
+       "sign": "negative",
+       "outcome": "in-band"
       },
       {
        "round": 4,
        "cpu_part": "0xd40",
+       "request_id": "agent-action-guard-2q",
        "n": {
-        "ctl": 105,
-        "passive": 120
+        "ctl": 21,
+        "passive": 24
+       },
+       "median": {
+        "ctl": 0.85883,
+        "passive": 0.805655
+       },
+       "control_within_cell_spread": 0.03597,
+       "delta": -0.053175,
+       "ratio": 0.938084,
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd40",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 21,
+        "passive": 24
+       },
+       "median": {
+        "ctl": 0.46426,
+        "passive": 0.44868
+       },
+       "control_within_cell_spread": 0.05515,
+       "delta": -0.01558,
+       "ratio": 0.966441,
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd40",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 21,
+        "passive": 24
+       },
+       "median": {
+        "ctl": 1.76031,
+        "passive": 1.65545
+       },
+       "control_within_cell_spread": 0.06031,
+       "delta": -0.10486,
+       "ratio": 0.940431,
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd40",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 21,
+        "passive": 24
        },
        "median": {
         "ctl": 0.60419,
         "passive": 0.589075
        },
-       "control_spread": 1.55185,
+       "control_within_cell_spread": 0.05143,
        "delta": -0.015115,
        "ratio": 0.974983,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd40",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 21,
+        "passive": 24
+       },
+       "median": {
+        "ctl": 0.24443,
+        "passive": 0.233
+       },
+       "control_within_cell_spread": 0.02806,
+       "delta": -0.01143,
+       "ratio": 0.953238,
+       "sign": "negative",
+       "outcome": "in-band"
       },
       {
        "round": 4,
        "cpu_part": "0xd4f",
+       "request_id": "agent-action-guard-2q",
        "n": {
-        "ctl": 45,
-        "passive": 15
+        "ctl": 9,
+        "passive": 3
+       },
+       "median": {
+        "ctl": 0.74501,
+        "passive": 0.69173
+       },
+       "control_within_cell_spread": 0.04474,
+       "delta": -0.05328,
+       "ratio": 0.928484,
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd4f",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 9,
+        "passive": 3
+       },
+       "median": {
+        "ctl": 0.39762,
+        "passive": 0.37962
+       },
+       "control_within_cell_spread": 0.03666,
+       "delta": -0.018,
+       "ratio": 0.954731,
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd4f",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 9,
+        "passive": 3
+       },
+       "median": {
+        "ctl": 1.54871,
+        "passive": 1.45054
+       },
+       "control_within_cell_spread": 0.13539,
+       "delta": -0.09817,
+       "ratio": 0.936612,
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd4f",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 9,
+        "passive": 3
        },
        "median": {
         "ctl": 0.5392,
         "passive": 0.49814
        },
-       "control_spread": 1.41641,
+       "control_within_cell_spread": 0.05308,
        "delta": -0.04106,
        "ratio": 0.92385,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd4f",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 9,
+        "passive": 3
+       },
+       "median": {
+        "ctl": 0.21622,
+        "passive": 0.20142
+       },
+       "control_within_cell_spread": 0.03003,
+       "delta": -0.0148,
+       "ratio": 0.931551,
+       "sign": "negative",
+       "outcome": "in-band"
       },
       {
        "round": 5,
        "cpu_part": "0xd40",
+       "request_id": "agent-action-guard-2q",
        "n": {
-        "ctl": 135,
-        "passive": 135
+        "ctl": 27,
+        "passive": 27
+       },
+       "median": {
+        "ctl": 0.85201,
+        "passive": 0.80439
+       },
+       "control_within_cell_spread": 0.05066,
+       "delta": -0.04762,
+       "ratio": 0.944109,
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 5,
+       "cpu_part": "0xd40",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 27,
+        "passive": 27
+       },
+       "median": {
+        "ctl": 0.4627,
+        "passive": 0.44942
+       },
+       "control_within_cell_spread": 0.03923,
+       "delta": -0.01328,
+       "ratio": 0.971299,
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 5,
+       "cpu_part": "0xd40",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 27,
+        "passive": 27
+       },
+       "median": {
+        "ctl": 1.76005,
+        "passive": 1.65666
+       },
+       "control_within_cell_spread": 0.14821,
+       "delta": -0.10339,
+       "ratio": 0.941257,
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 5,
+       "cpu_part": "0xd40",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 27,
+        "passive": 27
        },
        "median": {
         "ctl": 0.59794,
         "passive": 0.58876
        },
-       "control_spread": 1.615,
+       "control_within_cell_spread": 0.06958,
        "delta": -0.00918,
        "ratio": 0.984647,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 5,
+       "cpu_part": "0xd40",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 27,
+        "passive": 27
+       },
+       "median": {
+        "ctl": 0.24657,
+        "passive": 0.23423
+       },
+       "control_within_cell_spread": 0.09575,
+       "delta": -0.01234,
+       "ratio": 0.949953,
+       "sign": "negative",
+       "outcome": "in-band"
       },
       {
        "round": 100,
        "cpu_part": "0xd40",
+       "request_id": "agent-action-guard-2q",
        "n": {
-        "ctl": 135,
-        "passive": 150
+        "ctl": 27,
+        "passive": 30
+       },
+       "median": {
+        "ctl": 0.856,
+        "passive": 0.79633
+       },
+       "control_within_cell_spread": 0.03605,
+       "delta": -0.05967,
+       "ratio": 0.930292,
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 100,
+       "cpu_part": "0xd40",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 27,
+        "passive": 30
+       },
+       "median": {
+        "ctl": 0.47027,
+        "passive": 0.44438
+       },
+       "control_within_cell_spread": 0.04402,
+       "delta": -0.02589,
+       "ratio": 0.944947,
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 100,
+       "cpu_part": "0xd40",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 27,
+        "passive": 30
+       },
+       "median": {
+        "ctl": 1.74644,
+        "passive": 1.639635
+       },
+       "control_within_cell_spread": 0.06659,
+       "delta": -0.106805,
+       "ratio": 0.938844,
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 100,
+       "cpu_part": "0xd40",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 27,
+        "passive": 30
        },
        "median": {
         "ctl": 0.6078,
         "passive": 0.587055
        },
-       "control_spread": 1.55589,
+       "control_within_cell_spread": 0.13068,
        "delta": -0.020745,
        "ratio": 0.965869,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 100,
+       "cpu_part": "0xd40",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 27,
+        "passive": 30
+       },
+       "median": {
+        "ctl": 0.24098,
+        "passive": 0.23101
+       },
+       "control_within_cell_spread": 0.01787,
+       "delta": -0.00997,
+       "ratio": 0.958627,
+       "sign": "negative",
+       "outcome": "in-band"
       },
       {
        "round": 101,
        "cpu_part": "0xd40",
+       "request_id": "agent-action-guard-2q",
        "n": {
-        "ctl": 150,
-        "passive": 150
+        "ctl": 30,
+        "passive": 30
+       },
+       "median": {
+        "ctl": 0.858055,
+        "passive": 0.794155
+       },
+       "control_within_cell_spread": 0.06009,
+       "delta": -0.0639,
+       "ratio": 0.925529,
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 101,
+       "cpu_part": "0xd40",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 30,
+        "passive": 30
+       },
+       "median": {
+        "ctl": 0.46553,
+        "passive": 0.44354
+       },
+       "control_within_cell_spread": 0.04902,
+       "delta": -0.02199,
+       "ratio": 0.952764,
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 101,
+       "cpu_part": "0xd40",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 30,
+        "passive": 30
+       },
+       "median": {
+        "ctl": 1.76065,
+        "passive": 1.633225
+       },
+       "control_within_cell_spread": 0.11124,
+       "delta": -0.127425,
+       "ratio": 0.927626,
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 101,
+       "cpu_part": "0xd40",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 30,
+        "passive": 30
        },
        "median": {
         "ctl": 0.607445,
         "passive": 0.580045
        },
-       "control_spread": 1.57956,
+       "control_within_cell_spread": 0.14304,
        "delta": -0.0274,
        "ratio": 0.954893,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 101,
+       "cpu_part": "0xd40",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 30,
+        "passive": 30
+       },
+       "median": {
+        "ctl": 0.248235,
+        "passive": 0.231545
+       },
+       "control_within_cell_spread": 0.02604,
+       "delta": -0.01669,
+       "ratio": 0.932765,
+       "sign": "negative",
+       "outcome": "in-band"
       },
       {
        "round": 102,
        "cpu_part": "0xd40",
+       "request_id": "agent-action-guard-2q",
        "n": {
-        "ctl": 150,
-        "passive": 134
+        "ctl": 30,
+        "passive": 26
+       },
+       "median": {
+        "ctl": 0.86999,
+        "passive": 0.800995
+       },
+       "control_within_cell_spread": 0.09682,
+       "delta": -0.068995,
+       "ratio": 0.920694,
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 102,
+       "cpu_part": "0xd40",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 30,
+        "passive": 27
+       },
+       "median": {
+        "ctl": 0.47289,
+        "passive": 0.44347
+       },
+       "control_within_cell_spread": 0.04932,
+       "delta": -0.02942,
+       "ratio": 0.937787,
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 102,
+       "cpu_part": "0xd40",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 30,
+        "passive": 27
+       },
+       "median": {
+        "ctl": 1.76482,
+        "passive": 1.64611
+       },
+       "control_within_cell_spread": 0.191,
+       "delta": -0.11871,
+       "ratio": 0.932735,
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 102,
+       "cpu_part": "0xd40",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 30,
+        "passive": 27
        },
        "median": {
         "ctl": 0.6219,
-        "passive": 0.585915
+        "passive": 0.58681
        },
-       "control_spread": 1.64628,
-       "delta": -0.035985,
-       "ratio": 0.942137,
-       "sign": "negative"
+       "control_within_cell_spread": 0.14502,
+       "delta": -0.03509,
+       "ratio": 0.943576,
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 102,
+       "cpu_part": "0xd40",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 30,
+        "passive": 27
+       },
+       "median": {
+        "ctl": 0.247445,
+        "passive": 0.23273
+       },
+       "control_within_cell_spread": 0.03396,
+       "delta": -0.014715,
+       "ratio": 0.940532,
+       "sign": "negative",
+       "outcome": "in-band"
       }
      ],
      "missing_cells": [
       {
        "round": 0,
        "cpu_part": "0xd0c",
+       "request_id": "agent-action-guard-2q",
        "n": {
-        "ctl": 15,
+        "ctl": 3,
+        "passive": 0
+       }
+      },
+      {
+       "round": 0,
+       "cpu_part": "0xd0c",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 3,
+        "passive": 0
+       }
+      },
+      {
+       "round": 0,
+       "cpu_part": "0xd0c",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 3,
+        "passive": 0
+       }
+      },
+      {
+       "round": 0,
+       "cpu_part": "0xd0c",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 3,
+        "passive": 0
+       }
+      },
+      {
+       "round": 0,
+       "cpu_part": "0xd0c",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 3,
         "passive": 0
        }
       },
       {
        "round": 1,
        "cpu_part": "0xd0c",
+       "request_id": "agent-action-guard-2q",
        "n": {
         "ctl": 0,
-        "passive": 15
+        "passive": 3
+       }
+      },
+      {
+       "round": 1,
+       "cpu_part": "0xd0c",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 0,
+        "passive": 3
+       }
+      },
+      {
+       "round": 1,
+       "cpu_part": "0xd0c",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 0,
+        "passive": 3
+       }
+      },
+      {
+       "round": 1,
+       "cpu_part": "0xd0c",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 0,
+        "passive": 3
+       }
+      },
+      {
+       "round": 1,
+       "cpu_part": "0xd0c",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 0,
+        "passive": 3
        }
       },
       {
        "round": 1,
        "cpu_part": "0xd4f",
+       "request_id": "agent-action-guard-2q",
+       "n": {
+        "ctl": 0,
+        "passive": 0
+       }
+      },
+      {
+       "round": 1,
+       "cpu_part": "0xd4f",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 0,
+        "passive": 0
+       }
+      },
+      {
+       "round": 1,
+       "cpu_part": "0xd4f",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 0,
+        "passive": 0
+       }
+      },
+      {
+       "round": 1,
+       "cpu_part": "0xd4f",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 0,
+        "passive": 0
+       }
+      },
+      {
+       "round": 1,
+       "cpu_part": "0xd4f",
+       "request_id": "ticket-route-1q",
        "n": {
         "ctl": 0,
         "passive": 0
@@ -11104,14 +12108,88 @@
       {
        "round": 2,
        "cpu_part": "0xd4f",
+       "request_id": "agent-action-guard-2q",
        "n": {
-        "ctl": 15,
+        "ctl": 3,
+        "passive": 0
+       }
+      },
+      {
+       "round": 2,
+       "cpu_part": "0xd4f",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 3,
+        "passive": 0
+       }
+      },
+      {
+       "round": 2,
+       "cpu_part": "0xd4f",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 3,
+        "passive": 0
+       }
+      },
+      {
+       "round": 2,
+       "cpu_part": "0xd4f",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 3,
+        "passive": 0
+       }
+      },
+      {
+       "round": 2,
+       "cpu_part": "0xd4f",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 3,
         "passive": 0
        }
       },
       {
        "round": 3,
        "cpu_part": "0xd0c",
+       "request_id": "agent-action-guard-2q",
+       "n": {
+        "ctl": 0,
+        "passive": 0
+       }
+      },
+      {
+       "round": 3,
+       "cpu_part": "0xd0c",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 0,
+        "passive": 0
+       }
+      },
+      {
+       "round": 3,
+       "cpu_part": "0xd0c",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 0,
+        "passive": 0
+       }
+      },
+      {
+       "round": 3,
+       "cpu_part": "0xd0c",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 0,
+        "passive": 0
+       }
+      },
+      {
+       "round": 3,
+       "cpu_part": "0xd0c",
+       "request_id": "ticket-route-1q",
        "n": {
         "ctl": 0,
         "passive": 0
@@ -11120,38 +12198,223 @@
       {
        "round": 4,
        "cpu_part": "0xd0c",
+       "request_id": "agent-action-guard-2q",
        "n": {
         "ctl": 0,
-        "passive": 15
+        "passive": 3
+       }
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd0c",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 0,
+        "passive": 3
+       }
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd0c",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 0,
+        "passive": 3
+       }
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd0c",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 0,
+        "passive": 3
+       }
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd0c",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 0,
+        "passive": 3
        }
       },
       {
        "round": 5,
        "cpu_part": "0xd0c",
+       "request_id": "agent-action-guard-2q",
        "n": {
         "ctl": 0,
-        "passive": 15
+        "passive": 3
+       }
+      },
+      {
+       "round": 5,
+       "cpu_part": "0xd0c",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 0,
+        "passive": 3
+       }
+      },
+      {
+       "round": 5,
+       "cpu_part": "0xd0c",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 0,
+        "passive": 3
+       }
+      },
+      {
+       "round": 5,
+       "cpu_part": "0xd0c",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 0,
+        "passive": 3
+       }
+      },
+      {
+       "round": 5,
+       "cpu_part": "0xd0c",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 0,
+        "passive": 3
        }
       },
       {
        "round": 5,
        "cpu_part": "0xd4f",
+       "request_id": "agent-action-guard-2q",
        "n": {
-        "ctl": 15,
+        "ctl": 3,
+        "passive": 0
+       }
+      },
+      {
+       "round": 5,
+       "cpu_part": "0xd4f",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 3,
+        "passive": 0
+       }
+      },
+      {
+       "round": 5,
+       "cpu_part": "0xd4f",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 3,
+        "passive": 0
+       }
+      },
+      {
+       "round": 5,
+       "cpu_part": "0xd4f",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 3,
+        "passive": 0
+       }
+      },
+      {
+       "round": 5,
+       "cpu_part": "0xd4f",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 3,
         "passive": 0
        }
       },
       {
        "round": 100,
        "cpu_part": "0xd0c",
+       "request_id": "agent-action-guard-2q",
        "n": {
-        "ctl": 15,
+        "ctl": 3,
+        "passive": 0
+       }
+      },
+      {
+       "round": 100,
+       "cpu_part": "0xd0c",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 3,
+        "passive": 0
+       }
+      },
+      {
+       "round": 100,
+       "cpu_part": "0xd0c",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 3,
+        "passive": 0
+       }
+      },
+      {
+       "round": 100,
+       "cpu_part": "0xd0c",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 3,
+        "passive": 0
+       }
+      },
+      {
+       "round": 100,
+       "cpu_part": "0xd0c",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 3,
         "passive": 0
        }
       },
       {
        "round": 101,
        "cpu_part": "0xd0c",
+       "request_id": "agent-action-guard-2q",
+       "n": {
+        "ctl": 0,
+        "passive": 0
+       }
+      },
+      {
+       "round": 101,
+       "cpu_part": "0xd0c",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 0,
+        "passive": 0
+       }
+      },
+      {
+       "round": 101,
+       "cpu_part": "0xd0c",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 0,
+        "passive": 0
+       }
+      },
+      {
+       "round": 101,
+       "cpu_part": "0xd0c",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 0,
+        "passive": 0
+       }
+      },
+      {
+       "round": 101,
+       "cpu_part": "0xd0c",
+       "request_id": "ticket-route-1q",
        "n": {
         "ctl": 0,
         "passive": 0
@@ -11160,309 +12423,1606 @@
       {
        "round": 102,
        "cpu_part": "0xd0c",
+       "request_id": "agent-action-guard-2q",
        "n": {
         "ctl": 0,
-        "passive": 15
+        "passive": 3
+       }
+      },
+      {
+       "round": 102,
+       "cpu_part": "0xd0c",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 0,
+        "passive": 3
+       }
+      },
+      {
+       "round": 102,
+       "cpu_part": "0xd0c",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 0,
+        "passive": 3
+       }
+      },
+      {
+       "round": 102,
+       "cpu_part": "0xd0c",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 0,
+        "passive": 3
+       }
+      },
+      {
+       "round": 102,
+       "cpu_part": "0xd0c",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 0,
+        "passive": 3
        }
       }
      ],
      "by_cpu_part": {
       "0xd0c": {
-       "cells": 1,
+       "cells": 5,
        "delta_range": [
-        -0.08966,
-        -0.08966
+        -0.235805,
+        -0.022075
        ],
        "delta_signs": [
         "negative"
-       ]
+       ],
+       "outcome": "mixed",
+       "comparable": false,
+       "counts": {
+        "faster": 4,
+        "in-band": 1
+       },
+       "unassessed_signs": [],
+       "unassessed_conflict": false
       },
       "0xd40": {
-       "cells": 9,
+       "cells": 45,
        "delta_range": [
-        -0.035985,
+        -0.127425,
         -0.00918
        ],
        "delta_signs": [
         "negative"
-       ]
+       ],
+       "outcome": "mixed",
+       "comparable": false,
+       "counts": {
+        "faster": 12,
+        "in-band": 33
+       },
+       "unassessed_signs": [],
+       "unassessed_conflict": false
       },
       "0xd4f": {
-       "cells": 2,
+       "cells": 10,
        "delta_range": [
-        -0.04106,
-        -0.02229
+        -0.09817,
+        -0.01094
        ],
        "delta_signs": [
         "negative"
-       ]
+       ],
+       "outcome": "mixed",
+       "comparable": false,
+       "counts": {
+        "faster": 5,
+        "in-band": 5
+       },
+       "unassessed_signs": [],
+       "unassessed_conflict": false
       }
+     },
+     "assessment": {
+      "outcome": "mixed",
+      "comparable": false,
+      "counts": {
+       "faster": 21,
+       "in-band": 39
+      },
+      "unassessed_signs": [],
+      "unassessed_conflict": false
      }
     },
     "spin30k": {
      "class": "warm",
+     "cell_key": [
+      "round",
+      "cpu_part",
+      "request_id"
+     ],
      "shared_cells": [
       {
        "round": 0,
        "cpu_part": "0xd0c",
+       "request_id": "agent-action-guard-2q",
        "n": {
-        "ctl": 15,
-        "spin30k": 15
+        "ctl": 3,
+        "spin30k": 3
+       },
+       "median": {
+        "ctl": 1.66706,
+        "spin30k": 1.53491
+       },
+       "control_within_cell_spread": 0.02277,
+       "delta": -0.13215,
+       "ratio": 0.920729,
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 0,
+       "cpu_part": "0xd0c",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 3,
+        "spin30k": 3
+       },
+       "median": {
+        "ctl": 0.79561,
+        "spin30k": 0.74113
+       },
+       "control_within_cell_spread": 0.00798,
+       "delta": -0.05448,
+       "ratio": 0.931524,
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 0,
+       "cpu_part": "0xd0c",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 3,
+        "spin30k": 3
+       },
+       "median": {
+        "ctl": 3.45858,
+        "spin30k": 3.22839
+       },
+       "control_within_cell_spread": 0.02031,
+       "delta": -0.23019,
+       "ratio": 0.933444,
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 0,
+       "cpu_part": "0xd0c",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 3,
+        "spin30k": 3
        },
        "median": {
         "ctl": 1.11727,
         "spin30k": 1.01288
        },
-       "control_spread": 3.02838,
+       "control_within_cell_spread": 0.01085,
        "delta": -0.10439,
        "ratio": 0.906567,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 0,
+       "cpu_part": "0xd0c",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 3,
+        "spin30k": 3
+       },
+       "median": {
+        "ctl": 0.45582,
+        "spin30k": 0.42622
+       },
+       "control_within_cell_spread": 0.01936,
+       "delta": -0.0296,
+       "ratio": 0.935062,
+       "sign": "negative",
+       "outcome": "faster"
       },
       {
        "round": 0,
        "cpu_part": "0xd40",
+       "request_id": "agent-action-guard-2q",
        "n": {
-        "ctl": 120,
-        "spin30k": 105
+        "ctl": 24,
+        "spin30k": 21
+       },
+       "median": {
+        "ctl": 0.86146,
+        "spin30k": 0.80098
+       },
+       "control_within_cell_spread": 0.0474,
+       "delta": -0.06048,
+       "ratio": 0.929794,
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 0,
+       "cpu_part": "0xd40",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 24,
+        "spin30k": 21
+       },
+       "median": {
+        "ctl": 0.46835,
+        "spin30k": 0.44269
+       },
+       "control_within_cell_spread": 0.03208,
+       "delta": -0.02566,
+       "ratio": 0.945212,
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 0,
+       "cpu_part": "0xd40",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 24,
+        "spin30k": 21
+       },
+       "median": {
+        "ctl": 1.76648,
+        "spin30k": 1.64105
+       },
+       "control_within_cell_spread": 0.09696,
+       "delta": -0.12543,
+       "ratio": 0.928994,
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 0,
+       "cpu_part": "0xd40",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 24,
+        "spin30k": 21
        },
        "median": {
         "ctl": 0.603955,
         "spin30k": 0.5774
        },
-       "control_spread": 1.58836,
+       "control_within_cell_spread": 0.05746,
        "delta": -0.026555,
        "ratio": 0.956031,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 0,
+       "cpu_part": "0xd40",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 24,
+        "spin30k": 21
+       },
+       "median": {
+        "ctl": 0.247885,
+        "spin30k": 0.23412
+       },
+       "control_within_cell_spread": 0.10387,
+       "delta": -0.013765,
+       "ratio": 0.94447,
+       "sign": "negative",
+       "outcome": "in-band"
       },
       {
        "round": 0,
        "cpu_part": "0xd4f",
+       "request_id": "agent-action-guard-2q",
        "n": {
-        "ctl": 15,
-        "spin30k": 30
+        "ctl": 3,
+        "spin30k": 6
+       },
+       "median": {
+        "ctl": 0.73395,
+        "spin30k": 0.71706
+       },
+       "control_within_cell_spread": 0.02136,
+       "delta": -0.01689,
+       "ratio": 0.976988,
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 0,
+       "cpu_part": "0xd4f",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 3,
+        "spin30k": 6
+       },
+       "median": {
+        "ctl": 0.40285,
+        "spin30k": 0.395225
+       },
+       "control_within_cell_spread": 0.01263,
+       "delta": -0.007625,
+       "ratio": 0.981072,
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 0,
+       "cpu_part": "0xd4f",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 3,
+        "spin30k": 6
+       },
+       "median": {
+        "ctl": 1.5308,
+        "spin30k": 1.496315
+       },
+       "control_within_cell_spread": 0.02176,
+       "delta": -0.034485,
+       "ratio": 0.977473,
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 0,
+       "cpu_part": "0xd4f",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 3,
+        "spin30k": 6
        },
        "median": {
         "ctl": 0.53156,
         "spin30k": 0.51336
        },
-       "control_spread": 1.32753,
+       "control_within_cell_spread": 0.00886,
        "delta": -0.0182,
        "ratio": 0.965761,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 0,
+       "cpu_part": "0xd4f",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 3,
+        "spin30k": 6
+       },
+       "median": {
+        "ctl": 0.21457,
+        "spin30k": 0.210375
+       },
+       "control_within_cell_spread": 0.01348,
+       "delta": -0.004195,
+       "ratio": 0.980449,
+       "sign": "negative",
+       "outcome": "in-band"
       },
       {
        "round": 1,
        "cpu_part": "0xd40",
+       "request_id": "agent-action-guard-2q",
        "n": {
-        "ctl": 150,
-        "spin30k": 150
+        "ctl": 30,
+        "spin30k": 30
+       },
+       "median": {
+        "ctl": 0.85329,
+        "spin30k": 0.80145
+       },
+       "control_within_cell_spread": 0.0503,
+       "delta": -0.05184,
+       "ratio": 0.939247,
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 1,
+       "cpu_part": "0xd40",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 30,
+        "spin30k": 30
+       },
+       "median": {
+        "ctl": 0.46208,
+        "spin30k": 0.441725
+       },
+       "control_within_cell_spread": 0.04421,
+       "delta": -0.020355,
+       "ratio": 0.955949,
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 1,
+       "cpu_part": "0xd40",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 30,
+        "spin30k": 30
+       },
+       "median": {
+        "ctl": 1.757935,
+        "spin30k": 1.6393
+       },
+       "control_within_cell_spread": 0.07291,
+       "delta": -0.118635,
+       "ratio": 0.932515,
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 1,
+       "cpu_part": "0xd40",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 30,
+        "spin30k": 30
        },
        "median": {
         "ctl": 0.60359,
         "spin30k": 0.578985
        },
-       "control_spread": 1.56085,
+       "control_within_cell_spread": 0.05294,
        "delta": -0.024605,
        "ratio": 0.959236,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 1,
+       "cpu_part": "0xd40",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 30,
+        "spin30k": 30
+       },
+       "median": {
+        "ctl": 0.243585,
+        "spin30k": 0.2339
+       },
+       "control_within_cell_spread": 0.02704,
+       "delta": -0.009685,
+       "ratio": 0.96024,
+       "sign": "negative",
+       "outcome": "in-band"
       },
       {
        "round": 2,
        "cpu_part": "0xd0c",
+       "request_id": "agent-action-guard-2q",
        "n": {
-        "ctl": 15,
-        "spin30k": 45
+        "ctl": 3,
+        "spin30k": 9
+       },
+       "median": {
+        "ctl": 1.66328,
+        "spin30k": 1.53188
+       },
+       "control_within_cell_spread": 0.05884,
+       "delta": -0.1314,
+       "ratio": 0.920999,
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 2,
+       "cpu_part": "0xd0c",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 3,
+        "spin30k": 9
+       },
+       "median": {
+        "ctl": 0.81182,
+        "spin30k": 0.74288
+       },
+       "control_within_cell_spread": 0.0313,
+       "delta": -0.06894,
+       "ratio": 0.91508,
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 2,
+       "cpu_part": "0xd0c",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 3,
+        "spin30k": 9
+       },
+       "median": {
+        "ctl": 3.47412,
+        "spin30k": 3.20939
+       },
+       "control_within_cell_spread": 0.0337,
+       "delta": -0.26473,
+       "ratio": 0.923799,
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 2,
+       "cpu_part": "0xd0c",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 3,
+        "spin30k": 9
        },
        "median": {
         "ctl": 1.12506,
         "spin30k": 1.01289
        },
-       "control_spread": 3.04874,
+       "control_within_cell_spread": 0.01392,
        "delta": -0.11217,
        "ratio": 0.900299,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 2,
+       "cpu_part": "0xd0c",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 3,
+        "spin30k": 9
+       },
+       "median": {
+        "ctl": 0.45566,
+        "spin30k": 0.42329
+       },
+       "control_within_cell_spread": 0.03378,
+       "delta": -0.03237,
+       "ratio": 0.92896,
+       "sign": "negative",
+       "outcome": "in-band"
       },
       {
        "round": 2,
        "cpu_part": "0xd40",
+       "request_id": "agent-action-guard-2q",
        "n": {
-        "ctl": 120,
-        "spin30k": 90
+        "ctl": 24,
+        "spin30k": 18
+       },
+       "median": {
+        "ctl": 0.859565,
+        "spin30k": 0.801405
+       },
+       "control_within_cell_spread": 0.05167,
+       "delta": -0.05816,
+       "ratio": 0.932338,
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 2,
+       "cpu_part": "0xd40",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 24,
+        "spin30k": 18
+       },
+       "median": {
+        "ctl": 0.461695,
+        "spin30k": 0.443965
+       },
+       "control_within_cell_spread": 0.10507,
+       "delta": -0.01773,
+       "ratio": 0.961598,
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 2,
+       "cpu_part": "0xd40",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 24,
+        "spin30k": 18
+       },
+       "median": {
+        "ctl": 1.74619,
+        "spin30k": 1.647815
+       },
+       "control_within_cell_spread": 0.08665,
+       "delta": -0.098375,
+       "ratio": 0.943663,
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 2,
+       "cpu_part": "0xd40",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 24,
+        "spin30k": 18
        },
        "median": {
         "ctl": 0.60254,
         "spin30k": 0.5746
        },
-       "control_spread": 1.56804,
+       "control_within_cell_spread": 0.06401,
        "delta": -0.02794,
        "ratio": 0.95363,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 2,
+       "cpu_part": "0xd40",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 24,
+        "spin30k": 18
+       },
+       "median": {
+        "ctl": 0.24804,
+        "spin30k": 0.23466
+       },
+       "control_within_cell_spread": 0.07714,
+       "delta": -0.01338,
+       "ratio": 0.946057,
+       "sign": "negative",
+       "outcome": "in-band"
       },
       {
        "round": 2,
        "cpu_part": "0xd4f",
+       "request_id": "agent-action-guard-2q",
        "n": {
-        "ctl": 15,
-        "spin30k": 15
+        "ctl": 3,
+        "spin30k": 3
+       },
+       "median": {
+        "ctl": 0.74437,
+        "spin30k": 0.68622
+       },
+       "control_within_cell_spread": 0.0146,
+       "delta": -0.05815,
+       "ratio": 0.92188,
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 2,
+       "cpu_part": "0xd4f",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 3,
+        "spin30k": 3
+       },
+       "median": {
+        "ctl": 0.40389,
+        "spin30k": 0.37896
+       },
+       "control_within_cell_spread": 0.00317,
+       "delta": -0.02493,
+       "ratio": 0.938275,
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 2,
+       "cpu_part": "0xd4f",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 3,
+        "spin30k": 3
+       },
+       "median": {
+        "ctl": 1.531,
+        "spin30k": 1.43934
+       },
+       "control_within_cell_spread": 0.01404,
+       "delta": -0.09166,
+       "ratio": 0.940131,
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 2,
+       "cpu_part": "0xd4f",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 3,
+        "spin30k": 3
        },
        "median": {
         "ctl": 0.52519,
         "spin30k": 0.48205
        },
-       "control_spread": 1.32494,
+       "control_within_cell_spread": 0.04867,
        "delta": -0.04314,
        "ratio": 0.917858,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 2,
+       "cpu_part": "0xd4f",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 3,
+        "spin30k": 3
+       },
+       "median": {
+        "ctl": 0.22923,
+        "spin30k": 0.19839
+       },
+       "control_within_cell_spread": 0.01783,
+       "delta": -0.03084,
+       "ratio": 0.865463,
+       "sign": "negative",
+       "outcome": "faster"
       },
       {
        "round": 3,
        "cpu_part": "0xd40",
+       "request_id": "agent-action-guard-2q",
        "n": {
-        "ctl": 150,
-        "spin30k": 135
+        "ctl": 30,
+        "spin30k": 27
+       },
+       "median": {
+        "ctl": 0.85935,
+        "spin30k": 0.80111
+       },
+       "control_within_cell_spread": 0.04596,
+       "delta": -0.05824,
+       "ratio": 0.932228,
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 3,
+       "cpu_part": "0xd40",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 30,
+        "spin30k": 27
+       },
+       "median": {
+        "ctl": 0.466055,
+        "spin30k": 0.44403
+       },
+       "control_within_cell_spread": 0.0486,
+       "delta": -0.022025,
+       "ratio": 0.952742,
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 3,
+       "cpu_part": "0xd40",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 30,
+        "spin30k": 27
+       },
+       "median": {
+        "ctl": 1.74646,
+        "spin30k": 1.64582
+       },
+       "control_within_cell_spread": 0.12632,
+       "delta": -0.10064,
+       "ratio": 0.942375,
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 3,
+       "cpu_part": "0xd40",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 30,
+        "spin30k": 27
        },
        "median": {
         "ctl": 0.604395,
         "spin30k": 0.57386
        },
-       "control_spread": 1.59865,
+       "control_within_cell_spread": 0.04458,
        "delta": -0.030535,
        "ratio": 0.949478,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 3,
+       "cpu_part": "0xd40",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 30,
+        "spin30k": 27
+       },
+       "median": {
+        "ctl": 0.24218,
+        "spin30k": 0.23298
+       },
+       "control_within_cell_spread": 0.02131,
+       "delta": -0.0092,
+       "ratio": 0.962012,
+       "sign": "negative",
+       "outcome": "in-band"
       },
       {
        "round": 4,
        "cpu_part": "0xd40",
+       "request_id": "agent-action-guard-2q",
        "n": {
-        "ctl": 105,
-        "spin30k": 135
+        "ctl": 21,
+        "spin30k": 27
+       },
+       "median": {
+        "ctl": 0.85883,
+        "spin30k": 0.80295
+       },
+       "control_within_cell_spread": 0.03597,
+       "delta": -0.05588,
+       "ratio": 0.934935,
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd40",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 21,
+        "spin30k": 27
+       },
+       "median": {
+        "ctl": 0.46426,
+        "spin30k": 0.44364
+       },
+       "control_within_cell_spread": 0.05515,
+       "delta": -0.02062,
+       "ratio": 0.955585,
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd40",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 21,
+        "spin30k": 27
+       },
+       "median": {
+        "ctl": 1.76031,
+        "spin30k": 1.64289
+       },
+       "control_within_cell_spread": 0.06031,
+       "delta": -0.11742,
+       "ratio": 0.933296,
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd40",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 21,
+        "spin30k": 27
        },
        "median": {
         "ctl": 0.60419,
         "spin30k": 0.57732
        },
-       "control_spread": 1.55185,
+       "control_within_cell_spread": 0.05143,
        "delta": -0.02687,
        "ratio": 0.955527,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd40",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 21,
+        "spin30k": 27
+       },
+       "median": {
+        "ctl": 0.24443,
+        "spin30k": 0.23274
+       },
+       "control_within_cell_spread": 0.02806,
+       "delta": -0.01169,
+       "ratio": 0.952174,
+       "sign": "negative",
+       "outcome": "in-band"
       },
       {
        "round": 4,
        "cpu_part": "0xd4f",
+       "request_id": "agent-action-guard-2q",
        "n": {
-        "ctl": 45,
-        "spin30k": 15
+        "ctl": 9,
+        "spin30k": 3
+       },
+       "median": {
+        "ctl": 0.74501,
+        "spin30k": 0.68618
+       },
+       "control_within_cell_spread": 0.04474,
+       "delta": -0.05883,
+       "ratio": 0.921035,
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd4f",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 9,
+        "spin30k": 3
+       },
+       "median": {
+        "ctl": 0.39762,
+        "spin30k": 0.37392
+       },
+       "control_within_cell_spread": 0.03666,
+       "delta": -0.0237,
+       "ratio": 0.940395,
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd4f",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 9,
+        "spin30k": 3
+       },
+       "median": {
+        "ctl": 1.54871,
+        "spin30k": 1.43006
+       },
+       "control_within_cell_spread": 0.13539,
+       "delta": -0.11865,
+       "ratio": 0.923388,
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd4f",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 9,
+        "spin30k": 3
        },
        "median": {
         "ctl": 0.5392,
         "spin30k": 0.48572
        },
-       "control_spread": 1.41641,
+       "control_within_cell_spread": 0.05308,
        "delta": -0.05348,
        "ratio": 0.900816,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd4f",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 9,
+        "spin30k": 3
+       },
+       "median": {
+        "ctl": 0.21622,
+        "spin30k": 0.20487
+       },
+       "control_within_cell_spread": 0.03003,
+       "delta": -0.01135,
+       "ratio": 0.947507,
+       "sign": "negative",
+       "outcome": "in-band"
       },
       {
        "round": 5,
        "cpu_part": "0xd40",
+       "request_id": "agent-action-guard-2q",
        "n": {
-        "ctl": 135,
-        "spin30k": 135
+        "ctl": 27,
+        "spin30k": 27
+       },
+       "median": {
+        "ctl": 0.85201,
+        "spin30k": 0.80201
+       },
+       "control_within_cell_spread": 0.05066,
+       "delta": -0.05,
+       "ratio": 0.941315,
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 5,
+       "cpu_part": "0xd40",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 27,
+        "spin30k": 27
+       },
+       "median": {
+        "ctl": 0.4627,
+        "spin30k": 0.44374
+       },
+       "control_within_cell_spread": 0.03923,
+       "delta": -0.01896,
+       "ratio": 0.959023,
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 5,
+       "cpu_part": "0xd40",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 27,
+        "spin30k": 27
+       },
+       "median": {
+        "ctl": 1.76005,
+        "spin30k": 1.64899
+       },
+       "control_within_cell_spread": 0.14821,
+       "delta": -0.11106,
+       "ratio": 0.9369,
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 5,
+       "cpu_part": "0xd40",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 27,
+        "spin30k": 27
        },
        "median": {
         "ctl": 0.59794,
         "spin30k": 0.57337
        },
-       "control_spread": 1.615,
+       "control_within_cell_spread": 0.06958,
        "delta": -0.02457,
        "ratio": 0.958909,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 5,
+       "cpu_part": "0xd40",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 27,
+        "spin30k": 27
+       },
+       "median": {
+        "ctl": 0.24657,
+        "spin30k": 0.23436
+       },
+       "control_within_cell_spread": 0.09575,
+       "delta": -0.01221,
+       "ratio": 0.950481,
+       "sign": "negative",
+       "outcome": "in-band"
       },
       {
        "round": 5,
        "cpu_part": "0xd4f",
+       "request_id": "agent-action-guard-2q",
        "n": {
-        "ctl": 15,
-        "spin30k": 15
+        "ctl": 3,
+        "spin30k": 3
+       },
+       "median": {
+        "ctl": 0.718,
+        "spin30k": 0.69752
+       },
+       "control_within_cell_spread": 0.0285,
+       "delta": -0.02048,
+       "ratio": 0.971476,
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 5,
+       "cpu_part": "0xd4f",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 3,
+        "spin30k": 3
+       },
+       "median": {
+        "ctl": 0.3906,
+        "spin30k": 0.38714
+       },
+       "control_within_cell_spread": 0.00806,
+       "delta": -0.00346,
+       "ratio": 0.991142,
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 5,
+       "cpu_part": "0xd4f",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 3,
+        "spin30k": 3
+       },
+       "median": {
+        "ctl": 1.49546,
+        "spin30k": 1.44739
+       },
+       "control_within_cell_spread": 0.03146,
+       "delta": -0.04807,
+       "ratio": 0.967856,
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 5,
+       "cpu_part": "0xd4f",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 3,
+        "spin30k": 3
        },
        "median": {
         "ctl": 0.51407,
         "spin30k": 0.50948
        },
-       "control_spread": 1.31789,
+       "control_within_cell_spread": 0.00385,
        "delta": -0.00459,
        "ratio": 0.991071,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 5,
+       "cpu_part": "0xd4f",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 3,
+        "spin30k": 3
+       },
+       "median": {
+        "ctl": 0.20322,
+        "spin30k": 0.20752
+       },
+       "control_within_cell_spread": 0.0071,
+       "delta": 0.0043,
+       "ratio": 1.021159,
+       "sign": "positive",
+       "outcome": "in-band"
       },
       {
        "round": 100,
        "cpu_part": "0xd0c",
+       "request_id": "agent-action-guard-2q",
        "n": {
-        "ctl": 15,
-        "spin30k": 15
+        "ctl": 3,
+        "spin30k": 3
+       },
+       "median": {
+        "ctl": 1.6869,
+        "spin30k": 1.52865
+       },
+       "control_within_cell_spread": 0.02898,
+       "delta": -0.15825,
+       "ratio": 0.906189,
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 100,
+       "cpu_part": "0xd0c",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 3,
+        "spin30k": 3
+       },
+       "median": {
+        "ctl": 0.80396,
+        "spin30k": 0.73354
+       },
+       "control_within_cell_spread": 0.02229,
+       "delta": -0.07042,
+       "ratio": 0.912409,
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 100,
+       "cpu_part": "0xd0c",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 3,
+        "spin30k": 3
+       },
+       "median": {
+        "ctl": 3.44363,
+        "spin30k": 3.17124
+       },
+       "control_within_cell_spread": 0.0269,
+       "delta": -0.27239,
+       "ratio": 0.9209,
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 100,
+       "cpu_part": "0xd0c",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 3,
+        "spin30k": 3
        },
        "median": {
         "ctl": 1.1024,
         "spin30k": 1.01588
        },
-       "control_spread": 3.02603,
+       "control_within_cell_spread": 0.15322,
        "delta": -0.08652,
        "ratio": 0.921517,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 100,
+       "cpu_part": "0xd0c",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 3,
+        "spin30k": 3
+       },
+       "median": {
+        "ctl": 0.43494,
+        "spin30k": 0.42047
+       },
+       "control_within_cell_spread": 0.01213,
+       "delta": -0.01447,
+       "ratio": 0.966731,
+       "sign": "negative",
+       "outcome": "faster"
       },
       {
        "round": 100,
        "cpu_part": "0xd40",
+       "request_id": "agent-action-guard-2q",
        "n": {
-        "ctl": 135,
-        "spin30k": 135
+        "ctl": 27,
+        "spin30k": 27
+       },
+       "median": {
+        "ctl": 0.856,
+        "spin30k": 0.8011
+       },
+       "control_within_cell_spread": 0.03605,
+       "delta": -0.0549,
+       "ratio": 0.935864,
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 100,
+       "cpu_part": "0xd40",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 27,
+        "spin30k": 27
+       },
+       "median": {
+        "ctl": 0.47027,
+        "spin30k": 0.4441
+       },
+       "control_within_cell_spread": 0.04402,
+       "delta": -0.02617,
+       "ratio": 0.944351,
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 100,
+       "cpu_part": "0xd40",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 27,
+        "spin30k": 27
+       },
+       "median": {
+        "ctl": 1.74644,
+        "spin30k": 1.64678
+       },
+       "control_within_cell_spread": 0.06659,
+       "delta": -0.09966,
+       "ratio": 0.942935,
+       "sign": "negative",
+       "outcome": "faster"
+      },
+      {
+       "round": 100,
+       "cpu_part": "0xd40",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 27,
+        "spin30k": 27
        },
        "median": {
         "ctl": 0.6078,
         "spin30k": 0.58197
        },
-       "control_spread": 1.55589,
+       "control_within_cell_spread": 0.13068,
        "delta": -0.02583,
        "ratio": 0.957502,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 100,
+       "cpu_part": "0xd40",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 27,
+        "spin30k": 27
+       },
+       "median": {
+        "ctl": 0.24098,
+        "spin30k": 0.23538
+       },
+       "control_within_cell_spread": 0.01787,
+       "delta": -0.0056,
+       "ratio": 0.976762,
+       "sign": "negative",
+       "outcome": "in-band"
       },
       {
        "round": 101,
        "cpu_part": "0xd40",
+       "request_id": "agent-action-guard-2q",
        "n": {
-        "ctl": 150,
-        "spin30k": 150
+        "ctl": 30,
+        "spin30k": 30
+       },
+       "median": {
+        "ctl": 0.858055,
+        "spin30k": 0.808695
+       },
+       "control_within_cell_spread": 0.06009,
+       "delta": -0.04936,
+       "ratio": 0.942475,
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 101,
+       "cpu_part": "0xd40",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 30,
+        "spin30k": 30
+       },
+       "median": {
+        "ctl": 0.46553,
+        "spin30k": 0.443295
+       },
+       "control_within_cell_spread": 0.04902,
+       "delta": -0.022235,
+       "ratio": 0.952237,
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 101,
+       "cpu_part": "0xd40",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 30,
+        "spin30k": 30
+       },
+       "median": {
+        "ctl": 1.76065,
+        "spin30k": 1.659605
+       },
+       "control_within_cell_spread": 0.11124,
+       "delta": -0.101045,
+       "ratio": 0.942609,
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 101,
+       "cpu_part": "0xd40",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 30,
+        "spin30k": 30
        },
        "median": {
         "ctl": 0.607445,
         "spin30k": 0.587335
        },
-       "control_spread": 1.57956,
+       "control_within_cell_spread": 0.14304,
        "delta": -0.02011,
        "ratio": 0.966894,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 101,
+       "cpu_part": "0xd40",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 30,
+        "spin30k": 30
+       },
+       "median": {
+        "ctl": 0.248235,
+        "spin30k": 0.23586
+       },
+       "control_within_cell_spread": 0.02604,
+       "delta": -0.012375,
+       "ratio": 0.950148,
+       "sign": "negative",
+       "outcome": "in-band"
       },
       {
        "round": 102,
        "cpu_part": "0xd40",
+       "request_id": "agent-action-guard-2q",
        "n": {
-        "ctl": 150,
-        "spin30k": 150
+        "ctl": 30,
+        "spin30k": 30
+       },
+       "median": {
+        "ctl": 0.86999,
+        "spin30k": 0.797935
+       },
+       "control_within_cell_spread": 0.09682,
+       "delta": -0.072055,
+       "ratio": 0.917177,
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 102,
+       "cpu_part": "0xd40",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 30,
+        "spin30k": 30
+       },
+       "median": {
+        "ctl": 0.47289,
+        "spin30k": 0.438955
+       },
+       "control_within_cell_spread": 0.04932,
+       "delta": -0.033935,
+       "ratio": 0.928239,
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 102,
+       "cpu_part": "0xd40",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 30,
+        "spin30k": 30
+       },
+       "median": {
+        "ctl": 1.76482,
+        "spin30k": 1.648175
+       },
+       "control_within_cell_spread": 0.191,
+       "delta": -0.116645,
+       "ratio": 0.933905,
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 102,
+       "cpu_part": "0xd40",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 30,
+        "spin30k": 30
        },
        "median": {
         "ctl": 0.6219,
         "spin30k": 0.5765
        },
-       "control_spread": 1.64628,
+       "control_within_cell_spread": 0.14502,
        "delta": -0.0454,
        "ratio": 0.926998,
-       "sign": "negative"
+       "sign": "negative",
+       "outcome": "in-band"
+      },
+      {
+       "round": 102,
+       "cpu_part": "0xd40",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 30,
+        "spin30k": 30
+       },
+       "median": {
+        "ctl": 0.247445,
+        "spin30k": 0.234395
+       },
+       "control_within_cell_spread": 0.03396,
+       "delta": -0.01305,
+       "ratio": 0.947261,
+       "sign": "negative",
+       "outcome": "in-band"
       }
      ],
      "missing_cells": [
       {
        "round": 1,
        "cpu_part": "0xd0c",
+       "request_id": "agent-action-guard-2q",
+       "n": {
+        "ctl": 0,
+        "spin30k": 0
+       }
+      },
+      {
+       "round": 1,
+       "cpu_part": "0xd0c",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 0,
+        "spin30k": 0
+       }
+      },
+      {
+       "round": 1,
+       "cpu_part": "0xd0c",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 0,
+        "spin30k": 0
+       }
+      },
+      {
+       "round": 1,
+       "cpu_part": "0xd0c",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 0,
+        "spin30k": 0
+       }
+      },
+      {
+       "round": 1,
+       "cpu_part": "0xd0c",
+       "request_id": "ticket-route-1q",
        "n": {
         "ctl": 0,
         "spin30k": 0
@@ -11471,6 +14031,43 @@
       {
        "round": 1,
        "cpu_part": "0xd4f",
+       "request_id": "agent-action-guard-2q",
+       "n": {
+        "ctl": 0,
+        "spin30k": 0
+       }
+      },
+      {
+       "round": 1,
+       "cpu_part": "0xd4f",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 0,
+        "spin30k": 0
+       }
+      },
+      {
+       "round": 1,
+       "cpu_part": "0xd4f",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 0,
+        "spin30k": 0
+       }
+      },
+      {
+       "round": 1,
+       "cpu_part": "0xd4f",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 0,
+        "spin30k": 0
+       }
+      },
+      {
+       "round": 1,
+       "cpu_part": "0xd4f",
+       "request_id": "ticket-route-1q",
        "n": {
         "ctl": 0,
         "spin30k": 0
@@ -11479,14 +14076,88 @@
       {
        "round": 3,
        "cpu_part": "0xd0c",
+       "request_id": "agent-action-guard-2q",
        "n": {
         "ctl": 0,
-        "spin30k": 15
+        "spin30k": 3
+       }
+      },
+      {
+       "round": 3,
+       "cpu_part": "0xd0c",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 0,
+        "spin30k": 3
+       }
+      },
+      {
+       "round": 3,
+       "cpu_part": "0xd0c",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 0,
+        "spin30k": 3
+       }
+      },
+      {
+       "round": 3,
+       "cpu_part": "0xd0c",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 0,
+        "spin30k": 3
+       }
+      },
+      {
+       "round": 3,
+       "cpu_part": "0xd0c",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 0,
+        "spin30k": 3
        }
       },
       {
        "round": 4,
        "cpu_part": "0xd0c",
+       "request_id": "agent-action-guard-2q",
+       "n": {
+        "ctl": 0,
+        "spin30k": 0
+       }
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd0c",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 0,
+        "spin30k": 0
+       }
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd0c",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 0,
+        "spin30k": 0
+       }
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd0c",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 0,
+        "spin30k": 0
+       }
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd0c",
+       "request_id": "ticket-route-1q",
        "n": {
         "ctl": 0,
         "spin30k": 0
@@ -11495,6 +14166,43 @@
       {
        "round": 5,
        "cpu_part": "0xd0c",
+       "request_id": "agent-action-guard-2q",
+       "n": {
+        "ctl": 0,
+        "spin30k": 0
+       }
+      },
+      {
+       "round": 5,
+       "cpu_part": "0xd0c",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 0,
+        "spin30k": 0
+       }
+      },
+      {
+       "round": 5,
+       "cpu_part": "0xd0c",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 0,
+        "spin30k": 0
+       }
+      },
+      {
+       "round": 5,
+       "cpu_part": "0xd0c",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 0,
+        "spin30k": 0
+       }
+      },
+      {
+       "round": 5,
+       "cpu_part": "0xd0c",
+       "request_id": "ticket-route-1q",
        "n": {
         "ctl": 0,
         "spin30k": 0
@@ -11503,6 +14211,43 @@
       {
        "round": 101,
        "cpu_part": "0xd0c",
+       "request_id": "agent-action-guard-2q",
+       "n": {
+        "ctl": 0,
+        "spin30k": 0
+       }
+      },
+      {
+       "round": 101,
+       "cpu_part": "0xd0c",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 0,
+        "spin30k": 0
+       }
+      },
+      {
+       "round": 101,
+       "cpu_part": "0xd0c",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 0,
+        "spin30k": 0
+       }
+      },
+      {
+       "round": 101,
+       "cpu_part": "0xd0c",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 0,
+        "spin30k": 0
+       }
+      },
+      {
+       "round": 101,
+       "cpu_part": "0xd0c",
+       "request_id": "ticket-route-1q",
        "n": {
         "ctl": 0,
         "spin30k": 0
@@ -11511,6 +14256,43 @@
       {
        "round": 102,
        "cpu_part": "0xd0c",
+       "request_id": "agent-action-guard-2q",
+       "n": {
+        "ctl": 0,
+        "spin30k": 0
+       }
+      },
+      {
+       "round": 102,
+       "cpu_part": "0xd0c",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 0,
+        "spin30k": 0
+       }
+      },
+      {
+       "round": 102,
+       "cpu_part": "0xd0c",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 0,
+        "spin30k": 0
+       }
+      },
+      {
+       "round": 102,
+       "cpu_part": "0xd0c",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 0,
+        "spin30k": 0
+       }
+      },
+      {
+       "round": 102,
+       "cpu_part": "0xd0c",
+       "request_id": "ticket-route-1q",
        "n": {
         "ctl": 0,
         "spin30k": 0
@@ -11519,325 +14301,1697 @@
      ],
      "by_cpu_part": {
       "0xd0c": {
-       "cells": 3,
+       "cells": 15,
        "delta_range": [
-        -0.11217,
-        -0.08652
+        -0.27239,
+        -0.01447
        ],
        "delta_signs": [
         "negative"
-       ]
+       ],
+       "outcome": "mixed",
+       "comparable": false,
+       "counts": {
+        "faster": 13,
+        "in-band": 2
+       },
+       "unassessed_signs": [],
+       "unassessed_conflict": false
       },
       "0xd40": {
-       "cells": 9,
+       "cells": 45,
        "delta_range": [
-        -0.0454,
-        -0.02011
+        -0.12543,
+        -0.0056
        ],
        "delta_signs": [
         "negative"
-       ]
+       ],
+       "outcome": "mixed",
+       "comparable": false,
+       "counts": {
+        "faster": 11,
+        "in-band": 34
+       },
+       "unassessed_signs": [],
+       "unassessed_conflict": false
       },
       "0xd4f": {
-       "cells": 4,
+       "cells": 20,
        "delta_range": [
-        -0.05348,
-        -0.00459
+        -0.11865,
+        0.0043
        ],
        "delta_signs": [
-        "negative"
-       ]
+        "negative",
+        "positive"
+       ],
+       "outcome": "mixed",
+       "comparable": false,
+       "counts": {
+        "faster": 10,
+        "in-band": 10
+       },
+       "unassessed_signs": [],
+       "unassessed_conflict": false
       }
+     },
+     "assessment": {
+      "outcome": "mixed",
+      "comparable": false,
+      "counts": {
+       "faster": 34,
+       "in-band": 46
+      },
+      "unassessed_signs": [],
+      "unassessed_conflict": false
      }
     },
     "active": {
      "class": "warm",
+     "cell_key": [
+      "round",
+      "cpu_part",
+      "request_id"
+     ],
      "shared_cells": [
       {
        "round": 0,
        "cpu_part": "0xd0c",
+       "request_id": "agent-action-guard-2q",
        "n": {
-        "ctl": 15,
-        "active": 30
+        "ctl": 3,
+        "active": 6
+       },
+       "median": {
+        "ctl": 1.66706,
+        "active": 1.930915
+       },
+       "control_within_cell_spread": 0.02277,
+       "delta": 0.263855,
+       "ratio": 1.158276,
+       "sign": "positive",
+       "outcome": "slower"
+      },
+      {
+       "round": 0,
+       "cpu_part": "0xd0c",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 3,
+        "active": 6
+       },
+       "median": {
+        "ctl": 0.79561,
+        "active": 0.939145
+       },
+       "control_within_cell_spread": 0.00798,
+       "delta": 0.143535,
+       "ratio": 1.180409,
+       "sign": "positive",
+       "outcome": "slower"
+      },
+      {
+       "round": 0,
+       "cpu_part": "0xd0c",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 3,
+        "active": 6
+       },
+       "median": {
+        "ctl": 3.45858,
+        "active": 3.787165
+       },
+       "control_within_cell_spread": 0.02031,
+       "delta": 0.328585,
+       "ratio": 1.095006,
+       "sign": "positive",
+       "outcome": "slower"
+      },
+      {
+       "round": 0,
+       "cpu_part": "0xd0c",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 3,
+        "active": 6
        },
        "median": {
         "ctl": 1.11727,
         "active": 1.25496
        },
-       "control_spread": 3.02838,
+       "control_within_cell_spread": 0.01085,
        "delta": 0.13769,
        "ratio": 1.123238,
-       "sign": "positive"
+       "sign": "positive",
+       "outcome": "slower"
+      },
+      {
+       "round": 0,
+       "cpu_part": "0xd0c",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 3,
+        "active": 6
+       },
+       "median": {
+        "ctl": 0.45582,
+        "active": 0.543515
+       },
+       "control_within_cell_spread": 0.01936,
+       "delta": 0.087695,
+       "ratio": 1.19239,
+       "sign": "positive",
+       "outcome": "slower"
       },
       {
        "round": 0,
        "cpu_part": "0xd40",
+       "request_id": "agent-action-guard-2q",
        "n": {
-        "ctl": 120,
-        "active": 120
+        "ctl": 24,
+        "active": 24
+       },
+       "median": {
+        "ctl": 0.86146,
+        "active": 1.34029
+       },
+       "control_within_cell_spread": 0.0474,
+       "delta": 0.47883,
+       "ratio": 1.555835,
+       "sign": "positive",
+       "outcome": "slower"
+      },
+      {
+       "round": 0,
+       "cpu_part": "0xd40",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 24,
+        "active": 24
+       },
+       "median": {
+        "ctl": 0.46835,
+        "active": 0.74214
+       },
+       "control_within_cell_spread": 0.03208,
+       "delta": 0.27379,
+       "ratio": 1.584584,
+       "sign": "positive",
+       "outcome": "slower"
+      },
+      {
+       "round": 0,
+       "cpu_part": "0xd40",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 24,
+        "active": 24
+       },
+       "median": {
+        "ctl": 1.76648,
+        "active": 2.57421
+       },
+       "control_within_cell_spread": 0.09696,
+       "delta": 0.80773,
+       "ratio": 1.457254,
+       "sign": "positive",
+       "outcome": "slower"
+      },
+      {
+       "round": 0,
+       "cpu_part": "0xd40",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 24,
+        "active": 24
        },
        "median": {
         "ctl": 0.603955,
         "active": 0.93635
        },
-       "control_spread": 1.58836,
+       "control_within_cell_spread": 0.05746,
        "delta": 0.332395,
        "ratio": 1.550364,
-       "sign": "positive"
+       "sign": "positive",
+       "outcome": "slower"
+      },
+      {
+       "round": 0,
+       "cpu_part": "0xd40",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 24,
+        "active": 24
+       },
+       "median": {
+        "ctl": 0.247885,
+        "active": 0.3947
+       },
+       "control_within_cell_spread": 0.10387,
+       "delta": 0.146815,
+       "ratio": 1.592271,
+       "sign": "positive",
+       "outcome": "slower"
       },
       {
        "round": 1,
        "cpu_part": "0xd40",
+       "request_id": "agent-action-guard-2q",
        "n": {
-        "ctl": 150,
-        "active": 120
+        "ctl": 30,
+        "active": 24
+       },
+       "median": {
+        "ctl": 0.85329,
+        "active": 1.33901
+       },
+       "control_within_cell_spread": 0.0503,
+       "delta": 0.48572,
+       "ratio": 1.569232,
+       "sign": "positive",
+       "outcome": "slower"
+      },
+      {
+       "round": 1,
+       "cpu_part": "0xd40",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 30,
+        "active": 24
+       },
+       "median": {
+        "ctl": 0.46208,
+        "active": 0.726625
+       },
+       "control_within_cell_spread": 0.04421,
+       "delta": 0.264545,
+       "ratio": 1.572509,
+       "sign": "positive",
+       "outcome": "slower"
+      },
+      {
+       "round": 1,
+       "cpu_part": "0xd40",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 30,
+        "active": 24
+       },
+       "median": {
+        "ctl": 1.757935,
+        "active": 2.54206
+       },
+       "control_within_cell_spread": 0.07291,
+       "delta": 0.784125,
+       "ratio": 1.446049,
+       "sign": "positive",
+       "outcome": "slower"
+      },
+      {
+       "round": 1,
+       "cpu_part": "0xd40",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 30,
+        "active": 24
        },
        "median": {
         "ctl": 0.60359,
         "active": 0.930205
        },
-       "control_spread": 1.56085,
+       "control_within_cell_spread": 0.05294,
        "delta": 0.326615,
        "ratio": 1.541121,
-       "sign": "positive"
+       "sign": "positive",
+       "outcome": "slower"
+      },
+      {
+       "round": 1,
+       "cpu_part": "0xd40",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 30,
+        "active": 24
+       },
+       "median": {
+        "ctl": 0.243585,
+        "active": 0.39335
+       },
+       "control_within_cell_spread": 0.02704,
+       "delta": 0.149765,
+       "ratio": 1.614837,
+       "sign": "positive",
+       "outcome": "slower"
       },
       {
        "round": 2,
        "cpu_part": "0xd0c",
+       "request_id": "agent-action-guard-2q",
        "n": {
-        "ctl": 15,
-        "active": 15
+        "ctl": 3,
+        "active": 3
+       },
+       "median": {
+        "ctl": 1.66328,
+        "active": 1.9116
+       },
+       "control_within_cell_spread": 0.05884,
+       "delta": 0.24832,
+       "ratio": 1.149295,
+       "sign": "positive",
+       "outcome": "slower"
+      },
+      {
+       "round": 2,
+       "cpu_part": "0xd0c",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 3,
+        "active": 3
+       },
+       "median": {
+        "ctl": 0.81182,
+        "active": 0.95261
+       },
+       "control_within_cell_spread": 0.0313,
+       "delta": 0.14079,
+       "ratio": 1.173425,
+       "sign": "positive",
+       "outcome": "slower"
+      },
+      {
+       "round": 2,
+       "cpu_part": "0xd0c",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 3,
+        "active": 3
+       },
+       "median": {
+        "ctl": 3.47412,
+        "active": 3.78836
+       },
+       "control_within_cell_spread": 0.0337,
+       "delta": 0.31424,
+       "ratio": 1.090452,
+       "sign": "positive",
+       "outcome": "slower"
+      },
+      {
+       "round": 2,
+       "cpu_part": "0xd0c",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 3,
+        "active": 3
        },
        "median": {
         "ctl": 1.12506,
         "active": 1.26326
        },
-       "control_spread": 3.04874,
+       "control_within_cell_spread": 0.01392,
        "delta": 0.1382,
        "ratio": 1.122838,
-       "sign": "positive"
+       "sign": "positive",
+       "outcome": "slower"
+      },
+      {
+       "round": 2,
+       "cpu_part": "0xd0c",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 3,
+        "active": 3
+       },
+       "median": {
+        "ctl": 0.45566,
+        "active": 0.53011
+       },
+       "control_within_cell_spread": 0.03378,
+       "delta": 0.07445,
+       "ratio": 1.163389,
+       "sign": "positive",
+       "outcome": "slower"
       },
       {
        "round": 2,
        "cpu_part": "0xd40",
+       "request_id": "agent-action-guard-2q",
        "n": {
-        "ctl": 120,
-        "active": 135
+        "ctl": 24,
+        "active": 27
+       },
+       "median": {
+        "ctl": 0.859565,
+        "active": 1.33134
+       },
+       "control_within_cell_spread": 0.05167,
+       "delta": 0.471775,
+       "ratio": 1.548853,
+       "sign": "positive",
+       "outcome": "slower"
+      },
+      {
+       "round": 2,
+       "cpu_part": "0xd40",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 24,
+        "active": 27
+       },
+       "median": {
+        "ctl": 0.461695,
+        "active": 0.73233
+       },
+       "control_within_cell_spread": 0.10507,
+       "delta": 0.270635,
+       "ratio": 1.586177,
+       "sign": "positive",
+       "outcome": "slower"
+      },
+      {
+       "round": 2,
+       "cpu_part": "0xd40",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 24,
+        "active": 27
+       },
+       "median": {
+        "ctl": 1.74619,
+        "active": 2.5398
+       },
+       "control_within_cell_spread": 0.08665,
+       "delta": 0.79361,
+       "ratio": 1.454481,
+       "sign": "positive",
+       "outcome": "slower"
+      },
+      {
+       "round": 2,
+       "cpu_part": "0xd40",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 24,
+        "active": 27
        },
        "median": {
         "ctl": 0.60254,
         "active": 0.93445
        },
-       "control_spread": 1.56804,
+       "control_within_cell_spread": 0.06401,
        "delta": 0.33191,
        "ratio": 1.550851,
-       "sign": "positive"
+       "sign": "positive",
+       "outcome": "slower"
+      },
+      {
+       "round": 2,
+       "cpu_part": "0xd40",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 24,
+        "active": 27
+       },
+       "median": {
+        "ctl": 0.24804,
+        "active": 0.39988
+       },
+       "control_within_cell_spread": 0.07714,
+       "delta": 0.15184,
+       "ratio": 1.612159,
+       "sign": "positive",
+       "outcome": "slower"
       },
       {
        "round": 3,
        "cpu_part": "0xd40",
+       "request_id": "agent-action-guard-2q",
        "n": {
-        "ctl": 150,
-        "active": 120
+        "ctl": 30,
+        "active": 24
+       },
+       "median": {
+        "ctl": 0.85935,
+        "active": 1.34598
+       },
+       "control_within_cell_spread": 0.04596,
+       "delta": 0.48663,
+       "ratio": 1.566277,
+       "sign": "positive",
+       "outcome": "slower"
+      },
+      {
+       "round": 3,
+       "cpu_part": "0xd40",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 30,
+        "active": 24
+       },
+       "median": {
+        "ctl": 0.466055,
+        "active": 0.73538
+       },
+       "control_within_cell_spread": 0.0486,
+       "delta": 0.269325,
+       "ratio": 1.577882,
+       "sign": "positive",
+       "outcome": "slower"
+      },
+      {
+       "round": 3,
+       "cpu_part": "0xd40",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 30,
+        "active": 24
+       },
+       "median": {
+        "ctl": 1.74646,
+        "active": 2.56555
+       },
+       "control_within_cell_spread": 0.12632,
+       "delta": 0.81909,
+       "ratio": 1.469,
+       "sign": "positive",
+       "outcome": "slower"
+      },
+      {
+       "round": 3,
+       "cpu_part": "0xd40",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 30,
+        "active": 24
        },
        "median": {
         "ctl": 0.604395,
         "active": 0.9263
        },
-       "control_spread": 1.59865,
+       "control_within_cell_spread": 0.04458,
        "delta": 0.321905,
        "ratio": 1.532607,
-       "sign": "positive"
+       "sign": "positive",
+       "outcome": "slower"
+      },
+      {
+       "round": 3,
+       "cpu_part": "0xd40",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 30,
+        "active": 24
+       },
+       "median": {
+        "ctl": 0.24218,
+        "active": 0.39787
+       },
+       "control_within_cell_spread": 0.02131,
+       "delta": 0.15569,
+       "ratio": 1.642869,
+       "sign": "positive",
+       "outcome": "slower"
       },
       {
        "round": 4,
        "cpu_part": "0xd40",
+       "request_id": "agent-action-guard-2q",
        "n": {
-        "ctl": 105,
-        "active": 120
+        "ctl": 21,
+        "active": 24
+       },
+       "median": {
+        "ctl": 0.85883,
+        "active": 1.34155
+       },
+       "control_within_cell_spread": 0.03597,
+       "delta": 0.48272,
+       "ratio": 1.562067,
+       "sign": "positive",
+       "outcome": "slower"
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd40",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 21,
+        "active": 24
+       },
+       "median": {
+        "ctl": 0.46426,
+        "active": 0.73222
+       },
+       "control_within_cell_spread": 0.05515,
+       "delta": 0.26796,
+       "ratio": 1.577177,
+       "sign": "positive",
+       "outcome": "slower"
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd40",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 21,
+        "active": 24
+       },
+       "median": {
+        "ctl": 1.76031,
+        "active": 2.550215
+       },
+       "control_within_cell_spread": 0.06031,
+       "delta": 0.789905,
+       "ratio": 1.448731,
+       "sign": "positive",
+       "outcome": "slower"
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd40",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 21,
+        "active": 24
        },
        "median": {
         "ctl": 0.60419,
         "active": 0.933075
        },
-       "control_spread": 1.55185,
+       "control_within_cell_spread": 0.05143,
        "delta": 0.328885,
        "ratio": 1.54434,
-       "sign": "positive"
+       "sign": "positive",
+       "outcome": "slower"
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd40",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 21,
+        "active": 24
+       },
+       "median": {
+        "ctl": 0.24443,
+        "active": 0.39784
+       },
+       "control_within_cell_spread": 0.02806,
+       "delta": 0.15341,
+       "ratio": 1.627623,
+       "sign": "positive",
+       "outcome": "slower"
       },
       {
        "round": 4,
        "cpu_part": "0xd4f",
+       "request_id": "agent-action-guard-2q",
        "n": {
-        "ctl": 45,
-        "active": 15
+        "ctl": 9,
+        "active": 3
+       },
+       "median": {
+        "ctl": 0.74501,
+        "active": 1.14889
+       },
+       "control_within_cell_spread": 0.04474,
+       "delta": 0.40388,
+       "ratio": 1.542114,
+       "sign": "positive",
+       "outcome": "slower"
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd4f",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 9,
+        "active": 3
+       },
+       "median": {
+        "ctl": 0.39762,
+        "active": 0.63881
+       },
+       "control_within_cell_spread": 0.03666,
+       "delta": 0.24119,
+       "ratio": 1.606584,
+       "sign": "positive",
+       "outcome": "slower"
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd4f",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 9,
+        "active": 3
+       },
+       "median": {
+        "ctl": 1.54871,
+        "active": 2.33154
+       },
+       "control_within_cell_spread": 0.13539,
+       "delta": 0.78283,
+       "ratio": 1.505472,
+       "sign": "positive",
+       "outcome": "slower"
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd4f",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 9,
+        "active": 3
        },
        "median": {
         "ctl": 0.5392,
         "active": 0.8047
        },
-       "control_spread": 1.41641,
+       "control_within_cell_spread": 0.05308,
        "delta": 0.2655,
        "ratio": 1.492396,
-       "sign": "positive"
+       "sign": "positive",
+       "outcome": "slower"
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd4f",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 9,
+        "active": 3
+       },
+       "median": {
+        "ctl": 0.21622,
+        "active": 0.35421
+       },
+       "control_within_cell_spread": 0.03003,
+       "delta": 0.13799,
+       "ratio": 1.638193,
+       "sign": "positive",
+       "outcome": "slower"
       },
       {
        "round": 5,
        "cpu_part": "0xd40",
+       "request_id": "agent-action-guard-2q",
        "n": {
-        "ctl": 135,
-        "active": 120
+        "ctl": 27,
+        "active": 24
+       },
+       "median": {
+        "ctl": 0.85201,
+        "active": 1.34766
+       },
+       "control_within_cell_spread": 0.05066,
+       "delta": 0.49565,
+       "ratio": 1.581742,
+       "sign": "positive",
+       "outcome": "slower"
+      },
+      {
+       "round": 5,
+       "cpu_part": "0xd40",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 27,
+        "active": 24
+       },
+       "median": {
+        "ctl": 0.4627,
+        "active": 0.73896
+       },
+       "control_within_cell_spread": 0.03923,
+       "delta": 0.27626,
+       "ratio": 1.597061,
+       "sign": "positive",
+       "outcome": "slower"
+      },
+      {
+       "round": 5,
+       "cpu_part": "0xd40",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 27,
+        "active": 24
+       },
+       "median": {
+        "ctl": 1.76005,
+        "active": 2.563755
+       },
+       "control_within_cell_spread": 0.14821,
+       "delta": 0.803705,
+       "ratio": 1.456638,
+       "sign": "positive",
+       "outcome": "slower"
+      },
+      {
+       "round": 5,
+       "cpu_part": "0xd40",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 27,
+        "active": 24
        },
        "median": {
         "ctl": 0.59794,
         "active": 0.930955
        },
-       "control_spread": 1.615,
+       "control_within_cell_spread": 0.06958,
        "delta": 0.333015,
        "ratio": 1.556937,
-       "sign": "positive"
+       "sign": "positive",
+       "outcome": "slower"
+      },
+      {
+       "round": 5,
+       "cpu_part": "0xd40",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 27,
+        "active": 24
+       },
+       "median": {
+        "ctl": 0.24657,
+        "active": 0.400935
+       },
+       "control_within_cell_spread": 0.09575,
+       "delta": 0.154365,
+       "ratio": 1.626049,
+       "sign": "positive",
+       "outcome": "slower"
       },
       {
        "round": 100,
        "cpu_part": "0xd0c",
+       "request_id": "agent-action-guard-2q",
        "n": {
-        "ctl": 15,
-        "active": 15
+        "ctl": 3,
+        "active": 3
+       },
+       "median": {
+        "ctl": 1.6869,
+        "active": 1.87996
+       },
+       "control_within_cell_spread": 0.02898,
+       "delta": 0.19306,
+       "ratio": 1.114447,
+       "sign": "positive",
+       "outcome": "slower"
+      },
+      {
+       "round": 100,
+       "cpu_part": "0xd0c",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 3,
+        "active": 3
+       },
+       "median": {
+        "ctl": 0.80396,
+        "active": 0.93424
+       },
+       "control_within_cell_spread": 0.02229,
+       "delta": 0.13028,
+       "ratio": 1.162048,
+       "sign": "positive",
+       "outcome": "slower"
+      },
+      {
+       "round": 100,
+       "cpu_part": "0xd0c",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 3,
+        "active": 3
+       },
+       "median": {
+        "ctl": 3.44363,
+        "active": 3.75693
+       },
+       "control_within_cell_spread": 0.0269,
+       "delta": 0.3133,
+       "ratio": 1.09098,
+       "sign": "positive",
+       "outcome": "slower"
+      },
+      {
+       "round": 100,
+       "cpu_part": "0xd0c",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 3,
+        "active": 3
        },
        "median": {
         "ctl": 1.1024,
         "active": 1.22972
        },
-       "control_spread": 3.02603,
+       "control_within_cell_spread": 0.15322,
        "delta": 0.12732,
        "ratio": 1.115493,
-       "sign": "positive"
+       "sign": "positive",
+       "outcome": "in-band"
+      },
+      {
+       "round": 100,
+       "cpu_part": "0xd0c",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 3,
+        "active": 3
+       },
+       "median": {
+        "ctl": 0.43494,
+        "active": 0.54435
+       },
+       "control_within_cell_spread": 0.01213,
+       "delta": 0.10941,
+       "ratio": 1.251552,
+       "sign": "positive",
+       "outcome": "slower"
       },
       {
        "round": 100,
        "cpu_part": "0xd40",
+       "request_id": "agent-action-guard-2q",
        "n": {
-        "ctl": 135,
-        "active": 135
+        "ctl": 27,
+        "active": 27
+       },
+       "median": {
+        "ctl": 0.856,
+        "active": 1.34673
+       },
+       "control_within_cell_spread": 0.03605,
+       "delta": 0.49073,
+       "ratio": 1.573283,
+       "sign": "positive",
+       "outcome": "slower"
+      },
+      {
+       "round": 100,
+       "cpu_part": "0xd40",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 27,
+        "active": 27
+       },
+       "median": {
+        "ctl": 0.47027,
+        "active": 0.73154
+       },
+       "control_within_cell_spread": 0.04402,
+       "delta": 0.26127,
+       "ratio": 1.555574,
+       "sign": "positive",
+       "outcome": "slower"
+      },
+      {
+       "round": 100,
+       "cpu_part": "0xd40",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 27,
+        "active": 27
+       },
+       "median": {
+        "ctl": 1.74644,
+        "active": 2.59359
+       },
+       "control_within_cell_spread": 0.06659,
+       "delta": 0.84715,
+       "ratio": 1.485072,
+       "sign": "positive",
+       "outcome": "slower"
+      },
+      {
+       "round": 100,
+       "cpu_part": "0xd40",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 27,
+        "active": 27
        },
        "median": {
         "ctl": 0.6078,
         "active": 0.9378
        },
-       "control_spread": 1.55589,
+       "control_within_cell_spread": 0.13068,
        "delta": 0.33,
        "ratio": 1.542942,
-       "sign": "positive"
+       "sign": "positive",
+       "outcome": "slower"
+      },
+      {
+       "round": 100,
+       "cpu_part": "0xd40",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 27,
+        "active": 27
+       },
+       "median": {
+        "ctl": 0.24098,
+        "active": 0.40251
+       },
+       "control_within_cell_spread": 0.01787,
+       "delta": 0.16153,
+       "ratio": 1.670305,
+       "sign": "positive",
+       "outcome": "slower"
       },
       {
        "round": 101,
        "cpu_part": "0xd40",
+       "request_id": "agent-action-guard-2q",
        "n": {
-        "ctl": 150,
-        "active": 120
+        "ctl": 30,
+        "active": 24
+       },
+       "median": {
+        "ctl": 0.858055,
+        "active": 1.345285
+       },
+       "control_within_cell_spread": 0.06009,
+       "delta": 0.48723,
+       "ratio": 1.567831,
+       "sign": "positive",
+       "outcome": "slower"
+      },
+      {
+       "round": 101,
+       "cpu_part": "0xd40",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 30,
+        "active": 24
+       },
+       "median": {
+        "ctl": 0.46553,
+        "active": 0.73286
+       },
+       "control_within_cell_spread": 0.04902,
+       "delta": 0.26733,
+       "ratio": 1.574249,
+       "sign": "positive",
+       "outcome": "slower"
+      },
+      {
+       "round": 101,
+       "cpu_part": "0xd40",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 30,
+        "active": 24
+       },
+       "median": {
+        "ctl": 1.76065,
+        "active": 2.5644
+       },
+       "control_within_cell_spread": 0.11124,
+       "delta": 0.80375,
+       "ratio": 1.456508,
+       "sign": "positive",
+       "outcome": "slower"
+      },
+      {
+       "round": 101,
+       "cpu_part": "0xd40",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 30,
+        "active": 24
        },
        "median": {
         "ctl": 0.607445,
         "active": 0.945555
        },
-       "control_spread": 1.57956,
+       "control_within_cell_spread": 0.14304,
        "delta": 0.33811,
        "ratio": 1.55661,
-       "sign": "positive"
+       "sign": "positive",
+       "outcome": "slower"
+      },
+      {
+       "round": 101,
+       "cpu_part": "0xd40",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 30,
+        "active": 24
+       },
+       "median": {
+        "ctl": 0.248235,
+        "active": 0.39851
+       },
+       "control_within_cell_spread": 0.02604,
+       "delta": 0.150275,
+       "ratio": 1.605374,
+       "sign": "positive",
+       "outcome": "slower"
       },
       {
        "round": 102,
        "cpu_part": "0xd40",
+       "request_id": "agent-action-guard-2q",
        "n": {
-        "ctl": 150,
-        "active": 150
+        "ctl": 30,
+        "active": 30
+       },
+       "median": {
+        "ctl": 0.86999,
+        "active": 1.341585
+       },
+       "control_within_cell_spread": 0.09682,
+       "delta": 0.471595,
+       "ratio": 1.542069,
+       "sign": "positive",
+       "outcome": "slower"
+      },
+      {
+       "round": 102,
+       "cpu_part": "0xd40",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 30,
+        "active": 30
+       },
+       "median": {
+        "ctl": 0.47289,
+        "active": 0.738155
+       },
+       "control_within_cell_spread": 0.04932,
+       "delta": 0.265265,
+       "ratio": 1.560944,
+       "sign": "positive",
+       "outcome": "slower"
+      },
+      {
+       "round": 102,
+       "cpu_part": "0xd40",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 30,
+        "active": 30
+       },
+       "median": {
+        "ctl": 1.76482,
+        "active": 2.584655
+       },
+       "control_within_cell_spread": 0.191,
+       "delta": 0.819835,
+       "ratio": 1.464543,
+       "sign": "positive",
+       "outcome": "slower"
+      },
+      {
+       "round": 102,
+       "cpu_part": "0xd40",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 30,
+        "active": 30
        },
        "median": {
         "ctl": 0.6219,
         "active": 0.93736
        },
-       "control_spread": 1.64628,
+       "control_within_cell_spread": 0.14502,
        "delta": 0.31546,
        "ratio": 1.507252,
-       "sign": "positive"
+       "sign": "positive",
+       "outcome": "slower"
+      },
+      {
+       "round": 102,
+       "cpu_part": "0xd40",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 30,
+        "active": 30
+       },
+       "median": {
+        "ctl": 0.247445,
+        "active": 0.40249
+       },
+       "control_within_cell_spread": 0.03396,
+       "delta": 0.155045,
+       "ratio": 1.626584,
+       "sign": "positive",
+       "outcome": "slower"
       }
      ],
      "missing_cells": [
       {
        "round": 0,
        "cpu_part": "0xd4f",
+       "request_id": "agent-action-guard-2q",
        "n": {
-        "ctl": 15,
+        "ctl": 3,
+        "active": 0
+       }
+      },
+      {
+       "round": 0,
+       "cpu_part": "0xd4f",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 3,
+        "active": 0
+       }
+      },
+      {
+       "round": 0,
+       "cpu_part": "0xd4f",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 3,
+        "active": 0
+       }
+      },
+      {
+       "round": 0,
+       "cpu_part": "0xd4f",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 3,
+        "active": 0
+       }
+      },
+      {
+       "round": 0,
+       "cpu_part": "0xd4f",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 3,
         "active": 0
        }
       },
       {
        "round": 1,
        "cpu_part": "0xd0c",
+       "request_id": "agent-action-guard-2q",
        "n": {
         "ctl": 0,
-        "active": 15
+        "active": 3
+       }
+      },
+      {
+       "round": 1,
+       "cpu_part": "0xd0c",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 0,
+        "active": 3
+       }
+      },
+      {
+       "round": 1,
+       "cpu_part": "0xd0c",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 0,
+        "active": 3
+       }
+      },
+      {
+       "round": 1,
+       "cpu_part": "0xd0c",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 0,
+        "active": 3
+       }
+      },
+      {
+       "round": 1,
+       "cpu_part": "0xd0c",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 0,
+        "active": 3
        }
       },
       {
        "round": 1,
        "cpu_part": "0xd4f",
+       "request_id": "agent-action-guard-2q",
        "n": {
         "ctl": 0,
-        "active": 15
+        "active": 3
+       }
+      },
+      {
+       "round": 1,
+       "cpu_part": "0xd4f",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 0,
+        "active": 3
+       }
+      },
+      {
+       "round": 1,
+       "cpu_part": "0xd4f",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 0,
+        "active": 3
+       }
+      },
+      {
+       "round": 1,
+       "cpu_part": "0xd4f",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 0,
+        "active": 3
+       }
+      },
+      {
+       "round": 1,
+       "cpu_part": "0xd4f",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 0,
+        "active": 3
        }
       },
       {
        "round": 2,
        "cpu_part": "0xd4f",
+       "request_id": "agent-action-guard-2q",
        "n": {
-        "ctl": 15,
+        "ctl": 3,
+        "active": 0
+       }
+      },
+      {
+       "round": 2,
+       "cpu_part": "0xd4f",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 3,
+        "active": 0
+       }
+      },
+      {
+       "round": 2,
+       "cpu_part": "0xd4f",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 3,
+        "active": 0
+       }
+      },
+      {
+       "round": 2,
+       "cpu_part": "0xd4f",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 3,
+        "active": 0
+       }
+      },
+      {
+       "round": 2,
+       "cpu_part": "0xd4f",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 3,
         "active": 0
        }
       },
       {
        "round": 3,
        "cpu_part": "0xd0c",
+       "request_id": "agent-action-guard-2q",
        "n": {
         "ctl": 0,
-        "active": 30
+        "active": 6
+       }
+      },
+      {
+       "round": 3,
+       "cpu_part": "0xd0c",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 0,
+        "active": 6
+       }
+      },
+      {
+       "round": 3,
+       "cpu_part": "0xd0c",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 0,
+        "active": 6
+       }
+      },
+      {
+       "round": 3,
+       "cpu_part": "0xd0c",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 0,
+        "active": 6
+       }
+      },
+      {
+       "round": 3,
+       "cpu_part": "0xd0c",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 0,
+        "active": 6
        }
       },
       {
        "round": 4,
        "cpu_part": "0xd0c",
+       "request_id": "agent-action-guard-2q",
        "n": {
         "ctl": 0,
-        "active": 15
+        "active": 3
+       }
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd0c",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 0,
+        "active": 3
+       }
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd0c",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 0,
+        "active": 3
+       }
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd0c",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 0,
+        "active": 3
+       }
+      },
+      {
+       "round": 4,
+       "cpu_part": "0xd0c",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 0,
+        "active": 3
        }
       },
       {
        "round": 5,
        "cpu_part": "0xd0c",
+       "request_id": "agent-action-guard-2q",
        "n": {
         "ctl": 0,
-        "active": 30
+        "active": 6
+       }
+      },
+      {
+       "round": 5,
+       "cpu_part": "0xd0c",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 0,
+        "active": 6
+       }
+      },
+      {
+       "round": 5,
+       "cpu_part": "0xd0c",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 0,
+        "active": 6
+       }
+      },
+      {
+       "round": 5,
+       "cpu_part": "0xd0c",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 0,
+        "active": 6
+       }
+      },
+      {
+       "round": 5,
+       "cpu_part": "0xd0c",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 0,
+        "active": 6
        }
       },
       {
        "round": 5,
        "cpu_part": "0xd4f",
+       "request_id": "agent-action-guard-2q",
        "n": {
-        "ctl": 15,
+        "ctl": 3,
+        "active": 0
+       }
+      },
+      {
+       "round": 5,
+       "cpu_part": "0xd4f",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 3,
+        "active": 0
+       }
+      },
+      {
+       "round": 5,
+       "cpu_part": "0xd4f",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 3,
+        "active": 0
+       }
+      },
+      {
+       "round": 5,
+       "cpu_part": "0xd4f",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 3,
+        "active": 0
+       }
+      },
+      {
+       "round": 5,
+       "cpu_part": "0xd4f",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 3,
         "active": 0
        }
       },
       {
        "round": 101,
        "cpu_part": "0xd0c",
+       "request_id": "agent-action-guard-2q",
        "n": {
         "ctl": 0,
-        "active": 30
+        "active": 6
+       }
+      },
+      {
+       "round": 101,
+       "cpu_part": "0xd0c",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 0,
+        "active": 6
+       }
+      },
+      {
+       "round": 101,
+       "cpu_part": "0xd0c",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 0,
+        "active": 6
+       }
+      },
+      {
+       "round": 101,
+       "cpu_part": "0xd0c",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 0,
+        "active": 6
+       }
+      },
+      {
+       "round": 101,
+       "cpu_part": "0xd0c",
+       "request_id": "ticket-route-1q",
+       "n": {
+        "ctl": 0,
+        "active": 6
        }
       },
       {
        "round": 102,
        "cpu_part": "0xd0c",
+       "request_id": "agent-action-guard-2q",
+       "n": {
+        "ctl": 0,
+        "active": 0
+       }
+      },
+      {
+       "round": 102,
+       "cpu_part": "0xd0c",
+       "request_id": "cracked-screen-2q",
+       "n": {
+        "ctl": 0,
+        "active": 0
+       }
+      },
+      {
+       "round": 102,
+       "cpu_part": "0xd0c",
+       "request_id": "incident-review-4q",
+       "n": {
+        "ctl": 0,
+        "active": 0
+       }
+      },
+      {
+       "round": 102,
+       "cpu_part": "0xd0c",
+       "request_id": "payouts-3q",
+       "n": {
+        "ctl": 0,
+        "active": 0
+       }
+      },
+      {
+       "round": 102,
+       "cpu_part": "0xd0c",
+       "request_id": "ticket-route-1q",
        "n": {
         "ctl": 0,
         "active": 0
@@ -11846,35 +16000,67 @@
      ],
      "by_cpu_part": {
       "0xd0c": {
-       "cells": 3,
+       "cells": 15,
        "delta_range": [
-        0.12732,
-        0.1382
+        0.07445,
+        0.328585
        ],
        "delta_signs": [
         "positive"
-       ]
+       ],
+       "outcome": "mixed",
+       "comparable": false,
+       "counts": {
+        "in-band": 1,
+        "slower": 14
+       },
+       "unassessed_signs": [],
+       "unassessed_conflict": false
       },
       "0xd40": {
-       "cells": 9,
+       "cells": 45,
        "delta_range": [
-        0.31546,
-        0.33811
+        0.146815,
+        0.84715
        ],
        "delta_signs": [
         "positive"
-       ]
+       ],
+       "outcome": "slower",
+       "comparable": true,
+       "counts": {
+        "slower": 45
+       },
+       "unassessed_signs": [],
+       "unassessed_conflict": false
       },
       "0xd4f": {
-       "cells": 1,
+       "cells": 5,
        "delta_range": [
-        0.2655,
-        0.2655
+        0.13799,
+        0.78283
        ],
        "delta_signs": [
         "positive"
-       ]
+       ],
+       "outcome": "slower",
+       "comparable": true,
+       "counts": {
+        "slower": 5
+       },
+       "unassessed_signs": [],
+       "unassessed_conflict": false
       }
+     },
+     "assessment": {
+      "outcome": "mixed",
+      "comparable": false,
+      "counts": {
+       "in-band": 1,
+       "slower": 64
+      },
+      "unassessed_signs": [],
+      "unassessed_conflict": false
      }
     }
    }
@@ -11904,19 +16090,207 @@
   "method": "Every comparison is made within one observed CPU part. Warm (the primary metric): within each round the arms alternate pass by pass (the arm order rotates every pass), so the arms are interleaved within the round, and each (round, request) cell is compared on the same CPU part. Cold and restore waves are sequential arm waves whose position rotates across rounds (a Latin square over 4 rounds): that controls order and round drift but not time-within-round drift. Rows without a CPU part are counted, never compared.",
   "assessment": {
    "passive": {
-    "0xd0c": "insufficient",
-    "0xd40": "faster",
-    "0xd4f": "underpowered"
+    "overall": {
+     "outcome": "mixed",
+     "comparable": false,
+     "counts": {
+      "faster": 21,
+      "in-band": 39
+     },
+     "unassessed_signs": [],
+     "unassessed_conflict": false
+    },
+    "by_cpu_part": {
+     "0xd0c": {
+      "cells": 5,
+      "delta_range": [
+       -0.235805,
+       -0.022075
+      ],
+      "delta_signs": [
+       "negative"
+      ],
+      "outcome": "mixed",
+      "comparable": false,
+      "counts": {
+       "faster": 4,
+       "in-band": 1
+      },
+      "unassessed_signs": [],
+      "unassessed_conflict": false
+     },
+     "0xd40": {
+      "cells": 45,
+      "delta_range": [
+       -0.127425,
+       -0.00918
+      ],
+      "delta_signs": [
+       "negative"
+      ],
+      "outcome": "mixed",
+      "comparable": false,
+      "counts": {
+       "faster": 12,
+       "in-band": 33
+      },
+      "unassessed_signs": [],
+      "unassessed_conflict": false
+     },
+     "0xd4f": {
+      "cells": 10,
+      "delta_range": [
+       -0.09817,
+       -0.01094
+      ],
+      "delta_signs": [
+       "negative"
+      ],
+      "outcome": "mixed",
+      "comparable": false,
+      "counts": {
+       "faster": 5,
+       "in-band": 5
+      },
+      "unassessed_signs": [],
+      "unassessed_conflict": false
+     }
+    }
    },
    "spin30k": {
-    "0xd0c": "underpowered",
-    "0xd40": "faster",
-    "0xd4f": "underpowered"
+    "overall": {
+     "outcome": "mixed",
+     "comparable": false,
+     "counts": {
+      "faster": 34,
+      "in-band": 46
+     },
+     "unassessed_signs": [],
+     "unassessed_conflict": false
+    },
+    "by_cpu_part": {
+     "0xd0c": {
+      "cells": 15,
+      "delta_range": [
+       -0.27239,
+       -0.01447
+      ],
+      "delta_signs": [
+       "negative"
+      ],
+      "outcome": "mixed",
+      "comparable": false,
+      "counts": {
+       "faster": 13,
+       "in-band": 2
+      },
+      "unassessed_signs": [],
+      "unassessed_conflict": false
+     },
+     "0xd40": {
+      "cells": 45,
+      "delta_range": [
+       -0.12543,
+       -0.0056
+      ],
+      "delta_signs": [
+       "negative"
+      ],
+      "outcome": "mixed",
+      "comparable": false,
+      "counts": {
+       "faster": 11,
+       "in-band": 34
+      },
+      "unassessed_signs": [],
+      "unassessed_conflict": false
+     },
+     "0xd4f": {
+      "cells": 20,
+      "delta_range": [
+       -0.11865,
+       0.0043
+      ],
+      "delta_signs": [
+       "negative",
+       "positive"
+      ],
+      "outcome": "mixed",
+      "comparable": false,
+      "counts": {
+       "faster": 10,
+       "in-band": 10
+      },
+      "unassessed_signs": [],
+      "unassessed_conflict": false
+     }
+    }
    },
    "active": {
-    "0xd0c": "underpowered",
-    "0xd40": "slower",
-    "0xd4f": "insufficient"
+    "overall": {
+     "outcome": "mixed",
+     "comparable": false,
+     "counts": {
+      "in-band": 1,
+      "slower": 64
+     },
+     "unassessed_signs": [],
+     "unassessed_conflict": false
+    },
+    "by_cpu_part": {
+     "0xd0c": {
+      "cells": 15,
+      "delta_range": [
+       0.07445,
+       0.328585
+      ],
+      "delta_signs": [
+       "positive"
+      ],
+      "outcome": "mixed",
+      "comparable": false,
+      "counts": {
+       "in-band": 1,
+       "slower": 14
+      },
+      "unassessed_signs": [],
+      "unassessed_conflict": false
+     },
+     "0xd40": {
+      "cells": 45,
+      "delta_range": [
+       0.146815,
+       0.84715
+      ],
+      "delta_signs": [
+       "positive"
+      ],
+      "outcome": "slower",
+      "comparable": true,
+      "counts": {
+       "slower": 45
+      },
+      "unassessed_signs": [],
+      "unassessed_conflict": false
+     },
+     "0xd4f": {
+      "cells": 5,
+      "delta_range": [
+       0.13799,
+       0.78283
+      ],
+      "delta_signs": [
+       "positive"
+      ],
+      "outcome": "slower",
+      "comparable": true,
+      "counts": {
+       "slower": 5
+      },
+      "unassessed_signs": [],
+      "unassessed_conflict": false
+     }
+    }
    }
   }
  },
@@ -14186,292 +18560,1629 @@
   "round_cells": {
    "warm_report_duration": {
     "class": "warm",
+    "cell_key": [
+     "round",
+     "cpu_part",
+     "request_id"
+    ],
     "shared_cells": [
      {
       "round": 0,
       "cpu_part": "0xd0c",
+      "request_id": "agent-action-guard-2q",
       "n": {
-       "ctl": 15,
-       "active": 30
+       "ctl": 3,
+       "active": 6
+      },
+      "median": {
+       "ctl": 1.66706,
+       "active": 1.930915
+      },
+      "control_within_cell_spread": 0.02277,
+      "delta": 0.263855,
+      "ratio": 1.158276,
+      "sign": "positive",
+      "outcome": "slower"
+     },
+     {
+      "round": 0,
+      "cpu_part": "0xd0c",
+      "request_id": "cracked-screen-2q",
+      "n": {
+       "ctl": 3,
+       "active": 6
+      },
+      "median": {
+       "ctl": 0.79561,
+       "active": 0.939145
+      },
+      "control_within_cell_spread": 0.00798,
+      "delta": 0.143535,
+      "ratio": 1.180409,
+      "sign": "positive",
+      "outcome": "slower"
+     },
+     {
+      "round": 0,
+      "cpu_part": "0xd0c",
+      "request_id": "incident-review-4q",
+      "n": {
+       "ctl": 3,
+       "active": 6
+      },
+      "median": {
+       "ctl": 3.45858,
+       "active": 3.787165
+      },
+      "control_within_cell_spread": 0.02031,
+      "delta": 0.328585,
+      "ratio": 1.095006,
+      "sign": "positive",
+      "outcome": "slower"
+     },
+     {
+      "round": 0,
+      "cpu_part": "0xd0c",
+      "request_id": "payouts-3q",
+      "n": {
+       "ctl": 3,
+       "active": 6
       },
       "median": {
        "ctl": 1.11727,
        "active": 1.25496
       },
-      "control_spread": 3.02838,
+      "control_within_cell_spread": 0.01085,
       "delta": 0.13769,
       "ratio": 1.123238,
-      "sign": "positive"
+      "sign": "positive",
+      "outcome": "slower"
+     },
+     {
+      "round": 0,
+      "cpu_part": "0xd0c",
+      "request_id": "ticket-route-1q",
+      "n": {
+       "ctl": 3,
+       "active": 6
+      },
+      "median": {
+       "ctl": 0.45582,
+       "active": 0.543515
+      },
+      "control_within_cell_spread": 0.01936,
+      "delta": 0.087695,
+      "ratio": 1.19239,
+      "sign": "positive",
+      "outcome": "slower"
      },
      {
       "round": 0,
       "cpu_part": "0xd40",
+      "request_id": "agent-action-guard-2q",
       "n": {
-       "ctl": 120,
-       "active": 120
+       "ctl": 24,
+       "active": 24
+      },
+      "median": {
+       "ctl": 0.86146,
+       "active": 1.34029
+      },
+      "control_within_cell_spread": 0.0474,
+      "delta": 0.47883,
+      "ratio": 1.555835,
+      "sign": "positive",
+      "outcome": "slower"
+     },
+     {
+      "round": 0,
+      "cpu_part": "0xd40",
+      "request_id": "cracked-screen-2q",
+      "n": {
+       "ctl": 24,
+       "active": 24
+      },
+      "median": {
+       "ctl": 0.46835,
+       "active": 0.74214
+      },
+      "control_within_cell_spread": 0.03208,
+      "delta": 0.27379,
+      "ratio": 1.584584,
+      "sign": "positive",
+      "outcome": "slower"
+     },
+     {
+      "round": 0,
+      "cpu_part": "0xd40",
+      "request_id": "incident-review-4q",
+      "n": {
+       "ctl": 24,
+       "active": 24
+      },
+      "median": {
+       "ctl": 1.76648,
+       "active": 2.57421
+      },
+      "control_within_cell_spread": 0.09696,
+      "delta": 0.80773,
+      "ratio": 1.457254,
+      "sign": "positive",
+      "outcome": "slower"
+     },
+     {
+      "round": 0,
+      "cpu_part": "0xd40",
+      "request_id": "payouts-3q",
+      "n": {
+       "ctl": 24,
+       "active": 24
       },
       "median": {
        "ctl": 0.603955,
        "active": 0.93635
       },
-      "control_spread": 1.58836,
+      "control_within_cell_spread": 0.05746,
       "delta": 0.332395,
       "ratio": 1.550364,
-      "sign": "positive"
+      "sign": "positive",
+      "outcome": "slower"
+     },
+     {
+      "round": 0,
+      "cpu_part": "0xd40",
+      "request_id": "ticket-route-1q",
+      "n": {
+       "ctl": 24,
+       "active": 24
+      },
+      "median": {
+       "ctl": 0.247885,
+       "active": 0.3947
+      },
+      "control_within_cell_spread": 0.10387,
+      "delta": 0.146815,
+      "ratio": 1.592271,
+      "sign": "positive",
+      "outcome": "slower"
      },
      {
       "round": 1,
       "cpu_part": "0xd40",
+      "request_id": "agent-action-guard-2q",
       "n": {
-       "ctl": 150,
-       "active": 120
+       "ctl": 30,
+       "active": 24
+      },
+      "median": {
+       "ctl": 0.85329,
+       "active": 1.33901
+      },
+      "control_within_cell_spread": 0.0503,
+      "delta": 0.48572,
+      "ratio": 1.569232,
+      "sign": "positive",
+      "outcome": "slower"
+     },
+     {
+      "round": 1,
+      "cpu_part": "0xd40",
+      "request_id": "cracked-screen-2q",
+      "n": {
+       "ctl": 30,
+       "active": 24
+      },
+      "median": {
+       "ctl": 0.46208,
+       "active": 0.726625
+      },
+      "control_within_cell_spread": 0.04421,
+      "delta": 0.264545,
+      "ratio": 1.572509,
+      "sign": "positive",
+      "outcome": "slower"
+     },
+     {
+      "round": 1,
+      "cpu_part": "0xd40",
+      "request_id": "incident-review-4q",
+      "n": {
+       "ctl": 30,
+       "active": 24
+      },
+      "median": {
+       "ctl": 1.757935,
+       "active": 2.54206
+      },
+      "control_within_cell_spread": 0.07291,
+      "delta": 0.784125,
+      "ratio": 1.446049,
+      "sign": "positive",
+      "outcome": "slower"
+     },
+     {
+      "round": 1,
+      "cpu_part": "0xd40",
+      "request_id": "payouts-3q",
+      "n": {
+       "ctl": 30,
+       "active": 24
       },
       "median": {
        "ctl": 0.60359,
        "active": 0.930205
       },
-      "control_spread": 1.56085,
+      "control_within_cell_spread": 0.05294,
       "delta": 0.326615,
       "ratio": 1.541121,
-      "sign": "positive"
+      "sign": "positive",
+      "outcome": "slower"
+     },
+     {
+      "round": 1,
+      "cpu_part": "0xd40",
+      "request_id": "ticket-route-1q",
+      "n": {
+       "ctl": 30,
+       "active": 24
+      },
+      "median": {
+       "ctl": 0.243585,
+       "active": 0.39335
+      },
+      "control_within_cell_spread": 0.02704,
+      "delta": 0.149765,
+      "ratio": 1.614837,
+      "sign": "positive",
+      "outcome": "slower"
      },
      {
       "round": 2,
       "cpu_part": "0xd0c",
+      "request_id": "agent-action-guard-2q",
       "n": {
-       "ctl": 15,
-       "active": 15
+       "ctl": 3,
+       "active": 3
+      },
+      "median": {
+       "ctl": 1.66328,
+       "active": 1.9116
+      },
+      "control_within_cell_spread": 0.05884,
+      "delta": 0.24832,
+      "ratio": 1.149295,
+      "sign": "positive",
+      "outcome": "slower"
+     },
+     {
+      "round": 2,
+      "cpu_part": "0xd0c",
+      "request_id": "cracked-screen-2q",
+      "n": {
+       "ctl": 3,
+       "active": 3
+      },
+      "median": {
+       "ctl": 0.81182,
+       "active": 0.95261
+      },
+      "control_within_cell_spread": 0.0313,
+      "delta": 0.14079,
+      "ratio": 1.173425,
+      "sign": "positive",
+      "outcome": "slower"
+     },
+     {
+      "round": 2,
+      "cpu_part": "0xd0c",
+      "request_id": "incident-review-4q",
+      "n": {
+       "ctl": 3,
+       "active": 3
+      },
+      "median": {
+       "ctl": 3.47412,
+       "active": 3.78836
+      },
+      "control_within_cell_spread": 0.0337,
+      "delta": 0.31424,
+      "ratio": 1.090452,
+      "sign": "positive",
+      "outcome": "slower"
+     },
+     {
+      "round": 2,
+      "cpu_part": "0xd0c",
+      "request_id": "payouts-3q",
+      "n": {
+       "ctl": 3,
+       "active": 3
       },
       "median": {
        "ctl": 1.12506,
        "active": 1.26326
       },
-      "control_spread": 3.04874,
+      "control_within_cell_spread": 0.01392,
       "delta": 0.1382,
       "ratio": 1.122838,
-      "sign": "positive"
+      "sign": "positive",
+      "outcome": "slower"
+     },
+     {
+      "round": 2,
+      "cpu_part": "0xd0c",
+      "request_id": "ticket-route-1q",
+      "n": {
+       "ctl": 3,
+       "active": 3
+      },
+      "median": {
+       "ctl": 0.45566,
+       "active": 0.53011
+      },
+      "control_within_cell_spread": 0.03378,
+      "delta": 0.07445,
+      "ratio": 1.163389,
+      "sign": "positive",
+      "outcome": "slower"
      },
      {
       "round": 2,
       "cpu_part": "0xd40",
+      "request_id": "agent-action-guard-2q",
       "n": {
-       "ctl": 120,
-       "active": 135
+       "ctl": 24,
+       "active": 27
+      },
+      "median": {
+       "ctl": 0.859565,
+       "active": 1.33134
+      },
+      "control_within_cell_spread": 0.05167,
+      "delta": 0.471775,
+      "ratio": 1.548853,
+      "sign": "positive",
+      "outcome": "slower"
+     },
+     {
+      "round": 2,
+      "cpu_part": "0xd40",
+      "request_id": "cracked-screen-2q",
+      "n": {
+       "ctl": 24,
+       "active": 27
+      },
+      "median": {
+       "ctl": 0.461695,
+       "active": 0.73233
+      },
+      "control_within_cell_spread": 0.10507,
+      "delta": 0.270635,
+      "ratio": 1.586177,
+      "sign": "positive",
+      "outcome": "slower"
+     },
+     {
+      "round": 2,
+      "cpu_part": "0xd40",
+      "request_id": "incident-review-4q",
+      "n": {
+       "ctl": 24,
+       "active": 27
+      },
+      "median": {
+       "ctl": 1.74619,
+       "active": 2.5398
+      },
+      "control_within_cell_spread": 0.08665,
+      "delta": 0.79361,
+      "ratio": 1.454481,
+      "sign": "positive",
+      "outcome": "slower"
+     },
+     {
+      "round": 2,
+      "cpu_part": "0xd40",
+      "request_id": "payouts-3q",
+      "n": {
+       "ctl": 24,
+       "active": 27
       },
       "median": {
        "ctl": 0.60254,
        "active": 0.93445
       },
-      "control_spread": 1.56804,
+      "control_within_cell_spread": 0.06401,
       "delta": 0.33191,
       "ratio": 1.550851,
-      "sign": "positive"
+      "sign": "positive",
+      "outcome": "slower"
+     },
+     {
+      "round": 2,
+      "cpu_part": "0xd40",
+      "request_id": "ticket-route-1q",
+      "n": {
+       "ctl": 24,
+       "active": 27
+      },
+      "median": {
+       "ctl": 0.24804,
+       "active": 0.39988
+      },
+      "control_within_cell_spread": 0.07714,
+      "delta": 0.15184,
+      "ratio": 1.612159,
+      "sign": "positive",
+      "outcome": "slower"
      },
      {
       "round": 3,
       "cpu_part": "0xd40",
+      "request_id": "agent-action-guard-2q",
       "n": {
-       "ctl": 150,
-       "active": 120
+       "ctl": 30,
+       "active": 24
+      },
+      "median": {
+       "ctl": 0.85935,
+       "active": 1.34598
+      },
+      "control_within_cell_spread": 0.04596,
+      "delta": 0.48663,
+      "ratio": 1.566277,
+      "sign": "positive",
+      "outcome": "slower"
+     },
+     {
+      "round": 3,
+      "cpu_part": "0xd40",
+      "request_id": "cracked-screen-2q",
+      "n": {
+       "ctl": 30,
+       "active": 24
+      },
+      "median": {
+       "ctl": 0.466055,
+       "active": 0.73538
+      },
+      "control_within_cell_spread": 0.0486,
+      "delta": 0.269325,
+      "ratio": 1.577882,
+      "sign": "positive",
+      "outcome": "slower"
+     },
+     {
+      "round": 3,
+      "cpu_part": "0xd40",
+      "request_id": "incident-review-4q",
+      "n": {
+       "ctl": 30,
+       "active": 24
+      },
+      "median": {
+       "ctl": 1.74646,
+       "active": 2.56555
+      },
+      "control_within_cell_spread": 0.12632,
+      "delta": 0.81909,
+      "ratio": 1.469,
+      "sign": "positive",
+      "outcome": "slower"
+     },
+     {
+      "round": 3,
+      "cpu_part": "0xd40",
+      "request_id": "payouts-3q",
+      "n": {
+       "ctl": 30,
+       "active": 24
       },
       "median": {
        "ctl": 0.604395,
        "active": 0.9263
       },
-      "control_spread": 1.59865,
+      "control_within_cell_spread": 0.04458,
       "delta": 0.321905,
       "ratio": 1.532607,
-      "sign": "positive"
+      "sign": "positive",
+      "outcome": "slower"
+     },
+     {
+      "round": 3,
+      "cpu_part": "0xd40",
+      "request_id": "ticket-route-1q",
+      "n": {
+       "ctl": 30,
+       "active": 24
+      },
+      "median": {
+       "ctl": 0.24218,
+       "active": 0.39787
+      },
+      "control_within_cell_spread": 0.02131,
+      "delta": 0.15569,
+      "ratio": 1.642869,
+      "sign": "positive",
+      "outcome": "slower"
      },
      {
       "round": 4,
       "cpu_part": "0xd40",
+      "request_id": "agent-action-guard-2q",
       "n": {
-       "ctl": 105,
-       "active": 120
+       "ctl": 21,
+       "active": 24
+      },
+      "median": {
+       "ctl": 0.85883,
+       "active": 1.34155
+      },
+      "control_within_cell_spread": 0.03597,
+      "delta": 0.48272,
+      "ratio": 1.562067,
+      "sign": "positive",
+      "outcome": "slower"
+     },
+     {
+      "round": 4,
+      "cpu_part": "0xd40",
+      "request_id": "cracked-screen-2q",
+      "n": {
+       "ctl": 21,
+       "active": 24
+      },
+      "median": {
+       "ctl": 0.46426,
+       "active": 0.73222
+      },
+      "control_within_cell_spread": 0.05515,
+      "delta": 0.26796,
+      "ratio": 1.577177,
+      "sign": "positive",
+      "outcome": "slower"
+     },
+     {
+      "round": 4,
+      "cpu_part": "0xd40",
+      "request_id": "incident-review-4q",
+      "n": {
+       "ctl": 21,
+       "active": 24
+      },
+      "median": {
+       "ctl": 1.76031,
+       "active": 2.550215
+      },
+      "control_within_cell_spread": 0.06031,
+      "delta": 0.789905,
+      "ratio": 1.448731,
+      "sign": "positive",
+      "outcome": "slower"
+     },
+     {
+      "round": 4,
+      "cpu_part": "0xd40",
+      "request_id": "payouts-3q",
+      "n": {
+       "ctl": 21,
+       "active": 24
       },
       "median": {
        "ctl": 0.60419,
        "active": 0.933075
       },
-      "control_spread": 1.55185,
+      "control_within_cell_spread": 0.05143,
       "delta": 0.328885,
       "ratio": 1.54434,
-      "sign": "positive"
+      "sign": "positive",
+      "outcome": "slower"
+     },
+     {
+      "round": 4,
+      "cpu_part": "0xd40",
+      "request_id": "ticket-route-1q",
+      "n": {
+       "ctl": 21,
+       "active": 24
+      },
+      "median": {
+       "ctl": 0.24443,
+       "active": 0.39784
+      },
+      "control_within_cell_spread": 0.02806,
+      "delta": 0.15341,
+      "ratio": 1.627623,
+      "sign": "positive",
+      "outcome": "slower"
      },
      {
       "round": 4,
       "cpu_part": "0xd4f",
+      "request_id": "agent-action-guard-2q",
       "n": {
-       "ctl": 45,
-       "active": 15
+       "ctl": 9,
+       "active": 3
+      },
+      "median": {
+       "ctl": 0.74501,
+       "active": 1.14889
+      },
+      "control_within_cell_spread": 0.04474,
+      "delta": 0.40388,
+      "ratio": 1.542114,
+      "sign": "positive",
+      "outcome": "slower"
+     },
+     {
+      "round": 4,
+      "cpu_part": "0xd4f",
+      "request_id": "cracked-screen-2q",
+      "n": {
+       "ctl": 9,
+       "active": 3
+      },
+      "median": {
+       "ctl": 0.39762,
+       "active": 0.63881
+      },
+      "control_within_cell_spread": 0.03666,
+      "delta": 0.24119,
+      "ratio": 1.606584,
+      "sign": "positive",
+      "outcome": "slower"
+     },
+     {
+      "round": 4,
+      "cpu_part": "0xd4f",
+      "request_id": "incident-review-4q",
+      "n": {
+       "ctl": 9,
+       "active": 3
+      },
+      "median": {
+       "ctl": 1.54871,
+       "active": 2.33154
+      },
+      "control_within_cell_spread": 0.13539,
+      "delta": 0.78283,
+      "ratio": 1.505472,
+      "sign": "positive",
+      "outcome": "slower"
+     },
+     {
+      "round": 4,
+      "cpu_part": "0xd4f",
+      "request_id": "payouts-3q",
+      "n": {
+       "ctl": 9,
+       "active": 3
       },
       "median": {
        "ctl": 0.5392,
        "active": 0.8047
       },
-      "control_spread": 1.41641,
+      "control_within_cell_spread": 0.05308,
       "delta": 0.2655,
       "ratio": 1.492396,
-      "sign": "positive"
+      "sign": "positive",
+      "outcome": "slower"
+     },
+     {
+      "round": 4,
+      "cpu_part": "0xd4f",
+      "request_id": "ticket-route-1q",
+      "n": {
+       "ctl": 9,
+       "active": 3
+      },
+      "median": {
+       "ctl": 0.21622,
+       "active": 0.35421
+      },
+      "control_within_cell_spread": 0.03003,
+      "delta": 0.13799,
+      "ratio": 1.638193,
+      "sign": "positive",
+      "outcome": "slower"
      },
      {
       "round": 5,
       "cpu_part": "0xd40",
+      "request_id": "agent-action-guard-2q",
       "n": {
-       "ctl": 135,
-       "active": 120
+       "ctl": 27,
+       "active": 24
+      },
+      "median": {
+       "ctl": 0.85201,
+       "active": 1.34766
+      },
+      "control_within_cell_spread": 0.05066,
+      "delta": 0.49565,
+      "ratio": 1.581742,
+      "sign": "positive",
+      "outcome": "slower"
+     },
+     {
+      "round": 5,
+      "cpu_part": "0xd40",
+      "request_id": "cracked-screen-2q",
+      "n": {
+       "ctl": 27,
+       "active": 24
+      },
+      "median": {
+       "ctl": 0.4627,
+       "active": 0.73896
+      },
+      "control_within_cell_spread": 0.03923,
+      "delta": 0.27626,
+      "ratio": 1.597061,
+      "sign": "positive",
+      "outcome": "slower"
+     },
+     {
+      "round": 5,
+      "cpu_part": "0xd40",
+      "request_id": "incident-review-4q",
+      "n": {
+       "ctl": 27,
+       "active": 24
+      },
+      "median": {
+       "ctl": 1.76005,
+       "active": 2.563755
+      },
+      "control_within_cell_spread": 0.14821,
+      "delta": 0.803705,
+      "ratio": 1.456638,
+      "sign": "positive",
+      "outcome": "slower"
+     },
+     {
+      "round": 5,
+      "cpu_part": "0xd40",
+      "request_id": "payouts-3q",
+      "n": {
+       "ctl": 27,
+       "active": 24
       },
       "median": {
        "ctl": 0.59794,
        "active": 0.930955
       },
-      "control_spread": 1.615,
+      "control_within_cell_spread": 0.06958,
       "delta": 0.333015,
       "ratio": 1.556937,
-      "sign": "positive"
+      "sign": "positive",
+      "outcome": "slower"
+     },
+     {
+      "round": 5,
+      "cpu_part": "0xd40",
+      "request_id": "ticket-route-1q",
+      "n": {
+       "ctl": 27,
+       "active": 24
+      },
+      "median": {
+       "ctl": 0.24657,
+       "active": 0.400935
+      },
+      "control_within_cell_spread": 0.09575,
+      "delta": 0.154365,
+      "ratio": 1.626049,
+      "sign": "positive",
+      "outcome": "slower"
      },
      {
       "round": 100,
       "cpu_part": "0xd0c",
+      "request_id": "agent-action-guard-2q",
       "n": {
-       "ctl": 15,
-       "active": 15
+       "ctl": 3,
+       "active": 3
+      },
+      "median": {
+       "ctl": 1.6869,
+       "active": 1.87996
+      },
+      "control_within_cell_spread": 0.02898,
+      "delta": 0.19306,
+      "ratio": 1.114447,
+      "sign": "positive",
+      "outcome": "slower"
+     },
+     {
+      "round": 100,
+      "cpu_part": "0xd0c",
+      "request_id": "cracked-screen-2q",
+      "n": {
+       "ctl": 3,
+       "active": 3
+      },
+      "median": {
+       "ctl": 0.80396,
+       "active": 0.93424
+      },
+      "control_within_cell_spread": 0.02229,
+      "delta": 0.13028,
+      "ratio": 1.162048,
+      "sign": "positive",
+      "outcome": "slower"
+     },
+     {
+      "round": 100,
+      "cpu_part": "0xd0c",
+      "request_id": "incident-review-4q",
+      "n": {
+       "ctl": 3,
+       "active": 3
+      },
+      "median": {
+       "ctl": 3.44363,
+       "active": 3.75693
+      },
+      "control_within_cell_spread": 0.0269,
+      "delta": 0.3133,
+      "ratio": 1.09098,
+      "sign": "positive",
+      "outcome": "slower"
+     },
+     {
+      "round": 100,
+      "cpu_part": "0xd0c",
+      "request_id": "payouts-3q",
+      "n": {
+       "ctl": 3,
+       "active": 3
       },
       "median": {
        "ctl": 1.1024,
        "active": 1.22972
       },
-      "control_spread": 3.02603,
+      "control_within_cell_spread": 0.15322,
       "delta": 0.12732,
       "ratio": 1.115493,
-      "sign": "positive"
+      "sign": "positive",
+      "outcome": "in-band"
+     },
+     {
+      "round": 100,
+      "cpu_part": "0xd0c",
+      "request_id": "ticket-route-1q",
+      "n": {
+       "ctl": 3,
+       "active": 3
+      },
+      "median": {
+       "ctl": 0.43494,
+       "active": 0.54435
+      },
+      "control_within_cell_spread": 0.01213,
+      "delta": 0.10941,
+      "ratio": 1.251552,
+      "sign": "positive",
+      "outcome": "slower"
      },
      {
       "round": 100,
       "cpu_part": "0xd40",
+      "request_id": "agent-action-guard-2q",
       "n": {
-       "ctl": 135,
-       "active": 135
+       "ctl": 27,
+       "active": 27
+      },
+      "median": {
+       "ctl": 0.856,
+       "active": 1.34673
+      },
+      "control_within_cell_spread": 0.03605,
+      "delta": 0.49073,
+      "ratio": 1.573283,
+      "sign": "positive",
+      "outcome": "slower"
+     },
+     {
+      "round": 100,
+      "cpu_part": "0xd40",
+      "request_id": "cracked-screen-2q",
+      "n": {
+       "ctl": 27,
+       "active": 27
+      },
+      "median": {
+       "ctl": 0.47027,
+       "active": 0.73154
+      },
+      "control_within_cell_spread": 0.04402,
+      "delta": 0.26127,
+      "ratio": 1.555574,
+      "sign": "positive",
+      "outcome": "slower"
+     },
+     {
+      "round": 100,
+      "cpu_part": "0xd40",
+      "request_id": "incident-review-4q",
+      "n": {
+       "ctl": 27,
+       "active": 27
+      },
+      "median": {
+       "ctl": 1.74644,
+       "active": 2.59359
+      },
+      "control_within_cell_spread": 0.06659,
+      "delta": 0.84715,
+      "ratio": 1.485072,
+      "sign": "positive",
+      "outcome": "slower"
+     },
+     {
+      "round": 100,
+      "cpu_part": "0xd40",
+      "request_id": "payouts-3q",
+      "n": {
+       "ctl": 27,
+       "active": 27
       },
       "median": {
        "ctl": 0.6078,
        "active": 0.9378
       },
-      "control_spread": 1.55589,
+      "control_within_cell_spread": 0.13068,
       "delta": 0.33,
       "ratio": 1.542942,
-      "sign": "positive"
+      "sign": "positive",
+      "outcome": "slower"
+     },
+     {
+      "round": 100,
+      "cpu_part": "0xd40",
+      "request_id": "ticket-route-1q",
+      "n": {
+       "ctl": 27,
+       "active": 27
+      },
+      "median": {
+       "ctl": 0.24098,
+       "active": 0.40251
+      },
+      "control_within_cell_spread": 0.01787,
+      "delta": 0.16153,
+      "ratio": 1.670305,
+      "sign": "positive",
+      "outcome": "slower"
      },
      {
       "round": 101,
       "cpu_part": "0xd40",
+      "request_id": "agent-action-guard-2q",
       "n": {
-       "ctl": 150,
-       "active": 120
+       "ctl": 30,
+       "active": 24
+      },
+      "median": {
+       "ctl": 0.858055,
+       "active": 1.345285
+      },
+      "control_within_cell_spread": 0.06009,
+      "delta": 0.48723,
+      "ratio": 1.567831,
+      "sign": "positive",
+      "outcome": "slower"
+     },
+     {
+      "round": 101,
+      "cpu_part": "0xd40",
+      "request_id": "cracked-screen-2q",
+      "n": {
+       "ctl": 30,
+       "active": 24
+      },
+      "median": {
+       "ctl": 0.46553,
+       "active": 0.73286
+      },
+      "control_within_cell_spread": 0.04902,
+      "delta": 0.26733,
+      "ratio": 1.574249,
+      "sign": "positive",
+      "outcome": "slower"
+     },
+     {
+      "round": 101,
+      "cpu_part": "0xd40",
+      "request_id": "incident-review-4q",
+      "n": {
+       "ctl": 30,
+       "active": 24
+      },
+      "median": {
+       "ctl": 1.76065,
+       "active": 2.5644
+      },
+      "control_within_cell_spread": 0.11124,
+      "delta": 0.80375,
+      "ratio": 1.456508,
+      "sign": "positive",
+      "outcome": "slower"
+     },
+     {
+      "round": 101,
+      "cpu_part": "0xd40",
+      "request_id": "payouts-3q",
+      "n": {
+       "ctl": 30,
+       "active": 24
       },
       "median": {
        "ctl": 0.607445,
        "active": 0.945555
       },
-      "control_spread": 1.57956,
+      "control_within_cell_spread": 0.14304,
       "delta": 0.33811,
       "ratio": 1.55661,
-      "sign": "positive"
+      "sign": "positive",
+      "outcome": "slower"
+     },
+     {
+      "round": 101,
+      "cpu_part": "0xd40",
+      "request_id": "ticket-route-1q",
+      "n": {
+       "ctl": 30,
+       "active": 24
+      },
+      "median": {
+       "ctl": 0.248235,
+       "active": 0.39851
+      },
+      "control_within_cell_spread": 0.02604,
+      "delta": 0.150275,
+      "ratio": 1.605374,
+      "sign": "positive",
+      "outcome": "slower"
      },
      {
       "round": 102,
       "cpu_part": "0xd40",
+      "request_id": "agent-action-guard-2q",
       "n": {
-       "ctl": 150,
-       "active": 150
+       "ctl": 30,
+       "active": 30
+      },
+      "median": {
+       "ctl": 0.86999,
+       "active": 1.341585
+      },
+      "control_within_cell_spread": 0.09682,
+      "delta": 0.471595,
+      "ratio": 1.542069,
+      "sign": "positive",
+      "outcome": "slower"
+     },
+     {
+      "round": 102,
+      "cpu_part": "0xd40",
+      "request_id": "cracked-screen-2q",
+      "n": {
+       "ctl": 30,
+       "active": 30
+      },
+      "median": {
+       "ctl": 0.47289,
+       "active": 0.738155
+      },
+      "control_within_cell_spread": 0.04932,
+      "delta": 0.265265,
+      "ratio": 1.560944,
+      "sign": "positive",
+      "outcome": "slower"
+     },
+     {
+      "round": 102,
+      "cpu_part": "0xd40",
+      "request_id": "incident-review-4q",
+      "n": {
+       "ctl": 30,
+       "active": 30
+      },
+      "median": {
+       "ctl": 1.76482,
+       "active": 2.584655
+      },
+      "control_within_cell_spread": 0.191,
+      "delta": 0.819835,
+      "ratio": 1.464543,
+      "sign": "positive",
+      "outcome": "slower"
+     },
+     {
+      "round": 102,
+      "cpu_part": "0xd40",
+      "request_id": "payouts-3q",
+      "n": {
+       "ctl": 30,
+       "active": 30
       },
       "median": {
        "ctl": 0.6219,
        "active": 0.93736
       },
-      "control_spread": 1.64628,
+      "control_within_cell_spread": 0.14502,
       "delta": 0.31546,
       "ratio": 1.507252,
-      "sign": "positive"
+      "sign": "positive",
+      "outcome": "slower"
+     },
+     {
+      "round": 102,
+      "cpu_part": "0xd40",
+      "request_id": "ticket-route-1q",
+      "n": {
+       "ctl": 30,
+       "active": 30
+      },
+      "median": {
+       "ctl": 0.247445,
+       "active": 0.40249
+      },
+      "control_within_cell_spread": 0.03396,
+      "delta": 0.155045,
+      "ratio": 1.626584,
+      "sign": "positive",
+      "outcome": "slower"
      }
     ],
     "missing_cells": [
      {
       "round": 0,
       "cpu_part": "0xd4f",
+      "request_id": "agent-action-guard-2q",
       "n": {
-       "ctl": 15,
+       "ctl": 3,
+       "active": 0
+      }
+     },
+     {
+      "round": 0,
+      "cpu_part": "0xd4f",
+      "request_id": "cracked-screen-2q",
+      "n": {
+       "ctl": 3,
+       "active": 0
+      }
+     },
+     {
+      "round": 0,
+      "cpu_part": "0xd4f",
+      "request_id": "incident-review-4q",
+      "n": {
+       "ctl": 3,
+       "active": 0
+      }
+     },
+     {
+      "round": 0,
+      "cpu_part": "0xd4f",
+      "request_id": "payouts-3q",
+      "n": {
+       "ctl": 3,
+       "active": 0
+      }
+     },
+     {
+      "round": 0,
+      "cpu_part": "0xd4f",
+      "request_id": "ticket-route-1q",
+      "n": {
+       "ctl": 3,
        "active": 0
       }
      },
      {
       "round": 1,
       "cpu_part": "0xd0c",
+      "request_id": "agent-action-guard-2q",
       "n": {
        "ctl": 0,
-       "active": 15
+       "active": 3
+      }
+     },
+     {
+      "round": 1,
+      "cpu_part": "0xd0c",
+      "request_id": "cracked-screen-2q",
+      "n": {
+       "ctl": 0,
+       "active": 3
+      }
+     },
+     {
+      "round": 1,
+      "cpu_part": "0xd0c",
+      "request_id": "incident-review-4q",
+      "n": {
+       "ctl": 0,
+       "active": 3
+      }
+     },
+     {
+      "round": 1,
+      "cpu_part": "0xd0c",
+      "request_id": "payouts-3q",
+      "n": {
+       "ctl": 0,
+       "active": 3
+      }
+     },
+     {
+      "round": 1,
+      "cpu_part": "0xd0c",
+      "request_id": "ticket-route-1q",
+      "n": {
+       "ctl": 0,
+       "active": 3
       }
      },
      {
       "round": 1,
       "cpu_part": "0xd4f",
+      "request_id": "agent-action-guard-2q",
       "n": {
        "ctl": 0,
-       "active": 15
+       "active": 3
+      }
+     },
+     {
+      "round": 1,
+      "cpu_part": "0xd4f",
+      "request_id": "cracked-screen-2q",
+      "n": {
+       "ctl": 0,
+       "active": 3
+      }
+     },
+     {
+      "round": 1,
+      "cpu_part": "0xd4f",
+      "request_id": "incident-review-4q",
+      "n": {
+       "ctl": 0,
+       "active": 3
+      }
+     },
+     {
+      "round": 1,
+      "cpu_part": "0xd4f",
+      "request_id": "payouts-3q",
+      "n": {
+       "ctl": 0,
+       "active": 3
+      }
+     },
+     {
+      "round": 1,
+      "cpu_part": "0xd4f",
+      "request_id": "ticket-route-1q",
+      "n": {
+       "ctl": 0,
+       "active": 3
       }
      },
      {
       "round": 2,
       "cpu_part": "0xd4f",
+      "request_id": "agent-action-guard-2q",
       "n": {
-       "ctl": 15,
+       "ctl": 3,
+       "active": 0
+      }
+     },
+     {
+      "round": 2,
+      "cpu_part": "0xd4f",
+      "request_id": "cracked-screen-2q",
+      "n": {
+       "ctl": 3,
+       "active": 0
+      }
+     },
+     {
+      "round": 2,
+      "cpu_part": "0xd4f",
+      "request_id": "incident-review-4q",
+      "n": {
+       "ctl": 3,
+       "active": 0
+      }
+     },
+     {
+      "round": 2,
+      "cpu_part": "0xd4f",
+      "request_id": "payouts-3q",
+      "n": {
+       "ctl": 3,
+       "active": 0
+      }
+     },
+     {
+      "round": 2,
+      "cpu_part": "0xd4f",
+      "request_id": "ticket-route-1q",
+      "n": {
+       "ctl": 3,
        "active": 0
       }
      },
      {
       "round": 3,
       "cpu_part": "0xd0c",
+      "request_id": "agent-action-guard-2q",
       "n": {
        "ctl": 0,
-       "active": 30
+       "active": 6
+      }
+     },
+     {
+      "round": 3,
+      "cpu_part": "0xd0c",
+      "request_id": "cracked-screen-2q",
+      "n": {
+       "ctl": 0,
+       "active": 6
+      }
+     },
+     {
+      "round": 3,
+      "cpu_part": "0xd0c",
+      "request_id": "incident-review-4q",
+      "n": {
+       "ctl": 0,
+       "active": 6
+      }
+     },
+     {
+      "round": 3,
+      "cpu_part": "0xd0c",
+      "request_id": "payouts-3q",
+      "n": {
+       "ctl": 0,
+       "active": 6
+      }
+     },
+     {
+      "round": 3,
+      "cpu_part": "0xd0c",
+      "request_id": "ticket-route-1q",
+      "n": {
+       "ctl": 0,
+       "active": 6
       }
      },
      {
       "round": 4,
       "cpu_part": "0xd0c",
+      "request_id": "agent-action-guard-2q",
       "n": {
        "ctl": 0,
-       "active": 15
+       "active": 3
+      }
+     },
+     {
+      "round": 4,
+      "cpu_part": "0xd0c",
+      "request_id": "cracked-screen-2q",
+      "n": {
+       "ctl": 0,
+       "active": 3
+      }
+     },
+     {
+      "round": 4,
+      "cpu_part": "0xd0c",
+      "request_id": "incident-review-4q",
+      "n": {
+       "ctl": 0,
+       "active": 3
+      }
+     },
+     {
+      "round": 4,
+      "cpu_part": "0xd0c",
+      "request_id": "payouts-3q",
+      "n": {
+       "ctl": 0,
+       "active": 3
+      }
+     },
+     {
+      "round": 4,
+      "cpu_part": "0xd0c",
+      "request_id": "ticket-route-1q",
+      "n": {
+       "ctl": 0,
+       "active": 3
       }
      },
      {
       "round": 5,
       "cpu_part": "0xd0c",
+      "request_id": "agent-action-guard-2q",
       "n": {
        "ctl": 0,
-       "active": 30
+       "active": 6
+      }
+     },
+     {
+      "round": 5,
+      "cpu_part": "0xd0c",
+      "request_id": "cracked-screen-2q",
+      "n": {
+       "ctl": 0,
+       "active": 6
+      }
+     },
+     {
+      "round": 5,
+      "cpu_part": "0xd0c",
+      "request_id": "incident-review-4q",
+      "n": {
+       "ctl": 0,
+       "active": 6
+      }
+     },
+     {
+      "round": 5,
+      "cpu_part": "0xd0c",
+      "request_id": "payouts-3q",
+      "n": {
+       "ctl": 0,
+       "active": 6
+      }
+     },
+     {
+      "round": 5,
+      "cpu_part": "0xd0c",
+      "request_id": "ticket-route-1q",
+      "n": {
+       "ctl": 0,
+       "active": 6
       }
      },
      {
       "round": 5,
       "cpu_part": "0xd4f",
+      "request_id": "agent-action-guard-2q",
       "n": {
-       "ctl": 15,
+       "ctl": 3,
+       "active": 0
+      }
+     },
+     {
+      "round": 5,
+      "cpu_part": "0xd4f",
+      "request_id": "cracked-screen-2q",
+      "n": {
+       "ctl": 3,
+       "active": 0
+      }
+     },
+     {
+      "round": 5,
+      "cpu_part": "0xd4f",
+      "request_id": "incident-review-4q",
+      "n": {
+       "ctl": 3,
+       "active": 0
+      }
+     },
+     {
+      "round": 5,
+      "cpu_part": "0xd4f",
+      "request_id": "payouts-3q",
+      "n": {
+       "ctl": 3,
+       "active": 0
+      }
+     },
+     {
+      "round": 5,
+      "cpu_part": "0xd4f",
+      "request_id": "ticket-route-1q",
+      "n": {
+       "ctl": 3,
        "active": 0
       }
      },
      {
       "round": 101,
       "cpu_part": "0xd0c",
+      "request_id": "agent-action-guard-2q",
       "n": {
        "ctl": 0,
-       "active": 30
+       "active": 6
+      }
+     },
+     {
+      "round": 101,
+      "cpu_part": "0xd0c",
+      "request_id": "cracked-screen-2q",
+      "n": {
+       "ctl": 0,
+       "active": 6
+      }
+     },
+     {
+      "round": 101,
+      "cpu_part": "0xd0c",
+      "request_id": "incident-review-4q",
+      "n": {
+       "ctl": 0,
+       "active": 6
+      }
+     },
+     {
+      "round": 101,
+      "cpu_part": "0xd0c",
+      "request_id": "payouts-3q",
+      "n": {
+       "ctl": 0,
+       "active": 6
+      }
+     },
+     {
+      "round": 101,
+      "cpu_part": "0xd0c",
+      "request_id": "ticket-route-1q",
+      "n": {
+       "ctl": 0,
+       "active": 6
       }
      },
      {
       "round": 102,
       "cpu_part": "0xd0c",
+      "request_id": "agent-action-guard-2q",
+      "n": {
+       "ctl": 0,
+       "active": 0
+      }
+     },
+     {
+      "round": 102,
+      "cpu_part": "0xd0c",
+      "request_id": "cracked-screen-2q",
+      "n": {
+       "ctl": 0,
+       "active": 0
+      }
+     },
+     {
+      "round": 102,
+      "cpu_part": "0xd0c",
+      "request_id": "incident-review-4q",
+      "n": {
+       "ctl": 0,
+       "active": 0
+      }
+     },
+     {
+      "round": 102,
+      "cpu_part": "0xd0c",
+      "request_id": "payouts-3q",
+      "n": {
+       "ctl": 0,
+       "active": 0
+      }
+     },
+     {
+      "round": 102,
+      "cpu_part": "0xd0c",
+      "request_id": "ticket-route-1q",
       "n": {
        "ctl": 0,
        "active": 0
@@ -14480,43 +20191,81 @@
     ],
     "by_cpu_part": {
      "0xd0c": {
-      "cells": 3,
+      "cells": 15,
       "delta_range": [
-       0.12732,
-       0.1382
+       0.07445,
+       0.328585
       ],
       "delta_signs": [
        "positive"
-      ]
+      ],
+      "outcome": "mixed",
+      "comparable": false,
+      "counts": {
+       "in-band": 1,
+       "slower": 14
+      },
+      "unassessed_signs": [],
+      "unassessed_conflict": false
      },
      "0xd40": {
-      "cells": 9,
+      "cells": 45,
       "delta_range": [
-       0.31546,
-       0.33811
+       0.146815,
+       0.84715
       ],
       "delta_signs": [
        "positive"
-      ]
+      ],
+      "outcome": "slower",
+      "comparable": true,
+      "counts": {
+       "slower": 45
+      },
+      "unassessed_signs": [],
+      "unassessed_conflict": false
      },
      "0xd4f": {
-      "cells": 1,
+      "cells": 5,
       "delta_range": [
-       0.2655,
-       0.2655
+       0.13799,
+       0.78283
       ],
       "delta_signs": [
        "positive"
-      ]
+      ],
+      "outcome": "slower",
+      "comparable": true,
+      "counts": {
+       "slower": 5
+      },
+      "unassessed_signs": [],
+      "unassessed_conflict": false
      }
+    },
+    "assessment": {
+     "outcome": "mixed",
+     "comparable": false,
+     "counts": {
+      "in-band": 1,
+      "slower": 64
+     },
+     "unassessed_signs": [],
+     "unassessed_conflict": false
     }
    },
    "cold_first_request_total": {
     "class": "cold",
+    "cell_key": [
+     "round",
+     "cpu_part",
+     "request_id"
+    ],
     "shared_cells": [
      {
       "round": 0,
       "cpu_part": "0xd0c",
+      "request_id": "ticket-route-1q",
       "n": {
        "ctl": 1,
        "active": 2
@@ -14525,14 +20274,16 @@
        "ctl": 48.50097,
        "active": 48.95522
       },
-      "control_spread": null,
+      "control_within_cell_spread": null,
       "delta": 0.45425,
       "ratio": 1.009366,
-      "sign": "positive"
+      "sign": "positive",
+      "outcome": "unassessed"
      },
      {
       "round": 0,
       "cpu_part": "0xd40",
+      "request_id": "ticket-route-1q",
       "n": {
        "ctl": 8,
        "active": 8
@@ -14541,14 +20292,16 @@
        "ctl": 35.93997,
        "active": 36.377115
       },
-      "control_spread": 0.52216,
+      "control_within_cell_spread": 0.52216,
       "delta": 0.437145,
       "ratio": 1.012163,
-      "sign": "positive"
+      "sign": "positive",
+      "outcome": "in-band"
      },
      {
       "round": 1,
       "cpu_part": "0xd40",
+      "request_id": "ticket-route-1q",
       "n": {
        "ctl": 10,
        "active": 8
@@ -14557,14 +20310,16 @@
        "ctl": 36.053965,
        "active": 36.12416
       },
-      "control_spread": 0.33303,
+      "control_within_cell_spread": 0.33303,
       "delta": 0.070195,
       "ratio": 1.001947,
-      "sign": "positive"
+      "sign": "positive",
+      "outcome": "in-band"
      },
      {
       "round": 2,
       "cpu_part": "0xd0c",
+      "request_id": "ticket-route-1q",
       "n": {
        "ctl": 1,
        "active": 1
@@ -14573,14 +20328,16 @@
        "ctl": 49.06496,
        "active": 48.65989
       },
-      "control_spread": null,
+      "control_within_cell_spread": null,
       "delta": -0.40507,
       "ratio": 0.991744,
-      "sign": "negative"
+      "sign": "negative",
+      "outcome": "unassessed"
      },
      {
       "round": 2,
       "cpu_part": "0xd40",
+      "request_id": "ticket-route-1q",
       "n": {
        "ctl": 8,
        "active": 9
@@ -14589,14 +20346,16 @@
        "ctl": 35.993345,
        "active": 36.24308
       },
-      "control_spread": 0.48478,
+      "control_within_cell_spread": 0.48478,
       "delta": 0.249735,
       "ratio": 1.006938,
-      "sign": "positive"
+      "sign": "positive",
+      "outcome": "in-band"
      },
      {
       "round": 3,
       "cpu_part": "0xd40",
+      "request_id": "ticket-route-1q",
       "n": {
        "ctl": 10,
        "active": 8
@@ -14605,14 +20364,16 @@
        "ctl": 36.03386,
        "active": 36.3264
       },
-      "control_spread": 0.2428,
+      "control_within_cell_spread": 0.2428,
       "delta": 0.29254,
       "ratio": 1.008118,
-      "sign": "positive"
+      "sign": "positive",
+      "outcome": "slower"
      },
      {
       "round": 4,
       "cpu_part": "0xd40",
+      "request_id": "ticket-route-1q",
       "n": {
        "ctl": 7,
        "active": 8
@@ -14621,14 +20382,16 @@
        "ctl": 35.9106,
        "active": 36.183395
       },
-      "control_spread": 0.50456,
+      "control_within_cell_spread": 0.50456,
       "delta": 0.272795,
       "ratio": 1.007597,
-      "sign": "positive"
+      "sign": "positive",
+      "outcome": "in-band"
      },
      {
       "round": 4,
       "cpu_part": "0xd4f",
+      "request_id": "ticket-route-1q",
       "n": {
        "ctl": 3,
        "active": 1
@@ -14637,14 +20400,16 @@
        "ctl": 34.61339,
        "active": 34.65906
       },
-      "control_spread": 0.59525,
+      "control_within_cell_spread": 0.59525,
       "delta": 0.04567,
       "ratio": 1.001319,
-      "sign": "positive"
+      "sign": "positive",
+      "outcome": "in-band"
      },
      {
       "round": 5,
       "cpu_part": "0xd40",
+      "request_id": "ticket-route-1q",
       "n": {
        "ctl": 9,
        "active": 8
@@ -14653,16 +20418,18 @@
        "ctl": 35.87438,
        "active": 36.230755
       },
-      "control_spread": 0.43171,
+      "control_within_cell_spread": 0.43171,
       "delta": 0.356375,
       "ratio": 1.009934,
-      "sign": "positive"
+      "sign": "positive",
+      "outcome": "in-band"
      }
     ],
     "missing_cells": [
      {
       "round": 0,
       "cpu_part": "0xd4f",
+      "request_id": "ticket-route-1q",
       "n": {
        "ctl": 1,
        "active": 0
@@ -14671,6 +20438,7 @@
      {
       "round": 1,
       "cpu_part": "0xd0c",
+      "request_id": "ticket-route-1q",
       "n": {
        "ctl": 0,
        "active": 1
@@ -14679,6 +20447,7 @@
      {
       "round": 1,
       "cpu_part": "0xd4f",
+      "request_id": "ticket-route-1q",
       "n": {
        "ctl": 0,
        "active": 1
@@ -14687,6 +20456,7 @@
      {
       "round": 2,
       "cpu_part": "0xd4f",
+      "request_id": "ticket-route-1q",
       "n": {
        "ctl": 1,
        "active": 0
@@ -14695,6 +20465,7 @@
      {
       "round": 3,
       "cpu_part": "0xd0c",
+      "request_id": "ticket-route-1q",
       "n": {
        "ctl": 0,
        "active": 2
@@ -14703,6 +20474,7 @@
      {
       "round": 4,
       "cpu_part": "0xd0c",
+      "request_id": "ticket-route-1q",
       "n": {
        "ctl": 0,
        "active": 1
@@ -14711,6 +20483,7 @@
      {
       "round": 5,
       "cpu_part": "0xd0c",
+      "request_id": "ticket-route-1q",
       "n": {
        "ctl": 0,
        "active": 2
@@ -14719,6 +20492,7 @@
      {
       "round": 5,
       "cpu_part": "0xd4f",
+      "request_id": "ticket-route-1q",
       "n": {
        "ctl": 1,
        "active": 0
@@ -14735,7 +20509,17 @@
       "delta_signs": [
        "negative",
        "positive"
-      ]
+      ],
+      "outcome": "unknown",
+      "comparable": false,
+      "counts": {
+       "unassessed": 2
+      },
+      "unassessed_signs": [
+       "negative",
+       "positive"
+      ],
+      "unassessed_conflict": false
      },
      "0xd40": {
       "cells": 6,
@@ -14745,7 +20529,15 @@
       ],
       "delta_signs": [
        "positive"
-      ]
+      ],
+      "outcome": "mixed",
+      "comparable": false,
+      "counts": {
+       "in-band": 5,
+       "slower": 1
+      },
+      "unassessed_signs": [],
+      "unassessed_conflict": false
      },
      "0xd4f": {
       "cells": 1,
@@ -14755,16 +20547,43 @@
       ],
       "delta_signs": [
        "positive"
-      ]
+      ],
+      "outcome": "null",
+      "comparable": true,
+      "counts": {
+       "in-band": 1
+      },
+      "unassessed_signs": [],
+      "unassessed_conflict": false
      }
+    },
+    "assessment": {
+     "outcome": "mixed",
+     "comparable": false,
+     "counts": {
+      "in-band": 6,
+      "slower": 1,
+      "unassessed": 2
+     },
+     "unassessed_signs": [
+      "negative",
+      "positive"
+     ],
+     "unassessed_conflict": true
     }
    },
    "restore_first_request_total": {
     "class": "restore",
+    "cell_key": [
+     "round",
+     "cpu_part",
+     "request_id"
+    ],
     "shared_cells": [
      {
       "round": 100,
       "cpu_part": "0xd0c",
+      "request_id": "ticket-route-1q",
       "n": {
        "ctl": 1,
        "active": 1
@@ -14773,14 +20592,16 @@
        "ctl": 5.07281,
        "active": 5.28447
       },
-      "control_spread": null,
+      "control_within_cell_spread": null,
       "delta": 0.21166,
       "ratio": 1.041724,
-      "sign": "positive"
+      "sign": "positive",
+      "outcome": "unassessed"
      },
      {
       "round": 100,
       "cpu_part": "0xd40",
+      "request_id": "ticket-route-1q",
       "n": {
        "ctl": 9,
        "active": 9
@@ -14789,14 +20610,16 @@
        "ctl": 3.94094,
        "active": 4.45603
       },
-      "control_spread": 0.26263,
+      "control_within_cell_spread": 0.26263,
       "delta": 0.51509,
       "ratio": 1.130702,
-      "sign": "positive"
+      "sign": "positive",
+      "outcome": "slower"
      },
      {
       "round": 101,
       "cpu_part": "0xd40",
+      "request_id": "ticket-route-1q",
       "n": {
        "ctl": 10,
        "active": 8
@@ -14805,14 +20628,16 @@
        "ctl": 3.941935,
        "active": 4.492835
       },
-      "control_spread": 0.21385,
+      "control_within_cell_spread": 0.21385,
       "delta": 0.5509,
       "ratio": 1.139754,
-      "sign": "positive"
+      "sign": "positive",
+      "outcome": "slower"
      },
      {
       "round": 102,
       "cpu_part": "0xd40",
+      "request_id": "ticket-route-1q",
       "n": {
        "ctl": 10,
        "active": 10
@@ -14821,16 +20646,18 @@
        "ctl": 3.961755,
        "active": 4.43401
       },
-      "control_spread": 3.55604,
+      "control_within_cell_spread": 3.55604,
       "delta": 0.472255,
       "ratio": 1.119203,
-      "sign": "positive"
+      "sign": "positive",
+      "outcome": "in-band"
      }
     ],
     "missing_cells": [
      {
       "round": 101,
       "cpu_part": "0xd0c",
+      "request_id": "ticket-route-1q",
       "n": {
        "ctl": 0,
        "active": 2
@@ -14839,6 +20666,7 @@
      {
       "round": 102,
       "cpu_part": "0xd0c",
+      "request_id": "ticket-route-1q",
       "n": {
        "ctl": 0,
        "active": 0
@@ -14854,7 +20682,16 @@
       ],
       "delta_signs": [
        "positive"
-      ]
+      ],
+      "outcome": "unknown",
+      "comparable": false,
+      "counts": {
+       "unassessed": 1
+      },
+      "unassessed_signs": [
+       "positive"
+      ],
+      "unassessed_conflict": false
      },
      "0xd40": {
       "cells": 3,
@@ -14864,8 +20701,29 @@
       ],
       "delta_signs": [
        "positive"
-      ]
+      ],
+      "outcome": "mixed",
+      "comparable": false,
+      "counts": {
+       "in-band": 1,
+       "slower": 2
+      },
+      "unassessed_signs": [],
+      "unassessed_conflict": false
      }
+    },
+    "assessment": {
+     "outcome": "mixed",
+     "comparable": false,
+     "counts": {
+      "in-band": 1,
+      "slower": 2,
+      "unassessed": 1
+     },
+     "unassessed_signs": [
+      "positive"
+     ],
+     "unassessed_conflict": false
     }
    }
   },
