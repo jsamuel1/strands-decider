@@ -1,0 +1,3067 @@
+{
+ "artifacts": {
+  "ladder": "ladder.json",
+  "probes": "probes.jsonl"
+ },
+ "changed_variable": {
+  "baseline": "P1 GGUF, runtime repack",
+  "experiment": "s2b-h512-Q8_0-e9kr8.gguf + patch_e9.py",
+  "name": "KleidiAI-prepacked GGUF + E9 loader"
+ },
+ "classification": {
+  "method": "fixed host: every load is a new process (cold); no restore exists; warm = the same process's later requests",
+  "mismatches": 0
+ },
+ "commits": {
+  "baseline": "70eab7be69f86ddeb8c64158d94df344b5180098",
+  "experiment": "5dce29dae1bd5688a9f3203cfa5ae4183f2f27f7",
+  "ladder": "bf05bea734d0ec788be81bb9c7fbde204d3dda08",
+  "repo_dirty_at_build": false
+ },
+ "conclusion": "FIXED HOST, NOT LAMBDA. 0xd40 local-file: load 7.934 -> 3.105 s (-4.827 s, 5/5); memfd -4.834 s; warm/forward/RSS no change; answers bit-identical (50/50, 10/10). Same rounds, E8 beats E9 by 0.835 s (local) and 0.832 s (memfd) of load, with no other difference: E8 is the better general mechanism. x86_64: the E9 GGUF is refused at load ('tensor blk.0.attn_qkv.weight is KleidiAI-prepacked (E9) but is not in a CPU_KLEIDIAI buffer'), 5/5, as designed; the E9 loader with a plain GGUF is inert (answers identical). Hazard: an UNPATCHED P1 engine loads the E9 GGUF without error and returns NaN probabilities and wrong choices on both arm64 and x86_64. A GGUF format that silently corrupts answers on any loader without the patch, and needs a KleidiAI build, cannot be a general default. Verdict: general opt-in (arm64 KleidiAI builds with the E9 loader only); prefer E8.",
+ "conditions": {
+  "arms": [
+   "e9",
+   "e9p1",
+   "p1"
+  ],
+  "concurrency": 1,
+  "finished": "2026-10-25T10:29:41Z",
+  "host_identity": "0xd40",
+  "mode": "local",
+  "note": "FIXED HOST, NOT LAMBDA LATENCY. One fresh container per load; arms interleaved by cyclic rotation of one round's order; comparisons pair rounds (arm minus p1 in the same round).",
+  "request_ids": [
+   "agent-action-guard-2q",
+   "cracked-screen-2q",
+   "incident-review-4q",
+   "payouts-3q",
+   "ticket-route-1q",
+   "forward-4096"
+  ],
+  "rounds": 5,
+  "started": "2026-10-25T09:05:52Z"
+ },
+ "correctness": {
+  "bit_identical": 50,
+  "choice_flips": 0,
+  "compared": 50,
+  "detail": {
+   "choice_flips_vs_p1": 0,
+   "max_abs_delta_vs_p1": 0.0,
+   "nan_fields": [],
+   "repeat_identical": true,
+   "vs_reference_requests": {
+    "differs": 0,
+    "identical": 50,
+    "no_reference": 0
+   },
+   "vs_run_p1_forward4096": {
+    "compared": 10,
+    "identical": 10
+   },
+   "vs_run_p1_requests": {
+    "compared": 50,
+    "identical": 50
+   }
+  },
+  "max_abs_delta": 0.0,
+  "vs_p1_reference": {
+   "differs": 0,
+   "identical": 50,
+   "no_reference": 0
+  }
+ },
+ "cost": {
+  "billed_duration_s": 0.0,
+  "note": "fixed host already provisioned; no AWS calls",
+  "s3_gb_transferred": 0.0,
+  "s3_request_usd": 0.0,
+  "total_usd": 0.0
+ },
+ "deployment": {
+  "architecture": "arm64",
+  "az": null,
+  "functions": {
+   "cpuset": [
+    10,
+    11,
+    12,
+    13,
+    14,
+    15
+   ],
+   "host": "fixed-host DevSpace (P1/H1 offline reference)",
+   "identity": "0xd40",
+   "mode": "local",
+   "note": "memory_mb is P1's Lambda setting, kept for the schema; the container has no memory limit (cgroup memory.max as recorded per load)",
+   "threads": 6
+  },
+  "memory_mb": 10240,
+  "region": "fixed-host (not Lambda)",
+  "runtime": "python3.12 (P1's pinned Lambda image)",
+  "runtime_version_arn": null,
+  "snapstart": null
+ },
+ "dormant_check": {
+  "0xd40": {
+   "correctness": {
+    "choice_flips_vs_p1": 0,
+    "max_abs_delta_vs_p1": 0.0,
+    "nan_fields": [],
+    "repeat_identical": true,
+    "vs_reference_requests": {
+     "differs": 0,
+     "identical": 25,
+     "no_reference": 0
+    },
+    "vs_run_p1_forward4096": {
+     "compared": 5,
+     "identical": 5
+    },
+    "vs_run_p1_requests": {
+     "compared": 25,
+     "identical": 25
+    }
+   },
+   "timing": {
+    "metrics": {
+     "context_init_s": {
+      "arm_median": 0.1636,
+      "arm_spread": 0.004,
+      "control_median": 0.1612,
+      "control_spread": 0.006,
+      "delta_median": 0.0024,
+      "delta_pct": 1.489,
+      "deltas": [
+       0.0026,
+       -0.0001,
+       0.0061,
+       -0.003,
+       0.0024
+      ],
+      "outcome": "no change",
+      "threshold": 0.006,
+      "unit": "s"
+     },
+     "first_inference_s": {
+      "arm_median": 0.2286,
+      "arm_spread": 0.0277,
+      "control_median": 0.2289,
+      "control_spread": 0.0027,
+      "delta_median": 0.0005,
+      "delta_pct": 0.218,
+      "deltas": [
+       -0.0016,
+       0.0005,
+       -0.0009,
+       0.0267,
+       0.0009
+      ],
+      "outcome": "no change",
+      "threshold": 0.0027,
+      "unit": "s"
+     },
+     "first_request_s": {
+      "arm_median": 0.2444,
+      "arm_spread": 0.002,
+      "control_median": 0.2445,
+      "control_spread": 0.0024,
+      "delta_median": 0.0,
+      "delta_pct": 0.0,
+      "deltas": [
+       -0.0003,
+       0.0001,
+       0.0,
+       -0.0011,
+       0.0021
+      ],
+      "outcome": "no change",
+      "threshold": 0.0024,
+      "unit": "s"
+     },
+     "forward4096_s": {
+      "arm_median": 15.81735,
+      "arm_spread": 0.24235,
+      "control_median": 15.7905,
+      "control_spread": 0.25665,
+      "delta_median": -0.00265,
+      "delta_pct": -0.017,
+      "deltas": [
+       -0.01435,
+       -0.00265,
+       -0.0036,
+       0.007,
+       0.0294
+      ],
+      "outcome": "no change",
+      "threshold": 0.25665,
+      "unit": "s"
+     },
+     "imports_s": {
+      "arm_median": 0.4606,
+      "arm_spread": 0.0147,
+      "control_median": 0.459,
+      "control_spread": 0.0141,
+      "delta_median": 0.0056,
+      "delta_pct": 1.22,
+      "deltas": [
+       0.0102,
+       -0.0081,
+       0.0067,
+       -0.012,
+       0.0056
+      ],
+      "outcome": "no change",
+      "threshold": 0.0141,
+      "unit": "s"
+     },
+     "load_s": {
+      "arm_median": 7.8524,
+      "arm_spread": 0.0591,
+      "control_median": 7.934,
+      "control_spread": 0.0556,
+      "delta_median": -0.0874,
+      "delta_pct": -1.102,
+      "deltas": [
+       -0.0245,
+       -0.1251,
+       -0.0874,
+       -0.137,
+       -0.0675
+      ],
+      "outcome": "better",
+      "threshold": 0.0556,
+      "unit": "s"
+     },
+     "model_load_mmap_s": {
+      "arm_median": 7.681,
+      "arm_spread": 0.0622,
+      "control_median": 7.7655,
+      "control_spread": 0.0498,
+      "delta_median": -0.0936,
+      "delta_pct": -1.205,
+      "deltas": [
+       -0.0272,
+       -0.125,
+       -0.0936,
+       -0.1338,
+       -0.07
+      ],
+      "outcome": "better",
+      "threshold": 0.0498,
+      "unit": "s"
+     },
+     "model_ready_s": {
+      "arm_median": 9.3011,
+      "arm_spread": 0.0991,
+      "control_median": 9.378,
+      "control_spread": 0.0862,
+      "delta_median": -0.0807,
+      "delta_pct": -0.861,
+      "deltas": [
+       -0.0286,
+       -0.1601,
+       -0.0807,
+       -0.1559,
+       -0.0597
+      ],
+      "outcome": "no change",
+      "threshold": 0.0862,
+      "unit": "s"
+     },
+     "peak_rss_mb": {
+      "arm_median": 4862.964844,
+      "arm_spread": 0.25,
+      "control_median": 4879.492188,
+      "control_spread": 0.253906,
+      "delta_median": -16.527344,
+      "delta_pct": -0.339,
+      "deltas": [
+       -16.410156,
+       -16.589844,
+       -16.46875,
+       -16.914062,
+       -16.527344
+      ],
+      "outcome": "no change",
+      "threshold": 48.794922,
+      "unit": "MB"
+     },
+     "warm_s": {
+      "arm_median": 0.5617,
+      "arm_spread": 0.0045,
+      "control_median": 0.5651,
+      "control_spread": 0.006,
+      "delta_median": -0.003,
+      "delta_pct": -0.531,
+      "deltas": [
+       -0.0043,
+       -0.0028,
+       -0.003,
+       -0.0044,
+       0.0001
+      ],
+      "outcome": "no change",
+      "threshold": 0.006,
+      "unit": "s"
+     }
+    },
+    "n": 5,
+    "rounds": [
+     [
+      "20261025T090459Z",
+      0
+     ],
+     [
+      "20261025T090459Z",
+      1
+     ],
+     [
+      "20261025T090459Z",
+      2
+     ],
+     [
+      "20261025T090459Z",
+      3
+     ],
+     [
+      "20261025T090459Z",
+      4
+     ]
+    ]
+   }
+  },
+  "GenuineIntel 6/173/1": {
+   "correctness": {
+    "choice_flips_vs_p1": 0,
+    "max_abs_delta_vs_p1": 0.0,
+    "nan_fields": [
+     "incident-review-4q/root_cause/probabilities/alarm",
+     "incident-review-4q/root_cause/probabilities/capacity",
+     "incident-review-4q/root_cause/probabilities/freeze",
+     "incident-review-4q/root_cause/probabilities/retries",
+     "incident-review-4q/runbook/noul",
+     "incident-review-4q/severity/probabilities/0",
+     "incident-review-4q/severity/probabilities/1",
+     "incident-review-4q/severity/probabilities/2",
+     "incident-review-4q/severity/probabilities/3",
+     "incident-review-4q/severity/probabilities/4",
+     "incident-review-4q/severity/score",
+     "incident-review-4q/test_gap/noul"
+    ],
+    "repeat_identical": false,
+    "vs_reference_requests": {
+     "differs": 0,
+     "identical": 0,
+     "no_reference": 25
+    },
+    "vs_run_p1_forward4096": {
+     "compared": 5,
+     "identical": 5
+    },
+    "vs_run_p1_requests": {
+     "compared": 25,
+     "identical": 25
+    }
+   },
+   "timing": {
+    "metrics": {
+     "context_init_s": {
+      "arm_median": 0.3028,
+      "arm_spread": 0.0705,
+      "control_median": 0.2712,
+      "control_spread": 0.0599,
+      "delta_median": -0.0102,
+      "delta_pct": -3.761,
+      "deltas": [
+       -0.0102,
+       0.0417,
+       0.0537,
+       -0.0215,
+       -0.0556
+      ],
+      "outcome": "no change",
+      "threshold": 0.0599,
+      "unit": "s"
+     },
+     "first_inference_s": {
+      "arm_median": 0.488,
+      "arm_spread": 0.386,
+      "control_median": 0.6084,
+      "control_spread": 0.3045,
+      "delta_median": -0.1204,
+      "delta_pct": -19.79,
+      "deltas": [
+       -0.1851,
+       -0.1718,
+       -0.1204,
+       -0.0372,
+       0.3527
+      ],
+      "outcome": "no change",
+      "threshold": 0.3045,
+      "unit": "s"
+     },
+     "first_request_s": {
+      "arm_median": 0.4616,
+      "arm_spread": 0.1158,
+      "control_median": 0.4684,
+      "control_spread": 0.0459,
+      "delta_median": -0.003,
+      "delta_pct": -0.64,
+      "deltas": [
+       -0.006,
+       0.0648,
+       -0.003,
+       -0.0686,
+       0.0058
+      ],
+      "outcome": "no change",
+      "threshold": 0.0459,
+      "unit": "s"
+     },
+     "forward4096_s": {
+      "arm_median": 20.28755,
+      "arm_spread": 1.17485,
+      "control_median": 21.8254,
+      "control_spread": 8.90625,
+      "delta_median": -1.90605,
+      "delta_pct": -8.733,
+      "deltas": [
+       -1.90605,
+       -0.72905,
+       -8.46045,
+       -0.32,
+       -2.97175
+      ],
+      "outcome": "no change",
+      "threshold": 8.90625,
+      "unit": "s"
+     },
+     "imports_s": {
+      "arm_median": 0.3924,
+      "arm_spread": 0.0643,
+      "control_median": 0.3624,
+      "control_spread": 0.1094,
+      "delta_median": -0.0085,
+      "delta_pct": -2.345,
+      "deltas": [
+       -0.0131,
+       0.0511,
+       -0.0085,
+       -0.0512,
+       -0.0068
+      ],
+      "outcome": "no change",
+      "threshold": 0.1094,
+      "unit": "s"
+     },
+     "load_s": {
+      "arm_median": 1.0941,
+      "arm_spread": 0.2459,
+      "control_median": 1.1186,
+      "control_spread": 0.7291,
+      "delta_median": -0.0292,
+      "delta_pct": -2.61,
+      "deltas": [
+       -0.6908,
+       0.2842,
+       -0.0292,
+       -0.0245,
+       -0.0868
+      ],
+      "outcome": "no change",
+      "threshold": 0.7291,
+      "unit": "s"
+     },
+     "model_load_mmap_s": {
+      "arm_median": 0.7666,
+      "arm_spread": 0.1992,
+      "control_median": 0.7896,
+      "control_spread": 0.7228,
+      "delta_median": -0.0313,
+      "delta_pct": -3.964,
+      "deltas": [
+       -0.6806,
+       0.2414,
+       -0.0812,
+       -0.003,
+       -0.0313
+      ],
+      "outcome": "no change",
+      "threshold": 0.7228,
+      "unit": "s"
+     },
+     "model_ready_s": {
+      "arm_median": 3.1225,
+      "arm_spread": 0.626,
+      "control_median": 3.2557,
+      "control_spread": 0.7706,
+      "delta_median": -0.1332,
+      "delta_pct": -4.091,
+      "deltas": [
+       -0.8553,
+       0.31,
+       -0.1332,
+       -0.6179,
+       0.3691
+      ],
+      "outcome": "no change",
+      "threshold": 0.7706,
+      "unit": "s"
+     },
+     "peak_rss_mb": {
+      "arm_median": 5182.917969,
+      "arm_spread": 4.441406,
+      "control_median": 5182.574219,
+      "control_spread": 6.746094,
+      "delta_median": 0.050781,
+      "delta_pct": 0.001,
+      "deltas": [
+       -2.472656,
+       0.050781,
+       -2.683594,
+       6.757812,
+       0.476562
+      ],
+      "outcome": "no change",
+      "threshold": 51.825742,
+      "unit": "MB"
+     },
+     "warm_s": {
+      "arm_median": 1.0557,
+      "arm_spread": 0.1239,
+      "control_median": 1.0918,
+      "control_spread": 0.1475,
+      "delta_median": -0.0922,
+      "delta_pct": -8.445,
+      "deltas": [
+       -0.0922,
+       0.0766,
+       0.0194,
+       -0.1948,
+       -0.1023
+      ],
+      "outcome": "no change",
+      "threshold": 0.1475,
+      "unit": "s"
+     }
+    },
+    "n": 5,
+    "rounds": [
+     [
+      "20261025T091746Z-x86",
+      0
+     ],
+     [
+      "20261025T091746Z-x86",
+      1
+     ],
+     [
+      "20261025T091746Z-x86",
+      2
+     ],
+     [
+      "20261025T091746Z-x86",
+      3
+     ],
+     [
+      "20261025T091746Z-x86",
+      4
+     ]
+    ]
+   }
+  }
+ },
+ "errors": {
+  "count": 0,
+  "rows": []
+ },
+ "experiment_id": "G-general-E9-prepacked",
+ "general_verdict": "general opt-in",
+ "hypothesis": "A KleidiAI-prepacked GGUF with the E9 loader skips the runtime repack off Lambda too; it must refuse rather than misread on a path without KleidiAI.",
+ "model": {
+  "format": "GGUF Q8_0 (H512)",
+  "id": "StrandsAgents/strands-decider-2B-qwen3.5-v1-2610",
+  "revision": "216d1ccb46a9e9b036eb9187b248db98480f77d4"
+ },
+ "phases": {
+  "e9": {
+   "cold": {
+    "assets_load": {
+     "histogram": {
+      "counts": [
+       1,
+       1,
+       1,
+       0,
+       0,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0,
+       1
+      ],
+      "edges": [
+       0.4973,
+       0.498467,
+       0.499633,
+       0.5008,
+       0.501967,
+       0.503133,
+       0.5043,
+       0.505467,
+       0.506633,
+       0.5078,
+       0.508967,
+       0.510133,
+       0.5113
+      ]
+     },
+     "max": 0.5113,
+     "mean": 0.5027,
+     "min": 0.4973,
+     "n": 5,
+     "p50": 0.5006,
+     "p90": 0.5113,
+     "p99": 0.5113,
+     "stdev": 0.005714,
+     "unit": "s"
+    },
+    "context_init": {
+     "histogram": {
+      "counts": [
+       1,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0,
+       2,
+       0,
+       0,
+       0,
+       1
+      ],
+      "edges": [
+       0.1618,
+       0.161958,
+       0.162117,
+       0.162275,
+       0.162433,
+       0.162592,
+       0.16275,
+       0.162908,
+       0.163067,
+       0.163225,
+       0.163383,
+       0.163542,
+       0.1637
+      ]
+     },
+     "max": 0.1637,
+     "mean": 0.16276,
+     "min": 0.1618,
+     "n": 5,
+     "p50": 0.163,
+     "p90": 0.1637,
+     "p99": 0.1637,
+     "stdev": 0.00073,
+     "unit": "s"
+    },
+    "first_request_inference": {
+     "histogram": {
+      "counts": [
+       1,
+       0,
+       0,
+       1,
+       0,
+       1,
+       0,
+       1,
+       0,
+       0,
+       0,
+       1
+      ],
+      "edges": [
+       0.2441,
+       0.244208,
+       0.244317,
+       0.244425,
+       0.244533,
+       0.244642,
+       0.24475,
+       0.244858,
+       0.244967,
+       0.245075,
+       0.245183,
+       0.245292,
+       0.2454
+      ]
+     },
+     "max": 0.2454,
+     "mean": 0.24472,
+     "min": 0.2441,
+     "n": 5,
+     "p50": 0.2447,
+     "p90": 0.2454,
+     "p99": 0.2454,
+     "stdev": 0.000482,
+     "unit": "s"
+    },
+    "first_request_total": {
+     "histogram": {
+      "counts": [
+       1,
+       0,
+       2,
+       1,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       1
+      ],
+      "edges": [
+       4.5325,
+       4.538283,
+       4.544067,
+       4.54985,
+       4.555633,
+       4.561417,
+       4.5672,
+       4.572983,
+       4.578767,
+       4.58455,
+       4.590333,
+       4.596117,
+       4.6019
+      ]
+     },
+     "max": 4.6019,
+     "mean": 4.55564,
+     "min": 4.5325,
+     "n": 5,
+     "p50": 4.546,
+     "p90": 4.6019,
+     "p99": 4.6019,
+     "stdev": 0.026864,
+     "unit": "s"
+    },
+    "ggml_backend_load": {
+     "histogram": {
+      "counts": [
+       3,
+       0,
+       0,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0,
+       0,
+       0,
+       1
+      ],
+      "edges": [
+       0.0051,
+       0.005117,
+       0.005133,
+       0.00515,
+       0.005167,
+       0.005183,
+       0.0052,
+       0.005217,
+       0.005233,
+       0.00525,
+       0.005267,
+       0.005283,
+       0.0053
+      ]
+     },
+     "max": 0.0053,
+     "mean": 0.00516,
+     "min": 0.0051,
+     "n": 5,
+     "p50": 0.0051,
+     "p90": 0.0053,
+     "p99": 0.0053,
+     "stdev": 8.9e-05,
+     "unit": "s"
+    },
+    "imports": {
+     "histogram": {
+      "counts": [
+       1,
+       1,
+       0,
+       0,
+       1,
+       0,
+       1,
+       0,
+       0,
+       0,
+       0,
+       1
+      ],
+      "edges": [
+       0.4545,
+       0.455283,
+       0.456067,
+       0.45685,
+       0.457633,
+       0.458417,
+       0.4592,
+       0.459983,
+       0.460767,
+       0.46155,
+       0.462333,
+       0.463117,
+       0.4639
+      ]
+     },
+     "max": 0.4639,
+     "mean": 0.45826,
+     "min": 0.4545,
+     "n": 5,
+     "p50": 0.4579,
+     "p90": 0.4639,
+     "p99": 0.4639,
+     "stdev": 0.003743,
+     "unit": "s"
+    },
+    "model_load_mmap": {
+     "histogram": {
+      "counts": [
+       1,
+       0,
+       2,
+       1,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       1
+      ],
+      "edges": [
+       2.9271,
+       2.931183,
+       2.935267,
+       2.93935,
+       2.943433,
+       2.947517,
+       2.9516,
+       2.955683,
+       2.959767,
+       2.96385,
+       2.967933,
+       2.972017,
+       2.9761
+      ]
+     },
+     "max": 2.9761,
+     "mean": 2.94306,
+     "min": 2.9271,
+     "n": 5,
+     "p50": 2.9369,
+     "p90": 2.9761,
+     "p99": 2.9761,
+     "stdev": 0.019069,
+     "unit": "s"
+    },
+    "model_ready": {
+     "histogram": {
+      "counts": [
+       1,
+       0,
+       2,
+       1,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       1
+      ],
+      "edges": [
+       4.5325,
+       4.538283,
+       4.544067,
+       4.54985,
+       4.555633,
+       4.561417,
+       4.5672,
+       4.572983,
+       4.578767,
+       4.58455,
+       4.590333,
+       4.596117,
+       4.6019
+      ]
+     },
+     "max": 4.6019,
+     "mean": 4.55564,
+     "min": 4.5325,
+     "n": 5,
+     "p50": 4.546,
+     "p90": 4.6019,
+     "p99": 4.6019,
+     "stdev": 0.026864,
+     "unit": "s"
+    },
+    "n": 5,
+    "report_max_memory_mb": {
+     "histogram": {
+      "counts": [
+       1,
+       1,
+       0,
+       0,
+       1,
+       0,
+       1,
+       0,
+       0,
+       0,
+       0,
+       1
+      ],
+      "edges": [
+       4853.664062,
+       4853.679688,
+       4853.695312,
+       4853.710938,
+       4853.726562,
+       4853.742188,
+       4853.757812,
+       4853.773438,
+       4853.789062,
+       4853.804688,
+       4853.820312,
+       4853.835938,
+       4853.851562
+      ]
+     },
+     "max": 4853.851562,
+     "mean": 4853.741406,
+     "min": 4853.664062,
+     "n": 5,
+     "p50": 4853.730469,
+     "p90": 4853.851562,
+     "p99": 4853.851562,
+     "stdev": 0.073361,
+     "unit": "MB"
+    },
+    "warmup_inference": {
+     "histogram": {
+      "counts": [
+       2,
+       0,
+       0,
+       1,
+       0,
+       1,
+       0,
+       0,
+       0,
+       0,
+       0,
+       1
+      ],
+      "edges": [
+       0.2282,
+       0.228333,
+       0.228467,
+       0.2286,
+       0.228733,
+       0.228867,
+       0.229,
+       0.229133,
+       0.229267,
+       0.2294,
+       0.229533,
+       0.229667,
+       0.2298
+      ]
+     },
+     "max": 0.2298,
+     "mean": 0.22878,
+     "min": 0.2282,
+     "n": 5,
+     "p50": 0.2287,
+     "p90": 0.2298,
+     "p99": 0.2298,
+     "stdev": 0.000638,
+     "unit": "s"
+    },
+    "weight_download": null
+   },
+   "restore": {
+    "first_request_inference": null,
+    "n": 0,
+    "report_restore_duration": null,
+    "snapshot_init": null
+   },
+   "warm": {
+    "forward_4096_tokens": {
+     "histogram": {
+      "counts": [
+       2,
+       2,
+       2,
+       0,
+       0,
+       2,
+       0,
+       0,
+       0,
+       0,
+       0,
+       2
+      ],
+      "edges": [
+       15.7661,
+       15.780633,
+       15.795167,
+       15.8097,
+       15.824233,
+       15.838767,
+       15.8533,
+       15.867833,
+       15.882367,
+       15.8969,
+       15.911433,
+       15.925967,
+       15.9405
+      ]
+     },
+     "max": 15.9405,
+     "mean": 15.82907,
+     "min": 15.7661,
+     "n": 10,
+     "p50": 15.8018,
+     "p90": 15.9374,
+     "p99": 15.9405,
+     "stdev": 0.063214,
+     "unit": "s"
+    },
+    "n": 75,
+    "steady_state_by_request": {
+     "agent-action-guard-2q": {
+      "histogram": {
+       "counts": [
+        3,
+        1,
+        1,
+        2,
+        1,
+        3,
+        1,
+        1,
+        1,
+        0,
+        0,
+        1
+       ],
+       "edges": [
+        0.8514,
+        0.852142,
+        0.852883,
+        0.853625,
+        0.854367,
+        0.855108,
+        0.85585,
+        0.856592,
+        0.857333,
+        0.858075,
+        0.858817,
+        0.859558,
+        0.8603
+       ]
+      },
+      "max": 0.8603,
+      "mean": 0.85472,
+      "min": 0.8514,
+      "n": 15,
+      "p50": 0.8548,
+      "p90": 0.8577,
+      "p99": 0.8603,
+      "stdev": 0.00246,
+      "unit": "s"
+     },
+     "cracked-screen-2q": {
+      "histogram": {
+       "counts": [
+        2,
+        1,
+        4,
+        1,
+        0,
+        2,
+        1,
+        1,
+        1,
+        1,
+        0,
+        1
+       ],
+       "edges": [
+        0.4356,
+        0.436075,
+        0.43655,
+        0.437025,
+        0.4375,
+        0.437975,
+        0.43845,
+        0.438925,
+        0.4394,
+        0.439875,
+        0.44035,
+        0.440825,
+        0.4413
+       ]
+      },
+      "max": 0.4413,
+      "mean": 0.437793,
+      "min": 0.4356,
+      "n": 15,
+      "p50": 0.4373,
+      "p90": 0.4401,
+      "p99": 0.4413,
+      "stdev": 0.001674,
+      "unit": "s"
+     },
+     "incident-review-4q": {
+      "histogram": {
+       "counts": [
+        1,
+        3,
+        1,
+        3,
+        1,
+        1,
+        2,
+        0,
+        1,
+        0,
+        1,
+        1
+       ],
+       "edges": [
+        1.7323,
+        1.73375,
+        1.7352,
+        1.73665,
+        1.7381,
+        1.73955,
+        1.741,
+        1.74245,
+        1.7439,
+        1.74535,
+        1.7468,
+        1.74825,
+        1.7497
+       ]
+      },
+      "max": 1.7497,
+      "mean": 1.739347,
+      "min": 1.7323,
+      "n": 15,
+      "p50": 1.7379,
+      "p90": 1.7479,
+      "p99": 1.7497,
+      "stdev": 0.005077,
+      "unit": "s"
+     },
+     "payouts-3q": {
+      "histogram": {
+       "counts": [
+        1,
+        0,
+        1,
+        0,
+        2,
+        1,
+        0,
+        1,
+        1,
+        0,
+        2,
+        6
+       ],
+       "edges": [
+        0.5613,
+        0.5616,
+        0.5619,
+        0.5622,
+        0.5625,
+        0.5628,
+        0.5631,
+        0.5634,
+        0.5637,
+        0.564,
+        0.5643,
+        0.5646,
+        0.5649
+       ]
+      },
+      "max": 0.5649,
+      "mean": 0.563773,
+      "min": 0.5613,
+      "n": 15,
+      "p50": 0.5644,
+      "p90": 0.5649,
+      "p99": 0.5649,
+      "stdev": 0.00119,
+      "unit": "s"
+     },
+     "ticket-route-1q": {
+      "histogram": {
+       "counts": [
+        1,
+        0,
+        1,
+        0,
+        1,
+        2,
+        2,
+        1,
+        3,
+        2,
+        0,
+        2
+       ],
+       "edges": [
+        0.2423,
+        0.242475,
+        0.24265,
+        0.242825,
+        0.243,
+        0.243175,
+        0.24335,
+        0.243525,
+        0.2437,
+        0.243875,
+        0.24405,
+        0.244225,
+        0.2444
+       ]
+      },
+      "max": 0.2444,
+      "mean": 0.243533,
+      "min": 0.2423,
+      "n": 15,
+      "p50": 0.2436,
+      "p90": 0.2443,
+      "p99": 0.2444,
+      "stdev": 0.000567,
+      "unit": "s"
+     }
+    },
+    "steady_state_inference": {
+     "histogram": {
+      "counts": [
+       15,
+       15,
+       15,
+       0,
+       15,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       15
+      ],
+      "edges": [
+       0.2423,
+       0.367917,
+       0.493533,
+       0.61915,
+       0.744767,
+       0.870383,
+       0.996,
+       1.121617,
+       1.247233,
+       1.37285,
+       1.498467,
+       1.624083,
+       1.7497
+      ]
+     },
+     "max": 1.7497,
+     "mean": 0.767833,
+     "min": 0.2423,
+     "n": 75,
+     "p50": 0.5644,
+     "p90": 1.7379,
+     "p99": 1.7497,
+     "stdev": 0.528296,
+     "unit": "s"
+    }
+   }
+  },
+  "e9p1": {
+   "cold": {
+    "assets_load": {
+     "histogram": {
+      "counts": [
+       1,
+       0,
+       0,
+       0,
+       2,
+       0,
+       0,
+       0,
+       0,
+       0,
+       1,
+       1
+      ],
+      "edges": [
+       0.4771,
+       0.4796,
+       0.4821,
+       0.4846,
+       0.4871,
+       0.4896,
+       0.4921,
+       0.4946,
+       0.4971,
+       0.4996,
+       0.5021,
+       0.5046,
+       0.5071
+      ]
+     },
+     "max": 0.5071,
+     "mean": 0.4928,
+     "min": 0.4771,
+     "n": 5,
+     "p50": 0.4893,
+     "p90": 0.5071,
+     "p99": 0.5071,
+     "stdev": 0.012232,
+     "unit": "s"
+    },
+    "context_init": {
+     "histogram": {
+      "counts": [
+       2,
+       0,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0,
+       0,
+       1,
+       0,
+       1
+      ],
+      "edges": [
+       0.1622,
+       0.162533,
+       0.162867,
+       0.1632,
+       0.163533,
+       0.163867,
+       0.1642,
+       0.164533,
+       0.164867,
+       0.1652,
+       0.165533,
+       0.165867,
+       0.1662
+      ]
+     },
+     "max": 0.1662,
+     "mean": 0.16394,
+     "min": 0.1622,
+     "n": 5,
+     "p50": 0.1636,
+     "p90": 0.1662,
+     "p99": 0.1662,
+     "stdev": 0.001851,
+     "unit": "s"
+    },
+    "first_request_inference": {
+     "histogram": {
+      "counts": [
+       2,
+       0,
+       0,
+       0,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0,
+       1,
+       1
+      ],
+      "edges": [
+       0.2433,
+       0.243467,
+       0.243633,
+       0.2438,
+       0.243967,
+       0.244133,
+       0.2443,
+       0.244467,
+       0.244633,
+       0.2448,
+       0.244967,
+       0.245133,
+       0.2453
+      ]
+     },
+     "max": 0.2453,
+     "mean": 0.24428,
+     "min": 0.2433,
+     "n": 5,
+     "p50": 0.2444,
+     "p90": 0.2453,
+     "p99": 0.2453,
+     "stdev": 0.000909,
+     "unit": "s"
+    },
+    "first_request_total": {
+     "histogram": {
+      "counts": [
+       1,
+       0,
+       0,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0,
+       0,
+       2,
+       1
+      ],
+      "edges": [
+       9.2179,
+       9.226158,
+       9.234417,
+       9.242675,
+       9.250933,
+       9.259192,
+       9.26745,
+       9.275708,
+       9.283967,
+       9.292225,
+       9.300483,
+       9.308742,
+       9.317
+      ]
+     },
+     "max": 9.317,
+     "mean": 9.28084,
+     "min": 9.2179,
+     "n": 5,
+     "p50": 9.3011,
+     "p90": 9.317,
+     "p99": 9.317,
+     "stdev": 0.04142,
+     "unit": "s"
+    },
+    "ggml_backend_load": {
+     "histogram": {
+      "counts": [
+       4,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       1
+      ],
+      "edges": [
+       0.0051,
+       0.005108,
+       0.005117,
+       0.005125,
+       0.005133,
+       0.005142,
+       0.00515,
+       0.005158,
+       0.005167,
+       0.005175,
+       0.005183,
+       0.005192,
+       0.0052
+      ]
+     },
+     "max": 0.0052,
+     "mean": 0.00512,
+     "min": 0.0051,
+     "n": 5,
+     "p50": 0.0051,
+     "p90": 0.0052,
+     "p99": 0.0052,
+     "stdev": 4.5e-05,
+     "unit": "s"
+    },
+    "imports": {
+     "histogram": {
+      "counts": [
+       1,
+       1,
+       0,
+       0,
+       0,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0,
+       2
+      ],
+      "edges": [
+       0.4509,
+       0.452125,
+       0.45335,
+       0.454575,
+       0.4558,
+       0.457025,
+       0.45825,
+       0.459475,
+       0.4607,
+       0.461925,
+       0.46315,
+       0.464375,
+       0.4656
+      ]
+     },
+     "max": 0.4656,
+     "mean": 0.45896,
+     "min": 0.4509,
+     "n": 5,
+     "p50": 0.4606,
+     "p90": 0.4656,
+     "p99": 0.4656,
+     "stdev": 0.006936,
+     "unit": "s"
+    },
+    "model_load_mmap": {
+     "histogram": {
+      "counts": [
+       1,
+       1,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       1,
+       0,
+       0,
+       2
+      ],
+      "edges": [
+       7.6384,
+       7.643583,
+       7.648767,
+       7.65395,
+       7.659133,
+       7.664317,
+       7.6695,
+       7.674683,
+       7.679867,
+       7.68505,
+       7.690233,
+       7.695417,
+       7.7006
+      ]
+     },
+     "max": 7.7006,
+     "mean": 7.67186,
+     "min": 7.6384,
+     "n": 5,
+     "p50": 7.681,
+     "p90": 7.7006,
+     "p99": 7.7006,
+     "stdev": 0.029049,
+     "unit": "s"
+    },
+    "model_ready": {
+     "histogram": {
+      "counts": [
+       1,
+       0,
+       0,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0,
+       0,
+       2,
+       1
+      ],
+      "edges": [
+       9.2179,
+       9.226158,
+       9.234417,
+       9.242675,
+       9.250933,
+       9.259192,
+       9.26745,
+       9.275708,
+       9.283967,
+       9.292225,
+       9.300483,
+       9.308742,
+       9.317
+      ]
+     },
+     "max": 9.317,
+     "mean": 9.28084,
+     "min": 9.2179,
+     "n": 5,
+     "p50": 9.3011,
+     "p90": 9.317,
+     "p99": 9.317,
+     "stdev": 0.04142,
+     "unit": "s"
+    },
+    "n": 5,
+    "report_max_memory_mb": {
+     "histogram": {
+      "counts": [
+       1,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       1,
+       0,
+       0,
+       1,
+       2
+      ],
+      "edges": [
+       4862.753906,
+       4862.77474,
+       4862.795573,
+       4862.816406,
+       4862.83724,
+       4862.858073,
+       4862.878906,
+       4862.89974,
+       4862.920573,
+       4862.941406,
+       4862.96224,
+       4862.983073,
+       4863.003906
+      ]
+     },
+     "max": 4863.003906,
+     "mean": 4862.925781,
+     "min": 4862.753906,
+     "n": 5,
+     "p50": 4862.964844,
+     "p90": 4863.003906,
+     "p99": 4863.003906,
+     "stdev": 0.102906,
+     "unit": "MB"
+    },
+    "warmup_inference": {
+     "histogram": {
+      "counts": [
+       4,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       1
+      ],
+      "edges": [
+       0.228,
+       0.230308,
+       0.232617,
+       0.234925,
+       0.237233,
+       0.239542,
+       0.24185,
+       0.244158,
+       0.246467,
+       0.248775,
+       0.251083,
+       0.253392,
+       0.2557
+      ]
+     },
+     "max": 0.2557,
+     "mean": 0.2338,
+     "min": 0.228,
+     "n": 5,
+     "p50": 0.2286,
+     "p90": 0.2557,
+     "p99": 0.2557,
+     "stdev": 0.012247,
+     "unit": "s"
+    },
+    "weight_download": null
+   },
+   "restore": {
+    "first_request_inference": null,
+    "n": 0,
+    "report_restore_duration": null,
+    "snapshot_init": null
+   },
+   "warm": {
+    "forward_4096_tokens": {
+     "histogram": {
+      "counts": [
+       3,
+       2,
+       3,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       2
+      ],
+      "edges": [
+       15.7764,
+       15.797458,
+       15.818517,
+       15.839575,
+       15.860633,
+       15.881692,
+       15.90275,
+       15.923808,
+       15.944867,
+       15.965925,
+       15.986983,
+       16.008042,
+       16.0291
+      ]
+     },
+     "max": 16.0291,
+     "mean": 15.84911,
+     "min": 15.7764,
+     "n": 10,
+     "p50": 15.8077,
+     "p90": 16.0282,
+     "p99": 16.0291,
+     "stdev": 0.095903,
+     "unit": "s"
+    },
+    "n": 75,
+    "steady_state_by_request": {
+     "agent-action-guard-2q": {
+      "histogram": {
+       "counts": [
+        3,
+        1,
+        2,
+        0,
+        3,
+        1,
+        0,
+        2,
+        2,
+        0,
+        0,
+        1
+       ],
+       "edges": [
+        0.851,
+        0.851725,
+        0.85245,
+        0.853175,
+        0.8539,
+        0.854625,
+        0.85535,
+        0.856075,
+        0.8568,
+        0.857525,
+        0.85825,
+        0.858975,
+        0.8597
+       ]
+      },
+      "max": 0.8597,
+      "mean": 0.854427,
+      "min": 0.851,
+      "n": 15,
+      "p50": 0.8542,
+      "p90": 0.8573,
+      "p99": 0.8597,
+      "stdev": 0.002543,
+      "unit": "s"
+     },
+     "cracked-screen-2q": {
+      "histogram": {
+       "counts": [
+        1,
+        0,
+        1,
+        1,
+        3,
+        3,
+        1,
+        0,
+        1,
+        1,
+        2,
+        1
+       ],
+       "edges": [
+        0.4348,
+        0.435367,
+        0.435933,
+        0.4365,
+        0.437067,
+        0.437633,
+        0.4382,
+        0.438767,
+        0.439333,
+        0.4399,
+        0.440467,
+        0.441033,
+        0.4416
+       ]
+      },
+      "max": 0.4416,
+      "mean": 0.438373,
+      "min": 0.4348,
+      "n": 15,
+      "p50": 0.438,
+      "p90": 0.4409,
+      "p99": 0.4416,
+      "stdev": 0.001844,
+      "unit": "s"
+     },
+     "incident-review-4q": {
+      "histogram": {
+       "counts": [
+        4,
+        4,
+        3,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        2
+       ],
+       "edges": [
+        1.7345,
+        1.736258,
+        1.738017,
+        1.739775,
+        1.741533,
+        1.743292,
+        1.74505,
+        1.746808,
+        1.748567,
+        1.750325,
+        1.752083,
+        1.753842,
+        1.7556
+       ]
+      },
+      "max": 1.7556,
+      "mean": 1.740853,
+      "min": 1.7345,
+      "n": 15,
+      "p50": 1.7378,
+      "p90": 1.755,
+      "p99": 1.7556,
+      "stdev": 0.007036,
+      "unit": "s"
+     },
+     "payouts-3q": {
+      "histogram": {
+       "counts": [
+        1,
+        1,
+        4,
+        1,
+        0,
+        0,
+        3,
+        3,
+        0,
+        0,
+        0,
+        2
+       ],
+       "edges": [
+        0.5591,
+        0.559992,
+        0.560883,
+        0.561775,
+        0.562667,
+        0.563558,
+        0.56445,
+        0.565342,
+        0.566233,
+        0.567125,
+        0.568017,
+        0.568908,
+        0.5698
+       ]
+      },
+      "max": 0.5698,
+      "mean": 0.563913,
+      "min": 0.5591,
+      "n": 15,
+      "p50": 0.5647,
+      "p90": 0.5694,
+      "p99": 0.5698,
+      "stdev": 0.003178,
+      "unit": "s"
+     },
+     "ticket-route-1q": {
+      "histogram": {
+       "counts": [
+        2,
+        1,
+        0,
+        1,
+        4,
+        0,
+        1,
+        2,
+        1,
+        1,
+        1,
+        1
+       ],
+       "edges": [
+        0.2418,
+        0.242075,
+        0.24235,
+        0.242625,
+        0.2429,
+        0.243175,
+        0.24345,
+        0.243725,
+        0.244,
+        0.244275,
+        0.24455,
+        0.244825,
+        0.2451
+       ]
+      },
+      "max": 0.2451,
+      "mean": 0.24338,
+      "min": 0.2418,
+      "n": 15,
+      "p50": 0.2431,
+      "p90": 0.2448,
+      "p99": 0.2451,
+      "stdev": 0.000985,
+      "unit": "s"
+     }
+    },
+    "steady_state_inference": {
+     "histogram": {
+      "counts": [
+       15,
+       15,
+       15,
+       0,
+       15,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       15
+      ],
+      "edges": [
+       0.2418,
+       0.36795,
+       0.4941,
+       0.62025,
+       0.7464,
+       0.87255,
+       0.9987,
+       1.12485,
+       1.251,
+       1.37715,
+       1.5033,
+       1.62945,
+       1.7556
+      ]
+     },
+     "max": 1.7556,
+     "mean": 0.768189,
+     "min": 0.2418,
+     "n": 75,
+     "p50": 0.5647,
+     "p90": 1.7378,
+     "p99": 1.7556,
+     "stdev": 0.528801,
+     "unit": "s"
+    }
+   }
+  },
+  "p1": {
+   "cold": {
+    "assets_load": {
+     "histogram": {
+      "counts": [
+       1,
+       2,
+       0,
+       1,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       1
+      ],
+      "edges": [
+       0.5019,
+       0.50335,
+       0.5048,
+       0.50625,
+       0.5077,
+       0.50915,
+       0.5106,
+       0.51205,
+       0.5135,
+       0.51495,
+       0.5164,
+       0.51785,
+       0.5193
+      ]
+     },
+     "max": 0.5193,
+     "mean": 0.50712,
+     "min": 0.5019,
+     "n": 5,
+     "p50": 0.5041,
+     "p90": 0.5193,
+     "p99": 0.5193,
+     "stdev": 0.006984,
+     "unit": "s"
+    },
+    "context_init": {
+     "histogram": {
+      "counts": [
+       1,
+       1,
+       0,
+       1,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       2
+      ],
+      "edges": [
+       0.1596,
+       0.1601,
+       0.1606,
+       0.1611,
+       0.1616,
+       0.1621,
+       0.1626,
+       0.1631,
+       0.1636,
+       0.1641,
+       0.1646,
+       0.1651,
+       0.1656
+      ]
+     },
+     "max": 0.1656,
+     "mean": 0.16234,
+     "min": 0.1596,
+     "n": 5,
+     "p50": 0.1612,
+     "p90": 0.1656,
+     "p99": 0.1656,
+     "stdev": 0.002856,
+     "unit": "s"
+    },
+    "first_request_inference": {
+     "histogram": {
+      "counts": [
+       1,
+       1,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       1,
+       1,
+       0,
+       1
+      ],
+      "edges": [
+       0.2429,
+       0.2431,
+       0.2433,
+       0.2435,
+       0.2437,
+       0.2439,
+       0.2441,
+       0.2443,
+       0.2445,
+       0.2447,
+       0.2449,
+       0.2451,
+       0.2453
+      ]
+     },
+     "max": 0.2453,
+     "mean": 0.24412,
+     "min": 0.2429,
+     "n": 5,
+     "p50": 0.2445,
+     "p90": 0.2453,
+     "p99": 0.2453,
+     "stdev": 0.001026,
+     "unit": "s"
+    },
+    "first_request_total": {
+     "histogram": {
+      "counts": [
+       1,
+       0,
+       0,
+       0,
+       0,
+       0,
+       2,
+       0,
+       1,
+       0,
+       0,
+       1
+      ],
+      "edges": [
+       9.3297,
+       9.336883,
+       9.344067,
+       9.35125,
+       9.358433,
+       9.365617,
+       9.3728,
+       9.379983,
+       9.387167,
+       9.39435,
+       9.401533,
+       9.408717,
+       9.4159
+      ]
+     },
+     "max": 9.4159,
+     "mean": 9.37784,
+     "min": 9.3297,
+     "n": 5,
+     "p50": 9.378,
+     "p90": 9.4159,
+     "p99": 9.4159,
+     "stdev": 0.031184,
+     "unit": "s"
+    },
+    "ggml_backend_load": {
+     "histogram": {
+      "counts": [
+       3,
+       0,
+       0,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0,
+       0,
+       0,
+       1
+      ],
+      "edges": [
+       0.0051,
+       0.005117,
+       0.005133,
+       0.00515,
+       0.005167,
+       0.005183,
+       0.0052,
+       0.005217,
+       0.005233,
+       0.00525,
+       0.005267,
+       0.005283,
+       0.0053
+      ]
+     },
+     "max": 0.0053,
+     "mean": 0.00516,
+     "min": 0.0051,
+     "n": 5,
+     "p50": 0.0051,
+     "p90": 0.0053,
+     "p99": 0.0053,
+     "stdev": 8.9e-05,
+     "unit": "s"
+    },
+    "imports": {
+     "histogram": {
+      "counts": [
+       1,
+       0,
+       0,
+       0,
+       0,
+       0,
+       1,
+       1,
+       1,
+       0,
+       0,
+       1
+      ],
+      "edges": [
+       0.4504,
+       0.451575,
+       0.45275,
+       0.453925,
+       0.4551,
+       0.456275,
+       0.45745,
+       0.458625,
+       0.4598,
+       0.460975,
+       0.46215,
+       0.463325,
+       0.4645
+      ]
+     },
+     "max": 0.4645,
+     "mean": 0.45848,
+     "min": 0.4504,
+     "n": 5,
+     "p50": 0.459,
+     "p90": 0.4645,
+     "p99": 0.4645,
+     "stdev": 0.005102,
+     "unit": "s"
+    },
+    "model_load_mmap": {
+     "histogram": {
+      "counts": [
+       1,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       1,
+       1,
+       0,
+       2
+      ],
+      "edges": [
+       7.7278,
+       7.73195,
+       7.7361,
+       7.74025,
+       7.7444,
+       7.74855,
+       7.7527,
+       7.75685,
+       7.761,
+       7.76515,
+       7.7693,
+       7.77345,
+       7.7776
+      ]
+     },
+     "max": 7.7776,
+     "mean": 7.76178,
+     "min": 7.7278,
+     "n": 5,
+     "p50": 7.7655,
+     "p90": 7.7776,
+     "p99": 7.7776,
+     "stdev": 0.019911,
+     "unit": "s"
+    },
+    "model_ready": {
+     "histogram": {
+      "counts": [
+       1,
+       0,
+       0,
+       0,
+       0,
+       0,
+       2,
+       0,
+       1,
+       0,
+       0,
+       1
+      ],
+      "edges": [
+       9.3297,
+       9.336883,
+       9.344067,
+       9.35125,
+       9.358433,
+       9.365617,
+       9.3728,
+       9.379983,
+       9.387167,
+       9.39435,
+       9.401533,
+       9.408717,
+       9.4159
+      ]
+     },
+     "max": 9.4159,
+     "mean": 9.37784,
+     "min": 9.3297,
+     "n": 5,
+     "p50": 9.378,
+     "p90": 9.4159,
+     "p99": 9.4159,
+     "stdev": 0.031184,
+     "unit": "s"
+    },
+    "n": 5,
+    "report_max_memory_mb": {
+     "histogram": {
+      "counts": [
+       1,
+       0,
+       1,
+       1,
+       1,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       1
+      ],
+      "edges": [
+       4879.414062,
+       4879.435221,
+       4879.45638,
+       4879.477539,
+       4879.498698,
+       4879.519857,
+       4879.541016,
+       4879.562174,
+       4879.583333,
+       4879.604492,
+       4879.625651,
+       4879.64681,
+       4879.667969
+      ]
+     },
+     "max": 4879.667969,
+     "mean": 4879.507812,
+     "min": 4879.414062,
+     "n": 5,
+     "p50": 4879.492188,
+     "p90": 4879.667969,
+     "p99": 4879.667969,
+     "stdev": 0.095643,
+     "unit": "MB"
+    },
+    "warmup_inference": {
+     "histogram": {
+      "counts": [
+       1,
+       1,
+       0,
+       0,
+       0,
+       0,
+       2,
+       0,
+       0,
+       0,
+       0,
+       1
+      ],
+      "edges": [
+       0.2275,
+       0.227725,
+       0.22795,
+       0.228175,
+       0.2284,
+       0.228625,
+       0.22885,
+       0.229075,
+       0.2293,
+       0.229525,
+       0.22975,
+       0.229975,
+       0.2302
+      ]
+     },
+     "max": 0.2302,
+     "mean": 0.22868,
+     "min": 0.2275,
+     "n": 5,
+     "p50": 0.2289,
+     "p90": 0.2302,
+     "p99": 0.2302,
+     "stdev": 0.001076,
+     "unit": "s"
+    },
+    "weight_download": null
+   },
+   "restore": {
+    "first_request_inference": null,
+    "n": 0,
+    "report_restore_duration": null,
+    "snapshot_init": null
+   },
+   "warm": {
+    "forward_4096_tokens": {
+     "histogram": {
+      "counts": [
+       4,
+       3,
+       1,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       2
+      ],
+      "edges": [
+       15.777,
+       15.799558,
+       15.822117,
+       15.844675,
+       15.867233,
+       15.889792,
+       15.91235,
+       15.934908,
+       15.957467,
+       15.980025,
+       16.002583,
+       16.025142,
+       16.0477
+      ]
+     },
+     "max": 16.0477,
+     "mean": 15.84595,
+     "min": 15.777,
+     "n": 10,
+     "p50": 15.8025,
+     "p90": 16.0383,
+     "p99": 16.0477,
+     "stdev": 0.105157,
+     "unit": "s"
+    },
+    "n": 75,
+    "steady_state_by_request": {
+     "agent-action-guard-2q": {
+      "histogram": {
+       "counts": [
+        1,
+        0,
+        5,
+        1,
+        3,
+        1,
+        1,
+        1,
+        1,
+        0,
+        0,
+        1
+       ],
+       "edges": [
+        0.8527,
+        0.853742,
+        0.854783,
+        0.855825,
+        0.856867,
+        0.857908,
+        0.85895,
+        0.859992,
+        0.861033,
+        0.862075,
+        0.863117,
+        0.864158,
+        0.8652
+       ]
+      },
+      "max": 0.8652,
+      "mean": 0.85742,
+      "min": 0.8527,
+      "n": 15,
+      "p50": 0.8569,
+      "p90": 0.8619,
+      "p99": 0.8652,
+      "stdev": 0.003271,
+      "unit": "s"
+     },
+     "cracked-screen-2q": {
+      "histogram": {
+       "counts": [
+        2,
+        1,
+        1,
+        2,
+        2,
+        2,
+        0,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "edges": [
+        0.4365,
+        0.437025,
+        0.43755,
+        0.438075,
+        0.4386,
+        0.439125,
+        0.43965,
+        0.440175,
+        0.4407,
+        0.441225,
+        0.44175,
+        0.442275,
+        0.4428
+       ]
+      },
+      "max": 0.4428,
+      "mean": 0.439287,
+      "min": 0.4365,
+      "n": 15,
+      "p50": 0.4391,
+      "p90": 0.4422,
+      "p99": 0.4428,
+      "stdev": 0.001954,
+      "unit": "s"
+     },
+     "incident-review-4q": {
+      "histogram": {
+       "counts": [
+        4,
+        3,
+        3,
+        3,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1
+       ],
+       "edges": [
+        1.7352,
+        1.737033,
+        1.738867,
+        1.7407,
+        1.742533,
+        1.744367,
+        1.7462,
+        1.748033,
+        1.749867,
+        1.7517,
+        1.753533,
+        1.755367,
+        1.7572
+       ]
+      },
+      "max": 1.7572,
+      "mean": 1.740827,
+      "min": 1.7352,
+      "n": 15,
+      "p50": 1.7392,
+      "p90": 1.754,
+      "p99": 1.7572,
+      "stdev": 0.006463,
+      "unit": "s"
+     },
+     "payouts-3q": {
+      "histogram": {
+       "counts": [
+        1,
+        4,
+        5,
+        1,
+        1,
+        1,
+        0,
+        1,
+        0,
+        0,
+        0,
+        1
+       ],
+       "edges": [
+        0.5616,
+        0.563142,
+        0.564683,
+        0.566225,
+        0.567767,
+        0.569308,
+        0.57085,
+        0.572392,
+        0.573933,
+        0.575475,
+        0.577017,
+        0.578558,
+        0.5801
+       ]
+      },
+      "max": 0.5801,
+      "mean": 0.56698,
+      "min": 0.5616,
+      "n": 15,
+      "p50": 0.5651,
+      "p90": 0.573,
+      "p99": 0.5801,
+      "stdev": 0.004571,
+      "unit": "s"
+     },
+     "ticket-route-1q": {
+      "histogram": {
+       "counts": [
+        1,
+        1,
+        0,
+        0,
+        2,
+        1,
+        3,
+        2,
+        2,
+        1,
+        1,
+        1
+       ],
+       "edges": [
+        0.2412,
+        0.241617,
+        0.242033,
+        0.24245,
+        0.242867,
+        0.243283,
+        0.2437,
+        0.244117,
+        0.244533,
+        0.24495,
+        0.245367,
+        0.245783,
+        0.2462
+       ]
+      },
+      "max": 0.2462,
+      "mean": 0.243927,
+      "min": 0.2412,
+      "n": 15,
+      "p50": 0.2437,
+      "p90": 0.2457,
+      "p99": 0.2462,
+      "stdev": 0.001352,
+      "unit": "s"
+     }
+    },
+    "steady_state_inference": {
+     "histogram": {
+      "counts": [
+       15,
+       15,
+       15,
+       0,
+       15,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       15
+      ],
+      "edges": [
+       0.2412,
+       0.367533,
+       0.493867,
+       0.6202,
+       0.746533,
+       0.872867,
+       0.9992,
+       1.125533,
+       1.251867,
+       1.3782,
+       1.504533,
+       1.630867,
+       1.7572
+      ]
+     },
+     "max": 1.7572,
+     "mean": 0.769688,
+     "min": 0.2412,
+     "n": 75,
+     "p50": 0.5651,
+     "p90": 1.7392,
+     "p99": 1.7572,
+     "stdev": 0.528427,
+     "unit": "s"
+    }
+   }
+  }
+ },
+ "primary_arm": "e9",
+ "profiling_artifacts": [],
+ "reproduce": [
+  "see examples/lambda-kleidiai/general/README.md 'Reproduce'",
+  "python3 general/run_ladder.py <stage>/arms.json <out> --rounds 5 --cpuset 10-15 --threads 6",
+  "python3 general/summarize.py <arm64 run> <x86 run> <x86 e6 run> --out <dir> --verdicts general/verdicts.json --commit <ladder sha> --run-id <id>"
+ ],
+ "run_id": "20261025T090459Z-general",
+ "schema": "lkai-result/1",
+ "status": "improved",
+ "variance": {
+  "paired_vs_p1": {
+   "metrics": {
+    "context_init_s": {
+     "arm_median": 0.163,
+     "arm_spread": 0.0019,
+     "control_median": 0.1612,
+     "control_spread": 0.006,
+     "delta_median": 0.0018,
+     "delta_pct": 1.117,
+     "deltas": [
+      0.0022,
+      -0.0026,
+      0.0036,
+      -0.0029,
+      0.0018
+     ],
+     "outcome": "no change",
+     "threshold": 0.006,
+     "unit": "s"
+    },
+    "first_inference_s": {
+     "arm_median": 0.2287,
+     "arm_spread": 0.0016,
+     "control_median": 0.2289,
+     "control_spread": 0.0027,
+     "delta_median": -0.0003,
+     "delta_pct": -0.131,
+     "deltas": [
+      -0.0019,
+      0.0023,
+      -0.0007,
+      -0.0003,
+      0.0011
+     ],
+     "outcome": "no change",
+     "threshold": 0.0027,
+     "unit": "s"
+    },
+    "first_request_s": {
+     "arm_median": 0.2447,
+     "arm_spread": 0.0013,
+     "control_median": 0.2445,
+     "control_spread": 0.0024,
+     "delta_median": 0.0002,
+     "delta_pct": 0.082,
+     "deltas": [
+      0.0002,
+      0.0015,
+      0.0001,
+      -0.0004,
+      0.0016
+     ],
+     "outcome": "no change",
+     "threshold": 0.0024,
+     "unit": "s"
+    },
+    "forward4096_s": {
+     "arm_median": 15.7959,
+     "arm_spread": 0.15605,
+     "control_median": 15.7905,
+     "control_spread": 0.25665,
+     "delta_median": -0.0024,
+     "delta_pct": -0.015,
+     "deltas": [
+      -0.10405,
+      0.02365,
+      -0.007,
+      -0.0024,
+      0.0054
+     ],
+     "outcome": "no change",
+     "threshold": 0.25665,
+     "unit": "s"
+    },
+    "imports_s": {
+     "arm_median": 0.4579,
+     "arm_spread": 0.0094,
+     "control_median": 0.459,
+     "control_spread": 0.0141,
+     "delta_median": -0.0021,
+     "delta_pct": -0.458,
+     "deltas": [
+      0.0092,
+      -0.0036,
+      -0.004,
+      -0.0006,
+      -0.0021
+     ],
+     "outcome": "no change",
+     "threshold": 0.0141,
+     "unit": "s"
+    },
+    "load_s": {
+     "arm_median": 3.105,
+     "arm_spread": 0.0484,
+     "control_median": 7.934,
+     "control_spread": 0.0556,
+     "delta_median": -4.8268,
+     "delta_pct": -60.837,
+     "deltas": [
+      -4.7902,
+      -4.8388,
+      -4.8311,
+      -4.8045,
+      -4.8268
+     ],
+     "outcome": "better",
+     "threshold": 0.0556,
+     "unit": "s"
+    },
+    "model_load_mmap_s": {
+     "arm_median": 2.9369,
+     "arm_spread": 0.049,
+     "control_median": 7.7655,
+     "control_spread": 0.0498,
+     "delta_median": -4.8286,
+     "delta_pct": -62.18,
+     "deltas": [
+      -4.7925,
+      -4.8363,
+      -4.8347,
+      -4.8015,
+      -4.8286
+     ],
+     "outcome": "better",
+     "threshold": 0.0498,
+     "unit": "s"
+    },
+    "model_ready_s": {
+     "arm_median": 4.546,
+     "arm_spread": 0.0694,
+     "control_median": 9.378,
+     "control_spread": 0.0862,
+     "delta_median": -4.8315,
+     "delta_pct": -51.52,
+     "deltas": [
+      -4.7837,
+      -4.8455,
+      -4.8363,
+      -4.814,
+      -4.8315
+     ],
+     "outcome": "better",
+     "threshold": 0.0862,
+     "unit": "s"
+    },
+    "peak_rss_mb": {
+     "arm_median": 4853.730469,
+     "arm_spread": 0.1875,
+     "control_median": 4879.492188,
+     "control_spread": 0.253906,
+     "delta_median": -25.730469,
+     "delta_pct": -0.527,
+     "deltas": [
+      -25.722656,
+      -25.730469,
+      -25.800781,
+      -25.9375,
+      -25.640625
+     ],
+     "outcome": "no change",
+     "threshold": 48.794922,
+     "unit": "MB"
+    },
+    "warm_s": {
+     "arm_median": 0.5644,
+     "arm_spread": 0.0018,
+     "control_median": 0.5651,
+     "control_spread": 0.006,
+     "delta_median": -0.0015,
+     "delta_pct": -0.265,
+     "deltas": [
+      -0.0051,
+      0.0009,
+      -0.0015,
+      -0.0025,
+      -0.0007
+     ],
+     "outcome": "no change",
+     "threshold": 0.006,
+     "unit": "s"
+    }
+   },
+   "n": 5,
+   "rounds": [
+    [
+     "20261025T090459Z",
+     0
+    ],
+    [
+     "20261025T090459Z",
+     1
+    ],
+    [
+     "20261025T090459Z",
+     2
+    ],
+    [
+     "20261025T090459Z",
+     3
+    ],
+    [
+     "20261025T090459Z",
+     4
+    ]
+   ]
+  },
+  "rule": "no change when |median paired delta| <= p1's per-round range or the paired deltas change sign"
+ },
+ "x86_64": {
+  "failed_loads": [
+   {
+    "arm": "e9",
+    "mode": "local",
+    "pos": 2,
+    "rc": 1,
+    "round": 0,
+    "run": "20261025T091746Z-x86",
+    "started": 1792920006.7946472,
+    "stderr": "Traceback (most recent call last):\n  File \"/g/probe.py\", line 257, in <module>\n    main()\n  File \"/g/probe.py\", line 172, in main\n    eng, shim = engine.load_engine(\n                ^^^^^^^^^^^^^^^^^^^\n  File \"/var/task/engine.py\", line 237, in load_engine\n    shim = Shim(os.path.join(os.path.dirname(lib_path), \"libdecshim.so\"), gguf_path, threads,\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/var/task/engine.py\", line 116, in __init__\n    raise RuntimeError(f\"dec_load_seq failed for {model_path}\")\nRuntimeError: dec_load_seq failed for /m/model.gguf\n",
+    "stdout": "",
+    "wall_s": 1.507
+   },
+   {
+    "arm": "e9",
+    "mode": "local",
+    "pos": 1,
+    "rc": 1,
+    "round": 1,
+    "run": "20261025T091746Z-x86",
+    "started": 1792920403.454619,
+    "stderr": "Traceback (most recent call last):\n  File \"/g/probe.py\", line 257, in <module>\n    main()\n  File \"/g/probe.py\", line 172, in main\n    eng, shim = engine.load_engine(\n                ^^^^^^^^^^^^^^^^^^^\n  File \"/var/task/engine.py\", line 237, in load_engine\n    shim = Shim(os.path.join(os.path.dirname(lib_path), \"libdecshim.so\"), gguf_path, threads,\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/var/task/engine.py\", line 116, in __init__\n    raise RuntimeError(f\"dec_load_seq failed for {model_path}\")\nRuntimeError: dec_load_seq failed for /m/model.gguf\n",
+    "stdout": "",
+    "wall_s": 1.772
+   },
+   {
+    "arm": "e9",
+    "mode": "local",
+    "pos": 0,
+    "rc": 1,
+    "round": 2,
+    "run": "20261025T091746Z-x86",
+    "started": 1792921066.3652396,
+    "stderr": "Traceback (most recent call last):\n  File \"/g/probe.py\", line 257, in <module>\n    main()\n  File \"/g/probe.py\", line 172, in main\n    eng, shim = engine.load_engine(\n                ^^^^^^^^^^^^^^^^^^^\n  File \"/var/task/engine.py\", line 237, in load_engine\n    shim = Shim(os.path.join(os.path.dirname(lib_path), \"libdecshim.so\"), gguf_path, threads,\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/var/task/engine.py\", line 116, in __init__\n    raise RuntimeError(f\"dec_load_seq failed for {model_path}\")\nRuntimeError: dec_load_seq failed for /m/model.gguf\n",
+    "stdout": "",
+    "wall_s": 1.728
+   },
+   {
+    "arm": "e9",
+    "mode": "local",
+    "pos": 7,
+    "rc": 1,
+    "round": 3,
+    "run": "20261025T091746Z-x86",
+    "started": 1792922144.3782387,
+    "stderr": "Traceback (most recent call last):\n  File \"/g/probe.py\", line 257, in <module>\n    main()\n  File \"/g/probe.py\", line 172, in main\n    eng, shim = engine.load_engine(\n                ^^^^^^^^^^^^^^^^^^^\n  File \"/var/task/engine.py\", line 237, in load_engine\n    shim = Shim(os.path.join(os.path.dirname(lib_path), \"libdecshim.so\"), gguf_path, threads,\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/var/task/engine.py\", line 116, in __init__\n    raise RuntimeError(f\"dec_load_seq failed for {model_path}\")\nRuntimeError: dec_load_seq failed for /m/model.gguf\n",
+    "stdout": "",
+    "wall_s": 2.554
+   },
+   {
+    "arm": "e9",
+    "mode": "local",
+    "pos": 6,
+    "rc": 1,
+    "round": 4,
+    "run": "20261025T091746Z-x86",
+    "started": 1792922686.5378768,
+    "stderr": "Traceback (most recent call last):\n  File \"/g/probe.py\", line 257, in <module>\n    main()\n  File \"/g/probe.py\", line 172, in main\n    eng, shim = engine.load_engine(\n                ^^^^^^^^^^^^^^^^^^^\n  File \"/var/task/engine.py\", line 237, in load_engine\n    shim = Shim(os.path.join(os.path.dirname(lib_path), \"libdecshim.so\"), gguf_path, threads,\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/var/task/engine.py\", line 116, in __init__\n    raise RuntimeError(f\"dec_load_seq failed for {model_path}\")\nRuntimeError: dec_load_seq failed for /m/model.gguf\n",
+    "stdout": "",
+    "wall_s": 1.756
+   }
+  ]
+ }
+}
