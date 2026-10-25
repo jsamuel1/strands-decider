@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="350" viewBox="0 0 640 350" role="img" aria-label="Cold first request: seconds saved per change (0xd40)" font-family="Helvetica, Arial, sans-serif">
+<rect width="640" height="350" fill="#ffffff"/>
+<text x="12" y="24" font-size="15" font-weight="bold" fill="#1a1a1a">Cold first request: seconds saved per change (0xd40)</text>
+<text x="192" y="61" font-size="12" text-anchor="end" fill="#1a1a1a">6-thread repack (E8)</text>
+<rect x="200" y="46" width="360.0" height="22" fill="#1f6f3f"/>
+<text x="566.0" y="61" font-size="12" fill="#1a1a1a">5.42 s</text>
+<text x="192" y="91" font-size="12" text-anchor="end" fill="#1a1a1a">Pre-packed weights (E9)</text>
+<rect x="200" y="76" width="323.5" height="22" fill="#1f6f3f"/>
+<text x="529.5" y="91" font-size="12" fill="#1a1a1a">4.87 s</text>
+<text x="192" y="121" font-size="12" text-anchor="end" fill="#1a1a1a">Stream into loader (E4)</text>
+<rect x="200" y="106" width="301.5" height="22" fill="#1f6f3f"/>
+<text x="507.5" y="121" font-size="12" fill="#1a1a1a">4.54 s</text>
+<text x="192" y="151" font-size="12" text-anchor="end" fill="#1a1a1a">Skip tied output (E7)</text>
+<rect x="200" y="136" width="140.2" height="22" fill="#1f6f3f"/>
+<text x="346.2" y="151" font-size="12" fill="#1a1a1a">2.11 s</text>
+<text x="192" y="181" font-size="12" text-anchor="end" fill="#1a1a1a">No-vocab GGUF (E5)</text>
+<rect x="200" y="166" width="57.1" height="22" fill="#1f6f3f"/>
+<text x="263.1" y="181" font-size="12" fill="#1a1a1a">0.86 s</text>
+<text x="192" y="211" font-size="12" text-anchor="end" fill="#1a1a1a">Release memfd (E11)</text>
+<rect x="200" y="196" width="14.7" height="22" fill="#9a9a9a"/>
+<text x="220.7" y="211" font-size="12" fill="#1a1a1a">0.22 s</text>
+<text x="192" y="241" font-size="12" text-anchor="end" fill="#1a1a1a">Metadata-only clear (E12)</text>
+<rect x="200" y="226" width="6.8" height="22" fill="#9a9a9a"/>
+<text x="212.8" y="241" font-size="12" fill="#1a1a1a">0.10 s</text>
+<text x="192" y="271" font-size="12" text-anchor="end" fill="#1a1a1a">n_ctx 4096 (E10)</text>
+<rect x="200" y="256" width="5.4" height="22" fill="#9a9a9a"/>
+<text x="211.4" y="271" font-size="12" fill="#1a1a1a">0.08 s</text>
+<text x="192" y="301" font-size="12" text-anchor="end" fill="#1a1a1a">Complete bytecode (E6)</text>
+<rect x="200" y="286" width="1.0" height="22" fill="#9a9a9a"/>
+<text x="207.0" y="301" font-size="12" fill="#1a1a1a">0.01 s</text>
+<text x="12" y="338" font-size="11" fill="#666666">Green: the experiment claims the effect beyond host spread. Grey: no measurable change.</text>
+</svg>

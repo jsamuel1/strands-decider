@@ -1,0 +1,4363 @@
+{
+ "artifacts": {
+  "conditions": "conditions.json",
+  "invocations": "invocations.jsonl",
+  "logs": "logs/"
+ },
+ "build": {
+  "assets_sha256": {
+   "head.safetensors": "2492613e72eac53becb9ff855023261ac2722c5111b9f1e03be59a87328dd799",
+   "head_config.json": "3a6a6a3a135dcdbb29d6d9179d507d511fbba934d3682f354dd3d1130b9813dd",
+   "tokenizer.json": "a2cdd2e108566b09079afa8d266e9e65e7c280f27b771218237a06de5ba9cd86"
+  },
+  "awscrt_wheel": {
+   "file": "awscrt-0.38.0-cp311-abi3-manylinux2014_aarch64.manylinux_2_17_aarch64.whl",
+   "sha256": "f54a804f321912f3d5e856721d5fbfb8129eda8120eec3e9cae8eb26bb9349af"
+  },
+  "e3_sources_sha256": {
+   "e3_entry.py": "104b5ff3f8388c96aa8fad2fd3bbdfc19d42549841fefc0d3fa0becffd6587d9",
+   "e3dl.py": "2fb5148f2ce0a97eaa4c8129fd2eacb7d905ebbff157632aa67872112a20f7c7"
+  },
+  "e3_zip": {
+   "added": [
+    "e3dl.py",
+    "e3_entry.py",
+    "_awscrt.abi3.so",
+    "awscrt/",
+    "awscrt/__init__.py",
+    "awscrt/_test.py",
+    "awscrt/auth.py",
+    "awscrt/aws_iot_metrics.py",
+    "awscrt/cbor.py",
+    "awscrt/checksums.py",
+    "awscrt/common.py",
+    "awscrt/crypto.py",
+    "awscrt/exceptions.py",
+    "awscrt/http.py",
+    "awscrt/io.py",
+    "awscrt/logging.py",
+    "awscrt/mqtt.py",
+    "awscrt/mqtt5.py",
+    "awscrt/mqtt_request_response.py",
+    "awscrt/s3.py",
+    "awscrt/websocket.py",
+    "awscrt/aio/",
+    "awscrt/aio/__init__.py",
+    "awscrt/aio/http.py",
+    "awscrt/eventstream/",
+    "awscrt/eventstream/__init__.py",
+    "awscrt/eventstream/rpc.py",
+    "awscrt-0.38.0.dist-info/METADATA",
+    "awscrt-0.38.0.dist-info/WHEEL",
+    "awscrt-0.38.0.dist-info/RECORD"
+   ],
+   "base": "P1 function.zip d148d706027e1b920f489abd6d92b7021df1fbcfeddf0ba89f82f9131d0d230b",
+   "bytes": 56041705,
+   "handler": "e3_entry.handler",
+   "sha256": "4a81582cae534cd6f575072647d4506322a3bc423e78807b52b0c0d9b13fe382"
+  },
+  "images": {
+   "lambda_build": "public.ecr.aws/lambda/python@sha256:37fe9ca4183c36ec57e4c5eabb8893cd9fbc9c0f3053b903d9a57eb2bd6bafcc",
+   "weights": "python@sha256:5560e9ab8709f459489e5b8aa696eda8a07ef821e14bb122be62d91234bfa98b"
+  },
+  "toolchain": [
+   "gcc (GCC) 11.5.0 20240719 (Red Hat 11.5.0-5)",
+   "Python 3.12.15"
+  ]
+ },
+ "changed_variable": {
+  "baseline": "threads:64:32 (P1 loader.download_to_memfd: HEAD + 64 MiB ranged GETs on 32 threads into a memfd (threads:64:32))",
+  "experiment": "crtfile:16:25",
+  "name": "weight_download_strategy"
+ },
+ "classification": {
+  "expected_vs_observed": {
+   "cold->cold": 50,
+   "warm->warm": 50
+  },
+  "method": "P1's (expected class vs REPORT)",
+  "mismatches": 0
+ },
+ "commits": {
+  "baseline": "aac59d45555ebded9357c23f6f8e4f939edf25d7",
+  "experiment": "89c3a671315370cd0788c8749892e06606a3692f",
+  "repo_dirty_at_build": false
+ },
+ "conclusion": "crtfile:16:25: cold weight_download p50 25.14 s (n=50) vs control 24.95 s (n=50), delta +0.18 s (+0.7%), 95% CI [+0.07, +0.69] s. Compute phases whose 95% interval excludes 0 (pooled delta; 6 phases x 9 settings are tested, so about 3 such flags are expected by chance): cold.model_load_mmap -0.194 s. Within CPU part 0xd40 alone (n=39 vs 42) the status is regressed, so the CPU mix does not decide this result. Answers 97/97 bit-identical; weights hash matches; S3 GETs per download [124]; peak RSS after download p50 1079.1 MB; /tmp used p50 0.0 MB. Status regressed.",
+ "conditions": {
+  "all_arms_in_run": [
+   "ctl",
+   "ldr",
+   "aa",
+   "t16x64",
+   "t8x128",
+   "t32x64",
+   "t64x64",
+   "crt8",
+   "crt16",
+   "crtf16"
+  ],
+  "arms": [
+   "ctl",
+   "crtf16"
+  ],
+  "client": {
+   "boto3": "1.43.115",
+   "host": "x86_64",
+   "python": "3.12.13"
+  },
+  "concurrency": 10,
+  "finished": "2026-10-20T12:25:15Z",
+  "interleaving": "every arm in every round; arm order rotated by one per round",
+  "probe": "ticket-route-1q",
+  "request_ids": [
+   "ticket-route-1q",
+   "payouts-3q",
+   "cracked-screen-2q",
+   "agent-action-guard-2q",
+   "incident-review-4q"
+  ],
+  "requests_file": "baseline/requests.json",
+  "restore_run": null,
+  "rounds": 5,
+  "started": "2026-10-20T11:35:00Z",
+  "warm_per_arm_per_round": 1,
+  "weight_fetch": "crtfile:16:25"
+ },
+ "correctness": {
+  "answer_shape_mismatches": 0,
+  "bit_identical": 97,
+  "choice_flips": 0,
+  "compared": 97,
+  "max_abs_delta": 0.0,
+  "method": "complete answer object, same request id and same CPU part as the reference",
+  "no_reference_for_cpu_part": 3,
+  "reference": "baseline/reference/outputs.json"
+ },
+ "cost": {
+  "billed_duration_s": 2059.353,
+  "billed_restore_duration_s": 0.0,
+  "cold_starts": 50,
+  "invocations": 100,
+  "lambda_duration_usd": 0.2746,
+  "lambda_requests_usd": 2e-05,
+  "prices": {
+   "arm64_gb_s": 1.33334e-05,
+   "request": 2.0000000000000002e-07,
+   "s3_get_per_1000": 0.0004,
+   "s3_head_per_1000": 0.0004,
+   "s3_standard_gb_month": 0.023,
+   "snapstart_cache_gb_s": 1.5046e-06,
+   "snapstart_restore_gb": 0.0001397998,
+   "source": "aws.amazon.com/lambda/pricing, aws.amazon.com/s3/pricing (us-east-2)"
+  },
+  "restores": 0,
+  "s3_gb_transferred": 103.84,
+  "s3_get_requests_per_download": 124.0,
+  "s3_head_requests_per_download": 0.0,
+  "s3_request_usd": 0.00248,
+  "s3_request_usd_per_1000_cold_starts": 0.0496,
+  "s3_transfer_note": "S3 to Lambda in the same region: no data transfer charge",
+  "s3_transfer_usd": 0.0,
+  "snapshot_inits": 0,
+  "snapstart_restore_usd": 0.0,
+  "total_usd": 0.2771,
+  "weight_downloads": 50
+ },
+ "deployment": {
+  "architecture": "arm64",
+  "az": "not exposed to the function; Lambda chooses per environment",
+  "code_sha256": {
+   "crtf16": "4a81582cae534cd6f575072647d4506322a3bc423e78807b52b0c0d9b13fe382",
+   "ctl": "d148d706027e1b920f489abd6d92b7021df1fbcfeddf0ba89f82f9131d0d230b"
+  },
+  "cpu_parts_observed": {
+   "crtf16:cold:0xd0c": 8,
+   "crtf16:cold:0xd40": 39,
+   "crtf16:cold:0xd4f": 3,
+   "crtf16:warm:0xd0c": 8,
+   "crtf16:warm:0xd40": 39,
+   "crtf16:warm:0xd4f": 3,
+   "ctl:cold:0xd0c": 6,
+   "ctl:cold:0xd40": 42,
+   "ctl:cold:0xd4f": 2,
+   "ctl:warm:0xd0c": 6,
+   "ctl:warm:0xd40": 42,
+   "ctl:warm:0xd4f": 2
+  },
+  "environment": {
+   "COLD_TAG": "e3-verify-r0-1792494716.865",
+   "DEC_KV": "f32",
+   "DEC_UBATCH": "512",
+   "E3_DL": "crtfile:16:25",
+   "LKAI_PHASES": "1",
+   "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+   "N_SEQ": "17"
+  },
+  "ephemeral_storage_mb": 512,
+  "functions": {
+   "crtf16": "lkai-e3-crtf16",
+   "ctl": "lkai-e3-ctl"
+  },
+  "handler": "e3_entry.handler",
+  "memory_mb": 10240,
+  "region": "us-east-2",
+  "runtime": "python3.12",
+  "runtime_version_arn": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+  "snapstart": {
+   "ApplyOn": "PublishedVersions",
+   "OptimizationStatus": "Off"
+  },
+  "timeout_s": 900
+ },
+ "e3": {
+  "compute": {
+   "cold.assets_load": {
+    "by_cpu_part": {
+     "0xd0c": {
+      "ci95_s": [
+       -0.062608,
+       0.057392
+      ],
+      "delta_p50_s": 0.012723,
+      "delta_pct": 0.98,
+      "method": "percentile bootstrap, 2000 resamples, seed 0",
+      "n": [
+       8,
+       6
+      ]
+     },
+     "0xd40": {
+      "ci95_s": [
+       -0.005985,
+       0.015404
+      ],
+      "delta_p50_s": 0.002233,
+      "delta_pct": 0.24,
+      "method": "percentile bootstrap, 2000 resamples, seed 0",
+      "n": [
+       39,
+       42
+      ]
+     },
+     "0xd4f": {
+      "ci95_s": [
+       -0.030894,
+       0.022541
+      ],
+      "delta_p50_s": -0.007477,
+      "delta_pct": -0.93,
+      "method": "percentile bootstrap, 2000 resamples, seed 0",
+      "n": [
+       3,
+       2
+      ]
+     }
+    },
+    "pooled_ci95_s": [
+     -0.00793,
+     0.015832
+    ],
+    "pooled_delta_p50_s": 0.003159,
+    "pooled_weight": 47
+   },
+   "cold.context_init": {
+    "by_cpu_part": {
+     "0xd0c": {
+      "ci95_s": [
+       -0.031112,
+       0.0263
+      ],
+      "delta_p50_s": -0.003162,
+      "delta_pct": -0.63,
+      "method": "percentile bootstrap, 2000 resamples, seed 0",
+      "n": [
+       8,
+       6
+      ]
+     },
+     "0xd40": {
+      "ci95_s": [
+       -0.01435,
+       0.00565
+      ],
+      "delta_p50_s": -0.007388,
+      "delta_pct": -2.3,
+      "method": "percentile bootstrap, 2000 resamples, seed 0",
+      "n": [
+       39,
+       42
+      ]
+     },
+     "0xd4f": {
+      "ci95_s": [
+       -0.003855,
+       0.055537
+      ],
+      "delta_p50_s": 0.006171,
+      "delta_pct": 2.32,
+      "method": "percentile bootstrap, 2000 resamples, seed 0",
+      "n": [
+       3,
+       2
+      ]
+     }
+    },
+    "pooled_ci95_s": [
+     -0.012536,
+     0.006009
+    ],
+    "pooled_delta_p50_s": -0.006272,
+    "pooled_weight": 47
+   },
+   "cold.first_request_inference": {
+    "by_cpu_part": {
+     "0xd0c": {
+      "ci95_s": [
+       -0.011985,
+       0.01736
+      ],
+      "delta_p50_s": -0.002765,
+      "delta_pct": -0.62,
+      "method": "percentile bootstrap, 2000 resamples, seed 0",
+      "n": [
+       8,
+       6
+      ]
+     },
+     "0xd40": {
+      "ci95_s": [
+       -0.0008,
+       0.00235
+      ],
+      "delta_p50_s": 0.00104,
+      "delta_pct": 0.44,
+      "method": "percentile bootstrap, 2000 resamples, seed 0",
+      "n": [
+       39,
+       42
+      ]
+     },
+     "0xd4f": {
+      "ci95_s": [
+       -0.01046,
+       0.00132
+      ],
+      "delta_p50_s": -0.00458,
+      "delta_pct": -2.12,
+      "method": "percentile bootstrap, 2000 resamples, seed 0",
+      "n": [
+       3,
+       2
+      ]
+     }
+    },
+    "pooled_ci95_s": [
+     -0.001623,
+     0.003078
+    ],
+    "pooled_delta_p50_s": 0.000315,
+    "pooled_weight": 47
+   },
+   "cold.model_load_mmap": {
+    "by_cpu_part": {
+     "0xd0c": {
+      "ci95_s": [
+       -0.432071,
+       0.209755
+      ],
+      "delta_p50_s": -0.271037,
+      "delta_pct": -1.38,
+      "method": "percentile bootstrap, 2000 resamples, seed 0",
+      "n": [
+       8,
+       6
+      ]
+     },
+     "0xd40": {
+      "ci95_s": [
+       -0.221596,
+       -0.144464
+      ],
+      "delta_p50_s": -0.184843,
+      "delta_pct": -2.21,
+      "method": "percentile bootstrap, 2000 resamples, seed 0",
+      "n": [
+       39,
+       42
+      ]
+     },
+     "0xd4f": {
+      "ci95_s": [
+       -0.179257,
+       -0.099793
+      ],
+      "delta_p50_s": -0.135047,
+      "delta_pct": -1.91,
+      "method": "percentile bootstrap, 2000 resamples, seed 0",
+      "n": [
+       3,
+       2
+      ]
+     }
+    },
+    "pooled_ci95_s": [
+     -0.231136,
+     -0.125936
+    ],
+    "pooled_delta_p50_s": -0.193728,
+    "pooled_weight": 47
+   },
+   "cold.warmup_inference": {
+    "by_cpu_part": {
+     "0xd0c": {
+      "ci95_s": [
+       -0.006131,
+       0.017845
+      ],
+      "delta_p50_s": 0.00472,
+      "delta_pct": 1.13,
+      "method": "percentile bootstrap, 2000 resamples, seed 0",
+      "n": [
+       8,
+       6
+      ]
+     },
+     "0xd40": {
+      "ci95_s": [
+       -0.00987,
+       0.000338
+      ],
+      "delta_p50_s": -0.004763,
+      "delta_pct": -1.89,
+      "method": "percentile bootstrap, 2000 resamples, seed 0",
+      "n": [
+       39,
+       42
+      ]
+     },
+     "0xd4f": {
+      "ci95_s": [
+       -0.002782,
+       0.013647
+      ],
+      "delta_p50_s": 0.003382,
+      "delta_pct": 1.62,
+      "method": "percentile bootstrap, 2000 resamples, seed 0",
+      "n": [
+       3,
+       2
+      ]
+     }
+    },
+    "pooled_ci95_s": [
+     -0.007523,
+     0.001311
+    ],
+    "pooled_delta_p50_s": -0.003206,
+    "pooled_weight": 47
+   },
+   "method": "median(arm) - median(ctl) within each CPU part both ran on, pooled by min(n); 95% bootstrap",
+   "warm.steady_state_inference": {
+    "by_cpu_part": {
+     "0xd0c": {
+      "ci95_s": [
+       -0.26877,
+       1.241095
+      ],
+      "delta_p50_s": 0.493165,
+      "delta_pct": 79.29,
+      "method": "percentile bootstrap, 2000 resamples, seed 0",
+      "n": [
+       8,
+       6
+      ]
+     },
+     "0xd40": {
+      "ci95_s": [
+       -0.27428,
+       0.239195
+      ],
+      "delta_p50_s": -0.011815,
+      "delta_pct": -1.9,
+      "method": "percentile bootstrap, 2000 resamples, seed 0",
+      "n": [
+       39,
+       42
+      ]
+     },
+     "0xd4f": {
+      "ci95_s": [
+       -0.13652,
+       1.13237
+      ],
+      "delta_p50_s": -0.04972,
+      "delta_pct": -10.58,
+      "method": "percentile bootstrap, 2000 resamples, seed 0",
+      "n": [
+       3,
+       2
+      ]
+     }
+    },
+    "pooled_ci95_s": [
+     -0.219107,
+     0.290188
+    ],
+    "pooled_delta_p50_s": 0.051038,
+    "pooled_weight": 47
+   }
+  },
+  "download": {
+   "cpu_parts": {
+    "0xd0c": 8,
+    "0xd40": 39,
+    "0xd4f": 3
+   },
+   "crt_shutdown_s": {
+    "histogram": {
+     "counts": [
+      12,
+      17,
+      12,
+      1,
+      0,
+      0,
+      0,
+      1,
+      1,
+      3,
+      2,
+      1
+     ],
+     "edges": [
+      0.009,
+      0.010117,
+      0.011233,
+      0.01235,
+      0.013467,
+      0.014583,
+      0.0157,
+      0.016817,
+      0.017933,
+      0.01905,
+      0.020167,
+      0.021283,
+      0.0224
+     ]
+    },
+    "max": 0.0224,
+    "mean": 0.012164,
+    "min": 0.009,
+    "n": 50,
+    "p50": 0.0109,
+    "p90": 0.0191,
+    "p99": 0.0224,
+    "stdev": 0.003466,
+    "unit": "s"
+   },
+   "crt_shutdown_unclean": 0,
+   "ctl_weight_download": {
+    "histogram": {
+     "counts": [
+      2,
+      0,
+      0,
+      1,
+      2,
+      9,
+      8,
+      6,
+      10,
+      7,
+      4,
+      1
+     ],
+     "edges": [
+      24.463315,
+      24.528733,
+      24.594151,
+      24.659568,
+      24.724986,
+      24.790404,
+      24.855822,
+      24.921239,
+      24.986657,
+      25.052075,
+      25.117493,
+      25.18291,
+      25.248328
+     ]
+    },
+    "max": 25.248328,
+    "mean": 24.933834,
+    "min": 24.463315,
+    "n": 50,
+    "p50": 24.954753,
+    "p90": 25.105184,
+    "p99": 25.248328,
+    "stdev": 0.157324,
+    "unit": "s"
+   },
+   "peak_rss_mb_after_download": {
+    "histogram": {
+     "counts": [
+      21,
+      25,
+      2,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      2
+     ],
+     "edges": [
+      1077.0,
+      1078.533333,
+      1080.066667,
+      1081.6,
+      1083.133333,
+      1084.666667,
+      1086.2,
+      1087.733333,
+      1089.266667,
+      1090.8,
+      1092.333333,
+      1093.866667,
+      1095.4
+     ]
+    },
+    "max": 1095.4,
+    "mean": 1079.322,
+    "min": 1077.0,
+    "n": 50,
+    "p50": 1079.1,
+    "p90": 1079.9,
+    "p99": 1095.4,
+    "stdev": 3.311408,
+    "unit": "MB"
+   },
+   "per_round_cv": 0.008,
+   "per_round_median_s": [
+    25.5628,
+    25.2475,
+    25.0963,
+    25.0871,
+    25.1186
+   ],
+   "retries_total": null,
+   "s3_get_requests_per_download": [
+    124
+   ],
+   "s3_head_requests_per_download": [
+    0
+   ],
+   "s3_requests_source": [
+    "computed: ceil(size / part_size); CRT does not report its request count"
+   ],
+   "tmp_used_mb": {
+    "histogram": {
+     "counts": [
+      50
+     ],
+     "edges": [
+      0.0,
+      0.0
+     ]
+    },
+    "max": 0.0,
+    "mean": 0.0,
+    "min": 0.0,
+    "n": 50,
+    "p50": 0.0,
+    "p90": 0.0,
+    "p99": 0.0,
+    "stdev": 0.0,
+    "unit": "MB"
+   },
+   "vs_ctl": {
+    "ci95_s": [
+     0.067085,
+     0.693369
+    ],
+    "delta_p50_s": 0.18345,
+    "delta_pct": 0.73,
+    "method": "percentile bootstrap, 2000 resamples, seed 0",
+    "n": [
+     50,
+     50
+    ]
+   },
+   "weight_download": {
+    "histogram": {
+     "counts": [
+      32,
+      2,
+      0,
+      6,
+      0,
+      1,
+      2,
+      1,
+      1,
+      1,
+      3,
+      1
+     ],
+     "edges": [
+      24.640063,
+      25.851442,
+      27.062821,
+      28.2742,
+      29.485579,
+      30.696958,
+      31.908336,
+      33.119715,
+      34.331094,
+      35.542473,
+      36.753852,
+      37.965231,
+      39.17661
+     ]
+    },
+    "max": 39.17661,
+    "mean": 27.591606,
+    "min": 24.640063,
+    "n": 50,
+    "p50": 25.140756,
+    "p90": 35.285459,
+    "p99": 39.17661,
+    "stdev": 4.24783,
+    "unit": "s"
+   },
+   "weight_download_mib_s": {
+    "histogram": {
+     "counts": [
+      3,
+      2,
+      1,
+      1,
+      3,
+      0,
+      0,
+      6,
+      0,
+      1,
+      2,
+      31
+     ],
+     "edges": [
+      50.6,
+      53.083333,
+      55.566667,
+      58.05,
+      60.533333,
+      63.016667,
+      65.5,
+      67.983333,
+      70.466667,
+      72.95,
+      75.433333,
+      77.916667,
+      80.4
+     ]
+    },
+    "max": 80.4,
+    "mean": 73.176,
+    "min": 50.6,
+    "n": 50,
+    "p50": 78.8,
+    "p90": 79.4,
+    "p99": 80.4,
+    "stdev": 9.309761,
+    "unit": "MiB/s"
+   }
+  },
+  "end_to_end": {
+   "cold.first_request_total": {
+    "by_cpu_part": {
+     "0xd0c": {
+      "ci95_s": [
+       -0.58942,
+       0.299945
+      ],
+      "delta_p50_s": -0.2232,
+      "delta_pct": -0.46,
+      "method": "percentile bootstrap, 2000 resamples, seed 0",
+      "n": [
+       8,
+       6
+      ]
+     },
+     "0xd40": {
+      "ci95_s": [
+       -0.0361,
+       3.48445
+      ],
+      "delta_p50_s": 0.11022,
+      "delta_pct": 0.31,
+      "method": "percentile bootstrap, 2000 resamples, seed 0",
+      "n": [
+       39,
+       42
+      ]
+     },
+     "0xd4f": {
+      "ci95_s": [
+       -0.49621,
+       6.70528
+      ],
+      "delta_p50_s": -0.07067,
+      "delta_pct": -0.21,
+      "method": "percentile bootstrap, 2000 resamples, seed 0",
+      "n": [
+       3,
+       2
+      ]
+     }
+    },
+    "pooled_ci95_s": [
+     -0.065423,
+     3.042624
+    ],
+    "pooled_delta_p50_s": 0.059958,
+    "pooled_weight": 47
+   },
+   "cold.model_ready": {
+    "by_cpu_part": {
+     "0xd0c": {
+      "ci95_s": [
+       -0.55,
+       0.315
+      ],
+      "delta_p50_s": -0.22,
+      "delta_pct": -0.47,
+      "method": "percentile bootstrap, 2000 resamples, seed 0",
+      "n": [
+       8,
+       6
+      ]
+     },
+     "0xd40": {
+      "ci95_s": [
+       -0.02,
+       3.52
+      ],
+      "delta_p50_s": 0.135,
+      "delta_pct": 0.39,
+      "method": "percentile bootstrap, 2000 resamples, seed 0",
+      "n": [
+       39,
+       42
+      ]
+     },
+     "0xd4f": {
+      "ci95_s": [
+       -0.43,
+       6.69
+      ],
+      "delta_p50_s": -0.05,
+      "delta_pct": -0.15,
+      "method": "percentile bootstrap, 2000 resamples, seed 0",
+      "n": [
+       3,
+       2
+      ]
+     }
+    },
+    "pooled_ci95_s": [
+     -0.052234,
+     3.02234
+    ],
+    "pooled_delta_p50_s": 0.081809,
+    "pooled_weight": 47
+   },
+   "restore.first_request_total": null,
+   "restore.report_restore_duration": null
+  },
+  "hash": {
+   "expected_sha256": "8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e",
+   "match": true,
+   "method": "sha256 of the filled memfd, in-function, on separate E3_VERIFY=1 cold starts",
+   "observed_sha256": [
+    "8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e"
+   ],
+   "samples": 1
+  },
+  "host": {
+   "cpu_part_source": "/proc/cpuinfo 'CPU part' line, logged by the handler at init (engine.py _cpu_part)",
+   "download_by_cpu_part": {
+    "0xd0c": {
+     "ci95_s": [
+      -0.248206,
+      0.198866
+     ],
+     "delta_p50_s": -0.008548,
+     "delta_pct": -0.03,
+     "method": "percentile bootstrap, 2000 resamples, seed 0",
+     "n": [
+      8,
+      6
+     ]
+    },
+    "0xd40": {
+     "ci95_s": [
+      0.094316,
+      3.808604
+     ],
+     "delta_p50_s": 0.252797,
+     "delta_pct": 1.01,
+     "method": "percentile bootstrap, 2000 resamples, seed 0",
+     "n": [
+      39,
+      42
+     ]
+    },
+    "0xd4f": {
+     "ci95_s": [
+      -0.291895,
+      6.813679
+     ],
+     "delta_p50_s": 0.044717,
+     "delta_pct": 0.18,
+     "method": "percentile bootstrap, 2000 resamples, seed 0",
+     "n": [
+      3,
+      2
+     ]
+    }
+   },
+   "recorded": {
+    "cpu_part": {
+     "crtf16:cold:0xd0c": 8,
+     "crtf16:cold:0xd40": 39,
+     "crtf16:cold:0xd4f": 3,
+     "crtf16:warm:0xd0c": 8,
+     "crtf16:warm:0xd40": 39,
+     "crtf16:warm:0xd4f": 3,
+     "ctl:cold:0xd0c": 6,
+     "ctl:cold:0xd40": 42,
+     "ctl:cold:0xd4f": 2,
+     "ctl:warm:0xd0c": 6,
+     "ctl:warm:0xd40": 42,
+     "ctl:warm:0xd4f": 2
+    },
+    "ggml_cpu_variant": {
+     "crtf16:cold:libggml-cpu-armv8.0_1.so,libggml-cpu-armv8.2_2.so": 8,
+     "crtf16:cold:libggml-cpu-armv8.0_1.so,libggml-cpu-armv8.6_1.so": 39,
+     "crtf16:cold:libggml-cpu-armv8.0_1.so,libggml-cpu-armv8.6_2.so": 3,
+     "crtf16:warm:unknown": 50,
+     "ctl:cold:libggml-cpu-armv8.0_1.so,libggml-cpu-armv8.2_2.so": 6,
+     "ctl:cold:libggml-cpu-armv8.0_1.so,libggml-cpu-armv8.6_1.so": 42,
+     "ctl:cold:libggml-cpu-armv8.0_1.so,libggml-cpu-armv8.6_2.so": 2,
+     "ctl:warm:unknown": 50
+    },
+    "log_streams": 102,
+    "runtime_versions": [
+     "python:3.12.mainlinev2.v43"
+    ],
+    "threads": [
+     6
+    ]
+   },
+   "status_check": {
+    "holds": true,
+    "largest_cpu_part": "0xd40",
+    "method": "status rule applied to the delta within the largest CPU part both arms ran on",
+    "n": [
+     39,
+     42
+    ],
+    "pooled_status": "regressed",
+    "status_within_part": "regressed"
+   },
+   "unknown": [
+    "cpuinfo CPU implementer",
+    "cpuinfo CPU variant",
+    "cpuinfo CPU revision",
+    "cpuinfo Features / AT_HWCAP / AT_HWCAP2",
+    "online core count (nproc)",
+    "cgroup cpu.max / memory.max",
+    "kernel release",
+    "CPU generation / instance family"
+   ]
+  },
+  "restore_measured": false,
+  "restore_note": "restore not measured for this setting (operator: restore leg for the best arm and ctl only). With SnapStart the weights download only in the snapshot init inside publish_version.",
+  "runs": {
+   "cold": "cold-20261020T113449Z"
+  },
+  "strategy": "crtfile:16:25"
+ },
+ "errors": {
+  "count": 0,
+  "rows": []
+ },
+ "experiment_id": "E3-parallel-range-get",
+ "hypothesis": "awscrt's S3Client (16 MiB parts, 25 Gbit/s target) writing the body itself to /proc/self/fd/N, with no Python per chunk, beats the boto3 thread pool.",
+ "instrumentation_overhead": {
+  "method": "not re-measured in E3: every arm, ctl included, runs P1's instrumented entry (LKAI_PHASES=1). P1 measured the overhead at +0.46% cold first request."
+ },
+ "model": {
+  "format": "GGUF Q8_0",
+  "gguf_bytes": 2076712416,
+  "gguf_sha256": "8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e",
+  "id": "StrandsAgents/strands-decider-2B-qwen3.5-v1-2610",
+  "llama_cpp": {
+   "commit": "f74e2fa6a31cc33ab4ee4ae516641cfe62df3924",
+   "flags": "GGML_NATIVE=OFF GGML_BACKEND_DL=ON GGML_CPU_ALL_VARIANTS=ON GGML_CPU_KLEIDIAI=ON",
+   "patches": "llama/patch_llama.py (prefill,gdn,kskip,sme)"
+  },
+  "merge_report": {
+   "base_revision": "b1485b2fa6dfa1287294f269f5fb618e03d52d7c",
+   "checkpoint": "/hf/hub/models--StrandsAgents--strands-decider-2B-qwen3.5-v1-2610/snapshots/216d1ccb46a9e9b036eb9187b248db98480f77d4",
+   "merged": 186,
+   "scale": 2.0,
+   "unpaired_adapter": []
+  },
+  "revision": "216d1ccb46a9e9b036eb9187b248db98480f77d4",
+  "transform": "LoRA merged fp32 (weights/merge_export.py), H512 Hadamard fold (weights/fold_hadamard.py --block 512)"
+ },
+ "phases": {
+  "crtf16": {
+   "cold": {
+    "assets_load": {
+     "histogram": {
+      "counts": [
+       3,
+       0,
+       21,
+       17,
+       1,
+       0,
+       0,
+       0,
+       0,
+       0,
+       6,
+       2
+      ],
+      "edges": [
+       0.797464,
+       0.845178,
+       0.892893,
+       0.940608,
+       0.988322,
+       1.036037,
+       1.083751,
+       1.131466,
+       1.17918,
+       1.226894,
+       1.274609,
+       1.322323,
+       1.370038
+      ]
+     },
+     "max": 1.370038,
+     "mean": 0.994368,
+     "min": 0.797464,
+     "n": 50,
+     "p50": 0.94318,
+     "p90": 1.291413,
+     "p99": 1.370038,
+     "stdev": 0.147651,
+     "unit": "s"
+    },
+    "client_round_trip": {
+     "histogram": {
+      "counts": [
+       2,
+       22,
+       2,
+       0,
+       6,
+       1,
+       1,
+       2,
+       0,
+       1,
+       9,
+       4
+      ],
+      "edges": [
+       34.53174,
+       35.8583,
+       37.18486,
+       38.51142,
+       39.83798,
+       41.16454,
+       42.4911,
+       43.817659,
+       45.144219,
+       46.470779,
+       47.797339,
+       49.123899,
+       50.450459
+      ]
+     },
+     "max": 50.450459,
+     "mean": 40.917385,
+     "min": 34.53174,
+     "n": 50,
+     "p50": 37.366644,
+     "p90": 49.049536,
+     "p99": 50.450459,
+     "stdev": 5.454585,
+     "unit": "s"
+    },
+    "context_init": {
+     "histogram": {
+      "counts": [
+       2,
+       10,
+       19,
+       5,
+       5,
+       1,
+       0,
+       0,
+       0,
+       3,
+       2,
+       3
+      ],
+      "edges": [
+       0.263594,
+       0.285973,
+       0.308352,
+       0.33073,
+       0.353109,
+       0.375488,
+       0.397867,
+       0.420245,
+       0.442624,
+       0.465003,
+       0.487382,
+       0.50976,
+       0.532139
+      ]
+     },
+     "max": 0.532139,
+     "mean": 0.350102,
+     "min": 0.263594,
+     "n": 50,
+     "p50": 0.319752,
+     "p90": 0.484246,
+     "p99": 0.532139,
+     "stdev": 0.071791,
+     "unit": "s"
+    },
+    "engine_by_cpu_part": {
+     "0xd0c": {
+      "histogram": {
+       "counts": [
+        1,
+        0,
+        1,
+        0,
+        1,
+        2,
+        0,
+        0,
+        0,
+        1,
+        1,
+        1
+       ],
+       "edges": [
+        0.42937,
+        0.431523,
+        0.433677,
+        0.43583,
+        0.437983,
+        0.440137,
+        0.44229,
+        0.444443,
+        0.446597,
+        0.44875,
+        0.450903,
+        0.453057,
+        0.45521
+       ]
+      },
+      "max": 0.45521,
+      "mean": 0.442867,
+      "min": 0.42937,
+      "n": 8,
+      "p50": 0.44046,
+      "p90": 0.45521,
+      "p99": 0.45521,
+      "stdev": 0.008849,
+      "unit": "s"
+     },
+     "0xd40": {
+      "histogram": {
+       "counts": [
+        2,
+        9,
+        11,
+        8,
+        3,
+        1,
+        0,
+        1,
+        1,
+        1,
+        0,
+        2
+       ],
+       "edges": [
+        0.23097,
+        0.233424,
+        0.235878,
+        0.238333,
+        0.240787,
+        0.243241,
+        0.245695,
+        0.248149,
+        0.250603,
+        0.253058,
+        0.255512,
+        0.257966,
+        0.26042
+       ]
+      },
+      "max": 0.26042,
+      "mean": 0.239428,
+      "min": 0.23097,
+      "n": 39,
+      "p50": 0.23748,
+      "p90": 0.25071,
+      "p99": 0.26042,
+      "stdev": 0.006668,
+      "unit": "s"
+     },
+     "0xd4f": {
+      "histogram": {
+       "counts": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1
+       ],
+       "edges": [
+        0.21087,
+        0.210907,
+        0.210943,
+        0.21098,
+        0.211017,
+        0.211053,
+        0.21109,
+        0.211127,
+        0.211163,
+        0.2112,
+        0.211237,
+        0.211273,
+        0.21131
+       ]
+      },
+      "max": 0.21131,
+      "mean": 0.211087,
+      "min": 0.21087,
+      "n": 3,
+      "p50": 0.21108,
+      "p90": 0.21131,
+      "p99": 0.21131,
+      "stdev": 0.00022,
+      "unit": "s"
+     }
+    },
+    "first_request_inference": {
+     "histogram": {
+      "counts": [
+       4,
+       35,
+       3,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       2,
+       6
+      ],
+      "edges": [
+       0.21087,
+       0.231232,
+       0.251593,
+       0.271955,
+       0.292317,
+       0.312678,
+       0.33304,
+       0.353402,
+       0.373763,
+       0.394125,
+       0.414487,
+       0.434848,
+       0.45521
+      ]
+     },
+     "max": 0.45521,
+     "mean": 0.270278,
+     "min": 0.21087,
+     "n": 50,
+     "p50": 0.23764,
+     "p90": 0.43978,
+     "p99": 0.45521,
+     "stdev": 0.076687,
+     "unit": "s"
+    },
+    "first_request_total": {
+     "histogram": {
+      "counts": [
+       2,
+       22,
+       2,
+       0,
+       6,
+       1,
+       1,
+       2,
+       0,
+       1,
+       9,
+       4
+      ],
+      "edges": [
+       33.93882,
+       35.262838,
+       36.586855,
+       37.910873,
+       39.23489,
+       40.558908,
+       41.882925,
+       43.206943,
+       44.53096,
+       45.854978,
+       47.178995,
+       48.503013,
+       49.82703
+      ]
+     },
+     "max": 49.82703,
+     "mean": 40.298282,
+     "min": 33.93882,
+     "n": 50,
+     "p50": 36.80686,
+     "p90": 48.39939,
+     "p99": 49.82703,
+     "stdev": 5.437688,
+     "unit": "s"
+    },
+    "ggml_backend_load": {
+     "histogram": {
+      "counts": [
+       3,
+       0,
+       0,
+       13,
+       21,
+       4,
+       1,
+       0,
+       0,
+       2,
+       4,
+       2
+      ],
+      "edges": [
+       0.027676,
+       0.02898,
+       0.030283,
+       0.031587,
+       0.03289,
+       0.034194,
+       0.035498,
+       0.036801,
+       0.038105,
+       0.039408,
+       0.040712,
+       0.042015,
+       0.043319
+      ]
+     },
+     "max": 0.043319,
+     "mean": 0.034336,
+     "min": 0.027676,
+     "n": 50,
+     "p50": 0.03335,
+     "p90": 0.040809,
+     "p99": 0.043319,
+     "stdev": 0.003516,
+     "unit": "s"
+    },
+    "handler_total": {
+     "histogram": {
+      "counts": [
+       2,
+       22,
+       2,
+       1,
+       5,
+       1,
+       1,
+       2,
+       0,
+       2,
+       8,
+       4
+      ],
+      "edges": [
+       33.238288,
+       34.554813,
+       35.871339,
+       37.187864,
+       38.50439,
+       39.820915,
+       41.13744,
+       42.453966,
+       43.770491,
+       45.087017,
+       46.403542,
+       47.720068,
+       49.036593
+      ]
+     },
+     "max": 49.036593,
+     "mean": 39.422636,
+     "min": 33.238288,
+     "n": 50,
+     "p50": 35.925833,
+     "p90": 47.290921,
+     "p99": 49.036593,
+     "stdev": 5.380219,
+     "unit": "s"
+    },
+    "import_total": {
+     "histogram": {
+      "counts": [
+       3,
+       0,
+       0,
+       3,
+       27,
+       7,
+       2,
+       0,
+       0,
+       0,
+       6,
+       2
+      ],
+      "edges": [
+       0.556753,
+       0.589638,
+       0.622523,
+       0.655408,
+       0.688293,
+       0.721178,
+       0.754063,
+       0.786948,
+       0.819833,
+       0.852718,
+       0.885603,
+       0.918488,
+       0.951373
+      ]
+     },
+     "max": 0.951373,
+     "mean": 0.735501,
+     "min": 0.556753,
+     "n": 50,
+     "p50": 0.712323,
+     "p90": 0.903239,
+     "p99": 0.951373,
+     "stdev": 0.08882,
+     "unit": "s"
+    },
+    "imports": {
+     "histogram": {
+      "counts": [
+       3,
+       0,
+       0,
+       3,
+       26,
+       8,
+       1,
+       1,
+       0,
+       0,
+       6,
+       2
+      ],
+      "edges": [
+       0.549453,
+       0.581867,
+       0.614282,
+       0.646696,
+       0.67911,
+       0.711525,
+       0.743939,
+       0.776353,
+       0.808768,
+       0.841182,
+       0.873596,
+       0.906011,
+       0.938425
+      ]
+     },
+     "max": 0.938425,
+     "mean": 0.726156,
+     "min": 0.549453,
+     "n": 50,
+     "p50": 0.703188,
+     "p90": 0.891748,
+     "p99": 0.938425,
+     "stdev": 0.087818,
+     "unit": "s"
+    },
+    "model_load_mmap": {
+     "histogram": {
+      "counts": [
+       3,
+       39,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       8
+      ],
+      "edges": [
+       6.921489,
+       8.019805,
+       9.11812,
+       10.216436,
+       11.314752,
+       12.413067,
+       13.511383,
+       14.609699,
+       15.708014,
+       16.80633,
+       17.904646,
+       19.002961,
+       20.101277
+      ]
+     },
+     "max": 20.101277,
+     "mean": 9.936877,
+     "min": 6.921489,
+     "n": 50,
+     "p50": 8.187553,
+     "p90": 19.337525,
+     "p99": 20.101277,
+     "stdev": 4.239549,
+     "unit": "s"
+    },
+    "model_ready": {
+     "histogram": {
+      "counts": [
+       2,
+       22,
+       2,
+       1,
+       5,
+       1,
+       1,
+       2,
+       0,
+       2,
+       9,
+       3
+      ],
+      "edges": [
+       33.11,
+       34.418333,
+       35.726667,
+       37.035,
+       38.343333,
+       39.651667,
+       40.96,
+       42.268333,
+       43.576667,
+       44.885,
+       46.193333,
+       47.501667,
+       48.81
+      ]
+     },
+     "max": 48.81,
+     "mean": 39.2054,
+     "min": 33.11,
+     "n": 50,
+     "p50": 35.79,
+     "p90": 46.89,
+     "p99": 48.81,
+     "stdev": 5.328333,
+     "unit": "s"
+    },
+    "n": 50,
+    "report_billed_duration": {
+     "histogram": {
+      "counts": [
+       2,
+       22,
+       2,
+       0,
+       6,
+       1,
+       1,
+       2,
+       0,
+       1,
+       9,
+       4
+      ],
+      "edges": [
+       33.939,
+       35.263083,
+       36.587167,
+       37.91125,
+       39.235333,
+       40.559417,
+       41.8835,
+       43.207583,
+       44.531667,
+       45.85575,
+       47.179833,
+       48.503917,
+       49.828
+      ]
+     },
+     "max": 49.828,
+     "mean": 40.29878,
+     "min": 33.939,
+     "n": 50,
+     "p50": 36.807,
+     "p90": 48.4,
+     "p99": 49.828,
+     "stdev": 5.437689,
+     "unit": "s"
+    },
+    "report_duration": {
+     "histogram": {
+      "counts": [
+       2,
+       23,
+       1,
+       1,
+       5,
+       1,
+       1,
+       2,
+       0,
+       2,
+       8,
+       4
+      ],
+      "edges": [
+       33.31428,
+       34.624791,
+       35.935302,
+       37.245812,
+       38.556323,
+       39.866834,
+       41.177345,
+       42.487856,
+       43.798367,
+       45.108877,
+       46.419388,
+       47.729899,
+       49.04041
+      ]
+     },
+     "max": 49.04041,
+     "mean": 39.455979,
+     "min": 33.31428,
+     "n": 50,
+     "p50": 35.93334,
+     "p90": 47.32637,
+     "p99": 49.04041,
+     "stdev": 5.381707,
+     "unit": "s"
+    },
+    "report_init_duration": {
+     "histogram": {
+      "counts": [
+       2,
+       0,
+       2,
+       23,
+       7,
+       5,
+       3,
+       0,
+       6,
+       1,
+       0,
+       1
+      ],
+      "edges": [
+       0.62454,
+       0.670465,
+       0.71639,
+       0.762315,
+       0.80824,
+       0.854165,
+       0.90009,
+       0.946015,
+       0.99194,
+       1.037865,
+       1.08379,
+       1.129715,
+       1.17564
+      ]
+     },
+     "max": 1.17564,
+     "mean": 0.842303,
+     "min": 0.62454,
+     "n": 50,
+     "p50": 0.80373,
+     "p90": 1.0163,
+     "p99": 1.17564,
+     "stdev": 0.106466,
+     "unit": "s"
+    },
+    "report_max_memory_mb": {
+     "histogram": {
+      "counts": [
+       8,
+       3,
+       0,
+       10,
+       5,
+       0,
+       18,
+       4,
+       0,
+       0,
+       0,
+       2
+      ],
+      "edges": [
+       5092.0,
+       5092.666667,
+       5093.333333,
+       5094.0,
+       5094.666667,
+       5095.333333,
+       5096.0,
+       5096.666667,
+       5097.333333,
+       5098.0,
+       5098.666667,
+       5099.333333,
+       5100.0
+      ]
+     },
+     "max": 5100.0,
+     "mean": 5094.92,
+     "min": 5092.0,
+     "n": 50,
+     "p50": 5095.0,
+     "p90": 5097.0,
+     "p99": 5100.0,
+     "stdev": 1.904238,
+     "unit": "MB"
+    },
+    "runtime_to_import": {
+     "histogram": {
+      "counts": [
+       3,
+       0,
+       1,
+       13,
+       15,
+       7,
+       3,
+       0,
+       2,
+       4,
+       1,
+       1
+      ],
+      "edges": [
+       0.0722,
+       0.076975,
+       0.08175,
+       0.086525,
+       0.0913,
+       0.096075,
+       0.10085,
+       0.105625,
+       0.1104,
+       0.115175,
+       0.11995,
+       0.124725,
+       0.1295
+      ]
+     },
+     "max": 0.1295,
+     "mean": 0.096288,
+     "min": 0.0722,
+     "n": 50,
+     "p50": 0.0936,
+     "p90": 0.1166,
+     "p99": 0.1295,
+     "stdev": 0.012019,
+     "unit": "s"
+    },
+    "wait_for_load": {
+     "histogram": {
+      "counts": [
+       2,
+       22,
+       2,
+       1,
+       5,
+       1,
+       1,
+       2,
+       0,
+       2,
+       10,
+       2
+      ],
+      "edges": [
+       33.027057,
+       34.341557,
+       35.656057,
+       36.970557,
+       38.285058,
+       39.599558,
+       40.914058,
+       42.228558,
+       43.543058,
+       44.857559,
+       46.172059,
+       47.486559,
+       48.801059
+      ]
+     },
+     "max": 48.801059,
+     "mean": 39.151945,
+     "min": 33.027057,
+     "n": 50,
+     "p50": 35.687954,
+     "p90": 46.839092,
+     "p99": 48.801059,
+     "stdev": 5.330322,
+     "unit": "s"
+    },
+    "warmup_inference": {
+     "histogram": {
+      "counts": [
+       3,
+       8,
+       31,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       2,
+       6
+      ],
+      "edges": [
+       0.205772,
+       0.224489,
+       0.243207,
+       0.261924,
+       0.280642,
+       0.299359,
+       0.318076,
+       0.336794,
+       0.355511,
+       0.374229,
+       0.392946,
+       0.411664,
+       0.430381
+      ]
+     },
+     "max": 0.430381,
+     "mean": 0.274114,
+     "min": 0.205772,
+     "n": 50,
+     "p50": 0.249357,
+     "p90": 0.419708,
+     "p99": 0.430381,
+     "stdev": 0.065791,
+     "unit": "s"
+    },
+    "weight_download": {
+     "histogram": {
+      "counts": [
+       32,
+       2,
+       0,
+       6,
+       0,
+       1,
+       2,
+       1,
+       1,
+       1,
+       3,
+       1
+      ],
+      "edges": [
+       24.640063,
+       25.851442,
+       27.062821,
+       28.2742,
+       29.485579,
+       30.696958,
+       31.908336,
+       33.119715,
+       34.331094,
+       35.542473,
+       36.753852,
+       37.965231,
+       39.17661
+      ]
+     },
+     "max": 39.17661,
+     "mean": 27.591606,
+     "min": 24.640063,
+     "n": 50,
+     "p50": 25.140756,
+     "p90": 35.285459,
+     "p99": 39.17661,
+     "stdev": 4.24783,
+     "unit": "s"
+    },
+    "weight_download_mib_s": {
+     "histogram": {
+      "counts": [
+       3,
+       2,
+       1,
+       1,
+       3,
+       0,
+       0,
+       6,
+       0,
+       1,
+       2,
+       31
+      ],
+      "edges": [
+       50.6,
+       53.083333,
+       55.566667,
+       58.05,
+       60.533333,
+       63.016667,
+       65.5,
+       67.983333,
+       70.466667,
+       72.95,
+       75.433333,
+       77.916667,
+       80.4
+      ]
+     },
+     "max": 80.4,
+     "mean": 73.176,
+     "min": 50.6,
+     "n": 50,
+     "p50": 78.8,
+     "p90": 79.4,
+     "p99": 80.4,
+     "stdev": 9.309761,
+     "unit": "MiB/s"
+    }
+   },
+   "restore": {
+    "first_request_inference": null,
+    "first_request_total": null,
+    "n": 0,
+    "report_restore_duration": null,
+    "snapshot_init": null
+   },
+   "warm": {
+    "client_round_trip": {
+     "histogram": {
+      "counts": [
+       19,
+       8,
+       9,
+       2,
+       1,
+       10,
+       0,
+       0,
+       0,
+       0,
+       0,
+       1
+      ],
+      "edges": [
+       0.455492,
+       0.725369,
+       0.995246,
+       1.265123,
+       1.535,
+       1.804877,
+       2.074753,
+       2.34463,
+       2.614507,
+       2.884384,
+       3.154261,
+       3.424138,
+       3.694015
+      ]
+     },
+     "max": 3.694015,
+     "mean": 1.107762,
+     "min": 0.455492,
+     "n": 50,
+     "p50": 0.829879,
+     "p90": 1.981649,
+     "p99": 3.694015,
+     "stdev": 0.647169,
+     "unit": "s"
+    },
+    "engine_by_cpu_part": {
+     "0xd0c": {
+      "histogram": {
+       "counts": [
+        2,
+        1,
+        2,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1
+       ],
+       "edges": [
+        0.42828,
+        0.681623,
+        0.934965,
+        1.188307,
+        1.44165,
+        1.694992,
+        1.948335,
+        2.201677,
+        2.45502,
+        2.708362,
+        2.961705,
+        3.215047,
+        3.46839
+       ]
+      },
+      "max": 3.46839,
+      "mean": 1.346146,
+      "min": 0.42828,
+      "n": 8,
+      "p50": 1.10909,
+      "p90": 3.46839,
+      "p99": 3.46839,
+      "stdev": 0.982494,
+      "unit": "s"
+     },
+     "0xd40": {
+      "histogram": {
+       "counts": [
+        8,
+        5,
+        10,
+        0,
+        8,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        8
+       ],
+       "edges": [
+        0.23041,
+        0.360709,
+        0.491008,
+        0.621308,
+        0.751607,
+        0.881906,
+        1.012205,
+        1.142504,
+        1.272803,
+        1.403102,
+        1.533402,
+        1.663701,
+        1.794
+       ]
+      },
+      "max": 1.794,
+      "mean": 0.798577,
+      "min": 0.23041,
+      "n": 39,
+      "p50": 0.61064,
+      "p90": 1.76515,
+      "p99": 1.794,
+      "stdev": 0.535134,
+      "unit": "s"
+     },
+     "0xd4f": {
+      "histogram": {
+       "counts": [
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1
+       ],
+       "edges": [
+        0.40124,
+        0.495654,
+        0.590068,
+        0.684482,
+        0.778897,
+        0.873311,
+        0.967725,
+        1.062139,
+        1.156553,
+        1.250968,
+        1.345382,
+        1.439796,
+        1.53421
+       ]
+      },
+      "max": 1.53421,
+      "mean": 0.785177,
+      "min": 0.40124,
+      "n": 3,
+      "p50": 0.42008,
+      "p90": 1.53421,
+      "p99": 1.53421,
+      "stdev": 0.64875,
+      "unit": "s"
+     }
+    },
+    "handler_total": {
+     "histogram": {
+      "counts": [
+       19,
+       8,
+       9,
+       2,
+       1,
+       10,
+       0,
+       0,
+       0,
+       0,
+       0,
+       1
+      ],
+      "edges": [
+       0.230805,
+       0.500649,
+       0.770492,
+       1.040336,
+       1.31018,
+       1.580023,
+       1.849867,
+       2.119711,
+       2.389554,
+       2.659398,
+       2.929242,
+       3.199085,
+       3.468929
+      ]
+     },
+     "max": 3.468929,
+     "mean": 0.885832,
+     "min": 0.230805,
+     "n": 50,
+     "p50": 0.611159,
+     "p90": 1.760731,
+     "p99": 3.468929,
+     "stdev": 0.646889,
+     "unit": "s"
+    },
+    "n": 50,
+    "report_billed_duration": {
+     "histogram": {
+      "counts": [
+       19,
+       8,
+       9,
+       2,
+       1,
+       10,
+       0,
+       0,
+       0,
+       0,
+       0,
+       1
+      ],
+      "edges": [
+       0.233,
+       0.502833,
+       0.772667,
+       1.0425,
+       1.312333,
+       1.582167,
+       1.852,
+       2.121833,
+       2.391667,
+       2.6615,
+       2.931333,
+       3.201167,
+       3.471
+      ]
+     },
+     "max": 3.471,
+     "mean": 0.88828,
+     "min": 0.233,
+     "n": 50,
+     "p50": 0.613,
+     "p90": 1.763,
+     "p99": 3.471,
+     "stdev": 0.646875,
+     "unit": "s"
+    },
+    "report_duration": {
+     "histogram": {
+      "counts": [
+       19,
+       8,
+       9,
+       2,
+       1,
+       10,
+       0,
+       0,
+       0,
+       0,
+       0,
+       1
+      ],
+      "edges": [
+       0.23253,
+       0.502397,
+       0.772263,
+       1.04213,
+       1.311997,
+       1.581863,
+       1.85173,
+       2.121597,
+       2.391463,
+       2.66133,
+       2.931197,
+       3.201063,
+       3.47093
+      ]
+     },
+     "max": 3.47093,
+     "mean": 0.887747,
+     "min": 0.23253,
+     "n": 50,
+     "p50": 0.61298,
+     "p90": 1.76252,
+     "p99": 3.47093,
+     "stdev": 0.646902,
+     "unit": "s"
+    },
+    "report_max_memory_mb": {
+     "histogram": {
+      "counts": [
+       6,
+       4,
+       0,
+       0,
+       0,
+       5,
+       9,
+       14,
+       1,
+       2,
+       1,
+       8
+      ],
+      "edges": [
+       5092.0,
+       5095.083333,
+       5098.166667,
+       5101.25,
+       5104.333333,
+       5107.416667,
+       5110.5,
+       5113.583333,
+       5116.666667,
+       5119.75,
+       5122.833333,
+       5125.916667,
+       5129.0
+      ]
+     },
+     "max": 5129.0,
+     "mean": 5112.24,
+     "min": 5092.0,
+     "n": 50,
+     "p50": 5114.0,
+     "p90": 5128.0,
+     "p99": 5129.0,
+     "stdev": 10.587941,
+     "unit": "MB"
+    },
+    "steady_state_by_request": {
+     "agent-action-guard-2q": {
+      "histogram": {
+       "counts": [
+        8,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        2
+       ],
+       "edges": [
+        0.8434,
+        0.915989,
+        0.988578,
+        1.061167,
+        1.133757,
+        1.206346,
+        1.278935,
+        1.351524,
+        1.424113,
+        1.496703,
+        1.569292,
+        1.641881,
+        1.71447
+       ]
+      },
+      "max": 1.71447,
+      "mean": 1.026025,
+      "min": 0.8434,
+      "n": 10,
+      "p50": 0.86797,
+      "p90": 1.64605,
+      "p99": 1.71447,
+      "stdev": 0.345332,
+      "unit": "s"
+     },
+     "cracked-screen-2q": {
+      "histogram": {
+       "counts": [
+        2,
+        1,
+        6,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1
+       ],
+       "edges": [
+        0.40124,
+        0.438219,
+        0.475198,
+        0.512177,
+        0.549157,
+        0.586136,
+        0.623115,
+        0.660094,
+        0.697073,
+        0.734052,
+        0.771032,
+        0.808011,
+        0.84499
+       ]
+      },
+      "max": 0.84499,
+      "mean": 0.506702,
+      "min": 0.40124,
+      "n": 10,
+      "p50": 0.4869,
+      "p90": 0.49924,
+      "p99": 0.84499,
+      "stdev": 0.12338,
+      "unit": "s"
+     },
+     "incident-review-4q": {
+      "histogram": {
+       "counts": [
+        1,
+        8,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1
+       ],
+       "edges": [
+        1.53421,
+        1.695392,
+        1.856573,
+        2.017755,
+        2.178937,
+        2.340118,
+        2.5013,
+        2.662482,
+        2.823663,
+        2.984845,
+        3.146027,
+        3.307208,
+        3.46839
+       ]
+      },
+      "max": 3.46839,
+      "mean": 1.90747,
+      "min": 1.53421,
+      "n": 10,
+      "p50": 1.76027,
+      "p90": 1.794,
+      "p99": 3.46839,
+      "stdev": 0.553436,
+      "unit": "s"
+     },
+     "payouts-3q": {
+      "histogram": {
+       "counts": [
+        8,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        2
+       ],
+       "edges": [
+        0.59048,
+        0.634707,
+        0.678935,
+        0.723163,
+        0.76739,
+        0.811617,
+        0.855845,
+        0.900073,
+        0.9443,
+        0.988528,
+        1.032755,
+        1.076983,
+        1.12121
+       ]
+      },
+      "max": 1.12121,
+      "mean": 0.706316,
+      "min": 0.59048,
+      "n": 10,
+      "p50": 0.61064,
+      "p90": 1.10909,
+      "p99": 1.12121,
+      "stdev": 0.215674,
+      "unit": "s"
+     },
+     "ticket-route-1q": {
+      "histogram": {
+       "counts": [
+        5,
+        3,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        2
+       ],
+       "edges": [
+        0.23041,
+        0.2476,
+        0.26479,
+        0.28198,
+        0.29917,
+        0.31636,
+        0.33355,
+        0.35074,
+        0.36793,
+        0.38512,
+        0.40231,
+        0.4195,
+        0.43669
+       ]
+      },
+      "max": 0.43669,
+      "mean": 0.280407,
+      "min": 0.23041,
+      "n": 10,
+      "p50": 0.24299,
+      "p90": 0.42828,
+      "p99": 0.43669,
+      "stdev": 0.080721,
+      "unit": "s"
+     }
+    },
+    "steady_state_inference": {
+     "histogram": {
+      "counts": [
+       19,
+       8,
+       9,
+       2,
+       1,
+       10,
+       0,
+       0,
+       0,
+       0,
+       0,
+       1
+      ],
+      "edges": [
+       0.23041,
+       0.500242,
+       0.770073,
+       1.039905,
+       1.309737,
+       1.579568,
+       1.8494,
+       2.119232,
+       2.389063,
+       2.658895,
+       2.928727,
+       3.198558,
+       3.46839
+      ]
+     },
+     "max": 3.46839,
+     "mean": 0.885384,
+     "min": 0.23041,
+     "n": 50,
+     "p50": 0.6107,
+     "p90": 1.76027,
+     "p99": 3.46839,
+     "stdev": 0.646864,
+     "unit": "s"
+    },
+    "wait_for_load": {
+     "histogram": {
+      "counts": [
+       29,
+       16,
+       3,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       2
+      ],
+      "edges": [
+       1e-05,
+       1.2e-05,
+       1.4e-05,
+       1.5e-05,
+       1.7e-05,
+       1.9e-05,
+       2.1e-05,
+       2.2e-05,
+       2.4e-05,
+       2.6e-05,
+       2.8e-05,
+       2.9e-05,
+       3.1e-05
+      ]
+     },
+     "max": 3.1e-05,
+     "mean": 1.2e-05,
+     "min": 1e-05,
+     "n": 50,
+     "p50": 1.1e-05,
+     "p90": 1.3e-05,
+     "p99": 3.1e-05,
+     "stdev": 4e-06,
+     "unit": "s"
+    }
+   }
+  },
+  "ctl": {
+   "cold": {
+    "assets_load": {
+     "histogram": {
+      "counts": [
+       2,
+       0,
+       19,
+       23,
+       0,
+       0,
+       0,
+       0,
+       0,
+       3,
+       1,
+       2
+      ],
+      "edges": [
+       0.781702,
+       0.83259,
+       0.883478,
+       0.934365,
+       0.985253,
+       1.036141,
+       1.087028,
+       1.137916,
+       1.188804,
+       1.239692,
+       1.290579,
+       1.341467,
+       1.392355
+      ]
+     },
+     "max": 1.392355,
+     "mean": 0.977488,
+     "min": 0.781702,
+     "n": 50,
+     "p50": 0.940453,
+     "p90": 1.279385,
+     "p99": 1.392355,
+     "stdev": 0.13068,
+     "unit": "s"
+    },
+    "client_round_trip": {
+     "histogram": {
+      "counts": [
+       2,
+       42,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       6
+      ],
+      "edges": [
+       34.957388,
+       36.177187,
+       37.396986,
+       38.616785,
+       39.836585,
+       41.056384,
+       42.276183,
+       43.495982,
+       44.715781,
+       45.935581,
+       47.15538,
+       48.375179,
+       49.594978
+      ]
+     },
+     "max": 49.594978,
+     "mean": 38.056497,
+     "min": 34.957388,
+     "n": 50,
+     "p50": 36.632486,
+     "p90": 49.167825,
+     "p99": 49.594978,
+     "stdev": 4.219436,
+     "unit": "s"
+    },
+    "context_init": {
+     "histogram": {
+      "counts": [
+       2,
+       3,
+       30,
+       6,
+       3,
+       0,
+       0,
+       0,
+       0,
+       2,
+       3,
+       1
+      ],
+      "edges": [
+       0.264215,
+       0.287457,
+       0.3107,
+       0.333942,
+       0.357184,
+       0.380427,
+       0.403669,
+       0.426911,
+       0.450154,
+       0.473396,
+       0.496638,
+       0.519881,
+       0.543123
+      ]
+     },
+     "max": 0.543123,
+     "mean": 0.345939,
+     "min": 0.264215,
+     "n": 50,
+     "p50": 0.32162,
+     "p90": 0.495219,
+     "p99": 0.543123,
+     "stdev": 0.064142,
+     "unit": "s"
+    },
+    "engine_by_cpu_part": {
+     "0xd0c": {
+      "histogram": {
+       "counts": [
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        1,
+        0,
+        2
+       ],
+       "edges": [
+        0.42632,
+        0.428437,
+        0.430555,
+        0.432673,
+        0.43479,
+        0.436908,
+        0.439025,
+        0.441142,
+        0.44326,
+        0.445377,
+        0.447495,
+        0.449613,
+        0.45173
+       ]
+      },
+      "max": 0.45173,
+      "mean": 0.441048,
+      "min": 0.42632,
+      "n": 6,
+      "p50": 0.43999,
+      "p90": 0.45173,
+      "p99": 0.45173,
+      "stdev": 0.01123,
+      "unit": "s"
+     },
+     "0xd40": {
+      "histogram": {
+       "counts": [
+        6,
+        11,
+        13,
+        6,
+        1,
+        1,
+        1,
+        1,
+        0,
+        0,
+        1,
+        1
+       ],
+       "edges": [
+        0.23276,
+        0.234564,
+        0.236368,
+        0.238172,
+        0.239977,
+        0.241781,
+        0.243585,
+        0.245389,
+        0.247193,
+        0.248997,
+        0.250802,
+        0.252606,
+        0.25441
+       ]
+      },
+      "max": 0.25441,
+      "mean": 0.237832,
+      "min": 0.23276,
+      "n": 42,
+      "p50": 0.23642,
+      "p90": 0.24295,
+      "p99": 0.25441,
+      "stdev": 0.004272,
+      "unit": "s"
+     },
+     "0xd4f": {
+      "histogram": {
+       "counts": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1
+       ],
+       "edges": [
+        0.20999,
+        0.210935,
+        0.21188,
+        0.212825,
+        0.21377,
+        0.214715,
+        0.21566,
+        0.216605,
+        0.21755,
+        0.218495,
+        0.21944,
+        0.220385,
+        0.22133
+       ]
+      },
+      "max": 0.22133,
+      "mean": 0.21566,
+      "min": 0.20999,
+      "n": 2,
+      "p50": 0.20999,
+      "p90": 0.22133,
+      "p99": 0.22133,
+      "stdev": 0.008019,
+      "unit": "s"
+     }
+    },
+    "first_request_inference": {
+     "histogram": {
+      "counts": [
+       2,
+       40,
+       2,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       2,
+       4
+      ],
+      "edges": [
+       0.20999,
+       0.230135,
+       0.25028,
+       0.270425,
+       0.29057,
+       0.310715,
+       0.33086,
+       0.351005,
+       0.37115,
+       0.391295,
+       0.41144,
+       0.431585,
+       0.45173
+      ]
+     },
+     "max": 0.45173,
+     "mean": 0.261331,
+     "min": 0.20999,
+     "n": 50,
+     "p50": 0.23655,
+     "p90": 0.42632,
+     "p99": 0.45173,
+     "stdev": 0.0674,
+     "unit": "s"
+    },
+    "first_request_total": {
+     "histogram": {
+      "counts": [
+       2,
+       42,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       6
+      ],
+      "edges": [
+       34.31763,
+       35.534381,
+       36.751132,
+       37.967882,
+       39.184633,
+       40.401384,
+       41.618135,
+       42.834886,
+       44.051637,
+       45.268387,
+       46.485138,
+       47.701889,
+       48.91864
+      ]
+     },
+     "max": 48.91864,
+     "mean": 37.350612,
+     "min": 34.31763,
+     "n": 50,
+     "p50": 35.95152,
+     "p90": 48.21703,
+     "p99": 48.91864,
+     "stdev": 4.168769,
+     "unit": "s"
+    },
+    "ggml_backend_load": {
+     "histogram": {
+      "counts": [
+       2,
+       3,
+       37,
+       0,
+       0,
+       5,
+       1,
+       0,
+       0,
+       0,
+       0,
+       2
+      ],
+      "edges": [
+       0.027144,
+       0.029564,
+       0.031983,
+       0.034403,
+       0.036823,
+       0.039243,
+       0.041663,
+       0.044082,
+       0.046502,
+       0.048922,
+       0.051341,
+       0.053761,
+       0.056181
+      ]
+     },
+     "max": 0.056181,
+     "mean": 0.034476,
+     "min": 0.027144,
+     "n": 50,
+     "p50": 0.032919,
+     "p90": 0.040123,
+     "p99": 0.056181,
+     "stdev": 0.005259,
+     "unit": "s"
+    },
+    "handler_total": {
+     "histogram": {
+      "counts": [
+       6,
+       38,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       6
+      ],
+      "edges": [
+       33.681682,
+       34.858222,
+       36.034761,
+       37.211301,
+       38.38784,
+       39.56438,
+       40.74092,
+       41.917459,
+       43.093999,
+       44.270538,
+       45.447078,
+       46.623617,
+       47.800157
+      ]
+     },
+     "max": 47.800157,
+     "mean": 36.518537,
+     "min": 33.681682,
+     "n": 50,
+     "p50": 35.138835,
+     "p90": 47.203119,
+     "p99": 47.800157,
+     "stdev": 4.086841,
+     "unit": "s"
+    },
+    "import_total": {
+     "histogram": {
+      "counts": [
+       1,
+       1,
+       0,
+       23,
+       16,
+       3,
+       0,
+       0,
+       0,
+       5,
+       0,
+       1
+      ],
+      "edges": [
+       0.582826,
+       0.620008,
+       0.657191,
+       0.694373,
+       0.731555,
+       0.768737,
+       0.805919,
+       0.843102,
+       0.880284,
+       0.917466,
+       0.954649,
+       0.991831,
+       1.029013
+      ]
+     },
+     "max": 1.029013,
+     "mean": 0.75776,
+     "min": 0.582826,
+     "n": 50,
+     "p50": 0.730977,
+     "p90": 0.923277,
+     "p99": 1.029013,
+     "stdev": 0.080949,
+     "unit": "s"
+    },
+    "imports": {
+     "histogram": {
+      "counts": [
+       1,
+       1,
+       0,
+       24,
+       15,
+       3,
+       0,
+       0,
+       0,
+       5,
+       0,
+       1
+      ],
+      "edges": [
+       0.573047,
+       0.609703,
+       0.646359,
+       0.683015,
+       0.719671,
+       0.756327,
+       0.792983,
+       0.829639,
+       0.866295,
+       0.902951,
+       0.939607,
+       0.976263,
+       1.012919
+      ]
+     },
+     "max": 1.012919,
+     "mean": 0.745119,
+     "min": 0.573047,
+     "n": 50,
+     "p50": 0.718748,
+     "p90": 0.90732,
+     "p99": 1.012919,
+     "stdev": 0.079717,
+     "unit": "s"
+    },
+    "model_load_mmap": {
+     "histogram": {
+      "counts": [
+       2,
+       42,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       6
+      ],
+      "edges": [
+       7.07029,
+       8.132196,
+       9.194101,
+       10.256007,
+       11.317913,
+       12.379818,
+       13.441724,
+       14.50363,
+       15.565535,
+       16.627441,
+       17.689347,
+       18.751252,
+       19.813158
+      ]
+     },
+     "max": 19.813158,
+     "mean": 9.677537,
+     "min": 7.07029,
+     "n": 50,
+     "p50": 8.368882,
+     "p90": 19.518733,
+     "p99": 19.813158,
+     "stdev": 3.733073,
+     "unit": "s"
+    },
+    "model_ready": {
+     "histogram": {
+      "counts": [
+       6,
+       38,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       6
+      ],
+      "edges": [
+       33.48,
+       34.636667,
+       35.793333,
+       36.95,
+       38.106667,
+       39.263333,
+       40.42,
+       41.576667,
+       42.733333,
+       43.89,
+       45.046667,
+       46.203333,
+       47.36
+      ]
+     },
+     "max": 47.36,
+     "mean": 36.2634,
+     "min": 33.48,
+     "n": 50,
+     "p50": 34.91,
+     "p90": 46.76,
+     "p99": 47.36,
+     "stdev": 4.019886,
+     "unit": "s"
+    },
+    "n": 50,
+    "report_billed_duration": {
+     "histogram": {
+      "counts": [
+       2,
+       42,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       6
+      ],
+      "edges": [
+       34.318,
+       35.53475,
+       36.7515,
+       37.96825,
+       39.185,
+       40.40175,
+       41.6185,
+       42.83525,
+       44.052,
+       45.26875,
+       46.4855,
+       47.70225,
+       48.919
+      ]
+     },
+     "max": 48.919,
+     "mean": 37.35102,
+     "min": 34.318,
+     "n": 50,
+     "p50": 35.952,
+     "p90": 48.218,
+     "p99": 48.919,
+     "stdev": 4.168758,
+     "unit": "s"
+    },
+    "report_duration": {
+     "histogram": {
+      "counts": [
+       6,
+       38,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       6
+      ],
+      "edges": [
+       33.68361,
+       34.860208,
+       36.036807,
+       37.213405,
+       38.390003,
+       39.566602,
+       40.7432,
+       41.919798,
+       43.096397,
+       44.272995,
+       45.449593,
+       46.626192,
+       47.80279
+      ]
+     },
+     "max": 47.80279,
+     "mean": 36.520933,
+     "min": 33.68361,
+     "n": 50,
+     "p50": 35.14138,
+     "p90": 47.20576,
+     "p99": 47.80279,
+     "stdev": 4.086974,
+     "unit": "s"
+    },
+    "report_init_duration": {
+     "histogram": {
+      "counts": [
+       1,
+       1,
+       0,
+       16,
+       20,
+       6,
+       0,
+       0,
+       0,
+       3,
+       2,
+       1
+      ],
+      "edges": [
+       0.63402,
+       0.674173,
+       0.714325,
+       0.754478,
+       0.79463,
+       0.834782,
+       0.874935,
+       0.915088,
+       0.95524,
+       0.995393,
+       1.035545,
+       1.075697,
+       1.11585
+      ]
+     },
+     "max": 1.11585,
+     "mean": 0.829679,
+     "min": 0.63402,
+     "n": 50,
+     "p50": 0.80159,
+     "p90": 1.01127,
+     "p99": 1.11585,
+     "stdev": 0.08829,
+     "unit": "s"
+    },
+    "report_max_memory_mb": {
+     "histogram": {
+      "counts": [
+       4,
+       0,
+       1,
+       0,
+       0,
+       0,
+       0,
+       0,
+       1,
+       14,
+       18,
+       12
+      ],
+      "edges": [
+       5135.0,
+       5137.333333,
+       5139.666667,
+       5142.0,
+       5144.333333,
+       5146.666667,
+       5149.0,
+       5151.333333,
+       5153.666667,
+       5156.0,
+       5158.333333,
+       5160.666667,
+       5163.0
+      ]
+     },
+     "max": 5163.0,
+     "mean": 5157.38,
+     "min": 5135.0,
+     "n": 50,
+     "p50": 5160.0,
+     "p90": 5162.0,
+     "p99": 5163.0,
+     "stdev": 7.018605,
+     "unit": "MB"
+    },
+    "runtime_to_import": {
+     "histogram": {
+      "counts": [
+       2,
+       0,
+       2,
+       6,
+       11,
+       9,
+       9,
+       5,
+       0,
+       0,
+       3,
+       3
+      ],
+      "edges": [
+       0.0614,
+       0.0648,
+       0.0682,
+       0.0716,
+       0.075,
+       0.0784,
+       0.0818,
+       0.0852,
+       0.0886,
+       0.092,
+       0.0954,
+       0.0988,
+       0.1022
+      ]
+     },
+     "max": 0.1022,
+     "mean": 0.08124,
+     "min": 0.0614,
+     "n": 50,
+     "p50": 0.0794,
+     "p90": 0.0969,
+     "p99": 0.1022,
+     "stdev": 0.008743,
+     "unit": "s"
+    },
+    "wait_for_load": {
+     "histogram": {
+      "counts": [
+       6,
+       38,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       6
+      ],
+      "edges": [
+       33.471338,
+       34.627725,
+       35.784112,
+       36.940499,
+       38.096885,
+       39.253272,
+       40.409659,
+       41.566046,
+       42.722433,
+       43.878819,
+       45.035206,
+       46.191593,
+       47.34798
+      ]
+     },
+     "max": 47.34798,
+     "mean": 36.256784,
+     "min": 33.471338,
+     "n": 50,
+     "p50": 34.90003,
+     "p90": 46.755208,
+     "p99": 47.34798,
+     "stdev": 4.0197,
+     "unit": "s"
+    },
+    "warmup_inference": {
+     "histogram": {
+      "counts": [
+       2,
+       7,
+       32,
+       3,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       1,
+       5
+      ],
+      "edges": [
+       0.208467,
+       0.226534,
+       0.244601,
+       0.262668,
+       0.280735,
+       0.298802,
+       0.31687,
+       0.334937,
+       0.353004,
+       0.371071,
+       0.389138,
+       0.407205,
+       0.425272
+      ]
+     },
+     "max": 0.425272,
+     "mean": 0.270527,
+     "min": 0.208467,
+     "n": 50,
+     "p50": 0.252808,
+     "p90": 0.397403,
+     "p99": 0.425272,
+     "stdev": 0.055207,
+     "unit": "s"
+    },
+    "weight_download": {
+     "histogram": {
+      "counts": [
+       2,
+       0,
+       0,
+       1,
+       2,
+       9,
+       8,
+       6,
+       10,
+       7,
+       4,
+       1
+      ],
+      "edges": [
+       24.463315,
+       24.528733,
+       24.594151,
+       24.659568,
+       24.724986,
+       24.790404,
+       24.855822,
+       24.921239,
+       24.986657,
+       25.052075,
+       25.117493,
+       25.18291,
+       25.248328
+      ]
+     },
+     "max": 25.248328,
+     "mean": 24.933834,
+     "min": 24.463315,
+     "n": 50,
+     "p50": 24.954753,
+     "p90": 25.105184,
+     "p99": 25.248328,
+     "stdev": 0.157324,
+     "unit": "s"
+    },
+    "weight_download_mib_s": {
+     "histogram": {
+      "counts": [
+       1,
+       4,
+       7,
+       10,
+       6,
+       7,
+       10,
+       2,
+       1,
+       0,
+       0,
+       2
+      ],
+      "edges": [
+       78.4,
+       78.616667,
+       78.833333,
+       79.05,
+       79.266667,
+       79.483333,
+       79.7,
+       79.916667,
+       80.133333,
+       80.35,
+       80.566667,
+       80.783333,
+       81.0
+      ]
+     },
+     "max": 81.0,
+     "mean": 79.43,
+     "min": 78.4,
+     "n": 50,
+     "p50": 79.3,
+     "p90": 79.9,
+     "p99": 81.0,
+     "stdev": 0.509201,
+     "unit": "MiB/s"
+    }
+   },
+   "restore": {
+    "first_request_inference": null,
+    "first_request_total": null,
+    "n": 0,
+    "report_restore_duration": null,
+    "snapshot_init": null
+   },
+   "warm": {
+    "client_round_trip": {
+     "histogram": {
+      "counts": [
+       7,
+       9,
+       11,
+       1,
+       9,
+       2,
+       0,
+       0,
+       0,
+       0,
+       1,
+       10
+      ],
+      "edges": [
+       0.457532,
+       0.587917,
+       0.718302,
+       0.848687,
+       0.979072,
+       1.109457,
+       1.239842,
+       1.370227,
+       1.500612,
+       1.630997,
+       1.761382,
+       1.891767,
+       2.022152
+      ]
+     },
+     "max": 2.022152,
+     "mean": 1.05948,
+     "min": 0.457532,
+     "n": 50,
+     "p50": 0.841217,
+     "p90": 1.991263,
+     "p99": 2.022152,
+     "stdev": 0.531167,
+     "unit": "s"
+    },
+    "engine_by_cpu_part": {
+     "0xd0c": {
+      "histogram": {
+       "counts": [
+        3,
+        0,
+        0,
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1
+       ],
+       "edges": [
+        0.43471,
+        0.535679,
+        0.636648,
+        0.737618,
+        0.838587,
+        0.939556,
+        1.040525,
+        1.141494,
+        1.242463,
+        1.343433,
+        1.444402,
+        1.545371,
+        1.64634
+       ]
+      },
+      "max": 1.64634,
+      "mean": 0.763902,
+      "min": 0.43471,
+      "n": 6,
+      "p50": 0.43946,
+      "p90": 1.64634,
+      "p99": 1.64634,
+      "stdev": 0.46962,
+      "unit": "s"
+     },
+     "0xd40": {
+      "histogram": {
+       "counts": [
+        7,
+        5,
+        10,
+        1,
+        6,
+        3,
+        0,
+        0,
+        0,
+        0,
+        0,
+        10
+       ],
+       "edges": [
+        0.2332,
+        0.36357,
+        0.49394,
+        0.62431,
+        0.75468,
+        0.88505,
+        1.01542,
+        1.14579,
+        1.27616,
+        1.40653,
+        1.5369,
+        1.66727,
+        1.79764
+       ]
+      },
+      "max": 1.79764,
+      "mean": 0.864601,
+      "min": 0.2332,
+      "n": 42,
+      "p50": 0.62066,
+      "p90": 1.77104,
+      "p99": 1.79764,
+      "stdev": 0.54876,
+      "unit": "s"
+     },
+     "0xd4f": {
+      "histogram": {
+       "counts": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1
+       ],
+       "edges": [
+        0.40184,
+        0.413167,
+        0.424493,
+        0.43582,
+        0.447147,
+        0.458473,
+        0.4698,
+        0.481127,
+        0.492453,
+        0.50378,
+        0.515107,
+        0.526433,
+        0.53776
+       ]
+      },
+      "max": 0.53776,
+      "mean": 0.4698,
+      "min": 0.40184,
+      "n": 2,
+      "p50": 0.40184,
+      "p90": 0.53776,
+      "p99": 0.53776,
+      "stdev": 0.09611,
+      "unit": "s"
+     }
+    },
+    "handler_total": {
+     "histogram": {
+      "counts": [
+       7,
+       9,
+       10,
+       2,
+       8,
+       3,
+       0,
+       0,
+       0,
+       0,
+       1,
+       10
+      ],
+      "edges": [
+       0.233615,
+       0.363987,
+       0.494359,
+       0.624731,
+       0.755103,
+       0.885475,
+       1.015848,
+       1.14622,
+       1.276592,
+       1.406964,
+       1.537336,
+       1.667708,
+       1.79808
+      ]
+     },
+     "max": 1.79808,
+     "mean": 0.837168,
+     "min": 0.233615,
+     "n": 50,
+     "p50": 0.62063,
+     "p90": 1.767597,
+     "p99": 1.79808,
+     "stdev": 0.530542,
+     "unit": "s"
+    },
+    "n": 50,
+    "report_billed_duration": {
+     "histogram": {
+      "counts": [
+       7,
+       9,
+       10,
+       2,
+       8,
+       3,
+       0,
+       0,
+       0,
+       0,
+       1,
+       10
+      ],
+      "edges": [
+       0.236,
+       0.366333,
+       0.496667,
+       0.627,
+       0.757333,
+       0.887667,
+       1.018,
+       1.148333,
+       1.278667,
+       1.409,
+       1.539333,
+       1.669667,
+       1.8
+      ]
+     },
+     "max": 1.8,
+     "mean": 0.83978,
+     "min": 0.236,
+     "n": 50,
+     "p50": 0.623,
+     "p90": 1.774,
+     "p99": 1.8,
+     "stdev": 0.530903,
+     "unit": "s"
+    },
+    "report_duration": {
+     "histogram": {
+      "counts": [
+       7,
+       9,
+       10,
+       2,
+       8,
+       3,
+       0,
+       0,
+       0,
+       0,
+       1,
+       10
+      ],
+      "edges": [
+       0.23533,
+       0.365712,
+       0.496093,
+       0.626475,
+       0.756857,
+       0.887238,
+       1.01762,
+       1.148002,
+       1.278383,
+       1.408765,
+       1.539147,
+       1.669528,
+       1.79991
+      ]
+     },
+     "max": 1.79991,
+     "mean": 0.839293,
+     "min": 0.23533,
+     "n": 50,
+     "p50": 0.6224,
+     "p90": 1.77321,
+     "p99": 1.79991,
+     "stdev": 0.530955,
+     "unit": "s"
+    },
+    "report_max_memory_mb": {
+     "histogram": {
+      "counts": [
+       1,
+       0,
+       0,
+       8,
+       5,
+       1,
+       1,
+       0,
+       9,
+       10,
+       6,
+       9
+      ],
+      "edges": [
+       5141.0,
+       5145.333333,
+       5149.666667,
+       5154.0,
+       5158.333333,
+       5162.666667,
+       5167.0,
+       5171.333333,
+       5175.666667,
+       5180.0,
+       5184.333333,
+       5188.666667,
+       5193.0
+      ]
+     },
+     "max": 5193.0,
+     "mean": 5175.6,
+     "min": 5141.0,
+     "n": 50,
+     "p50": 5179.0,
+     "p90": 5191.0,
+     "p99": 5193.0,
+     "stdev": 13.326359,
+     "unit": "MB"
+    },
+    "steady_state_by_request": {
+     "agent-action-guard-2q": {
+      "histogram": {
+       "counts": [
+        9,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1
+       ],
+       "edges": [
+        0.86184,
+        0.927215,
+        0.99259,
+        1.057965,
+        1.12334,
+        1.188715,
+        1.25409,
+        1.319465,
+        1.38484,
+        1.450215,
+        1.51559,
+        1.580965,
+        1.64634
+       ]
+      },
+      "max": 1.64634,
+      "mean": 0.951196,
+      "min": 0.86184,
+      "n": 10,
+      "p50": 0.86634,
+      "p90": 0.90242,
+      "p99": 1.64634,
+      "stdev": 0.244624,
+      "unit": "s"
+     },
+     "cracked-screen-2q": {
+      "histogram": {
+       "counts": [
+        1,
+        0,
+        7,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        2
+       ],
+       "edges": [
+        0.40184,
+        0.436647,
+        0.471453,
+        0.50626,
+        0.541067,
+        0.575873,
+        0.61068,
+        0.645487,
+        0.680293,
+        0.7151,
+        0.749907,
+        0.784713,
+        0.81952
+       ]
+      },
+      "max": 0.81952,
+      "mean": 0.547342,
+      "min": 0.40184,
+      "n": 10,
+      "p50": 0.49067,
+      "p90": 0.80451,
+      "p99": 0.81952,
+      "stdev": 0.142446,
+      "unit": "s"
+     },
+     "incident-review-4q": {
+      "histogram": {
+       "counts": [
+        2,
+        1,
+        0,
+        2,
+        1,
+        2,
+        0,
+        1,
+        0,
+        0,
+        0,
+        1
+       ],
+       "edges": [
+        1.75345,
+        1.757132,
+        1.760815,
+        1.764498,
+        1.76818,
+        1.771863,
+        1.775545,
+        1.779227,
+        1.78291,
+        1.786593,
+        1.790275,
+        1.793958,
+        1.79764
+       ]
+      },
+      "max": 1.79764,
+      "mean": 1.769633,
+      "min": 1.75345,
+      "n": 10,
+      "p50": 1.76716,
+      "p90": 1.78174,
+      "p99": 1.79764,
+      "stdev": 0.013427,
+      "unit": "s"
+     },
+     "payouts-3q": {
+      "histogram": {
+       "counts": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        3,
+        1,
+        1,
+        3,
+        0,
+        1
+       ],
+       "edges": [
+        0.53776,
+        0.546825,
+        0.55589,
+        0.564955,
+        0.57402,
+        0.583085,
+        0.59215,
+        0.601215,
+        0.61028,
+        0.619345,
+        0.62841,
+        0.637475,
+        0.64654
+       ]
+      },
+      "max": 0.64654,
+      "mean": 0.60664,
+      "min": 0.53776,
+      "n": 10,
+      "p50": 0.60961,
+      "p90": 0.62425,
+      "p99": 0.64654,
+      "stdev": 0.028633,
+      "unit": "s"
+     },
+     "ticket-route-1q": {
+      "histogram": {
+       "counts": [
+        5,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        3
+       ],
+       "edges": [
+        0.2332,
+        0.250388,
+        0.267577,
+        0.284765,
+        0.301953,
+        0.319142,
+        0.33633,
+        0.353518,
+        0.370707,
+        0.387895,
+        0.405083,
+        0.422272,
+        0.43946
+       ]
+      },
+      "max": 0.43946,
+      "mean": 0.308815,
+      "min": 0.2332,
+      "n": 10,
+      "p50": 0.2501,
+      "p90": 0.43887,
+      "p99": 0.43946,
+      "stdev": 0.090808,
+      "unit": "s"
+     }
+    },
+    "steady_state_inference": {
+     "histogram": {
+      "counts": [
+       7,
+       9,
+       11,
+       1,
+       8,
+       3,
+       0,
+       0,
+       0,
+       0,
+       1,
+       10
+      ],
+      "edges": [
+       0.2332,
+       0.36357,
+       0.49394,
+       0.62431,
+       0.75468,
+       0.88505,
+       1.01542,
+       1.14579,
+       1.27616,
+       1.40653,
+       1.5369,
+       1.66727,
+       1.79764
+      ]
+     },
+     "max": 1.79764,
+     "mean": 0.836725,
+     "min": 0.2332,
+     "n": 50,
+     "p50": 0.62021,
+     "p90": 1.76716,
+     "p99": 1.79764,
+     "stdev": 0.530543,
+     "unit": "s"
+    },
+    "wait_for_load": {
+     "histogram": {
+      "counts": [
+       49,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       1
+      ],
+      "edges": [
+       1e-05,
+       2.7e-05,
+       4.4e-05,
+       6.1e-05,
+       7.8e-05,
+       9.5e-05,
+       0.000111,
+       0.000128,
+       0.000145,
+       0.000162,
+       0.000179,
+       0.000196,
+       0.000213
+      ]
+     },
+     "max": 0.000213,
+     "mean": 1.6e-05,
+     "min": 1e-05,
+     "n": 50,
+     "p50": 1.2e-05,
+     "p90": 1.3e-05,
+     "p99": 0.000213,
+     "stdev": 2.8e-05,
+     "unit": "s"
+    }
+   }
+  }
+ },
+ "primary_arm": "crtf16",
+ "profiling_artifacts": [],
+ "published": {
+  "artifacts": {
+   "conditions.json": {
+    "link": "https://ap-southeast-2.console.aws.amazon.com/s3/object/strands-decider-lkai-results-apse2?region=ap-southeast-2&prefix=runs/E3-parallel-range-get/20261020T113449Z-crtf16/artifacts/conditions.json",
+    "sha256": "8d9f2caf869152db178d2ed38aca0b8a5c831903cc63bdd035ead15ad4697cf4",
+    "uri": "s3://strands-decider-lkai-results-apse2/runs/E3-parallel-range-get/20261020T113449Z-crtf16/artifacts/conditions.json"
+   },
+   "invocations.jsonl": {
+    "link": "https://ap-southeast-2.console.aws.amazon.com/s3/object/strands-decider-lkai-results-apse2?region=ap-southeast-2&prefix=runs/E3-parallel-range-get/20261020T113449Z-crtf16/artifacts/invocations.jsonl",
+    "sha256": "46f1ebed7ba358e0592c62fd4d7a1f524693c53fa61e5f66e88b29de6535d289",
+    "uri": "s3://strands-decider-lkai-results-apse2/runs/E3-parallel-range-get/20261020T113449Z-crtf16/artifacts/invocations.jsonl"
+   },
+   "logs/lkai-e3-crtf16.jsonl.gz": {
+    "link": "https://ap-southeast-2.console.aws.amazon.com/s3/object/strands-decider-lkai-results-apse2?region=ap-southeast-2&prefix=runs/E3-parallel-range-get/20261020T113449Z-crtf16/artifacts/logs/lkai-e3-crtf16.jsonl.gz",
+    "sha256": "8d46a6141aa92f5fbcad9fcbb70ecac3249fe6510112ce0394d602dcdfd7450d",
+    "uri": "s3://strands-decider-lkai-results-apse2/runs/E3-parallel-range-get/20261020T113449Z-crtf16/artifacts/logs/lkai-e3-crtf16.jsonl.gz"
+   },
+   "logs/lkai-e3-ctl.jsonl.gz": {
+    "link": "https://ap-southeast-2.console.aws.amazon.com/s3/object/strands-decider-lkai-results-apse2?region=ap-southeast-2&prefix=runs/E3-parallel-range-get/20261020T113449Z-crtf16/artifacts/logs/lkai-e3-ctl.jsonl.gz",
+    "sha256": "c058aa340c837decfa44048edaf71928c7ffd44ce0faffa370aa2e5ba5a9865b",
+    "uri": "s3://strands-decider-lkai-results-apse2/runs/E3-parallel-range-get/20261020T113449Z-crtf16/artifacts/logs/lkai-e3-ctl.jsonl.gz"
+   }
+  },
+  "missing_artifacts": [],
+  "result": "s3://strands-decider-lkai-results-apse2/runs/E3-parallel-range-get/20261020T113449Z-crtf16/result.json",
+  "result_link": "https://ap-southeast-2.console.aws.amazon.com/s3/object/strands-decider-lkai-results-apse2?region=ap-southeast-2&prefix=runs/E3-parallel-range-get/20261020T113449Z-crtf16/result.json"
+ },
+ "reproduce": [
+  "git fetch https://github.com/jsamuel1/strands-decider lkai/cab0-ranged-get && git checkout <commit>",
+  "# P1's zip and manifest from P1's bucket (code/d148d706.../), and the awscrt 0.38.0 aarch64 wheel:",
+  "pip download --no-deps --only-binary=:all: --platform manylinux2014_aarch64 --python-version 3.12 --implementation cp awscrt==0.38.0 -d wheels",
+  "python examples/lambda-kleidiai/e3/e3deploy.py build --p1-zip p1.zip --p1-manifest p1-manifest.json --wheel wheels/awscrt-0.38.0-cp311-abi3-manylinux2014_aarch64.manylinux_2_17_aarch64.whl",
+  "AWS_PROFILE=<p> python examples/lambda-kleidiai/e3/e3deploy.py up",
+  "AWS_PROFILE=<p> python examples/lambda-kleidiai/e3/e3bench.py --mode verify --out build/runs/verify-<id>",
+  "AWS_PROFILE=<p> python examples/lambda-kleidiai/e3/e3bench.py --mode cold --rounds 5 --concurrency 10 --out build/runs/cold-<id>",
+  "AWS_PROFILE=<p> python examples/lambda-kleidiai/e3/e3bench.py --mode restore --arms ctl,<best> --rounds 3 --out build/runs/restore-<id>",
+  "python examples/lambda-kleidiai/e3/summarize_e3.py --cold build/runs/cold-<id> --restore build/runs/restore-<id> --verify build/runs/verify-<id> --baseline-commit aac59d45555ebded9357c23f6f8e4f939edf25d7 --run-id <id> --out build/runs/summary-<id>",
+  "AWS_PROFILE=<p> python examples/lambda-kleidiai/e3/e3deploy.py teardown"
+ ],
+ "run_id": "20261020T113449Z-crtf16",
+ "schema": "lkai-result/1",
+ "status": "regressed",
+ "variance": {
+  "crtf16": {
+   "cold": {
+    "cv": 0.0527,
+    "median_of_medians_s": 37.7782,
+    "per_round_median_s": [
+     39.5734,
+     41.239,
+     35.9484,
+     37.7782,
+     37.6333
+    ],
+    "range_s": 5.2907,
+    "stdev_s": 2.0258
+   },
+   "warm": {
+    "cv": 0.7364,
+    "median_of_medians_s": 0.6107,
+    "per_round_median_s": [
+     0.2464,
+     0.6107,
+     0.4872,
+     0.8688,
+     1.7627
+    ],
+    "range_s": 1.5163,
+    "stdev_s": 0.5856
+   }
+  },
+  "ctl": {
+   "cold": {
+    "cv": 0.0031,
+    "median_of_medians_s": 35.9242,
+    "per_round_median_s": [
+     36.0567,
+     35.7937,
+     36.0391,
+     35.885,
+     35.9242
+    ],
+    "range_s": 0.2629,
+    "stdev_s": 0.1096
+   },
+   "warm": {
+    "cv": 0.7273,
+    "median_of_medians_s": 0.6126,
+    "per_round_median_s": [
+     0.2665,
+     0.6126,
+     0.4914,
+     0.8671,
+     1.7691
+    ],
+    "range_s": 1.5026,
+    "stdev_s": 0.5828
+   }
+  }
+ }
+}

@@ -1,0 +1,4731 @@
+{
+ "baseline": {
+  "cold.first_request_total": {
+   "label": "Cold first request",
+   "n": 50,
+   "p50": 35.98805,
+   "p90": 36.40877,
+   "unit": "s"
+  },
+  "cold.model_load_mmap": {
+   "label": "Cold model load",
+   "n": 50,
+   "p50": 8.36944,
+   "p90": 8.66859,
+   "unit": "s"
+  },
+  "cold.report_max_memory_mb": {
+   "label": "Max memory",
+   "n": 50,
+   "p50": 5140.0,
+   "p90": 5161.0,
+   "unit": "MB"
+  },
+  "cold.weight_download": {
+   "label": "Cold weight download",
+   "n": 50,
+   "p50": 25.038237,
+   "p90": 25.185943,
+   "unit": "s"
+  },
+  "cold_phases": {
+   "context_init": 0.317742,
+   "imports": 0.715211,
+   "model_load_mmap": 8.36944,
+   "weight_download": 25.038237
+  },
+  "cost": {
+   "lambda_duration_usd": 0.614,
+   "prices": {
+    "arm64_gb_s": 1.33334e-05,
+    "request": 2.0000000000000002e-07,
+    "s3_get_per_1000": 0.0004,
+    "s3_head_per_1000": 0.0004,
+    "s3_standard_gb_month": 0.023,
+    "snapstart_cache_gb_s": 1.5046e-06,
+    "snapstart_restore_gb": 0.0001397998,
+    "source": "aws.amazon.com/lambda/pricing, aws.amazon.com/s3/pricing (us-east-2)"
+   },
+   "s3_request_usd": 0.001536,
+   "total_usd": 2.3806
+  },
+  "memory_gb": 10.0,
+  "restore.first_request_total": {
+   "label": "Restored first request",
+   "n": 50,
+   "p50": 3.95297,
+   "p90": 4.19871,
+   "unit": "s"
+  },
+  "restore_phases": {
+   "first_request_inference": 0.66702,
+   "report_restore_duration": 3.27449
+  },
+  "variance": {
+   "cold": {
+    "cv": 0.0035,
+    "range_s": 0.2856
+   },
+   "restore": {
+    "cv": 0.0259,
+    "range_s": 0.2428
+   },
+   "warm": {
+    "cv": 0.0542,
+    "range_s": 0.0917
+   }
+  },
+  "warm.steady_state_inference": {
+   "label": "Warm inference",
+   "n": 500,
+   "p50": 0.66049,
+   "p90": 1.73952,
+   "unit": "s"
+  }
+ },
+ "cpu_part": "0xd40",
+ "e12_warm": {
+  "cells": 54,
+  "ci95": [
+   0.969387,
+   1.002377
+  ],
+  "median_ratio": 0.984376
+ },
+ "effects": [
+  {
+   "claimed": [
+    "cold.first_request_total",
+    "cold.model_load_mmap"
+   ],
+   "commit": "d09ba79c88da0db668976f539d53ce1742f5f8c5",
+   "correctness": {
+    "answer_shape_mismatches": 0,
+    "bit_identical": 1800,
+    "choice_flips": 0,
+    "compared": 1800,
+    "complete": true,
+    "invocations": 1800,
+    "max_abs_delta": 0.0,
+    "method": "complete answer object, same request id and same CPU part as the reference; every invocation either is compared or is counted in without_answers (errors, malformed successes) or no_reference_for_cpu_part",
+    "no_reference_for_cpu_part": 0,
+    "reference": "reference/outputs.json",
+    "without_answers": 0
+   },
+   "cost_delta_usd": {
+    "cold_duration_per_1000": -0.7227
+   },
+   "cost_usd_run": 3.531,
+   "id": "E8",
+   "kind": "compute",
+   "metrics": {
+    "cold.first_request_total": {
+     "parts": {
+      "0xd0c": {
+       "ci95": [
+        -14.8555,
+        -14.26207
+       ],
+       "delta": -14.50299,
+       "n": [
+        4,
+        6
+       ]
+      },
+      "0xd40": {
+       "ci95": [
+        -5.490235,
+        -5.31659
+       ],
+       "delta": -5.419965,
+       "n": [
+        41,
+        40
+       ]
+      },
+      "0xd4f": {
+       "ci95": [
+        -5.10284,
+        -4.414565
+       ],
+       "delta": -4.834155,
+       "n": [
+        5,
+        4
+       ]
+      }
+     },
+     "verdict": "measured"
+    },
+    "cold.model_load_mmap": {
+     "parts": {
+      "0xd0c": {
+       "ci95": [
+        -14.75029,
+        -14.194993
+       ],
+       "delta": -14.549511,
+       "n": [
+        4,
+        6
+       ]
+      },
+      "0xd40": {
+       "ci95": [
+        -5.533589,
+        -5.437522
+       ],
+       "delta": -5.474562,
+       "n": [
+        41,
+        40
+       ]
+      },
+      "0xd4f": {
+       "ci95": [
+        -4.951248,
+        -4.647801
+       ],
+       "delta": -4.813433,
+       "n": [
+        5,
+        4
+       ]
+      }
+     },
+     "verdict": "measured"
+    },
+    "cold.report_max_memory_mb": {
+     "parts": {
+      "0xd0c": {
+       "ci95": [
+        -12.0,
+        21.0
+       ],
+       "delta": 6.0,
+       "n": [
+        4,
+        6
+       ]
+      },
+      "0xd40": {
+       "ci95": [
+        -11.5,
+        0.0
+       ],
+       "delta": -2.0,
+       "n": [
+        41,
+        40
+       ]
+      },
+      "0xd4f": {
+       "ci95": [
+        -20.0,
+        21.0
+       ],
+       "delta": 9.5,
+       "n": [
+        5,
+        4
+       ]
+      }
+     },
+     "verdict": "no-change"
+    },
+    "cold.weight_download": {
+     "parts": {
+      "0xd0c": {
+       "ci95": [
+        -0.387594,
+        0.121215
+       ],
+       "delta": -0.174452,
+       "n": [
+        4,
+        6
+       ]
+      },
+      "0xd40": {
+       "ci95": [
+        -0.036183,
+        0.079382
+       ],
+       "delta": 0.020781,
+       "n": [
+        41,
+        40
+       ]
+      },
+      "0xd4f": {
+       "ci95": [
+        -0.24602,
+        0.106281
+       ],
+       "delta": 0.018884,
+       "n": [
+        5,
+        4
+       ]
+      }
+     },
+     "verdict": "no-change"
+    },
+    "restore.first_request_total": {
+     "parts": {
+      "0xd0c": {
+       "ci95": [
+        -0.199035,
+        -0.05799
+       ],
+       "delta": -0.14552,
+       "n": [
+        2,
+        4
+       ]
+      },
+      "0xd40": {
+       "ci95": [
+        -0.07227,
+        -0.00563
+       ],
+       "delta": -0.03221,
+       "n": [
+        48,
+        46
+       ]
+      }
+     },
+     "verdict": "not-claimed"
+    },
+    "warm.steady_state_inference": {
+     "parts": {
+      "0xd0c": {
+       "ci95": [
+        -0.595505,
+        0.54365
+       ],
+       "delta": -0.012065,
+       "n": [
+        20,
+        40
+       ]
+      },
+      "0xd40": {
+       "ci95": [
+        -0.09466,
+        0.068365
+       ],
+       "delta": -0.01389,
+       "n": [
+        480,
+        460
+       ]
+      }
+     },
+     "verdict": "no-change"
+    }
+   },
+   "run": "E8-parallel-repack/20261021T110412Z",
+   "scope": "general",
+   "scope_note": "Load-time only, threads already idle during load. Same packed bytes at 1, 2, 3 and 6 threads.",
+   "short": "6-thread repack (E8)",
+   "status": "improved",
+   "switch": "GGML_KLEIDIAI_REPACK_THREADS=6",
+   "title": "Six-thread KleidiAI repack at load"
+  },
+  {
+   "claimed": [
+    "cold.first_request_total",
+    "cold.model_load_mmap"
+   ],
+   "commit": "55692de33ba532e240c39e763ff76b07586011cf",
+   "correctness": {
+    "answer_shape_mismatches": 0,
+    "bit_identical": 600,
+    "by_arm": {
+     "base": {
+      "answer_shape_mismatches": 0,
+      "bit_identical": 600,
+      "choice_flips": 0,
+      "compared": 600,
+      "max_abs_delta": 0.0,
+      "method": "complete answer object, same request id and same CPU part as the reference",
+      "no_reference_for_cpu_part": 0
+     },
+     "e9": {
+      "answer_shape_mismatches": 0,
+      "bit_identical": 600,
+      "choice_flips": 0,
+      "compared": 600,
+      "max_abs_delta": 0.0,
+      "method": "complete answer object, same request id and same CPU part as the reference",
+      "no_reference_for_cpu_part": 0
+     }
+    },
+    "choice_flips": 0,
+    "compared": 600,
+    "max_abs_delta": 0.0,
+    "method": "complete answer object, same request id and same CPU part as the reference",
+    "no_reference_for_cpu_part": 0,
+    "reference": "baseline/reference/outputs.json (P1 run 20261020T080835Z)",
+    "tolerance": "bit-identical required: offline, the packed buffers the E9 loader holds hash identical to the runtime repack's on both kernel layouts (offline-verdict.json), so any difference would be a defect"
+   },
+   "cost_delta_usd": {
+    "cold_duration_per_1000": -0.6495
+   },
+   "cost_usd_run": 2.3577,
+   "id": "E9",
+   "kind": "compute",
+   "metrics": {
+    "cold.first_request_total": {
+     "parts": {
+      "0xd0c": {
+       "ci95": null,
+       "delta": -8.222895,
+       "n": [
+        2,
+        7
+       ]
+      },
+      "0xd40": {
+       "ci95": null,
+       "delta": -4.8711,
+       "n": [
+        45,
+        39
+       ]
+      },
+      "0xd4f": {
+       "ci95": null,
+       "delta": -4.45993,
+       "n": [
+        3,
+        4
+       ]
+      }
+     },
+     "verdict": "no-ci"
+    },
+    "cold.model_load_mmap": {
+     "parts": {
+      "0xd0c": {
+       "ci95": null,
+       "delta": -8.086673,
+       "n": [
+        2,
+        7
+       ]
+      },
+      "0xd40": {
+       "ci95": null,
+       "delta": -4.910124,
+       "n": [
+        45,
+        39
+       ]
+      },
+      "0xd4f": {
+       "ci95": null,
+       "delta": -4.281433,
+       "n": [
+        3,
+        4
+       ]
+      }
+     },
+     "verdict": "no-ci"
+    },
+    "cold.report_max_memory_mb": {
+     "parts": {
+      "0xd0c": {
+       "ci95": null,
+       "delta": -4.0,
+       "n": [
+        2,
+        7
+       ]
+      },
+      "0xd40": {
+       "ci95": null,
+       "delta": 0.0,
+       "n": [
+        45,
+        39
+       ]
+      },
+      "0xd4f": {
+       "ci95": null,
+       "delta": -3.5,
+       "n": [
+        3,
+        4
+       ]
+      }
+     },
+     "verdict": "not-claimed"
+    },
+    "cold.weight_download": {
+     "parts": {
+      "0xd0c": {
+       "ci95": null,
+       "delta": -0.017202,
+       "n": [
+        2,
+        7
+       ]
+      },
+      "0xd40": {
+       "ci95": null,
+       "delta": -0.000464,
+       "n": [
+        45,
+        39
+       ]
+      },
+      "0xd4f": {
+       "ci95": null,
+       "delta": 0.039807,
+       "n": [
+        3,
+        4
+       ]
+      }
+     },
+     "verdict": "not-claimed"
+    },
+    "restore.first_request_total": {
+     "parts": {
+      "0xd0c": {
+       "ci95": null,
+       "delta": 0.15305,
+       "n": [
+        6,
+        8
+       ]
+      },
+      "0xd40": {
+       "ci95": null,
+       "delta": -0.058395,
+       "n": [
+        44,
+        42
+       ]
+      }
+     },
+     "verdict": "not-claimed"
+    },
+    "warm.steady_state_inference": {
+     "parts": {
+      "0xd0c": {
+       "ci95": null,
+       "delta": -0.026885,
+       "n": [
+        60,
+        80
+       ]
+      },
+      "0xd40": {
+       "ci95": null,
+       "delta": -0.00411,
+       "n": [
+        440,
+        420
+       ]
+      }
+     },
+     "verdict": "not-claimed"
+    }
+   },
+   "run": "E9-prepacked/20261021T101749Z",
+   "scope": "general",
+   "scope_note": "Needs E9's loader and a KleidiAI-capable CPU. A file packed for one layout converts on the other.",
+   "short": "Pre-packed weights (E9)",
+   "status": "improved",
+   "switch": "E9 loader patch + s2b-h512-Q8_0-e9kr8.gguf",
+   "title": "Pre-packed KleidiAI weights in the GGUF"
+  },
+  {
+   "claimed": [
+    "cold.first_request_total"
+   ],
+   "commit": "4c5fcf0e84d144792c4ea8163a0d799bb4806254",
+   "correctness": {
+    "answer_shape_mismatches": 0,
+    "bit_identical": 600,
+    "by_arm": {
+     "base": {
+      "answer_shape_mismatches": 0,
+      "bit_identical": 600,
+      "choice_flips": 0,
+      "compared": 600,
+      "max_abs_delta": 0.0,
+      "method": "complete answer object, same request id and same CPU part as the reference",
+      "no_reference_for_cpu_part": 0
+     },
+     "basethr": {
+      "answer_shape_mismatches": 0,
+      "bit_identical": 600,
+      "choice_flips": 0,
+      "compared": 600,
+      "max_abs_delta": 0.0,
+      "method": "complete answer object, same request id and same CPU part as the reference",
+      "no_reference_for_cpu_part": 0
+     },
+     "stream": {
+      "answer_shape_mismatches": 0,
+      "bit_identical": 600,
+      "choice_flips": 0,
+      "compared": 600,
+      "max_abs_delta": 0.0,
+      "method": "complete answer object, same request id and same CPU part as the reference",
+      "no_reference_for_cpu_part": 0
+     },
+     "streamdyn": {
+      "answer_shape_mismatches": 0,
+      "bit_identical": 600,
+      "choice_flips": 0,
+      "compared": 600,
+      "max_abs_delta": 0.0,
+      "method": "complete answer object, same request id and same CPU part as the reference",
+      "no_reference_for_cpu_part": 0
+     }
+    },
+    "choice_flips": 0,
+    "compared": 600,
+    "max_abs_delta": 0.0,
+    "method": "complete answer object, same request id and same CPU part as the reference",
+    "no_reference_for_cpu_part": 0,
+    "reference": "baseline/reference/outputs.json (P1 run 20261020T080835Z)",
+    "tolerance": "bit-identical required: every arm loads the same GGUF bytes with the same kernels; the streamed load only changes when each tensor is read, and waits for every byte before inference"
+   },
+   "cost_delta_usd": {
+    "cold_duration_per_1000": -0.6053
+   },
+   "cost_usd_run": 4.7333,
+   "id": "E4",
+   "kind": "overlap",
+   "metrics": {
+    "cold.first_request_total": {
+     "parts": {
+      "0xd0c": {
+       "ci95": null,
+       "delta": -9.262495,
+       "n": [
+        10,
+        12
+       ]
+      },
+      "0xd40": {
+       "ci95": null,
+       "delta": -4.53971,
+       "n": [
+        36,
+        27
+       ]
+      },
+      "0xd4f": {
+       "ci95": null,
+       "delta": -3.97285,
+       "n": [
+        4,
+        11
+       ]
+      }
+     },
+     "verdict": "no-ci"
+    },
+    "cold.model_load_mmap": {
+     "parts": {
+      "0xd0c": {
+       "ci95": null,
+       "delta": 14.956829,
+       "n": [
+        10,
+        12
+       ]
+      },
+      "0xd40": {
+       "ci95": null,
+       "delta": 19.882233,
+       "n": [
+        36,
+        27
+       ]
+      },
+      "0xd4f": {
+       "ci95": null,
+       "delta": 20.341517,
+       "n": [
+        4,
+        11
+       ]
+      }
+     },
+     "verdict": "not-claimed"
+    },
+    "cold.report_max_memory_mb": {
+     "parts": {
+      "0xd0c": {
+       "ci95": null,
+       "delta": -29.5,
+       "n": [
+        10,
+        12
+       ]
+      },
+      "0xd40": {
+       "ci95": null,
+       "delta": -35.0,
+       "n": [
+        36,
+        27
+       ]
+      },
+      "0xd4f": {
+       "ci95": null,
+       "delta": -35.0,
+       "n": [
+        4,
+        11
+       ]
+      }
+     },
+     "verdict": "not-claimed"
+    },
+    "cold.weight_download": {
+     "parts": {
+      "0xd0c": {
+       "ci95": null,
+       "delta": -0.012836,
+       "n": [
+        10,
+        12
+       ]
+      },
+      "0xd40": {
+       "ci95": null,
+       "delta": 0.080794,
+       "n": [
+        36,
+        27
+       ]
+      },
+      "0xd4f": {
+       "ci95": null,
+       "delta": 0.133289,
+       "n": [
+        4,
+        11
+       ]
+      }
+     },
+     "verdict": "not-claimed"
+    },
+    "restore.first_request_total": {
+     "parts": {
+      "0xd0c": {
+       "ci95": null,
+       "delta": -0.17039,
+       "n": [
+        7,
+        5
+       ]
+      },
+      "0xd40": {
+       "ci95": null,
+       "delta": -0.00509,
+       "n": [
+        43,
+        45
+       ]
+      }
+     },
+     "verdict": "not-claimed"
+    },
+    "warm.steady_state_inference": {
+     "parts": {
+      "0xd0c": {
+       "ci95": null,
+       "delta": 0.02875,
+       "n": [
+        70,
+        50
+       ]
+      },
+      "0xd40": {
+       "ci95": null,
+       "delta": -0.02969,
+       "n": [
+        430,
+        450
+       ]
+      }
+     },
+     "verdict": "not-claimed"
+    }
+   },
+   "run": "E4-stream-load/20261020T181753Z",
+   "scope": "lambda",
+   "scope_note": "Only pays when weights arrive over the network at load. Without the mallopt pin it costs +470 MB.",
+   "short": "Stream into loader (E4)",
+   "status": "improved",
+   "switch": "stream loader + mallopt M_MMAP_THRESHOLD=4 MiB",
+   "title": "Stream weights into the loader during download"
+  },
+  {
+   "claimed": [
+    "cold.first_request_total",
+    "cold.model_load_mmap",
+    "restore.first_request_total",
+    "cold.report_max_memory_mb"
+   ],
+   "commit": "719111e9ebed90234d2897cea7c882d107da3077",
+   "correctness": {
+    "answer_shape_mismatches": 0,
+    "bit_identical": 1200,
+    "choice_flips": 0,
+    "compared": 1200,
+    "complete": true,
+    "invocations": 1200,
+    "max_abs_delta": 0.0,
+    "method": "complete answer object, same request id and same CPU part as the reference; every invocation either is compared or is counted in without_answers (errors, malformed successes) or no_reference_for_cpu_part",
+    "no_reference_for_cpu_part": 0,
+    "reference": "reference/outputs.json",
+    "without_answers": 0
+   },
+   "cost_delta_usd": {
+    "cache_per_version_month_proxy": -1.8738,
+    "cold_duration_per_1000": -0.2815,
+    "restore_gb_per_1000_proxy": -0.0672
+   },
+   "cost_usd_run": 2.3669,
+   "id": "E7",
+   "kind": "compute",
+   "metrics": {
+    "cold.first_request_total": {
+     "parts": {
+      "0xd0c": {
+       "ci95": [
+        -5.18559,
+        -4.68474
+       ],
+       "delta": -4.84856,
+       "n": [
+        3,
+        7
+       ]
+      },
+      "0xd40": {
+       "ci95": [
+        -2.20159,
+        -2.006545
+       ],
+       "delta": -2.111145,
+       "n": [
+        42,
+        36
+       ]
+      },
+      "0xd4f": {
+       "ci95": [
+        -2.0455,
+        -1.33253
+       ],
+       "delta": -1.80431,
+       "n": [
+        5,
+        7
+       ]
+      }
+     },
+     "verdict": "measured"
+    },
+    "cold.model_load_mmap": {
+     "parts": {
+      "0xd0c": {
+       "ci95": [
+        -5.568995,
+        -4.949488
+       ],
+       "delta": -5.141391,
+       "n": [
+        3,
+        7
+       ]
+      },
+      "0xd40": {
+       "ci95": [
+        -2.085373,
+        -1.99822
+       ],
+       "delta": -2.048033,
+       "n": [
+        42,
+        36
+       ]
+      },
+      "0xd4f": {
+       "ci95": [
+        -1.854816,
+        -1.596637
+       ],
+       "delta": -1.709242,
+       "n": [
+        5,
+        7
+       ]
+      }
+     },
+     "verdict": "measured"
+    },
+    "cold.report_max_memory_mb": {
+     "parts": {
+      "0xd0c": {
+       "ci95": [
+        -497.0,
+        -487.0
+       ],
+       "delta": -492.0,
+       "n": [
+        3,
+        7
+       ]
+      },
+      "0xd40": {
+       "ci95": [
+        -494.5,
+        -489.0
+       ],
+       "delta": -492.0,
+       "n": [
+        42,
+        36
+       ]
+      },
+      "0xd4f": {
+       "ci95": [
+        -514.0,
+        -471.0
+       ],
+       "delta": -492.0,
+       "n": [
+        5,
+        7
+       ]
+      }
+     },
+     "verdict": "measured"
+    },
+    "cold.weight_download": {
+     "parts": {
+      "0xd0c": {
+       "ci95": [
+        0.002621,
+        0.519901
+       ],
+       "delta": 0.277395,
+       "n": [
+        3,
+        7
+       ]
+      },
+      "0xd40": {
+       "ci95": [
+        -0.10525,
+        0.010461
+       ],
+       "delta": -0.062763,
+       "n": [
+        42,
+        36
+       ]
+      },
+      "0xd4f": {
+       "ci95": [
+        -0.292484,
+        0.237221
+       ],
+       "delta": -0.146296,
+       "n": [
+        5,
+        7
+       ]
+      }
+     },
+     "verdict": "no-change"
+    },
+    "restore.first_request_total": {
+     "parts": {
+      "0xd0c": {
+       "ci95": [
+        -0.571435,
+        -0.379305
+       ],
+       "delta": -0.473285,
+       "n": [
+        4,
+        2
+       ]
+      },
+      "0xd40": {
+       "ci95": [
+        -0.389635,
+        -0.300085
+       ],
+       "delta": -0.347845,
+       "n": [
+        46,
+        48
+       ]
+      }
+     },
+     "verdict": "measured"
+    },
+    "warm.steady_state_inference": {
+     "parts": {
+      "0xd0c": {
+       "ci95": [
+        -0.610805,
+        0.56804
+       ],
+       "delta": -0.046895,
+       "n": [
+        40,
+        20
+       ]
+      },
+      "0xd40": {
+       "ci95": [
+        -0.08444,
+        0.089975
+       ],
+       "delta": 0.013245,
+       "n": [
+        460,
+        480
+       ]
+      }
+     },
+     "verdict": "no-change"
+    }
+   },
+   "run": "E7-skip-tied-output/20261021T102524Z",
+   "scope": "general",
+   "scope_note": "Safe only while the deployment never asks llama.cpp for logits (the patched LM head aborts).",
+   "short": "Skip tied output (E7)",
+   "status": "improved",
+   "switch": "LKAI_SKIP_TIED_OUTPUT=1",
+   "title": "Skip the unused tied output head"
+  },
+  {
+   "claimed": [
+    "cold.first_request_total",
+    "cold.model_load_mmap",
+    "cold.report_max_memory_mb"
+   ],
+   "commit": "16c452ed4e8294926811ed2512148cbf77833b49",
+   "correctness": {
+    "answer_shape_mismatches": 0,
+    "bit_identical": 600,
+    "by_arm": {
+     "base": {
+      "answer_shape_mismatches": 0,
+      "bit_identical": 600,
+      "choice_flips": 0,
+      "compared": 600,
+      "max_abs_delta": 0.0,
+      "method": "complete answer object, same request id and same CPU part as the reference",
+      "no_reference_for_cpu_part": 0
+     },
+     "e5": {
+      "answer_shape_mismatches": 0,
+      "bit_identical": 600,
+      "choice_flips": 0,
+      "compared": 600,
+      "max_abs_delta": 0.0,
+      "method": "complete answer object, same request id and same CPU part as the reference",
+      "no_reference_for_cpu_part": 0
+     }
+    },
+    "choice_flips": 0,
+    "compared": 600,
+    "max_abs_delta": 0.0,
+    "method": "complete answer object, same request id and same CPU part as the reference",
+    "no_reference_for_cpu_part": 0,
+    "reference": "baseline/reference/outputs.json (P1 run 20261020T080835Z)",
+    "tolerance": "bit-identical required: both files carry the same tensor bytes (e5-manifest.json tensor_digest) and the same code, so any difference would be a defect"
+   },
+   "cost_delta_usd": {
+    "cache_per_version_month_proxy": -0.3732,
+    "cold_duration_per_1000": -0.1147,
+    "restore_gb_per_1000_proxy": -0.0134
+   },
+   "cost_usd_run": 2.3714,
+   "id": "E5",
+   "kind": "compute",
+   "metrics": {
+    "cold.first_request_total": {
+     "parts": {
+      "0xd0c": {
+       "ci95": null,
+       "delta": -1.505205,
+       "n": [
+        3,
+        2
+       ]
+      },
+      "0xd40": {
+       "ci95": null,
+       "delta": -0.86007,
+       "n": [
+        43,
+        41
+       ]
+      },
+      "0xd4f": {
+       "ci95": null,
+       "delta": -0.70003,
+       "n": [
+        4,
+        7
+       ]
+      }
+     },
+     "verdict": "no-ci"
+    },
+    "cold.model_load_mmap": {
+     "parts": {
+      "0xd0c": {
+       "ci95": null,
+       "delta": -0.745479,
+       "n": [
+        3,
+        2
+       ]
+      },
+      "0xd40": {
+       "ci95": null,
+       "delta": -0.663934,
+       "n": [
+        43,
+        41
+       ]
+      },
+      "0xd4f": {
+       "ci95": null,
+       "delta": -0.599973,
+       "n": [
+        4,
+        7
+       ]
+      }
+     },
+     "verdict": "no-ci"
+    },
+    "cold.report_max_memory_mb": {
+     "parts": {
+      "0xd0c": {
+       "ci95": null,
+       "delta": -67.0,
+       "n": [
+        3,
+        2
+       ]
+      },
+      "0xd40": {
+       "ci95": null,
+       "delta": -98.0,
+       "n": [
+        43,
+        41
+       ]
+      },
+      "0xd4f": {
+       "ci95": null,
+       "delta": -71.0,
+       "n": [
+        4,
+        7
+       ]
+      }
+     },
+     "verdict": "no-ci"
+    },
+    "cold.weight_download": {
+     "parts": {
+      "0xd0c": {
+       "ci95": null,
+       "delta": -0.651149,
+       "n": [
+        3,
+        2
+       ]
+      },
+      "0xd40": {
+       "ci95": null,
+       "delta": -0.167628,
+       "n": [
+        43,
+        41
+       ]
+      },
+      "0xd4f": {
+       "ci95": null,
+       "delta": -0.059947,
+       "n": [
+        4,
+        7
+       ]
+      }
+     },
+     "verdict": "not-claimed"
+    },
+    "restore.first_request_total": {
+     "parts": {
+      "0xd0c": {
+       "ci95": null,
+       "delta": -0.2279,
+       "n": [
+        5,
+        3
+       ]
+      },
+      "0xd40": {
+       "ci95": null,
+       "delta": -0.00445,
+       "n": [
+        45,
+        47
+       ]
+      }
+     },
+     "verdict": "not-claimed"
+    },
+    "warm.steady_state_inference": {
+     "parts": {
+      "0xd0c": {
+       "ci95": null,
+       "delta": -0.04064,
+       "n": [
+        50,
+        30
+       ]
+      },
+      "0xd40": {
+       "ci95": null,
+       "delta": 0.028405,
+       "n": [
+        450,
+        470
+       ]
+      }
+     },
+     "verdict": "not-claimed"
+    }
+   },
+   "run": "E5-mmap-format/20261020T114406Z",
+   "scope": "general",
+   "scope_note": "Only for engines that tokenize outside llama.cpp, as decshim does.",
+   "short": "No-vocab GGUF (E5)",
+   "status": "improved",
+   "switch": "s2b-h512-Q8_0-novocab.gguf",
+   "title": "GGUF without the embedded vocabulary"
+  },
+  {
+   "claimed": [
+    "restore.first_request_total",
+    "cold.report_max_memory_mb"
+   ],
+   "commit": "e4325aae18f713cc114ac806e195b4bea6a7a02a",
+   "correctness": {
+    "answer_shape_mismatches": 0,
+    "bit_identical": 1200,
+    "choice_flips": 0,
+    "compared": 1200,
+    "complete": true,
+    "invocations": 1200,
+    "max_abs_delta": 0.0,
+    "method": "complete answer object, same request id and same CPU part as the reference; every invocation either is compared or is counted in without_answers (errors, malformed successes) or no_reference_for_cpu_part",
+    "no_reference_for_cpu_part": 0,
+    "reference": "reference/outputs.json",
+    "without_answers": 0
+   },
+   "cost_delta_usd": {
+    "cache_per_version_month_proxy": -3.8314,
+    "restore_gb_per_1000_proxy": -0.1373
+   },
+   "cost_usd_run": 2.3871,
+   "id": "E11",
+   "kind": "compute",
+   "metrics": {
+    "cold.first_request_total": {
+     "parts": {
+      "0xd0c": {
+       "ci95": [
+        -0.97138,
+        -0.26637
+       ],
+       "delta": -0.64368,
+       "n": [
+        5,
+        5
+       ]
+      },
+      "0xd40": {
+       "ci95": [
+        -0.312535,
+        -0.15791
+       ],
+       "delta": -0.221205,
+       "n": [
+        42,
+        42
+       ]
+      },
+      "0xd4f": {
+       "ci95": [
+        -0.34539,
+        0.32363
+       ],
+       "delta": 0.1706,
+       "n": [
+        3,
+        3
+       ]
+      }
+     },
+     "verdict": "not-claimed"
+    },
+    "cold.model_load_mmap": {
+     "parts": {
+      "0xd0c": {
+       "ci95": [
+        -0.167457,
+        0.182444
+       ],
+       "delta": -0.009035,
+       "n": [
+        5,
+        5
+       ]
+      },
+      "0xd40": {
+       "ci95": [
+        0.147936,
+        0.208706
+       ],
+       "delta": 0.18099,
+       "n": [
+        42,
+        42
+       ]
+      },
+      "0xd4f": {
+       "ci95": [
+        0.044765,
+        0.35216
+       ],
+       "delta": 0.312918,
+       "n": [
+        3,
+        3
+       ]
+      }
+     },
+     "verdict": "not-claimed"
+    },
+    "cold.report_max_memory_mb": {
+     "parts": {
+      "0xd0c": {
+       "ci95": [
+        -1014.0,
+        -983.0
+       ],
+       "delta": -986.0,
+       "n": [
+        5,
+        5
+       ]
+      },
+      "0xd40": {
+       "ci95": [
+        -1007.0,
+        -996.0
+       ],
+       "delta": -1006.0,
+       "n": [
+        42,
+        42
+       ]
+      },
+      "0xd4f": {
+       "ci95": [
+        -1012.0,
+        -979.0
+       ],
+       "delta": -1010.0,
+       "n": [
+        3,
+        3
+       ]
+      }
+     },
+     "verdict": "measured"
+    },
+    "cold.weight_download": {
+     "parts": null,
+     "verdict": "not-measured"
+    },
+    "restore.first_request_total": {
+     "parts": {
+      "0xd0c": {
+       "ci95": [
+        -1.33679,
+        -0.60464
+       ],
+       "delta": -0.88514,
+       "n": [
+        3,
+        5
+       ]
+      },
+      "0xd40": {
+       "ci95": [
+        -0.78344,
+        -0.65349
+       ],
+       "delta": -0.73436,
+       "n": [
+        47,
+        45
+       ]
+      }
+     },
+     "verdict": "measured"
+    },
+    "warm.steady_state_inference": {
+     "parts": {
+      "0xd0c": {
+       "ci95": [
+        -0.54144,
+        0.49546
+       ],
+       "delta": -0.038095,
+       "n": [
+        30,
+        50
+       ]
+      },
+      "0xd40": {
+       "ci95": [
+        -0.07042,
+        0.081885
+       ],
+       "delta": 0.024085,
+       "n": [
+        470,
+        450
+       ]
+      }
+     },
+     "verdict": "no-change"
+    }
+   },
+   "run": "E11-release-memfd/20261021T103834Z",
+   "scope": "lambda",
+   "scope_note": "Only for a memfd-backed GGUF. Uses madvise(MADV_REMOVE) because Lambda refuses fallocate.",
+   "short": "Release memfd (E11)",
+   "status": "improved",
+   "switch": "LKAI_RELEASE_MEMFD=1",
+   "title": "Release unaliased memfd pages before the snapshot"
+  },
+  {
+   "claimed": [
+    "restore.first_request_total"
+   ],
+   "commit": "77196356232a6e00ede4da3e8586bf2728e173b3",
+   "correctness": {
+    "answer_shape_mismatches": 0,
+    "bit_identical": 840,
+    "choice_flips": 0,
+    "compared": 840,
+    "complete": false,
+    "invocations": 1320,
+    "max_abs_delta": 0.0,
+    "method": "complete answer object, same request id and same CPU part as the reference; every invocation either is compared or is counted in without_answers (errors, malformed successes) or no_reference_for_cpu_part",
+    "no_reference_for_cpu_part": 480,
+    "reference": "reference/outputs.json",
+    "without_answers": 0
+   },
+   "cost_delta_usd": {},
+   "cost_usd_run": 2.9911,
+   "id": "E12",
+   "kind": "compute",
+   "metrics": {
+    "cold.first_request_total": {
+     "parts": {
+      "0xd0c": {
+       "ci95": [
+        -0.39774,
+        1.78822
+       ],
+       "delta": 0.010455,
+       "n": [
+        7,
+        6
+       ]
+      },
+      "0xd40": {
+       "ci95": [
+        -0.17523,
+        0.00184
+       ],
+       "delta": -0.10262,
+       "n": [
+        50,
+        54
+       ]
+      }
+     },
+     "verdict": "no-change"
+    },
+    "cold.model_load_mmap": {
+     "parts": null,
+     "verdict": "not-measured"
+    },
+    "cold.report_max_memory_mb": {
+     "parts": {
+      "0xd0c": {
+       "ci95": [
+        -12.0,
+        24.5
+       ],
+       "delta": -1.0,
+       "n": [
+        7,
+        6
+       ]
+      },
+      "0xd40": {
+       "ci95": [
+        0.0,
+        20.0
+       ],
+       "delta": 2.5,
+       "n": [
+        50,
+        54
+       ]
+      }
+     },
+     "verdict": "no-change"
+    },
+    "cold.weight_download": {
+     "parts": null,
+     "verdict": "not-measured"
+    },
+    "restore.first_request_total": {
+     "parts": {
+      "0xd0c": {
+       "ci95": [
+        -0.55981,
+        -0.24794
+       ],
+       "delta": -0.379165,
+       "n": [
+        6,
+        9
+       ]
+      },
+      "0xd40": {
+       "ci95": [
+        -0.34527,
+        -0.23982
+       ],
+       "delta": -0.304565,
+       "n": [
+        54,
+        51
+       ]
+      }
+     },
+     "verdict": "measured"
+    },
+    "warm.steady_state_inference": {
+     "parts": {
+      "0xd0c": {
+       "ci95": [
+        -0.43921,
+        0.47125
+       ],
+       "delta": -0.00491,
+       "n": [
+        54,
+        81
+       ]
+      },
+      "0xd40": {
+       "ci95": [
+        -0.03256,
+        0.010755
+       ],
+       "delta": -0.00729,
+       "n": [
+        486,
+        459
+       ]
+      }
+     },
+     "verdict": "no-change"
+    }
+   },
+   "run": "E12-cache-clear/20261021T105615Z",
+   "scope": "lambda",
+   "scope_note": "Gain is first touch of SnapStart-restored memory. Correctness proven only at llama.cpp f74e2fa6a.",
+   "short": "Metadata-only clear (E12)",
+   "status": "improved",
+   "switch": "DEC_CLEAR_DATA=0",
+   "title": "Clear only cache metadata between requests"
+  },
+  {
+   "claimed": [
+    "restore.first_request_total",
+    "cold.report_max_memory_mb"
+   ],
+   "commit": "573de7d6ecffecaf1f6866909a9824fba098149d",
+   "correctness": {
+    "answer_shape_mismatches": 0,
+    "bit_identical": 2720,
+    "choice_flips": 0,
+    "compared": 2788,
+    "complete": false,
+    "invocations": 2880,
+    "max_abs_delta": 0.0029999999999996696,
+    "method": "complete answer object, same request id and same CPU part as the reference; every invocation either is compared or is counted in without_answers (errors, malformed successes) or no_reference_for_cpu_part",
+    "no_reference_for_cpu_part": 92,
+    "reference": "reference/outputs.json",
+    "without_answers": 0
+   },
+   "cost_delta_usd": {
+    "cache_per_version_month_proxy": -1.055,
+    "restore_gb_per_1000_proxy": -0.0378
+   },
+   "cost_usd_run": 8.4499,
+   "id": "E10",
+   "kind": "compute",
+   "metrics": {
+    "cold.first_request_total": {
+     "parts": {
+      "0xd0c": {
+       "ci95": [
+        -0.39877,
+        0.187025
+       ],
+       "delta": -0.19769,
+       "n": [
+        6,
+        8
+       ]
+      },
+      "0xd40": {
+       "ci95": [
+        -0.15001,
+        -0.02268
+       ],
+       "delta": -0.081575,
+       "n": [
+        51,
+        48
+       ]
+      },
+      "0xd4f": {
+       "ci95": [
+        -0.107445,
+        0.31679
+       ],
+       "delta": 0.122195,
+       "n": [
+        3,
+        4
+       ]
+      }
+     },
+     "verdict": "not-claimed"
+    },
+    "cold.model_load_mmap": {
+     "parts": null,
+     "verdict": "not-measured"
+    },
+    "cold.report_max_memory_mb": {
+     "parts": {
+      "0xd0c": {
+       "ci95": [
+        -276.0,
+        -266.0
+       ],
+       "delta": -273.5,
+       "n": [
+        6,
+        8
+       ]
+      },
+      "0xd40": {
+       "ci95": [
+        -278.5,
+        -275.0
+       ],
+       "delta": -277.0,
+       "n": [
+        51,
+        48
+       ]
+      },
+      "0xd4f": {
+       "ci95": [
+        -282.0,
+        -275.0
+       ],
+       "delta": -280.0,
+       "n": [
+        3,
+        4
+       ]
+      }
+     },
+     "verdict": "measured"
+    },
+    "cold.weight_download": {
+     "parts": null,
+     "verdict": "not-measured"
+    },
+    "restore.first_request_total": {
+     "parts": {
+      "0xd0c": {
+       "ci95": [
+        -0.4457,
+        0.115695
+       ],
+       "delta": -0.19483,
+       "n": [
+        18,
+        5
+       ]
+      },
+      "0xd40": {
+       "ci95": [
+        -0.2333,
+        -0.16756
+       ],
+       "delta": -0.200125,
+       "n": [
+        42,
+        55
+       ]
+      }
+     },
+     "verdict": "measured"
+    },
+    "warm.steady_state_inference": {
+     "parts": {
+      "0xd0c": {
+       "ci95": [
+        -0.8094,
+        0.30229
+       ],
+       "delta": -0.02147,
+       "n": [
+        48,
+        45
+       ]
+      },
+      "0xd40": {
+       "ci95": [
+        -0.01784,
+        0.00977
+       ],
+       "delta": -0.00594,
+       "n": [
+        297,
+        295
+       ]
+      },
+      "0xd4f": {
+       "ci95": [
+        -0.31276,
+        0.3198
+       ],
+       "delta": -0.014215,
+       "n": [
+        15,
+        20
+       ]
+      }
+     },
+     "verdict": "no-change"
+    }
+   },
+   "run": "E10-kv-size/20261021T110426Z",
+   "scope": "general",
+   "scope_note": "4096 is the model window; refuses none of the 231 JevBench tasks. Smaller sizes refuse requests.",
+   "short": "n_ctx 4096 (E10)",
+   "status": "no-change",
+   "switch": "n_ctx=4096",
+   "title": "n_ctx 4096 instead of 16384"
+  },
+  {
+   "claimed": [],
+   "commit": "ce1b0178157289f10aebf5a1283e2b3e8f647903",
+   "correctness": {
+    "answer_shape_mismatches": 0,
+    "bit_identical": 5579,
+    "choice_flips": 0,
+    "compared": 5579,
+    "complete": false,
+    "invocations": 5760,
+    "max_abs_delta": 0.0,
+    "method": "complete answer object, same request id and same CPU part as the reference; every invocation either is compared or is counted in without_answers (errors, malformed successes) or no_reference_for_cpu_part",
+    "no_reference_for_cpu_part": 180,
+    "reference": "reference/outputs.json",
+    "without_answers": 1
+   },
+   "cost_delta_usd": {},
+   "cost_usd_run": 3.9754,
+   "id": "E13",
+   "kind": "compute",
+   "metrics": {
+    "cold.first_request_total": {
+     "parts": {
+      "0xd0c": {
+       "ci95": [
+        -0.71277,
+        -0.05132
+       ],
+       "delta": -0.391445,
+       "n": [
+        2,
+        5
+       ]
+      },
+      "0xd40": {
+       "ci95": [
+        -0.18999,
+        0.00118
+       ],
+       "delta": -0.08092,
+       "n": [
+        52,
+        50
+       ]
+      },
+      "0xd4f": {
+       "ci95": [
+        -0.430655,
+        0.024885
+       ],
+       "delta": -0.1881,
+       "n": [
+        6,
+        5
+       ]
+      }
+     },
+     "verdict": "no-change"
+    },
+    "cold.model_load_mmap": {
+     "parts": {
+      "0xd0c": {
+       "ci95": [
+        -0.197219,
+        0.106431
+       ],
+       "delta": -0.124012,
+       "n": [
+        2,
+        5
+       ]
+      },
+      "0xd40": {
+       "ci95": [
+        -0.047381,
+        0.034721
+       ],
+       "delta": -0.021084,
+       "n": [
+        52,
+        50
+       ]
+      },
+      "0xd4f": {
+       "ci95": [
+        -0.187459,
+        0.045139
+       ],
+       "delta": -0.08469,
+       "n": [
+        6,
+        5
+       ]
+      }
+     },
+     "verdict": "no-change"
+    },
+    "cold.report_max_memory_mb": {
+     "parts": {
+      "0xd0c": {
+       "ci95": [
+        -12.5,
+        7.0
+       ],
+       "delta": 2.5,
+       "n": [
+        2,
+        5
+       ]
+      },
+      "0xd40": {
+       "ci95": [
+        -1.0,
+        2.0
+       ],
+       "delta": 0.0,
+       "n": [
+        52,
+        50
+       ]
+      },
+      "0xd4f": {
+       "ci95": [
+        -4.0,
+        10.0
+       ],
+       "delta": -1.5,
+       "n": [
+        6,
+        5
+       ]
+      }
+     },
+     "verdict": "no-change"
+    },
+    "cold.weight_download": {
+     "parts": {
+      "0xd0c": {
+       "ci95": [
+        -0.46316,
+        -0.138422
+       ],
+       "delta": -0.28113,
+       "n": [
+        2,
+        5
+       ]
+      },
+      "0xd40": {
+       "ci95": [
+        -0.18301,
+        0.025779
+       ],
+       "delta": -0.063502,
+       "n": [
+        52,
+        50
+       ]
+      },
+      "0xd4f": {
+       "ci95": [
+        -0.228672,
+        0.084636
+       ],
+       "delta": -0.065611,
+       "n": [
+        6,
+        5
+       ]
+      }
+     },
+     "verdict": "no-change"
+    },
+    "restore.first_request_total": {
+     "parts": {
+      "0xd40": {
+       "ci95": [
+        -0.06955,
+        0.1071
+       ],
+       "delta": 0.0028,
+       "n": [
+        29,
+        29
+       ]
+      }
+     },
+     "verdict": "no-change"
+    },
+    "warm.steady_state_inference": {
+     "parts": {
+      "0xd0c": {
+       "ci95": [
+        -0.650215,
+        0.22064
+       ],
+       "delta": -0.105885,
+       "n": [
+        45,
+        90
+       ]
+      },
+      "0xd40": {
+       "ci95": [
+        -0.03271,
+        -0.02085
+       ],
+       "delta": -0.02715,
+       "n": [
+        1215,
+        1185
+       ]
+      },
+      "0xd4f": {
+       "ci95": [
+        -0.16395,
+        0.148415
+       ],
+       "delta": -0.025755,
+       "n": [
+        90,
+        75
+       ]
+      }
+     },
+     "verdict": "inconclusive"
+    }
+   },
+   "run": "E13-omp-wait/20261021T103304Z-spin30k",
+   "scope": "lambda",
+   "scope_note": "Measured only under Lambda's CPU allotment. A dedicated host may prefer spinning.",
+   "short": "GOMP_SPINCOUNT (E13)",
+   "status": "inconclusive",
+   "switch": "GOMP_SPINCOUNT=30000",
+   "title": "Shorter OpenMP spin before sleep"
+  },
+  {
+   "claimed": [],
+   "commit": "843a39e98c6a573142f44d005979b6039c1c98a5",
+   "correctness": {
+    "answer_shape_mismatches": 0,
+    "bit_identical": 796,
+    "choice_flips": 0,
+    "compared": 796,
+    "complete": false,
+    "invocations": 840,
+    "max_abs_delta": 0.0,
+    "method": "complete answer object, same request id and same CPU part as the reference; every invocation either is compared or is counted in without_answers (errors, malformed successes) or no_reference_for_cpu_part",
+    "no_reference_for_cpu_part": 44,
+    "reference": "reference/outputs.json",
+    "without_answers": 0
+   },
+   "cost_delta_usd": {},
+   "cost_usd_run": 1.7281,
+   "id": "E6",
+   "kind": "compute",
+   "metrics": {
+    "cold.first_request_total": {
+     "parts": {
+      "0xd0c": {
+       "ci95": [
+        -1.16842,
+        -0.3217
+       ],
+       "delta": -0.68547,
+       "n": [
+        5,
+        3
+       ]
+      },
+      "0xd40": {
+       "ci95": [
+        -0.09776,
+        0.078585
+       ],
+       "delta": -0.012345,
+       "n": [
+        49,
+        52
+       ]
+      },
+      "0xd4f": {
+       "ci95": [
+        -0.27112,
+        0.24952
+       ],
+       "delta": 0.04671,
+       "n": [
+        6,
+        5
+       ]
+      }
+     },
+     "verdict": "no-change"
+    },
+    "cold.model_load_mmap": {
+     "parts": {
+      "0xd0c": {
+       "ci95": [
+        -0.33762,
+        0.084522
+       ],
+       "delta": -0.168193,
+       "n": [
+        5,
+        3
+       ]
+      },
+      "0xd40": {
+       "ci95": [
+        -0.034965,
+        0.033346
+       ],
+       "delta": 0.005114,
+       "n": [
+        49,
+        52
+       ]
+      },
+      "0xd4f": {
+       "ci95": [
+        -0.050967,
+        0.197903
+       ],
+       "delta": 0.050119,
+       "n": [
+        6,
+        5
+       ]
+      }
+     },
+     "verdict": "no-change"
+    },
+    "cold.report_max_memory_mb": {
+     "parts": {
+      "0xd0c": {
+       "ci95": [
+        -12.0,
+        0.0
+       ],
+       "delta": -10.0,
+       "n": [
+        5,
+        3
+       ]
+      },
+      "0xd40": {
+       "ci95": [
+        -10.0,
+        -6.0
+       ],
+       "delta": -9.0,
+       "n": [
+        49,
+        52
+       ]
+      },
+      "0xd4f": {
+       "ci95": [
+        -10.0,
+        2.5
+       ],
+       "delta": -7.0,
+       "n": [
+        6,
+        5
+       ]
+      }
+     },
+     "verdict": "not-claimed"
+    },
+    "cold.weight_download": {
+     "parts": {
+      "0xd0c": {
+       "ci95": [
+        -0.370202,
+        0.086976
+       ],
+       "delta": -0.083236,
+       "n": [
+        5,
+        3
+       ]
+      },
+      "0xd40": {
+       "ci95": [
+        0.257878,
+        0.383271
+       ],
+       "delta": 0.303107,
+       "n": [
+        49,
+        52
+       ]
+      },
+      "0xd4f": {
+       "ci95": [
+        0.055791,
+        0.443091
+       ],
+       "delta": 0.249896,
+       "n": [
+        6,
+        5
+       ]
+      }
+     },
+     "verdict": "not-claimed"
+    },
+    "restore.first_request_total": {
+     "parts": {
+      "0xd40": {
+       "ci95": [
+        -0.09739,
+        0.0136
+       ],
+       "delta": -0.045175,
+       "n": [
+        27,
+        30
+       ]
+      }
+     },
+     "verdict": "no-change"
+    },
+    "warm.steady_state_inference": {
+     "parts": {
+      "0xd0c": {
+       "ci95": [
+        -0.53158,
+        0.85963
+       ],
+       "delta": 0.01604,
+       "n": [
+        28,
+        15
+       ]
+      },
+      "0xd40": {
+       "ci95": [
+        -0.01,
+        0.02512
+       ],
+       "delta": 0.00766,
+       "n": [
+        272,
+        290
+       ]
+      },
+      "0xd4f": {
+       "ci95": [
+        -0.20475,
+        0.255945
+       ],
+       "delta": -0.00503,
+       "n": [
+        30,
+        25
+       ]
+      }
+     },
+     "verdict": "no-change"
+    }
+   },
+   "run": "E6-bytecode/20261021T045838Z",
+   "scope": "general",
+   "scope_note": "Packaging hygiene. Pays only when imports sit on the request path.",
+   "short": "Complete bytecode (E6)",
+   "status": "no-change",
+   "switch": "unchecked-hash .pyc for every .py",
+   "title": "Ship complete bytecode"
+  },
+  {
+   "claimed": [],
+   "commit": "116db2f343817eba2a10b9f0f4740376a4813d74",
+   "correctness": {
+    "answer_shape_mismatches": 0,
+    "bit_identical": 2820,
+    "choice_flips": 0,
+    "compared": 4056,
+    "complete": false,
+    "invocations": 4320,
+    "max_abs_delta": 0.012299999999999978,
+    "method": "complete answer object, same request id and same CPU part as the reference; every invocation either is compared or is counted in without_answers (errors, malformed successes) or no_reference_for_cpu_part",
+    "no_reference_for_cpu_part": 264,
+    "reference": "reference/outputs.json",
+    "without_answers": 0
+   },
+   "cost_delta_usd": {},
+   "cost_usd_run": 2.9746,
+   "id": "E15",
+   "kind": "compute",
+   "metrics": {
+    "cold.first_request_total": {
+     "parts": {
+      "0xd0c": {
+       "ci95": [
+        -0.352455,
+        0.33121
+       ],
+       "delta": -0.109385,
+       "n": [
+        8,
+        9
+       ]
+      },
+      "0xd40": {
+       "ci95": [
+        -0.01125,
+        0.20281
+       ],
+       "delta": 0.102355,
+       "n": [
+        43,
+        46
+       ]
+      },
+      "0xd4f": {
+       "ci95": [
+        -0.14932,
+        0.40896
+       ],
+       "delta": 0.17434,
+       "n": [
+        9,
+        5
+       ]
+      }
+     },
+     "verdict": "no-change"
+    },
+    "cold.model_load_mmap": {
+     "parts": {
+      "0xd0c": {
+       "ci95": [
+        -0.24895,
+        0.196161
+       ],
+       "delta": -0.003807,
+       "n": [
+        8,
+        9
+       ]
+      },
+      "0xd40": {
+       "ci95": [
+        -0.031113,
+        0.084607
+       ],
+       "delta": 0.03327,
+       "n": [
+        43,
+        46
+       ]
+      },
+      "0xd4f": {
+       "ci95": [
+        -0.085825,
+        0.125523
+       ],
+       "delta": 0.03859,
+       "n": [
+        9,
+        5
+       ]
+      }
+     },
+     "verdict": "no-change"
+    },
+    "cold.report_max_memory_mb": {
+     "parts": {
+      "0xd0c": {
+       "ci95": [
+        -16.0,
+        4.5
+       ],
+       "delta": 1.0,
+       "n": [
+        8,
+        9
+       ]
+      },
+      "0xd40": {
+       "ci95": [
+        -9.5,
+        1.0
+       ],
+       "delta": 0.0,
+       "n": [
+        43,
+        46
+       ]
+      },
+      "0xd4f": {
+       "ci95": [
+        -19.0,
+        17.0
+       ],
+       "delta": 0.0,
+       "n": [
+        9,
+        5
+       ]
+      }
+     },
+     "verdict": "no-change"
+    },
+    "cold.weight_download": {
+     "parts": {
+      "0xd0c": {
+       "ci95": [
+        -0.151564,
+        0.173658
+       ],
+       "delta": -0.008423,
+       "n": [
+        8,
+        9
+       ]
+      },
+      "0xd40": {
+       "ci95": [
+        -0.023882,
+        0.101268
+       ],
+       "delta": 0.026049,
+       "n": [
+        43,
+        46
+       ]
+      },
+      "0xd4f": {
+       "ci95": [
+        -0.052016,
+        0.314158
+       ],
+       "delta": 0.174461,
+       "n": [
+        9,
+        5
+       ]
+      }
+     },
+     "verdict": "no-change"
+    },
+    "restore.first_request_total": {
+     "parts": {
+      "0xd40": {
+       "ci95": [
+        -0.012935,
+        0.06668
+       ],
+       "delta": 0.02876,
+       "n": [
+        26,
+        30
+       ]
+      }
+     },
+     "verdict": "no-change"
+    },
+    "warm.steady_state_inference": {
+     "parts": {
+      "0xd0c": {
+       "ci95": [
+        -0.05979,
+        0.03953
+       ],
+       "delta": -0.00731,
+       "n": [
+        165,
+        135
+       ]
+      },
+      "0xd40": {
+       "ci95": [
+        -0.014,
+        0.00151
+       ],
+       "delta": -0.005765,
+       "n": [
+        1050,
+        1140
+       ]
+      },
+      "0xd4f": {
+       "ci95": [
+        -0.13465,
+        0.17707
+       ],
+       "delta": -0.00621,
+       "n": [
+        135,
+        75
+       ]
+      }
+     },
+     "verdict": "no-change"
+    }
+   },
+   "run": "E15-f32-sgemm/20261021T2340Z-a",
+   "scope": "general",
+   "scope_note": "Answers not bit-identical (max |dp| 0.0148, 0 flips).",
+   "short": "F32 sgemm (E15)",
+   "status": "no-change",
+   "switch": "LKAI_E15_A=1",
+   "title": "llamafile F32 sgemm in the SVE/i8mm variants"
+  }
+ ],
+ "network": {
+  "E1_no_vpc": {
+   "download_delta_s": -0.758187,
+   "rounds_faster": 5
+  },
+  "E1_same_az": {
+   "download_delta_s": 0.018054
+  },
+  "E2": {
+   "ratio_ci95": [
+    0.9978,
+    1.0054
+   ],
+   "ratio_p50": 1.0016
+  },
+  "E3": [
+   {
+    "ci95": [
+     -0.004203,
+     0.160871
+    ],
+    "delta_s": 0.068252,
+    "status": "no-change",
+    "strategy": "threads:64:32"
+   },
+   {
+    "ci95": [
+     0.537147,
+     1.477985
+    ],
+    "delta_s": 0.744074,
+    "status": "regressed",
+    "strategy": "crt:16:25"
+   },
+   {
+    "ci95": [
+     1.475137,
+     4.69522
+    ],
+    "delta_s": 2.26645,
+    "status": "regressed",
+    "strategy": "crt:8:25"
+   },
+   {
+    "ci95": [
+     0.067085,
+     0.693369
+    ],
+    "delta_s": 0.18345,
+    "status": "regressed",
+    "strategy": "crtfile:16:25"
+   },
+   {
+    "ci95": [
+     -0.003513,
+     0.163513
+    ],
+    "delta_s": 0.075138,
+    "status": "no-change",
+    "strategy": "loader"
+   },
+   {
+    "ci95": [
+     0.185225,
+     1.732594
+    ],
+    "delta_s": 0.557282,
+    "status": "regressed",
+    "strategy": "threads:16:64"
+   },
+   {
+    "ci95": [
+     0.075758,
+     0.334369
+    ],
+    "delta_s": 0.17488,
+    "status": "regressed",
+    "strategy": "threads:32:64"
+   },
+   {
+    "ci95": [
+     -0.065591,
+     0.110459
+    ],
+    "delta_s": 0.028392,
+    "status": "no-change",
+    "strategy": "threads:64:64"
+   },
+   {
+    "ci95": [
+     10.145413,
+     11.858836
+    ],
+    "delta_s": 11.400636,
+    "status": "regressed",
+    "strategy": "threads:8:128"
+   }
+  ]
+ },
+ "nulls": [
+  {
+   "commit": "93577a5990a13e5bf90ecadfd4554adcccf691f6",
+   "conclusion_head": "Small download gain without a VPC; none when the AZ is held fixed; more expensive",
+   "id": "E1",
+   "kind": "network",
+   "run": "E1-s3-express/20261020T1235Z-e1",
+   "status": "improved",
+   "title": "S3 Express One Zone bucket"
+  },
+  {
+   "commit": "311ca2dbee8a6e4af77221ed7f1cacb0043aa933",
+   "conclusion_head": "No change (pre-registered rule)",
+   "id": "E2",
+   "kind": "network",
+   "run": "E2-onezone-ia/20261020T1125Z-e2",
+   "status": "no-change",
+   "title": "S3 One Zone-IA storage class"
+  },
+  {
+   "commit": "89c3a671315370cd0788c8749892e06606a3692f",
+   "conclusion_head": "threads:64:64: cold weight_download p50 24.99 s (n=50) vs control 24.95 s (n=50), delta +0.03 s (+0.1%), 95% CI [-0.07, +0.11] s",
+   "id": "E3",
+   "kind": "network",
+   "run": "E3-parallel-range-get/20261020T113449Z-t64x64",
+   "status": "no-change",
+   "title": "Other ranged-GET thread/part sizes and CRT"
+  },
+  {
+   "commit": "90b0922046073ebaa2aa021e0dc145fb999547f4",
+   "conclusion_head": "NO-CHANGE on Lambda",
+   "id": "E14",
+   "kind": "compute",
+   "run": "E14-concat/20261021T232302Z",
+   "status": "no-change",
+   "title": "Row-split ggml concat"
+  },
+  {
+   "commit": "ce1b0178157289f10aebf5a1283e2b3e8f647903",
+   "conclusion_head": "OMP_WAIT_POLICY=active is a conservative do-not-use result despite a mixed host-cell assessment: every 0xd40 homogeneous warm cell is slower, and cold/restore first-request CIs are wholly positive",
+   "id": "E13a",
+   "kind": "compute",
+   "run": "E13-omp-wait/20261021T103304Z-active",
+   "status": "regressed",
+   "title": "OMP_WAIT_POLICY=active"
+  }
+ ],
+ "schema": "lkai-ranking/1",
+ "tokenizer": {
+  "commit": "43d9a0ffaab9f5767f4009d88908cd1e64f80b05",
+  "headroom": {
+   "cold_first_request": {
+    "assets_load_s_p50_p1": 0.926943,
+    "first_request_total_s_p50": 35.98805,
+    "note": "on-demand init: PR #77 loads in a background thread after Init returns, serially after the weight download and model load, so tokenizer init is on the cold first request's critical path and outside REPORT Init Duration",
+    "report_init_duration_s_p50": 0.79604,
+    "share_of_report_init_duration": 0.0,
+    "share_upper": 0.02300888767243571,
+    "tokenizer_init_s_p50_upper": 0.828045
+   },
+   "cold_first_request_fit": {
+    "fit_s": {
+     "max": 0.000811,
+     "mean": 0.0005394,
+     "min": 0.000458,
+     "n": 50,
+     "p50": 0.000529,
+     "p90": 0.0006125,
+     "p99": 0.0007223099999999997
+    },
+    "share_mean": 0.0020173903989271704
+   },
+   "restore_first_request": {
+    "fit_s": {
+     "max": 0.138336,
+     "mean": 0.009395,
+     "min": 0.001574,
+     "n": 50,
+     "p50": 0.0017395,
+     "p90": 0.03197960000000001,
+     "p99": 0.09853329999999982
+    },
+    "share_mean": 0.01330741633147889
+   },
+   "snapshot_init": {
+    "note": "SnapStart: loaded at import before the snapshot; a restore does not re-run it",
+    "tokenizer_init_s_p50_upper": 0.982007
+   },
+   "warm": {
+    "fit_s": {
+     "max": 0.003123,
+     "mean": 0.00101505,
+     "min": 0.000377,
+     "n": 500,
+     "p50": 0.000833,
+     "p90": 0.0021611000000000004,
+     "p99": 0.0024102799999999977
+    },
+    "share_mean": 0.0012263011785207975,
+    "share_p50": 0.0013390197449212355
+   }
+  },
+  "lambda_share": {
+   "headroom": {
+    "cold_first_request": {
+     "assets_load_s_p50_p1": 0.926943,
+     "first_request_total_s_p50": 35.98805,
+     "note": "on-demand init: PR #77 loads in a background thread after Init returns, serially after the weight download and model load, so tokenizer init is on the cold first request's critical path and outside REPORT Init Duration",
+     "report_init_duration_s_p50": 0.79604,
+     "share_of_report_init_duration": 0.0,
+     "share_upper": 0.02300888767243571,
+     "tokenizer_init_s_p50_upper": 0.828045
+    },
+    "cold_first_request_fit": {
+     "fit_s": {
+      "max": 0.000811,
+      "mean": 0.0005394,
+      "min": 0.000458,
+      "n": 50,
+      "p50": 0.000529,
+      "p90": 0.0006125,
+      "p99": 0.0007223099999999997
+     },
+     "share_mean": 0.0020173903989271704
+    },
+    "restore_first_request": {
+     "fit_s": {
+      "max": 0.138336,
+      "mean": 0.009395,
+      "min": 0.001574,
+      "n": 50,
+      "p50": 0.0017395,
+      "p90": 0.03197960000000001,
+      "p99": 0.09853329999999982
+     },
+     "share_mean": 0.01330741633147889
+    },
+    "snapshot_init": {
+     "note": "SnapStart: loaded at import before the snapshot; a restore does not re-run it",
+     "tokenizer_init_s_p50_upper": 0.982007
+    },
+    "warm": {
+     "fit_s": {
+      "max": 0.003123,
+      "mean": 0.00101505,
+      "min": 0.000377,
+      "n": 500,
+      "p50": 0.000833,
+      "p90": 0.0021611000000000004,
+      "p99": 0.0024102799999999977
+     },
+     "share_mean": 0.0012263011785207975,
+     "share_p50": 0.0013390197449212355
+    }
+   },
+   "init_from_file_cprofile": {
+    "cold|0xd0c": {
+     "max": 1.230335,
+     "mean": 1.1602695714285713,
+     "min": 1.121156,
+     "n": 7,
+     "p50": 1.151093,
+     "p90": 1.1896028,
+     "p99": 1.22626178
+    },
+    "cold|0xd40": {
+     "max": 0.881192,
+     "mean": 0.832469361111111,
+     "min": 0.803331,
+     "n": 36,
+     "p50": 0.828045,
+     "p90": 0.8580369999999999,
+     "p99": 0.8799015499999999
+    },
+    "cold|0xd4f": {
+     "max": 0.703253,
+     "mean": 0.6911835714285715,
+     "min": 0.679241,
+     "n": 7,
+     "p50": 0.690231,
+     "p90": 0.6974192,
+     "p99": 0.70266962
+    },
+    "cold|all": {
+     "max": 1.230335,
+     "mean": 0.85858138,
+     "min": 0.679241,
+     "n": 50,
+     "p50": 0.828045,
+     "p90": 1.1497656,
+     "p99": 1.1970703699999998
+    },
+    "snapshot_init|all": {
+     "max": 1.004239,
+     "mean": 0.863108125,
+     "min": 0.685982,
+     "n": 16,
+     "p50": 0.982007,
+     "p90": 0.9988845,
+     "p99": 1.00387255
+    },
+    "snapshot_init|unknown": {
+     "max": 1.004239,
+     "mean": 0.863108125,
+     "min": 0.685982,
+     "n": 16,
+     "p50": 0.982007,
+     "p90": 0.9988845,
+     "p99": 1.00387255
+    }
+   },
+   "init_from_file_values_s": {
+    "cold|0xd0c": [
+     1.121156,
+     1.156247,
+     1.151093,
+     1.162448,
+     1.230335,
+     1.150977,
+     1.149631
+    ],
+    "cold|0xd40": [
+     0.819695,
+     0.818713,
+     0.836249,
+     0.84032,
+     0.824808,
+     0.816377,
+     0.843024,
+     0.819499,
+     0.80879,
+     0.824574,
+     0.828303,
+     0.858639,
+     0.825874,
+     0.803331,
+     0.825329,
+     0.864612,
+     0.821122,
+     0.814117,
+     0.814998,
+     0.881192,
+     0.831439,
+     0.837167,
+     0.851705,
+     0.811456,
+     0.830766,
+     0.807808,
+     0.811685,
+     0.846038,
+     0.877505,
+     0.838659,
+     0.836829,
+     0.819813,
+     0.846943,
+     0.857435,
+     0.827787,
+     0.846296
+    ],
+    "cold|0xd4f": [
+     0.690231,
+     0.691727,
+     0.69353,
+     0.690177,
+     0.690126,
+     0.679241,
+     0.703253
+    ],
+    "cold|all": [
+     0.690231,
+     0.691727,
+     0.819695,
+     0.818713,
+     0.836249,
+     0.84032,
+     0.824808,
+     0.816377,
+     0.843024,
+     1.121156,
+     0.819499,
+     0.80879,
+     0.824574,
+     0.828303,
+     0.858639,
+     0.825874,
+     0.803331,
+     0.825329,
+     0.864612,
+     1.156247,
+     0.69353,
+     0.690177,
+     0.821122,
+     0.814117,
+     0.814998,
+     0.881192,
+     0.831439,
+     0.837167,
+     0.851705,
+     1.151093,
+     0.690126,
+     0.679241,
+     0.811456,
+     0.830766,
+     0.807808,
+     0.811685,
+     0.846038,
+     0.877505,
+     1.162448,
+     1.230335,
+     0.703253,
+     0.838659,
+     0.836829,
+     0.819813,
+     0.846943,
+     0.857435,
+     0.827787,
+     0.846296,
+     1.150977,
+     1.149631
+    ],
+    "snapshot_init|all": [
+     0.727083,
+     1.001796,
+     0.696685,
+     0.696215,
+     0.987509,
+     0.986475,
+     0.694929,
+     0.982567,
+     0.984728,
+     0.981447,
+     0.699224,
+     0.984375,
+     0.700503,
+     1.004239,
+     0.685982,
+     0.995973
+    ],
+    "snapshot_init|unknown": [
+     0.727083,
+     1.001796,
+     0.696685,
+     0.696215,
+     0.987509,
+     0.986475,
+     0.694929,
+     0.982567,
+     0.984728,
+     0.981447,
+     0.699224,
+     0.984375,
+     0.700503,
+     1.004239,
+     0.685982,
+     0.995973
+    ]
+   },
+   "p1_context": {
+    "cold": {
+     "assets_load": {
+      "n": 50,
+      "p50": 0.926943,
+      "p90": 0.971194,
+      "p99": 1.356214
+     },
+     "first_request_inference": {
+      "n": 50,
+      "p50": 0.23887,
+      "p90": 0.2522,
+      "p99": 0.44466
+     },
+     "first_request_total": {
+      "n": 50,
+      "p50": 35.98805,
+      "p90": 36.40877,
+      "p99": 48.8951
+     },
+     "model_ready": {
+      "n": 50,
+      "p50": 34.97,
+      "p90": 35.35,
+      "p99": 47.42
+     },
+     "report_init_duration": {
+      "n": 50,
+      "p50": 0.79604,
+      "p90": 0.82313,
+      "p99": 1.03594
+     }
+    },
+    "restore": {
+     "first_request_inference": {
+      "n": 50,
+      "p50": 0.66702,
+      "p90": 0.70121,
+      "p99": 1.02022
+     },
+     "first_request_total": {
+      "n": 50,
+      "p50": 3.95297,
+      "p90": 4.19871,
+      "p99": 7.50461
+     },
+     "report_restore_duration": {
+      "n": 50,
+      "p50": 3.27449,
+      "p90": 3.50399,
+      "p99": 6.72444
+     }
+    },
+    "snapshot_init": {
+     "assets_load": {
+      "n": 10,
+      "p50": 0.848376,
+      "p90": 1.147009,
+      "p99": 1.154351
+     },
+     "model_ready": {
+      "n": 10,
+      "p50": 34.238274,
+      "p90": 46.100645,
+      "p99": 46.203877
+     }
+    },
+    "warm": {
+     "report_duration": {
+      "n": 500,
+      "p50": 0.66284,
+      "p90": 1.74174,
+      "p99": 1.82116
+     },
+     "steady_state_inference": {
+      "n": 500,
+      "p50": 0.66049,
+      "p90": 1.73952,
+      "p99": 1.81887
+     }
+    }
+   },
+   "per_request_cprofile": {
+    "cold|0xd0c": {
+     "encode_calls_s": {
+      "max": 0.000713,
+      "mean": 0.0005717142857142857,
+      "min": 0.000539,
+      "n": 7,
+      "p50": 0.00055,
+      "p90": 0.0006206,
+      "p99": 0.0007037599999999999
+     },
+     "fit_s": {
+      "max": 0.000811,
+      "mean": 0.0006457142857142857,
+      "min": 0.000606,
+      "n": 7,
+      "p50": 0.000618,
+      "p90": 0.0007024,
+      "p99": 0.0008001399999999999
+     },
+     "fit_share_of_handler": {
+      "max": 0.0017215211369256732,
+      "mean": 0.0014454283977455692,
+      "min": 0.0013427875027697761,
+      "n": 7,
+      "p50": 0.0014130472122662575,
+      "p90": 0.001562556157516364,
+      "p99": 0.001705624638984742
+     },
+     "fit_values_s": [
+      0.000626,
+      0.000618,
+      0.000612,
+      0.000617,
+      0.000811,
+      0.00063,
+      0.000606
+     ],
+     "handler_s": {
+      "max": 0.471095,
+      "mean": 0.44609814285714283,
+      "min": 0.429774,
+      "n": 7,
+      "p50": 0.441619,
+      "p90": 0.4596506,
+      "p99": 0.46995055999999996
+     },
+     "mean_fit_over_mean_handler": 0.0014474713604021154
+    },
+    "cold|0xd40": {
+     "encode_calls_s": {
+      "max": 0.000504,
+      "mean": 0.00047311111111111105,
+      "min": 0.000457,
+      "n": 36,
+      "p50": 0.00047,
+      "p90": 0.0004885,
+      "p99": 0.00050365
+     },
+     "fit_s": {
+      "max": 0.000566,
+      "mean": 0.0005324166666666667,
+      "min": 0.000514,
+      "n": 36,
+      "p50": 0.000529,
+      "p90": 0.0005510000000000001,
+      "p99": 0.00056355
+     },
+     "fit_share_of_handler": {
+      "max": 0.0023379730317529364,
+      "mean": 0.002192482689601274,
+      "min": 0.002049686964150417,
+      "n": 36,
+      "p50": 0.00218233389258458,
+      "p90": 0.0022641846383272893,
+      "p99": 0.0023306925983143175
+     },
+     "fit_values_s": [
+      0.000534,
+      0.000537,
+      0.000526,
+      0.000535,
+      0.000533,
+      0.00052,
+      0.000528,
+      0.000518,
+      0.000547,
+      0.000516,
+      0.000527,
+      0.000557,
+      0.00053,
+      0.000532,
+      0.000526,
+      0.00054,
+      0.000537,
+      0.000566,
+      0.000539,
+      0.000525,
+      0.000547,
+      0.000553,
+      0.000532,
+      0.000549,
+      0.000527,
+      0.000515,
+      0.000527,
+      0.000527,
+      0.000514,
+      0.000526,
+      0.000517,
+      0.000522,
+      0.000521,
+      0.000526,
+      0.000532,
+      0.000559
+     ],
+     "handler_s": {
+      "max": 0.253755,
+      "mean": 0.24289605555555557,
+      "min": 0.233212,
+      "n": 36,
+      "p50": 0.243225,
+      "p90": 0.24740600000000001,
+      "p99": 0.25271025
+     },
+     "mean_fit_over_mean_handler": 0.0021919527077083043
+    },
+    "cold|0xd4f": {
+     "encode_calls_s": {
+      "max": 0.000442,
+      "mean": 0.00042300000000000004,
+      "min": 0.00041200000000000004,
+      "n": 7,
+      "p50": 0.000422,
+      "p90": 0.0004336,
+      "p99": 0.00044116
+     },
+     "fit_s": {
+      "max": 0.00049,
+      "mean": 0.00046899999999999996,
+      "min": 0.000458,
+      "n": 7,
+      "p50": 0.000469,
+      "p90": 0.0004798,
+      "p99": 0.00048898
+     },
+     "fit_share_of_handler": {
+      "max": 0.002250134336378291,
+      "mean": 0.0021866796641320783,
+      "min": 0.002115375941545262,
+      "n": 7,
+      "p50": 0.0021854413922599695,
+      "p90": 0.002231647893929718,
+      "p99": 0.002248285692133434
+     },
+     "fit_values_s": [
+      0.000473,
+      0.000469,
+      0.000463,
+      0.000469,
+      0.00049,
+      0.000458,
+      0.000461
+     ],
+     "handler_s": {
+      "max": 0.224211,
+      "mean": 0.21454442857142858,
+      "min": 0.208432,
+      "n": 7,
+      "p50": 0.21252,
+      "p90": 0.2227104,
+      "p99": 0.22406094
+     },
+     "mean_fit_over_mean_handler": 0.0021860274029155465
+    },
+    "cold|all": {
+     "encode_calls_s": {
+      "max": 0.000713,
+      "mean": 0.00047989999999999996,
+      "min": 0.00041200000000000004,
+      "n": 50,
+      "p50": 0.00047,
+      "p90": 0.0005442,
+      "p99": 0.0006375399999999997
+     },
+     "fit_s": {
+      "max": 0.000811,
+      "mean": 0.0005394,
+      "min": 0.000458,
+      "n": 50,
+      "p50": 0.000529,
+      "p90": 0.0006125,
+      "p99": 0.0007223099999999997
+     },
+     "fit_share_of_handler": {
+      "max": 0.0023379730317529364,
+      "mean": 0.0020870826651757882,
+      "min": 0.0013427875027697761,
+      "n": 50,
+      "p50": 0.002169511085055155,
+      "p90": 0.0022578353660978943,
+      "p99": 0.00232778042493887
+     },
+     "fit_values_s": [
+      0.000473,
+      0.000469,
+      0.000534,
+      0.000537,
+      0.000526,
+      0.000535,
+      0.000533,
+      0.00052,
+      0.000528,
+      0.000626,
+      0.000518,
+      0.000547,
+      0.000516,
+      0.000527,
+      0.000557,
+      0.00053,
+      0.000532,
+      0.000526,
+      0.00054,
+      0.000618,
+      0.000463,
+      0.000469,
+      0.000537,
+      0.000566,
+      0.000539,
+      0.000525,
+      0.000547,
+      0.000553,
+      0.000532,
+      0.000612,
+      0.00049,
+      0.000458,
+      0.000549,
+      0.000527,
+      0.000515,
+      0.000527,
+      0.000527,
+      0.000514,
+      0.000617,
+      0.000811,
+      0.000461,
+      0.000526,
+      0.000517,
+      0.000522,
+      0.000521,
+      0.000526,
+      0.000532,
+      0.000559,
+      0.00063,
+      0.000606
+     ],
+     "handler_s": {
+      "max": 0.471095,
+      "mean": 0.26737511999999997,
+      "min": 0.208432,
+      "n": 50,
+      "p50": 0.243225,
+      "p90": 0.4370038,
+      "p99": 0.46174873999999994
+     },
+     "mean_fit_over_mean_handler": 0.0020173903989271704
+    },
+    "restore|0xd0c": {
+     "encode_calls_s": {
+      "max": 0.001942,
+      "mean": 0.0019389999999999998,
+      "min": 0.0019359999999999998,
+      "n": 2,
+      "p50": 0.0019389999999999998,
+      "p90": 0.0019413999999999998,
+      "p99": 0.0019419399999999999
+     },
+     "fit_s": {
+      "max": 0.002155,
+      "mean": 0.0021485,
+      "min": 0.002142,
+      "n": 2,
+      "p50": 0.0021485,
+      "p90": 0.0021536999999999997,
+      "p99": 0.0021548699999999997
+     },
+     "fit_share_of_handler": {
+      "max": 0.001958804745026172,
+      "mean": 0.0019108817952465437,
+      "min": 0.001862958845466915,
+      "n": 2,
+      "p50": 0.0019108817952465437,
+      "p90": 0.0019492201550702463,
+      "p99": 0.0019578462860305795
+     },
+     "fit_values_s": [
+      0.002142,
+      0.002155
+     ],
+     "handler_s": {
+      "max": 1.156762,
+      "mean": 1.125143,
+      "min": 1.093524,
+      "n": 2,
+      "p50": 1.125143,
+      "p90": 1.1504382,
+      "p99": 1.15612962
+     },
+     "mean_fit_over_mean_handler": 0.0019095350546552748
+    },
+    "restore|0xd40": {
+     "encode_calls_s": {
+      "max": 0.138093,
+      "mean": 0.009388979166666667,
+      "min": 0.001413,
+      "n": 48,
+      "p50": 0.0015574999999999999,
+      "p90": 0.03356690000000004,
+      "p99": 0.09993182000000009
+     },
+     "fit_s": {
+      "max": 0.138336,
+      "mean": 0.0096969375,
+      "min": 0.001574,
+      "n": 48,
+      "p50": 0.0017369999999999998,
+      "p90": 0.033774800000000035,
+      "p99": 0.10015790000000008
+     },
+     "fit_share_of_handler": {
+      "max": 0.1684099807164144,
+      "mean": 0.013123078245802293,
+      "min": 0.002297957417272842,
+      "n": 48,
+      "p50": 0.0025550644413691054,
+      "p90": 0.04795329677435489,
+      "p99": 0.1257007185807925
+     },
+     "fit_values_s": [
+      0.057106,
+      0.001681,
+      0.001725,
+      0.138336,
+      0.001782,
+      0.007652,
+      0.009156,
+      0.001684,
+      0.001699,
+      0.001581,
+      0.001736,
+      0.001619,
+      0.001641,
+      0.001608,
+      0.001574,
+      0.001723,
+      0.002025,
+      0.0017,
+      0.001741,
+      0.00161,
+      0.001707,
+      0.001812,
+      0.00166,
+      0.00171,
+      0.001695,
+      0.001671,
+      0.002042,
+      0.001855,
+      0.001818,
+      0.010147,
+      0.045197,
+      0.001669,
+      0.00167,
+      0.001589,
+      0.001684,
+      0.001776,
+      0.040362,
+      0.001662,
+      0.020493,
+      0.040058,
+      0.031082,
+      0.001738,
+      0.002034,
+      0.001818,
+      0.001819,
+      0.001791,
+      0.001723,
+      0.001792
+     ],
+     "handler_s": {
+      "max": 0.821424,
+      "mean": 0.6885328958333333,
+      "min": 0.65019,
+      "n": 48,
+      "p50": 0.6816025,
+      "p90": 0.7214184,
+      "p99": 0.8070326
+     },
+     "mean_fit_over_mean_handler": 0.01408347743249619
+    },
+    "restore|all": {
+     "encode_calls_s": {
+      "max": 0.138093,
+      "mean": 0.00909098,
+      "min": 0.001413,
+      "n": 50,
+      "p50": 0.001565,
+      "p90": 0.03177230000000001,
+      "p99": 0.09830793999999984
+     },
+     "fit_s": {
+      "max": 0.138336,
+      "mean": 0.009395,
+      "min": 0.001574,
+      "n": 50,
+      "p50": 0.0017395,
+      "p90": 0.03197960000000001,
+      "p99": 0.09853329999999982
+     },
+     "fit_share_of_handler": {
+      "max": 0.1684099807164144,
+      "mean": 0.012674590387780063,
+      "min": 0.001862958845466915,
+      "n": 50,
+      "p50": 0.002552095660487583,
+      "p90": 0.04577216994930508,
+      "p99": 0.12388330317076574
+     },
+     "fit_values_s": [
+      0.057106,
+      0.001681,
+      0.001725,
+      0.002142,
+      0.138336,
+      0.001782,
+      0.007652,
+      0.009156,
+      0.001684,
+      0.001699,
+      0.001581,
+      0.001736,
+      0.001619,
+      0.001641,
+      0.001608,
+      0.001574,
+      0.001723,
+      0.002025,
+      0.0017,
+      0.001741,
+      0.00161,
+      0.001707,
+      0.001812,
+      0.00166,
+      0.00171,
+      0.001695,
+      0.001671,
+      0.002042,
+      0.001855,
+      0.001818,
+      0.010147,
+      0.045197,
+      0.001669,
+      0.00167,
+      0.001589,
+      0.001684,
+      0.001776,
+      0.040362,
+      0.001662,
+      0.020493,
+      0.040058,
+      0.031082,
+      0.001738,
+      0.002034,
+      0.001818,
+      0.001819,
+      0.001791,
+      0.001723,
+      0.001792,
+      0.002155
+     ],
+     "handler_s": {
+      "max": 1.156762,
+      "mean": 0.7059972999999999,
+      "min": 0.65019,
+      "n": 50,
+      "p50": 0.6819405000000001,
+      "p90": 0.7252749,
+      "p99": 1.1257753799999999
+     },
+     "mean_fit_over_mean_handler": 0.01330741633147889
+    },
+    "warm|0xd0c": {
+     "encode_calls_s": {
+      "max": 0.002912,
+      "mean": 0.0011825263157894737,
+      "min": 0.000414,
+      "n": 19,
+      "p50": 0.000936,
+      "p90": 0.0021193999999999996,
+      "p99": 0.00287186
+     },
+     "fit_s": {
+      "max": 0.003123,
+      "mean": 0.0013098947368421054,
+      "min": 0.00049,
+      "n": 19,
+      "p50": 0.001041,
+      "p90": 0.0022649999999999997,
+      "p99": 0.00308448
+     },
+     "fit_share_of_handler": {
+      "max": 0.0012478670902930293,
+      "mean": 0.0009167494831811403,
+      "min": 0.0004735167204789018,
+      "n": 19,
+      "p50": 0.0008900362113355787,
+      "p90": 0.0011899538527177479,
+      "p99": 0.0012394775412080425
+     },
+     "fit_values_s": [
+      0.001493,
+      0.000958,
+      0.002104,
+      0.002909,
+      0.000498,
+      0.000699,
+      0.000659,
+      0.001041,
+      0.001842,
+      0.00049,
+      0.001397,
+      0.000962,
+      0.00199,
+      0.003123,
+      0.000498,
+      0.000761,
+      0.000703,
+      0.001129,
+      0.001632
+     ],
+     "handler_s": {
+      "max": 3.508846,
+      "mean": 1.5717225789473686,
+      "min": 0.439113,
+      "n": 19,
+      "p50": 1.17679,
+      "p90": 3.4425592000000003,
+      "p99": 3.49763308
+     },
+     "mean_fit_over_mean_handler": 0.0008334134499228118
+    },
+    "warm|0xd40": {
+     "encode_calls_s": {
+      "max": 0.002662,
+      "mean": 0.0009006008316008316,
+      "min": 0.00031800000000000003,
+      "n": 481,
+      "p50": 0.000737,
+      "p90": 0.001991,
+      "p99": 0.0021859999999999996
+     },
+     "fit_s": {
+      "max": 0.00284,
+      "mean": 0.0010034033264033264,
+      "min": 0.000377,
+      "n": 481,
+      "p50": 0.000829,
+      "p90": 0.00216,
+      "p99": 0.0023722
+     },
+     "fit_share_of_handler": {
+      "max": 0.0032299447724936084,
+      "mean": 0.001387178844333794,
+      "min": 0.000605659932446037,
+      "n": 481,
+      "p50": 0.0014776459571303646,
+      "p90": 0.001837822192467753,
+      "p99": 0.0021963638808032595
+     },
+     "fit_values_s": [
+      0.000457,
+      0.000386,
+      0.000379,
+      0.000413,
+      0.000393,
+      0.00039,
+      0.000382,
+      0.000387,
+      0.000377,
+      0.000381,
+      0.001191,
+      0.001504,
+      0.001672,
+      0.001093,
+      0.001109,
+      0.001213,
+      0.001225,
+      0.001157,
+      0.001084,
+      0.00089,
+      0.00102,
+      0.000832,
+      0.000857,
+      0.000796,
+      0.000793,
+      0.000833,
+      0.000767,
+      0.000808,
+      0.001628,
+      0.001612,
+      0.00158,
+      0.001649,
+      0.001738,
+      0.001686,
+      0.001667,
+      0.001616,
+      0.00167,
+      0.002171,
+      0.002244,
+      0.002326,
+      0.002291,
+      0.002257,
+      0.002215,
+      0.00226,
+      0.002367,
+      0.002393,
+      0.000405,
+      0.000386,
+      0.000388,
+      0.000402,
+      0.000391,
+      0.00041,
+      0.000415,
+      0.000401,
+      0.000398,
+      0.000495,
+      0.000701,
+      0.000598,
+      0.000514,
+      0.00049,
+      0.000629,
+      0.000675,
+      0.000515,
+      0.000554,
+      0.000528,
+      0.000538,
+      0.000524,
+      0.000564,
+      0.000494,
+      0.000504,
+      0.000545,
+      0.000542,
+      0.000493,
+      0.000793,
+      0.001006,
+      0.000802,
+      0.000774,
+      0.000899,
+      0.000959,
+      0.00079,
+      0.000772,
+      0.000793,
+      0.001304,
+      0.001124,
+      0.001377,
+      0.00134,
+      0.001309,
+      0.001363,
+      0.001185,
+      0.001382,
+      0.00124,
+      0.000396,
+      0.000377,
+      0.000395,
+      0.000434,
+      0.000407,
+      0.000397,
+      0.000414,
+      0.000427,
+      0.000395,
+      0.000407,
+      0.001111,
+      0.001071,
+      0.001064,
+      0.001188,
+      0.001169,
+      0.0011,
+      0.001118,
+      0.001137,
+      0.00115,
+      0.0011,
+      0.000868,
+      0.000755,
+      0.000856,
+      0.000762,
+      0.00079,
+      0.000771,
+      0.000786,
+      0.000807,
+      0.000776,
+      0.000802,
+      0.001579,
+      0.001552,
+      0.001683,
+      0.001594,
+      0.001563,
+      0.001707,
+      0.00284,
+      0.001535,
+      0.001556,
+      0.001595,
+      0.002178,
+      0.002238,
+      0.002346,
+      0.002203,
+      0.002214,
+      0.002312,
+      0.00216,
+      0.002347,
+      0.002275,
+      0.002303,
+      0.000398,
+      0.000415,
+      0.000435,
+      0.000435,
+      0.000405,
+      0.000442,
+      0.000402,
+      0.000445,
+      0.000441,
+      0.000548,
+      0.000745,
+      0.000517,
+      0.000522,
+      0.000601,
+      0.000576,
+      0.000573,
+      0.000591,
+      0.000709,
+      0.000522,
+      0.000638,
+      0.000546,
+      0.000561,
+      0.000514,
+      0.000505,
+      0.000578,
+      0.000645,
+      0.000566,
+      0.000558,
+      0.000524,
+      0.000517,
+      0.000864,
+      0.000968,
+      0.00082,
+      0.000805,
+      0.000808,
+      0.000883,
+      0.000829,
+      0.000979,
+      0.001,
+      0.000849,
+      0.001353,
+      0.001361,
+      0.001116,
+      0.001203,
+      0.001353,
+      0.001112,
+      0.00113,
+      0.001244,
+      0.00124,
+      0.00131,
+      0.000448,
+      0.000398,
+      0.000462,
+      0.000382,
+      0.000397,
+      0.000385,
+      0.000393,
+      0.000417,
+      0.000383,
+      0.000405,
+      0.00116,
+      0.001075,
+      0.001121,
+      0.001102,
+      0.001126,
+      0.001183,
+      0.001032,
+      0.0011,
+      0.001143,
+      0.001116,
+      0.000834,
+      0.000818,
+      0.00081,
+      0.000772,
+      0.000859,
+      0.000876,
+      0.000811,
+      0.000847,
+      0.000888,
+      0.000859,
+      0.001556,
+      0.001587,
+      0.001617,
+      0.001614,
+      0.00181,
+      0.001764,
+      0.001541,
+      0.001637,
+      0.001638,
+      0.001725,
+      0.002219,
+      0.002281,
+      0.002271,
+      0.002204,
+      0.002343,
+      0.002276,
+      0.002255,
+      0.002289,
+      0.002318,
+      0.002353,
+      0.000439,
+      0.000426,
+      0.000406,
+      0.000442,
+      0.00041,
+      0.000426,
+      0.000444,
+      0.000553,
+      0.000414,
+      0.000433,
+      0.000592,
+      0.000621,
+      0.000683,
+      0.000616,
+      0.000631,
+      0.000656,
+      0.000686,
+      0.000558,
+      0.000548,
+      0.000534,
+      0.000579,
+      0.000558,
+      0.000581,
+      0.000584,
+      0.000595,
+      0.000598,
+      0.000584,
+      0.000597,
+      0.000517,
+      0.000581,
+      0.000834,
+      0.000843,
+      0.000829,
+      0.000826,
+      0.000838,
+      0.000852,
+      0.000874,
+      0.000954,
+      0.000949,
+      0.000854,
+      0.001335,
+      0.001442,
+      0.001346,
+      0.001251,
+      0.00126,
+      0.001177,
+      0.001315,
+      0.001284,
+      0.001281,
+      0.001491,
+      0.000406,
+      0.000453,
+      0.000391,
+      0.000402,
+      0.000394,
+      0.000446,
+      0.000439,
+      0.000403,
+      0.000405,
+      0.000406,
+      0.001094,
+      0.001133,
+      0.001072,
+      0.00109,
+      0.001083,
+      0.001069,
+      0.001069,
+      0.001097,
+      0.001117,
+      0.001227,
+      0.000825,
+      0.000775,
+      0.00081,
+      0.000849,
+      0.000743,
+      0.000798,
+      0.0008,
+      0.00079,
+      0.000787,
+      0.000796,
+      0.001569,
+      0.001618,
+      0.001611,
+      0.001596,
+      0.001566,
+      0.001553,
+      0.001628,
+      0.001555,
+      0.001539,
+      0.001575,
+      0.002151,
+      0.002357,
+      0.002636,
+      0.002218,
+      0.002205,
+      0.002344,
+      0.002287,
+      0.002195,
+      0.002295,
+      0.002336,
+      0.000413,
+      0.000442,
+      0.00045,
+      0.000428,
+      0.000445,
+      0.000431,
+      0.000407,
+      0.000403,
+      0.000419,
+      0.000435,
+      0.000529,
+      0.000577,
+      0.000733,
+      0.000555,
+      0.000587,
+      0.000714,
+      0.000591,
+      0.000531,
+      0.000548,
+      0.000552,
+      0.000572,
+      0.000614,
+      0.00053,
+      0.000524,
+      0.000546,
+      0.000558,
+      0.000573,
+      0.000503,
+      0.000569,
+      0.000637,
+      0.000873,
+      0.000941,
+      0.000787,
+      0.000918,
+      0.000962,
+      0.000815,
+      0.00081,
+      0.000821,
+      0.000946,
+      0.00092,
+      0.001104,
+      0.001378,
+      0.001434,
+      0.001295,
+      0.001253,
+      0.001354,
+      0.001372,
+      0.001332,
+      0.001125,
+      0.001177,
+      0.000431,
+      0.000421,
+      0.000384,
+      0.000432,
+      0.0004,
+      0.000426,
+      0.000432,
+      0.000407,
+      0.000424,
+      0.001278,
+      0.00114,
+      0.001281,
+      0.001086,
+      0.001206,
+      0.001138,
+      0.001112,
+      0.001172,
+      0.001073,
+      0.000849,
+      0.000894,
+      0.000841,
+      0.000828,
+      0.000824,
+      0.000833,
+      0.000929,
+      0.000845,
+      0.000788,
+      0.001562,
+      0.001577,
+      0.001597,
+      0.001673,
+      0.001625,
+      0.002824,
+      0.00165,
+      0.001653,
+      0.001606,
+      0.002278,
+      0.002191,
+      0.002217,
+      0.002408,
+      0.002333,
+      0.002245,
+      0.002248,
+      0.002236,
+      0.002337,
+      0.000419,
+      0.00042,
+      0.000429,
+      0.000404,
+      0.000399,
+      0.000481,
+      0.000414,
+      0.000432,
+      0.000397,
+      0.000579,
+      0.000543,
+      0.000598,
+      0.000574,
+      0.000646,
+      0.000693,
+      0.000533,
+      0.00071,
+      0.000573,
+      0.000526,
+      0.000521,
+      0.000552,
+      0.000551,
+      0.000698,
+      0.000534,
+      0.000524,
+      0.000578,
+      0.000496,
+      0.000871,
+      0.000803,
+      0.000824,
+      0.000843,
+      0.000804,
+      0.000935,
+      0.000829,
+      0.000959,
+      0.00103,
+      0.001274,
+      0.001299,
+      0.00113,
+      0.001171,
+      0.001318,
+      0.001152,
+      0.001148,
+      0.001157,
+      0.001288
+     ],
+     "handler_s": {
+      "max": 1.916819,
+      "mean": 0.7983446777546778,
+      "min": 0.231162,
+      "n": 481,
+      "p50": 0.653903,
+      "p90": 1.749681,
+      "p99": 1.8041635999999996
+     },
+     "mean_fit_over_mean_handler": 0.0012568547826051404
+    },
+    "warm|all": {
+     "encode_calls_s": {
+      "max": 0.002912,
+      "mean": 0.000911314,
+      "min": 0.00031800000000000003,
+      "n": 500,
+      "p50": 0.0007390000000000001,
+      "p90": 0.0019937000000000006,
+      "p99": 0.0022373499999999978
+     },
+     "fit_s": {
+      "max": 0.003123,
+      "mean": 0.00101505,
+      "min": 0.000377,
+      "n": 500,
+      "p50": 0.000833,
+      "p90": 0.0021611000000000004,
+      "p99": 0.0024102799999999977
+     },
+     "fit_share_of_handler": {
+      "max": 0.0032299447724936084,
+      "mean": 0.0013693025286099934,
+      "min": 0.0004735167204789018,
+      "n": 500,
+      "p50": 0.0013390197449212355,
+      "p90": 0.00183287903637557,
+      "p99": 0.0021943156197850484
+     },
+     "fit_values_s": [
+      0.000457,
+      0.000386,
+      0.000379,
+      0.000413,
+      0.000393,
+      0.00039,
+      0.000382,
+      0.000387,
+      0.000377,
+      0.000381,
+      0.001191,
+      0.001504,
+      0.001672,
+      0.001093,
+      0.001109,
+      0.001213,
+      0.001225,
+      0.001157,
+      0.001084,
+      0.001493,
+      0.00089,
+      0.00102,
+      0.000832,
+      0.000857,
+      0.000796,
+      0.000793,
+      0.000833,
+      0.000767,
+      0.000808,
+      0.000958,
+      0.001628,
+      0.001612,
+      0.00158,
+      0.001649,
+      0.001738,
+      0.001686,
+      0.001667,
+      0.001616,
+      0.00167,
+      0.002104,
+      0.002171,
+      0.002244,
+      0.002326,
+      0.002291,
+      0.002257,
+      0.002215,
+      0.00226,
+      0.002367,
+      0.002393,
+      0.002909,
+      0.000405,
+      0.000386,
+      0.000388,
+      0.000402,
+      0.000391,
+      0.00041,
+      0.000415,
+      0.000401,
+      0.000398,
+      0.000498,
+      0.000495,
+      0.000701,
+      0.000598,
+      0.000514,
+      0.00049,
+      0.000629,
+      0.000675,
+      0.000515,
+      0.000554,
+      0.000699,
+      0.000528,
+      0.000538,
+      0.000524,
+      0.000564,
+      0.000494,
+      0.000504,
+      0.000545,
+      0.000542,
+      0.000493,
+      0.000659,
+      0.000793,
+      0.001006,
+      0.000802,
+      0.000774,
+      0.000899,
+      0.000959,
+      0.00079,
+      0.000772,
+      0.000793,
+      0.001041,
+      0.001304,
+      0.001124,
+      0.001377,
+      0.00134,
+      0.001309,
+      0.001363,
+      0.001185,
+      0.001382,
+      0.00124,
+      0.001842,
+      0.000396,
+      0.000377,
+      0.000395,
+      0.000434,
+      0.000407,
+      0.000397,
+      0.000414,
+      0.000427,
+      0.000395,
+      0.000407,
+      0.001111,
+      0.001071,
+      0.001064,
+      0.001188,
+      0.001169,
+      0.0011,
+      0.001118,
+      0.001137,
+      0.00115,
+      0.0011,
+      0.000868,
+      0.000755,
+      0.000856,
+      0.000762,
+      0.00079,
+      0.000771,
+      0.000786,
+      0.000807,
+      0.000776,
+      0.000802,
+      0.001579,
+      0.001552,
+      0.001683,
+      0.001594,
+      0.001563,
+      0.001707,
+      0.00284,
+      0.001535,
+      0.001556,
+      0.001595,
+      0.002178,
+      0.002238,
+      0.002346,
+      0.002203,
+      0.002214,
+      0.002312,
+      0.00216,
+      0.002347,
+      0.002275,
+      0.002303,
+      0.000398,
+      0.000415,
+      0.000435,
+      0.000435,
+      0.000405,
+      0.000442,
+      0.000402,
+      0.000445,
+      0.000441,
+      0.000548,
+      0.000745,
+      0.000517,
+      0.000522,
+      0.000601,
+      0.000576,
+      0.000573,
+      0.000591,
+      0.000709,
+      0.000522,
+      0.000638,
+      0.000546,
+      0.000561,
+      0.000514,
+      0.000505,
+      0.000578,
+      0.000645,
+      0.000566,
+      0.000558,
+      0.000524,
+      0.000517,
+      0.000864,
+      0.000968,
+      0.00082,
+      0.000805,
+      0.000808,
+      0.000883,
+      0.000829,
+      0.000979,
+      0.001,
+      0.000849,
+      0.001353,
+      0.001361,
+      0.001116,
+      0.001203,
+      0.001353,
+      0.001112,
+      0.00113,
+      0.001244,
+      0.00124,
+      0.00131,
+      0.000448,
+      0.000398,
+      0.000462,
+      0.000382,
+      0.000397,
+      0.000385,
+      0.000393,
+      0.000417,
+      0.000383,
+      0.000405,
+      0.00116,
+      0.001075,
+      0.001121,
+      0.001102,
+      0.001126,
+      0.001183,
+      0.001032,
+      0.0011,
+      0.001143,
+      0.001116,
+      0.000834,
+      0.000818,
+      0.00081,
+      0.000772,
+      0.000859,
+      0.000876,
+      0.000811,
+      0.000847,
+      0.000888,
+      0.000859,
+      0.001556,
+      0.001587,
+      0.001617,
+      0.001614,
+      0.00181,
+      0.001764,
+      0.001541,
+      0.001637,
+      0.001638,
+      0.001725,
+      0.002219,
+      0.002281,
+      0.002271,
+      0.002204,
+      0.002343,
+      0.002276,
+      0.002255,
+      0.002289,
+      0.002318,
+      0.002353,
+      0.000439,
+      0.000426,
+      0.000406,
+      0.000442,
+      0.00041,
+      0.000426,
+      0.000444,
+      0.000553,
+      0.000414,
+      0.000433,
+      0.000592,
+      0.000621,
+      0.000683,
+      0.000616,
+      0.000631,
+      0.000656,
+      0.000686,
+      0.000558,
+      0.000548,
+      0.000534,
+      0.000579,
+      0.000558,
+      0.000581,
+      0.000584,
+      0.000595,
+      0.000598,
+      0.000584,
+      0.000597,
+      0.000517,
+      0.000581,
+      0.000834,
+      0.000843,
+      0.000829,
+      0.000826,
+      0.000838,
+      0.000852,
+      0.000874,
+      0.000954,
+      0.000949,
+      0.000854,
+      0.001335,
+      0.001442,
+      0.001346,
+      0.001251,
+      0.00126,
+      0.001177,
+      0.001315,
+      0.001284,
+      0.001281,
+      0.001491,
+      0.000406,
+      0.000453,
+      0.000391,
+      0.000402,
+      0.000394,
+      0.000446,
+      0.000439,
+      0.000403,
+      0.000405,
+      0.000406,
+      0.001094,
+      0.001133,
+      0.001072,
+      0.00109,
+      0.001083,
+      0.001069,
+      0.001069,
+      0.001097,
+      0.001117,
+      0.001227,
+      0.000825,
+      0.000775,
+      0.00081,
+      0.000849,
+      0.000743,
+      0.000798,
+      0.0008,
+      0.00079,
+      0.000787,
+      0.000796,
+      0.001569,
+      0.001618,
+      0.001611,
+      0.001596,
+      0.001566,
+      0.001553,
+      0.001628,
+      0.001555,
+      0.001539,
+      0.001575,
+      0.002151,
+      0.002357,
+      0.002636,
+      0.002218,
+      0.002205,
+      0.002344,
+      0.002287,
+      0.002195,
+      0.002295,
+      0.002336,
+      0.000413,
+      0.000442,
+      0.00045,
+      0.000428,
+      0.000445,
+      0.000431,
+      0.000407,
+      0.000403,
+      0.000419,
+      0.000435,
+      0.000529,
+      0.000577,
+      0.000733,
+      0.000555,
+      0.000587,
+      0.000714,
+      0.000591,
+      0.000531,
+      0.000548,
+      0.000552,
+      0.000572,
+      0.000614,
+      0.00053,
+      0.000524,
+      0.000546,
+      0.000558,
+      0.000573,
+      0.000503,
+      0.000569,
+      0.000637,
+      0.000873,
+      0.000941,
+      0.000787,
+      0.000918,
+      0.000962,
+      0.000815,
+      0.00081,
+      0.000821,
+      0.000946,
+      0.00092,
+      0.001104,
+      0.001378,
+      0.001434,
+      0.001295,
+      0.001253,
+      0.001354,
+      0.001372,
+      0.001332,
+      0.001125,
+      0.001177,
+      0.000431,
+      0.000421,
+      0.000384,
+      0.000432,
+      0.0004,
+      0.000426,
+      0.000432,
+      0.000407,
+      0.000424,
+      0.00049,
+      0.001278,
+      0.00114,
+      0.001281,
+      0.001086,
+      0.001206,
+      0.001138,
+      0.001112,
+      0.001172,
+      0.001073,
+      0.001397,
+      0.000849,
+      0.000894,
+      0.000841,
+      0.000828,
+      0.000824,
+      0.000833,
+      0.000929,
+      0.000845,
+      0.000788,
+      0.000962,
+      0.001562,
+      0.001577,
+      0.001597,
+      0.001673,
+      0.001625,
+      0.002824,
+      0.00165,
+      0.001653,
+      0.001606,
+      0.00199,
+      0.002278,
+      0.002191,
+      0.002217,
+      0.002408,
+      0.002333,
+      0.002245,
+      0.002248,
+      0.002236,
+      0.002337,
+      0.003123,
+      0.000419,
+      0.00042,
+      0.000429,
+      0.000404,
+      0.000399,
+      0.000481,
+      0.000414,
+      0.000432,
+      0.000397,
+      0.000498,
+      0.000579,
+      0.000543,
+      0.000598,
+      0.000574,
+      0.000646,
+      0.000693,
+      0.000533,
+      0.00071,
+      0.000573,
+      0.000761,
+      0.000526,
+      0.000521,
+      0.000552,
+      0.000551,
+      0.000698,
+      0.000534,
+      0.000524,
+      0.000578,
+      0.000496,
+      0.000703,
+      0.000871,
+      0.000803,
+      0.000824,
+      0.000843,
+      0.000804,
+      0.000935,
+      0.000829,
+      0.000959,
+      0.00103,
+      0.001129,
+      0.001274,
+      0.001299,
+      0.00113,
+      0.001171,
+      0.001318,
+      0.001152,
+      0.001148,
+      0.001157,
+      0.001288,
+      0.001632
+     ],
+     "handler_s": {
+      "max": 3.508846,
+      "mean": 0.827733038,
+      "min": 0.231162,
+      "n": 500,
+      "p50": 0.68842,
+      "p90": 1.7508762,
+      "p99": 1.8613285099999994
+     },
+     "mean_fit_over_mean_handler": 0.0012263011785207975
+    }
+   },
+   "sampler_cpu_share": {
+    "cold": {
+     "all_samples": 1130,
+     "records": 50,
+     "share": 0.0,
+     "tokenizers_samples": 0
+    },
+    "init": {
+     "all_samples": 124272,
+     "records": 68,
+     "share": 0.021444895068881163,
+     "tokenizers_samples": 2665
+    },
+    "restore": {
+     "all_samples": 3074,
+     "records": 50,
+     "share": 0.004879635653871178,
+     "tokenizers_samples": 15
+    },
+    "warm": {
+     "all_samples": 33198,
+     "records": 500,
+     "share": 0.0006024459304777396,
+     "tokenizers_samples": 20
+    }
+   },
+   "schema": "lkai-tok-lambda-share/1",
+   "sources": {
+    "p1_run": "20261020T080835Z",
+    "p3_run": "20261020T231634Z"
+   }
+  },
+  "status": "inconclusive"
+ },
+ "warm_paired": {
+  "E13": {
+   "cell_outcome": "mixed",
+   "cells": 45,
+   "cells_in_band": 34,
+   "control_noise_pct": 3.052,
+   "mean_round_pct": -5.397,
+   "round_pct_range": [
+    -6.928,
+    -4.852
+   ],
+   "rounds": 9,
+   "rounds_below_zero": 9,
+   "sign_flip_p": 0.00391,
+   "verdict": "faster"
+  },
+  "E13-active": {
+   "cell_outcome": "slower",
+   "cells": 45,
+   "cells_in_band": null,
+   "control_noise_pct": 3.052,
+   "mean_round_pct": 55.317,
+   "round_pct_range": [
+    54.028,
+    56.544
+   ],
+   "rounds": 9,
+   "rounds_below_zero": 0,
+   "sign_flip_p": 0.00391,
+   "verdict": "slower"
+  },
+  "E13-passive": {
+   "cell_outcome": "mixed",
+   "cells": 45,
+   "cells_in_band": 33,
+   "control_noise_pct": 3.052,
+   "mean_round_pct": -5.153,
+   "round_pct_range": [
+    -6.493,
+    -4.175
+   ],
+   "rounds": 9,
+   "rounds_below_zero": 9,
+   "sign_flip_p": 0.00391,
+   "verdict": "faster"
+  },
+  "E15": {
+   "cell_outcome": null,
+   "cells": 9,
+   "cells_in_band": null,
+   "control_noise_pct": 1.042,
+   "mean_round_pct": -1.169,
+   "round_pct_range": [
+    -2.796,
+    0.36
+   ],
+   "rounds": 9,
+   "rounds_below_zero": 8,
+   "sign_flip_p": 0.00781,
+   "verdict": "no-change"
+  }
+ }
+}
