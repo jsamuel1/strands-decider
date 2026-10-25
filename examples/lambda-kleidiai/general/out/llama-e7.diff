@@ -1,0 +1,227 @@
+diff --git a/ggml/src/CMakeLists.txt b/ggml/src/CMakeLists.txt
+index fe001a0..864fade 100644
+--- a/ggml/src/CMakeLists.txt
++++ b/ggml/src/CMakeLists.txt
+@@ -529,8 +529,6 @@ if (GGML_CPU_ALL_VARIANTS)
+             ggml_add_cpu_backend_variant(armv8.2_3    DOTPROD FP16_VECTOR_ARITHMETIC SVE)
+             ggml_add_cpu_backend_variant(armv8.6_1    DOTPROD FP16_VECTOR_ARITHMETIC SVE MATMUL_INT8)
+             ggml_add_cpu_backend_variant(armv8.6_2    DOTPROD FP16_VECTOR_ARITHMETIC SVE MATMUL_INT8 SVE2)
+-            ggml_add_cpu_backend_variant(armv9.2_1    DOTPROD FP16_VECTOR_ARITHMETIC SVE MATMUL_INT8 SME)
+-            ggml_add_cpu_backend_variant(armv9.2_2    DOTPROD FP16_VECTOR_ARITHMETIC SVE MATMUL_INT8 SVE2 SME)
+         elseif (CMAKE_SYSTEM_NAME MATCHES "Android")
+             # Android-specific backends with SoC-compatible feature sets
+             ggml_add_cpu_backend_variant(android_armv8.0_1)
+diff --git a/ggml/src/ggml-cpu/kleidiai/kleidiai.cpp b/ggml/src/ggml-cpu/kleidiai/kleidiai.cpp
+index dd9bcbf..6dd207d 100644
+--- a/ggml/src/ggml-cpu/kleidiai/kleidiai.cpp
++++ b/ggml/src/ggml-cpu/kleidiai/kleidiai.cpp
+@@ -1788,6 +1788,17 @@ class extra_buffer_type : ggml::cpu::extra_buffer_type {
+         if (op->op != GGML_OP_MUL_MAT) {
+             return false;
+         }
++        // strands-decider prefill patch: GGML_KLEIDIAI_SKIP=a,b keeps weights whose name contains a or b on ggml's
++        // own path (block-32 activation quantisation) instead of KleidiAI's per-row int8 activations.
++        if (const char * skip = getenv("GGML_KLEIDIAI_SKIP")) {
++            const std::string list(skip), name(op->src[0]->name);
++            for (size_t a = 0; a <= list.size();) {
++                size_t b = list.find(',', a);
++                if (b == std::string::npos) b = list.size();
++                if (b > a && name.find(list.substr(a, b - a)) != std::string::npos) return false;
++                a = b + 1;
++            }
++        }
+ 
+         std::array<ggml_kleidiai_kernels *, GGML_KLEIDIAI_MAX_KERNEL_SLOTS> kernel_chain;
+         const int slot_total = kleidiai_collect_kernel_chain(op, kernel_chain);
+diff --git a/ggml/src/ggml-cpu/ops.cpp b/ggml/src/ggml-cpu/ops.cpp
+index 7a73e13..66da4bd 100644
+--- a/ggml/src/ggml-cpu/ops.cpp
++++ b/ggml/src/ggml-cpu/ops.cpp
+@@ -11294,6 +11294,66 @@ static void ggml_compute_forward_gated_delta_net_one_chunk(
+         // attn output pointer for first token of this (head, seq)
+         float * attn_data = attn_out_base + (iv3 * n_tokens * H + iv1) * S_v;
+ 
++        // strands-decider prefill patch: scalar-gate, single-snapshot heads in one pass over the state per token. Each row's
++        // update S <- e^g S + k delta^T also produces the output S^T q and the next token's S^T k, instead of four
++        // separate passes (scale, S^T k, rank-1 update, S^T q). Same arithmetic, fewer trips through the 64 KB state.
++        if (!kda && K == 1 && S_v <= 512) {
++            float dotk[512];
++            {
++                const float * k0 = (const float *)((const char *)src_k->data + ik3 * nbk3 + ik1 * nbk1);
++                for (int64_t j = 0; j < S_v; ++j) {
++                    float sum = 0.0f;
++                    ggml_vec_dot_f32(S_v, &sum, 0, &s_out[j * S_v], 0, k0, 0, 1);
++                    dotk[j] = sum;
++                }
++            }
++            for (int64_t t = 0; t < n_tokens; t++) {
++                const float * q_d = (const float *)((const char *)src_q->data + iq3 * nbq3 + t * nbq2 + iq1 * nbq1);
++                const float * k_d = (const float *)((const char *)src_k->data + ik3 * nbk3 + t * nbk2 + ik1 * nbk1);
++                const float * v_d = (const float *)((const char *)src_v->data + iv3 * nbv3 + t * nbv2 + iv1 * nbv1);
++                const float * kn  = t + 1 < n_tokens
++                    ? (const float *)((const char *)src_k->data + ik3 * nbk3 + (t + 1) * nbk2 + ik1 * nbk1) : nullptr;
++                const float beta_val = *(const float *)((const char *)src_beta->data + iv3 * nbb3 + t * nbb2 + iv1 * nbb1);
++                const float eg = expf(*(const float *)((const char *)src_g->data + iv3 * nbg3 + t * nbg2 + iv1 * nbg1));
++                for (int64_t j = 0; j < S_v; ++j) {
++                    float * row = &s_out[j * S_v];
++                    const float dj = (v_d[j] - eg * dotk[j]) * beta_val;
++                    float acc = 0.0f, accn = 0.0f;
++                    int64_t i = 0;
++#if defined(__ARM_NEON)
++                    const float32x4_t veg = vdupq_n_f32(eg), vdj = vdupq_n_f32(dj);
++                    float32x4_t a0 = vdupq_n_f32(0.0f), a1 = a0, b0 = a0, b1 = a0;
++                    for (; i + 8 <= S_v; i += 8) {
++                        const float32x4_t r0 = vfmaq_f32(vmulq_f32(veg, vld1q_f32(row + i)), vdj, vld1q_f32(k_d + i));
++                        const float32x4_t r1 = vfmaq_f32(vmulq_f32(veg, vld1q_f32(row + i + 4)), vdj, vld1q_f32(k_d + i + 4));
++                        vst1q_f32(row + i, r0);
++                        vst1q_f32(row + i + 4, r1);
++                        a0 = vfmaq_f32(a0, r0, vld1q_f32(q_d + i));
++                        a1 = vfmaq_f32(a1, r1, vld1q_f32(q_d + i + 4));
++                        if (kn) {
++                            b0 = vfmaq_f32(b0, r0, vld1q_f32(kn + i));
++                            b1 = vfmaq_f32(b1, r1, vld1q_f32(kn + i + 4));
++                        }
++                    }
++                    acc = vaddvq_f32(vaddq_f32(a0, a1));
++                    accn = vaddvq_f32(vaddq_f32(b0, b1));
++#endif
++                    for (; i < S_v; ++i) {
++                        const float r = eg * row[i] + dj * k_d[i];
++                        row[i] = r;
++                        acc += r * q_d[i];
++                        if (kn) {
++                            accn += r * kn[i];
++                        }
++                    }
++                    attn_data[j] = acc * scale;
++                    dotk[j] = accn;
++                }
++                attn_data += S_v * H;
++            }
++            continue;
++        }
++
+         for (int64_t t = 0; t < n_tokens; t++) {
+             const float * q_d = (const float *)((const char *)src_q->data + iq3 * nbq3 + t * nbq2 + iq1 * nbq1);
+             const float * k_d = (const float *)((const char *)src_k->data + ik3 * nbk3 + t * nbk2 + ik1 * nbk1);
+diff --git a/include/llama.h b/include/llama.h
+index 3af6e22..3a798a6 100644
+--- a/include/llama.h
++++ b/include/llama.h
+@@ -657,6 +657,11 @@ extern "C" {
+     // Returns the total number of parameters in the model
+     LLAMA_API uint64_t llama_model_n_params(const struct llama_model * model);
+ 
++    // strands-decider E7 patch: 1 if LKAI_SKIP_TIED_OUTPUT=1 kept the tied LM head from being created, else 0
++    LLAMA_API int32_t llama_model_lkai_tied_output_skipped(const struct llama_model * model);
++    // strands-decider E7 patch: bytes of the model's weight buffers whose buffer type is named buft_name
++    LLAMA_API uint64_t llama_model_lkai_buft_bytes(const struct llama_model * model, const char * buft_name);
++
+     // Returns true if the model contains an encoder that requires llama_encode() call
+     LLAMA_API bool llama_model_has_encoder(const struct llama_model * model);
+ 
+diff --git a/src/llama-context.cpp b/src/llama-context.cpp
+index 9ee64b5..950cd85 100644
+--- a/src/llama-context.cpp
++++ b/src/llama-context.cpp
+@@ -1841,7 +1841,8 @@ int llama_context::decode(const llama_batch_ext & batch_inp) {
+     const int64_t n_vocab = vocab.n_tokens();
+ 
+     // when computing embeddings, all tokens are output
+-    const bool output_all   = cparams.embeddings;
++    // strands-decider prefill patch: with no pooling, honour the batch's output flags
++    const bool output_all   = cparams.embeddings && cparams.pooling_type != LLAMA_POOLING_TYPE_NONE;
+     // non-causal attention needs the whole sequence in one ubatch
+     const bool embd_all     = output_all || !cparams.causal_attn;
+     const bool has_samplers = !sampling.samplers.empty();
+diff --git a/src/llama-model.cpp b/src/llama-model.cpp
+index 099c7a0..6e2c0be 100644
+--- a/src/llama-model.cpp
++++ b/src/llama-model.cpp
+@@ -3749,6 +3749,20 @@ uint64_t llama_model_n_params(const llama_model * model) {
+     return model->n_elements();
+ }
+ 
++int32_t llama_model_lkai_tied_output_skipped(const llama_model * model) {
++    return model->lkai_tied_output_skipped ? 1 : 0;
++}
++
++uint64_t llama_model_lkai_buft_bytes(const llama_model * model, const char * buft_name) {
++    uint64_t n = 0;
++    for (const auto & [buft, size] : model->memory_breakdown()) {
++        if (buft && buft_name && strcmp(ggml_backend_buft_name(buft), buft_name) == 0) {
++            n += size;
++        }
++    }
++    return n;
++}
++
+ bool llama_model_has_encoder(const llama_model * model) {
+     switch (model->arch) {
+         case LLM_ARCH_T5:
+diff --git a/src/llama-model.h b/src/llama-model.h
+index 6487b0e..871695c 100644
+--- a/src/llama-model.h
++++ b/src/llama-model.h
+@@ -740,6 +740,7 @@ struct llama_model {
+ 
+     // NVFP4 per-tensor scale2, input_scale for LM head
+     struct ggml_tensor * output_s    = nullptr;
++    bool lkai_tied_output_skipped = false;  // strands-decider E7 patch (LKAI_SKIP_TIED_OUTPUT=1)
+     struct ggml_tensor * output_in_s = nullptr;
+ 
+     // NextN/MTP model-level projections
+diff --git a/src/models/qwen35.cpp b/src/models/qwen35.cpp
+index 802f2e2..8b7616a 100644
+--- a/src/models/qwen35.cpp
++++ b/src/models/qwen35.cpp
+@@ -1,6 +1,9 @@
+ #include "models.h"
+ #include "llama-memory-recurrent.h"
+ 
++#include <cstdlib>
++#include <cstring>
++
+ void llama_model_qwen35::load_arch_hparams(llama_model_loader & ml) {
+     ml.get_key(LLM_KV_ATTENTION_LAYERNORM_RMS_EPS,       hparams.f_norm_rms_eps);
+     ml.get_key_or_arr(LLM_KV_ROPE_DIMENSION_SECTIONS,    hparams.rope_sections, 4, true);
+@@ -48,8 +51,15 @@ void llama_model_qwen35::load_arch_tensors(llama_model_loader & ml) {
+     cls_out_b = create_tensor(tn(LLM_TENSOR_CLS_OUT, "bias"),   { hparams.n_embd_out() },         TENSOR_NOT_REQUIRED);
+ 
+     // if output is NULL, init from the input tok embed
++    // strands-decider E7 patch: LKAI_SKIP_TIED_OUTPUT=1 leaves a tied head uncreated (no CPU_KLEIDIAI repack of it).
++    // The prefill graph never reads it in embeddings mode; graph() aborts if anything else tries to.
+     if (output == NULL) {
+-        output = create_tensor(tn(LLM_TENSOR_TOKEN_EMBD, "weight"), { n_embd, n_vocab }, TENSOR_DUPLICATED);
++        const char * skip = getenv("LKAI_SKIP_TIED_OUTPUT");
++        if (skip && strcmp(skip, "1") == 0) {
++            lkai_tied_output_skipped = true;
++        } else {
++            output = create_tensor(tn(LLM_TENSOR_TOKEN_EMBD, "weight"), { n_embd, n_vocab }, TENSOR_DUPLICATED);
++        }
+     }
+ 
+     auto load_block_trunk = [&](int il, int flags) {
+@@ -229,7 +239,14 @@ llama_model_qwen35::graph::graph(const llama_model & model, const llm_graph_para
+         ggml_build_forward_expand(gf, embd);
+     }
+ 
++    if (cparams.embeddings) {  // strands-decider prefill patch: hidden states only, no LM head
++        ggml_build_forward_expand(gf, res->t_embd);
++        return;
++    }
++
+     // LM head
++    // strands-decider E7 patch: a head skipped at load (LKAI_SKIP_TIED_OUTPUT=1) cannot serve logits.
++    GGML_ASSERT(model.output && "LKAI_SKIP_TIED_OUTPUT=1 skipped the tied LM head: logits need it (embeddings mode only)");
+     cur = build_lora_mm(model.output, cur, model.output_s);
+ 
+     cb(cur, "result_output", -1);
+@@ -656,6 +673,7 @@ llama_model_qwen35::graph_mtp::graph_mtp(const llama_model & model, const llm_gr
+     cur = ggml_get_rows(ctx0, cur, inp_out_ids);
+     cb(cur, "mtp_shared_head_norm", -1);
+ 
++    // strands-decider E7 patch: the MTP fallback head is the tied output too; the GGML_ASSERT below names it NULL.
+     ggml_tensor * head_w = layer.nextn.shared_head_head ? layer.nextn.shared_head_head : model.output;
+     ggml_tensor * head_s = layer.nextn.shared_head_head ? layer.nextn.shared_head_head_s : model.output_s;
+     GGML_ASSERT(head_w && "QWEN35 MTP: missing LM head (nextn.shared_head_head or model.output)");

@@ -1,0 +1,22 @@
+{
+ "arch": "aarch64",
+ "artifacts_sha256": {
+  "e5.gguf": "29aa5abe0fe316b1f6a451c7a313dc3ddcc09d039fc46315e37742e775c05790",
+  "e7.zip": "f6150b1963628d910334682973e5db17c97472d573dac579ec99d1c50814c9d1",
+  "e8-off.zip": "0d7f8a515fb7f11be2a0151c605a35bfd93712573501b4b1be8cfa009991e54d",
+  "e9.gguf": "183137fb500e10a5934fa2df8c1f778d9f674fbdc196b36fff630a9ecc277ea2",
+  "e9.zip": "488890bd965c9ce416381111dda796461f165a88c6dc60528fadaf765f60f6da",
+  "p1-manifest.json": "d4e9b0b4ae030cf700a3d2241f7ca07c75b7ddd38b71ea71fa9ce4b328728e91",
+  "p1.gguf": "8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e",
+  "p1.zip": "26eb2651e8915f8ad09eae899feff583a448de6b8d2bc4943bccabb66cae189b",
+  "e6build/pyc.zip": "eebeeb5dbd5e5201a2d14713bf1783a52f1096d02d66be6849562f218629a92d",
+  "e6build/manifest.json": "bb8616cbf23051afaf143313524fcedc6dfe438aa976941b4e1287285fa2a8cb"
+ },
+ "pkgs": [
+  "e6pyc",
+  "e7",
+  "e8off",
+  "e9",
+  "p1"
+ ]
+}

@@ -1,0 +1,290 @@
+{
+ "answers": {
+  "agent-action-guard-2q": {
+   "action": {
+    "choice": "proceed",
+    "confidence": 0.4488,
+    "probabilities": {
+     "ask": 0.1231,
+     "proceed": 0.6325,
+     "revise": 0.2444
+    },
+    "type": "choice"
+   },
+   "safe": {
+    "noul": 0.2744,
+    "type": "noul"
+   }
+  },
+  "cracked-screen-2q": {
+   "q": {
+    "choice": "refunds",
+    "confidence": 0.492,
+    "probabilities": {
+     "refunds": 0.6614,
+     "shipping": 0.1216,
+     "tech": 0.217
+    },
+    "type": "choice"
+   },
+   "u": {
+    "noul": 0.6251,
+    "type": "noul"
+   }
+  },
+  "incident-review-4q": {
+   "root_cause": {
+    "choice": "retries",
+    "confidence": 0.4051,
+    "probabilities": {
+     "alarm": 0.0191,
+     "capacity": 0.0724,
+     "freeze": 0.3546,
+     "retries": 0.5538
+    },
+    "type": "choice"
+   },
+   "runbook": {
+    "noul": 0.8827,
+    "type": "noul"
+   },
+   "severity": {
+    "confidence": 0.4432,
+    "legend": {
+     "0": "negligible",
+     "1": "minor",
+     "2": "moderate",
+     "3": "major",
+     "4": "critical"
+    },
+    "probabilities": {
+     "0": 0.1037,
+     "1": 0.1626,
+     "2": 0.2673,
+     "3": 0.2597,
+     "4": 0.2068
+    },
+    "score": 2.3033,
+    "type": "score"
+   },
+   "test_gap": {
+    "noul": 0.3864,
+    "type": "noul"
+   }
+  },
+  "payouts-3q": {
+   "frustration": {
+    "confidence": 0.512,
+    "legend": {
+     "0": "calm",
+     "1": "frustrated",
+     "2": "depressed"
+    },
+    "probabilities": {
+     "0": 0.1945,
+     "1": 0.5764,
+     "2": 0.2291
+    },
+    "score": 1.0346,
+    "type": "score"
+   },
+   "is_urgent": {
+    "noul": 0.8582,
+    "type": "noul"
+   },
+   "team": {
+    "choice": "billing",
+    "confidence": 0.6487,
+    "probabilities": {
+     "billing": 0.7658,
+     "retail": 0.1106,
+     "sales": 0.1236
+    },
+    "type": "choice"
+   }
+  },
+  "ticket-route-1q": {
+   "q": {
+    "choice": "billing",
+    "confidence": 0.9433,
+    "probabilities": {
+     "account": 0.0064,
+     "billing": 0.9622,
+     "technical": 0.0314
+    },
+    "type": "choice"
+   }
+  }
+ },
+ "answers_repeat_identical": true,
+ "arm": "e5",
+ "e7": {
+  "tied_output_skipped": "absent"
+ },
+ "env": {
+  "DEC_KV": "f32",
+  "DEC_UBATCH": "512",
+  "GGML_KLEIDIAI_REPACK_THREADS": null,
+  "LKAI_SKIP_TIED_OUTPUT": null,
+  "N_SEQ": "17",
+  "OPENBLAS_NUM_THREADS": "1"
+ },
+ "evidence": "FIXED HOST, NOT LAMBDA",
+ "gguf": {
+  "bytes": 2065771264,
+  "file": "model.gguf"
+ },
+ "host_after": {
+  "loadavg": [
+   5.78,
+   5.52,
+   3.85
+  ]
+ },
+ "host_before": {
+  "cgroup": {
+   "cpu.max": "max 100000",
+   "cpuset.cpus.effective": "10-15",
+   "memory.max": "unknown"
+  },
+  "cpu": {
+   "architecture": "8",
+   "family": "unknown",
+   "features": "fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm paca pacg dcpodp svei8mm svebf16 i8mm bf16 dgh rng",
+   "flags": "unknown",
+   "implementer": "0x41",
+   "model": "unknown",
+   "model_name": "unknown",
+   "part": "0xd40",
+   "processors": 16,
+   "revision": "1",
+   "stepping": "unknown",
+   "variant": "0x1",
+   "vendor": "unknown"
+  },
+  "governor": "unknown",
+  "hwcap": "0xcfffffff",
+  "hwcap2": "0x1f201",
+  "identity": "0xd40",
+  "kernel": "6.1.188-233.393.amzn2023.aarch64",
+  "loadavg": [
+   6.18,
+   5.58,
+   3.77
+  ],
+  "machine": "aarch64",
+  "os_cpu_count": 16,
+  "python": "3.12.15",
+  "sched_affinity": [
+   10,
+   11,
+   12,
+   13,
+   14,
+   15
+  ]
+ },
+ "init_info": {
+  "cpu_part": "0xd40",
+  "ggml_cpu": [
+   "libggml-cpu-armv8.2_3.so",
+   "libggml-cpu-armv8.6_1.so"
+  ],
+  "kv": "f32",
+  "n_ctx": 16384,
+  "n_seq": 17,
+  "threads": 6,
+  "ubatch": "512",
+  "unrotate": false
+ },
+ "long_forward": {
+  "answers": {
+   "retry": {
+    "noul": 0.6986,
+    "type": "noul"
+   }
+  },
+  "input_tokens": 4096,
+  "repeat_identical": true,
+  "seconds": [
+   15.9003,
+   15.8826
+  ],
+  "window": 4096
+ },
+ "mode": "memfd",
+ "n_ctx": {
+  "applied": [
+   16384
+  ],
+  "requested": [
+   16384
+  ]
+ },
+ "phases_s": {
+  "assets_load": 0.4859,
+  "context_init": 0.1624,
+  "dec_load_total": 7.5004,
+  "first_request_inference": 0.2441,
+  "ggml_backend_load": 0.0051,
+  "imports": 0.4532,
+  "load_engine": 7.9863,
+  "model_load_mmap": 7.3328,
+  "model_ready": 10.0754,
+  "probe_start_to_imports": 0.0092,
+  "process_to_probe": 0.0903,
+  "warmup_inference": 0.2297,
+  "weight_read": 1.1522
+ },
+ "schema": "lkai-general-probe/1",
+ "status_after_load_kb": {
+  "RssAnon": 2828136,
+  "RssFile": 28888,
+  "RssShmem": 1954160,
+  "VmHWM": 4860560,
+  "VmRSS": 4811184
+ },
+ "status_end_kb": {
+  "RssAnon": 2926284,
+  "RssFile": 30708,
+  "RssShmem": 1954160,
+  "VmHWM": 4911152,
+  "VmRSS": 4911152
+ },
+ "threads": 6,
+ "vs_reference": {
+  "agent-action-guard-2q": "identical",
+  "cracked-screen-2q": "identical",
+  "incident-review-4q": "identical",
+  "payouts-3q": "identical",
+  "ticket-route-1q": "identical"
+ },
+ "wall_s": 53.3851,
+ "warm_s": {
+  "agent-action-guard-2q": [
+   0.8569,
+   0.8532,
+   0.855
+  ],
+  "cracked-screen-2q": [
+   0.4393,
+   0.436,
+   0.4358
+  ],
+  "incident-review-4q": [
+   1.743,
+   1.7382,
+   1.7483
+  ],
+  "payouts-3q": [
+   0.5677,
+   0.5623,
+   0.5621
+  ],
+  "ticket-route-1q": [
+   0.2429,
+   0.2433,
+   0.2422
+  ]
+ }
+}

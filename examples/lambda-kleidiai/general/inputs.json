@@ -1,0 +1,22 @@
+{
+ "schema": "lkai-general-inputs/1",
+ "note": "Every artifact a general-ladder arm loads, with the sha256 its own experiment published at the pinned branch SHA. stage.py refuses a file whose hash differs. The shared libraries are not bit-reproducible across builds (baseline/container_build.sh), so a rebuild from source gets new hashes: point stage.py at the published artifacts, or rebuild and record the new hashes as a new run.",
+ "baseline": {"commit": "70eab7be69f86ddeb8c64158d94df344b5180098", "branch": "feat/lambda-kleidiai-baseline"},
+ "artifacts": {
+  "p1_zip": {"sha256": "26eb2651e8915f8ad09eae899feff583a448de6b8d2bc4943bccabb66cae189b", "source": "feat/lambda-kleidiai-baseline@70eab7b baseline/results/20261020T080835Z/build-manifest.json function_zip", "rebuild": "examples/lambda-kleidiai/baseline/build.sh"},
+  "p1_gguf": {"sha256": "8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e", "source": "feat/lambda-kleidiai-baseline@70eab7b build-manifest model.gguf_sha256", "rebuild": "examples/lambda-kleidiai/baseline/build.sh"},
+  "e8_off_zip": {"sha256": "0d7f8a515fb7f11be2a0151c605a35bfd93712573501b4b1be8cfa009991e54d", "source": "lkai/5a61-parallel-repack@bef9c89 e8/results/20261021T110412Z/zips.json off_zip", "rebuild": "examples/lambda-kleidiai/e8/build.sh (at bef9c89)"},
+  "e9_zip": {"sha256": "488890bd965c9ce416381111dda796461f165a88c6dc60528fadaf765f60f6da", "source": "lkai/f1ee-prepacked@5dce29d e9/results/20261021T101749Z/conditions.json expected_zip_sha256 (e9 arm)", "rebuild": "examples/lambda-kleidiai/e9/build.sh (at 5dce29d)"},
+  "e9_gguf": {"sha256": "183137fb500e10a5934fa2df8c1f778d9f674fbdc196b36fff630a9ecc277ea2", "source": "lkai/f1ee-prepacked@5dce29d e9/README.md (s2b-h512-Q8_0-e9kr8.gguf)", "rebuild": "examples/lambda-kleidiai/e9/build.sh (at 5dce29d)"},
+  "e7_zip": {"sha256": "f6150b1963628d910334682973e5db17c97472d573dac579ec99d1c50814c9d1", "source": "lkai/f768-skip-output-repack@0af73df e7/results/20261021T102524Z/build-manifest.json function_zip", "rebuild": "examples/lambda-kleidiai/e7/build.sh (at 0af73df)"},
+  "e5_gguf": {"sha256": "29aa5abe0fe316b1f6a451c7a313dc3ddcc09d039fc46315e37742e775c05790", "source": "lkai/3259-mmap-format@06b1831 e5/results/20261020T114406Z/e5-manifest.json converted", "rebuild": "examples/lambda-kleidiai/e5/convert_no_vocab.py (at 06b1831)"}
+ },
+ "rung_sources": {
+  "e8": {"branch": "lkai/5a61-parallel-repack", "sha": "bef9c8913e4e3d7acb1ce5baefb9ad24fceeedc7", "variable": "GGML_KLEIDIAI_REPACK_THREADS=6 (e8/patch_parallel_repack.py)"},
+  "e9": {"branch": "lkai/f1ee-prepacked", "sha": "5dce29dae1bd5688a9f3203cfa5ae4183f2f27f7", "variable": "KleidiAI-prepacked GGUF + loader (e9/pack_e9.py, e9/patch_e9.py)"},
+  "e7": {"branch": "lkai/f768-skip-output-repack", "sha": "0af73df388c3f81c580112aeaf3e0b9ea582e15a", "variable": "LKAI_SKIP_TIED_OUTPUT=1 (e7/patch_skip_output.py)"},
+  "e10": {"branch": "lkai/fbb1-kv-size", "sha": "60f4586c1946b68d5381b10a1a351de8596d5e7d", "variable": "n_ctx 4096 (e10/e10_entry.py wrap_shim)"},
+  "e5": {"branch": "lkai/3259-mmap-format", "sha": "06b1831d0832bf55f8a199ce91d2be18feabe082", "variable": "GGUF without llama.cpp vocabulary (e5/convert_no_vocab.py)"},
+  "e6": {"branch": "lkai/fada-hotspot", "sha": "e989e39417fe4e9283edb2e45009189f23095ce8", "variable": "complete unchecked-hash bytecode (e6/pyc_zip.py)"}
+ }
+}

@@ -1,0 +1,62 @@
+{
+ "image": "public.ecr.aws/lambda/python@sha256:586cea700429caaab11d50f7b96258a77bd4899d253e9559acfb647fe383f970",
+ "requests": "<repo>/examples/lambda-kleidiai/baseline/requests.json",
+ "reference": "<repo>/examples/lambda-kleidiai/baseline/reference/outputs.json",
+ "arms": [
+  {
+   "name": "p1",
+   "pkg": "<x86>/x86/pkg-p1",
+   "gguf": "<x86>/art/p1.gguf"
+  },
+  {
+   "name": "e8",
+   "pkg": "<x86>/x86/pkg-e8",
+   "gguf": "<x86>/art/p1.gguf",
+   "env": {
+    "GGML_KLEIDIAI_REPACK_THREADS": "6"
+   }
+  },
+  {
+   "name": "e9",
+   "pkg": "<x86>/x86/pkg-e9",
+   "gguf": "<x86>/art/e9.gguf"
+  },
+  {
+   "name": "e9p1",
+   "pkg": "<x86>/x86/pkg-e9",
+   "gguf": "<x86>/art/p1.gguf"
+  },
+  {
+   "name": "e7",
+   "pkg": "<x86>/x86/pkg-e7",
+   "gguf": "<x86>/art/p1.gguf",
+   "env": {
+    "LKAI_SKIP_TIED_OUTPUT": "1"
+   }
+  },
+  {
+   "name": "e7off",
+   "pkg": "<x86>/x86/pkg-e7",
+   "gguf": "<x86>/art/p1.gguf"
+  },
+  {
+   "name": "e10",
+   "pkg": "<x86>/x86/pkg-p1",
+   "gguf": "<x86>/art/p1.gguf",
+   "args": [
+    "--n-ctx",
+    "4096"
+   ]
+  },
+  {
+   "name": "e5",
+   "pkg": "<x86>/x86/pkg-p1",
+   "gguf": "<x86>/art/e5.gguf"
+  },
+  {
+   "name": "e6",
+   "pkg": "<x86>/x86/pkg-e6",
+   "gguf": "<x86>/art/p1.gguf"
+  }
+ ]
+}

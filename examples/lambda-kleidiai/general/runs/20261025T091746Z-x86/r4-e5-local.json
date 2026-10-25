@@ -1,0 +1,288 @@
+{
+ "answers": {
+  "agent-action-guard-2q": {
+   "action": {
+    "choice": "ask",
+    "confidence": 0.5611,
+    "probabilities": {
+     "ask": 0.7074,
+     "proceed": 0.0328,
+     "revise": 0.2598
+    },
+    "type": "choice"
+   },
+   "safe": {
+    "noul": 0.2715,
+    "type": "noul"
+   }
+  },
+  "cracked-screen-2q": {
+   "q": {
+    "choice": "refunds",
+    "confidence": 0.4959,
+    "probabilities": {
+     "refunds": 0.664,
+     "shipping": 0.1211,
+     "tech": 0.2149
+    },
+    "type": "choice"
+   },
+   "u": {
+    "noul": 0.4961,
+    "type": "noul"
+   }
+  },
+  "incident-review-4q": {
+   "root_cause": {
+    "choice": "retries",
+    "confidence": 1.0,
+    "probabilities": {
+     "alarm": NaN,
+     "capacity": NaN,
+     "freeze": NaN,
+     "retries": NaN
+    },
+    "type": "choice"
+   },
+   "runbook": {
+    "noul": NaN,
+    "type": "noul"
+   },
+   "severity": {
+    "confidence": 1.0,
+    "legend": {
+     "0": "negligible",
+     "1": "minor",
+     "2": "moderate",
+     "3": "major",
+     "4": "critical"
+    },
+    "probabilities": {
+     "0": NaN,
+     "1": NaN,
+     "2": NaN,
+     "3": NaN,
+     "4": NaN
+    },
+    "score": NaN,
+    "type": "score"
+   },
+   "test_gap": {
+    "noul": NaN,
+    "type": "noul"
+   }
+  },
+  "payouts-3q": {
+   "frustration": {
+    "confidence": 0.3423,
+    "legend": {
+     "0": "calm",
+     "1": "frustrated",
+     "2": "depressed"
+    },
+    "probabilities": {
+     "0": 0.2751,
+     "1": 0.4118,
+     "2": 0.3131
+    },
+    "score": 1.038,
+    "type": "score"
+   },
+   "is_urgent": {
+    "noul": 0.8541,
+    "type": "noul"
+   },
+   "team": {
+    "choice": "billing",
+    "confidence": 0.0896,
+    "probabilities": {
+     "billing": 0.3931,
+     "retail": 0.217,
+     "sales": 0.3899
+    },
+    "type": "choice"
+   }
+  },
+  "ticket-route-1q": {
+   "q": {
+    "choice": "billing",
+    "confidence": 0.9426,
+    "probabilities": {
+     "account": 0.0065,
+     "billing": 0.9618,
+     "technical": 0.0317
+    },
+    "type": "choice"
+   }
+  }
+ },
+ "answers_repeat_identical": false,
+ "arm": "e5",
+ "e7": {
+  "tied_output_skipped": "absent"
+ },
+ "env": {
+  "DEC_KV": "f32",
+  "DEC_UBATCH": "512",
+  "GGML_KLEIDIAI_REPACK_THREADS": null,
+  "LKAI_SKIP_TIED_OUTPUT": null,
+  "N_SEQ": "17",
+  "OPENBLAS_NUM_THREADS": "1"
+ },
+ "evidence": "FIXED HOST, NOT LAMBDA",
+ "gguf": {
+  "bytes": 2065771264,
+  "file": "model.gguf"
+ },
+ "host_after": {
+  "loadavg": [
+   16.04,
+   19.42,
+   22.91
+  ]
+ },
+ "host_before": {
+  "cgroup": {
+   "cpu.max": "max 100000",
+   "cpuset.cpus.effective": "10-15",
+   "memory.max": "max"
+  },
+  "cpu": {
+   "architecture": "unknown",
+   "family": "6",
+   "features": "unknown",
+   "flags": "fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ss ht syscall nx pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid tsc_known_freq pni pclmulqdq ssse3 fma cx16 pdcm pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm abm 3dnowprefetch cpuid_fault invpcid_single ssbd ibrs ibpb stibp ibrs_enhanced fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves avx_vnni avx512_bf16 wbnoinvd ida arat avx512vbmi umip pku ospke waitpkg avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg tme avx512_vpopcntdq rdpid bus_lock_detect cldemote movdiri movdir64b md_clear serialize amx_bf16 avx512_fp16 amx_tile amx_int8 flush_l1d arch_capabilities",
+   "implementer": "unknown",
+   "model": "173",
+   "model_name": "Intel(R) Xeon(R) 6975P-C",
+   "part": "unknown",
+   "processors": 32,
+   "revision": "unknown",
+   "stepping": "1",
+   "variant": "unknown",
+   "vendor": "GenuineIntel"
+  },
+  "governor": "unknown",
+  "hwcap": "0x1f8bfbff",
+  "hwcap2": "0x2",
+  "identity": "GenuineIntel 6/173/1",
+  "kernel": "6.1.188-233.393.amzn2023.x86_64",
+  "loadavg": [
+   16.6,
+   20.42,
+   23.45
+  ],
+  "machine": "x86_64",
+  "os_cpu_count": 32,
+  "python": "3.12.15",
+  "sched_affinity": [
+   10,
+   11,
+   12,
+   13,
+   14,
+   15
+  ]
+ },
+ "init_info": {
+  "cpu_part": "?",
+  "ggml_cpu": [
+   "libggml-cpu-sapphirerapids.so"
+  ],
+  "kv": "f32",
+  "n_ctx": 16384,
+  "n_seq": 17,
+  "threads": 6,
+  "ubatch": "512",
+  "unrotate": false
+ },
+ "long_forward": {
+  "answers": {
+   "retry": {
+    "noul": 0.689,
+    "type": "noul"
+   }
+  },
+  "input_tokens": 4096,
+  "repeat_identical": true,
+  "seconds": [
+   21.1298,
+   21.0343
+  ],
+  "window": 4096
+ },
+ "mode": "local",
+ "n_ctx": {
+  "applied": [
+   16384
+  ],
+  "requested": [
+   16384
+  ]
+ },
+ "phases_s": {
+  "assets_load": 0.5188,
+  "context_init": 0.2629,
+  "dec_load_total": 1.0206,
+  "first_request_inference": 0.4625,
+  "ggml_backend_load": 0.0047,
+  "imports": 0.3326,
+  "load_engine": 1.5394,
+  "model_load_mmap": 0.753,
+  "model_ready": 2.7581,
+  "probe_start_to_imports": 0.0059,
+  "process_to_probe": 0.093,
+  "warmup_inference": 0.4162
+ },
+ "schema": "lkai-general-probe/1",
+ "status_after_load_kb": {
+  "RssAnon": 3164104,
+  "RssFile": 11244,
+  "RssShmem": 1973460,
+  "VmHWM": 5192532,
+  "VmRSS": 5148808
+ },
+ "status_end_kb": {
+  "RssAnon": 3263864,
+  "RssFile": 11116,
+  "RssShmem": 1975680,
+  "VmHWM": 5250660,
+  "VmRSS": 5250660
+ },
+ "threads": 6,
+ "vs_reference": {
+  "agent-action-guard-2q": "no-reference-for-identity",
+  "cracked-screen-2q": "no-reference-for-identity",
+  "incident-review-4q": "no-reference-for-identity",
+  "payouts-3q": "no-reference-for-identity",
+  "ticket-route-1q": "no-reference-for-identity"
+ },
+ "wall_s": 64.2236,
+ "warm_s": {
+  "agent-action-guard-2q": [
+   1.423,
+   1.4295,
+   1.4615
+  ],
+  "cracked-screen-2q": [
+   0.774,
+   0.7542,
+   0.7611
+  ],
+  "incident-review-4q": [
+   2.5409,
+   2.9391,
+   2.7231
+  ],
+  "payouts-3q": [
+   1.0365,
+   0.9809,
+   1.0914
+  ],
+  "ticket-route-1q": [
+   0.4659,
+   0.424,
+   0.4946
+  ]
+ }
+}

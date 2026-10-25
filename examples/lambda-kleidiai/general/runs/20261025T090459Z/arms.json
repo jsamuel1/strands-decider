@@ -1,0 +1,103 @@
+{
+ "image": "public.ecr.aws/lambda/python@sha256:37fe9ca4183c36ec57e4c5eabb8893cd9fbc9c0f3053b903d9a57eb2bd6bafcc",
+ "requests": "<w>/ac1b/examples/lambda-kleidiai/baseline/requests.json",
+ "reference": "<w>/ac1b/examples/lambda-kleidiai/baseline/reference/outputs.json",
+ "arms": [
+  {
+   "name": "p1",
+   "pkg": "<w>/ac1b-stage/pkg-p1",
+   "gguf": "<w>/ac1b-art/p1.gguf",
+   "modes": [
+    "local",
+    "memfd"
+   ]
+  },
+  {
+   "name": "e8",
+   "pkg": "<w>/ac1b-stage/pkg-e8off",
+   "gguf": "<w>/ac1b-art/p1.gguf",
+   "modes": [
+    "local",
+    "memfd"
+   ],
+   "env": {
+    "GGML_KLEIDIAI_REPACK_THREADS": "6"
+   }
+  },
+  {
+   "name": "e8off",
+   "pkg": "<w>/ac1b-stage/pkg-e8off",
+   "gguf": "<w>/ac1b-art/p1.gguf",
+   "modes": [
+    "local"
+   ]
+  },
+  {
+   "name": "e9",
+   "pkg": "<w>/ac1b-stage/pkg-e9",
+   "gguf": "<w>/ac1b-art/e9.gguf",
+   "modes": [
+    "local",
+    "memfd"
+   ]
+  },
+  {
+   "name": "e9p1",
+   "pkg": "<w>/ac1b-stage/pkg-e9",
+   "gguf": "<w>/ac1b-art/p1.gguf",
+   "modes": [
+    "local"
+   ]
+  },
+  {
+   "name": "e7",
+   "pkg": "<w>/ac1b-stage/pkg-e7",
+   "gguf": "<w>/ac1b-art/p1.gguf",
+   "modes": [
+    "local",
+    "memfd"
+   ],
+   "env": {
+    "LKAI_SKIP_TIED_OUTPUT": "1"
+   }
+  },
+  {
+   "name": "e7off",
+   "pkg": "<w>/ac1b-stage/pkg-e7",
+   "gguf": "<w>/ac1b-art/p1.gguf",
+   "modes": [
+    "local"
+   ]
+  },
+  {
+   "name": "e10",
+   "pkg": "<w>/ac1b-stage/pkg-p1",
+   "gguf": "<w>/ac1b-art/p1.gguf",
+   "modes": [
+    "local",
+    "memfd"
+   ],
+   "args": [
+    "--n-ctx",
+    "4096"
+   ]
+  },
+  {
+   "name": "e5",
+   "pkg": "<w>/ac1b-stage/pkg-p1",
+   "gguf": "<w>/ac1b-art/e5.gguf",
+   "modes": [
+    "local",
+    "memfd"
+   ]
+  },
+  {
+   "name": "e6",
+   "pkg": "<w>/ac1b-stage/pkg-e6pyc",
+   "gguf": "<w>/ac1b-art/p1.gguf",
+   "modes": [
+    "local"
+   ]
+  }
+ ]
+}

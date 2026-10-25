@@ -1,0 +1,11 @@
+17c17
+<   -DGGML_CPU_KLEIDIAI=ON >/dev/null
+---
+>   -DGGML_CPU_KLEIDIAI=OFF >/dev/null
+20,25d19
+< echo "=== llama-quantize (plain armv8.2 build; Q8_0 rounding is the same on every path) ==="
+< cmake -B build-q $COMMON -DLLAMA_BUILD_TOOLS=ON -DGGML_NATIVE=OFF -DGGML_CPU_ARM_ARCH=armv8.2-a+fp16+dotprod \
+<   -DGGML_BACKEND_DL=OFF >/dev/null
+< cmake --build build-q -j "$(nproc)" --target llama-quantize >/dev/null
+< mkdir -p /out/bin /out/quant-lib && cp -P build-q/bin/llama-quantize /out/bin/ && cp -P build-q/bin/lib*.so* /out/quant-lib/
+< cp -L /usr/lib64/libgomp.so.1 /usr/lib64/libstdc++.so.6 /usr/lib64/libgcc_s.so.1 /out/quant-lib/  # gcc not in the run image

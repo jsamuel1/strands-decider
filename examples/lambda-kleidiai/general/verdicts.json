@@ -1,0 +1,57 @@
+{
+ "schema": "lkai-general-verdicts/1",
+ "note": "FIXED HOST, NOT LAMBDA. Verdicts follow the rule pre-registered in README.md: per-round paired delta (arm minus p1, same run, same round, same mode, same CPU identity); an effect only when all paired deltas share a sign and |median| exceeds p1's own per-round range (peak RSS: and 1% of p1). Operator rule 2026-10-22: anything that degrades any non-Lambda path is never a general default (summarize.py guard() refuses it).",
+ "primary_identity": "0xd40",
+ "started": "2026-10-25T09:05:52Z",
+ "finished": "2026-10-25T10:29:41Z",
+ "reproduce": [
+  "see examples/lambda-kleidiai/general/README.md 'Reproduce'",
+  "python3 general/run_ladder.py <stage>/arms.json <out> --rounds 5 --cpuset 10-15 --threads 6",
+  "python3 general/summarize.py <arm64 run> <x86 run> <x86 e6 run> --out <dir> --verdicts general/verdicts.json --commit <ladder sha> --run-id <id>"
+ ],
+ "rungs": {
+  "e8": {
+   "commit": "bef9c8913e4e3d7acb1ce5baefb9ad24fceeedc7",
+   "status": "improved",
+   "general": "general default",
+   "hypothesis": "Six-thread KleidiAI load-time repack (GGML_KLEIDIAI_REPACK_THREADS=6) removes the serial repack cost off Lambda too, with no warm/forward/memory or answer change, and is inert where KleidiAI is absent (x86_64).",
+   "conclusion": "FIXED HOST, NOT LAMBDA. 0xd40 local-file: load 7.934 -> 2.279 s (-5.649, 5/5 rounds, p1 spread 0.056); memfd -5.666 s. Warm, first inference, 4,096-token forward and peak RSS no change. Answers bit-identical to P1 (50/50 requests, 10/10 forwards). x86_64: KleidiAI cannot be compiled, the change is not in the binary path; every metric no change, answers identical to x86 P1. Dormant (patched libs, switch unset): load +0.058 s against p1's 0.056 s range, answers identical: a 0.7% residue at the edge of the spread, recorded, not a regression of the default. Verdict: general default, with threads = the engine's thread count (the shipped switch value 6 matched THREADS=6 here)."
+  },
+  "e9": {
+   "commit": "5dce29dae1bd5688a9f3203cfa5ae4183f2f27f7",
+   "status": "improved",
+   "general": "general opt-in",
+   "expected_refusals": ["20261025T091746Z-x86/e9"],
+   "hypothesis": "A KleidiAI-prepacked GGUF with the E9 loader skips the runtime repack off Lambda too; it must refuse rather than misread on a path without KleidiAI.",
+   "conclusion": "FIXED HOST, NOT LAMBDA. 0xd40 local-file: load 7.934 -> 3.105 s (-4.827 s, 5/5); memfd -4.834 s; warm/forward/RSS no change; answers bit-identical (50/50, 10/10). Same rounds, E8 beats E9 by 0.835 s (local) and 0.832 s (memfd) of load, with no other difference: E8 is the better general mechanism. x86_64: the E9 GGUF is refused at load ('tensor blk.0.attn_qkv.weight is KleidiAI-prepacked (E9) but is not in a CPU_KLEIDIAI buffer'), 5/5, as designed; the E9 loader with a plain GGUF is inert (answers identical). Hazard: an UNPATCHED P1 engine loads the E9 GGUF without error and returns NaN probabilities and wrong choices on both arm64 and x86_64. A GGUF format that silently corrupts answers on any loader without the patch, and needs a KleidiAI build, cannot be a general default. Verdict: general opt-in (arm64 KleidiAI builds with the E9 loader only); prefer E8."
+  },
+  "e7": {
+   "commit": "0af73df388c3f81c580112aeaf3e0b9ea582e15a",
+   "status": "improved",
+   "general": "general opt-in",
+   "hypothesis": "Skipping the tied output head (LKAI_SKIP_TIED_OUTPUT=1) saves its repack time and memory on every decshim deployment.",
+   "conclusion": "FIXED HOST, NOT LAMBDA. 0xd40 local-file: load -2.031 s (5/5), peak RSS -488 MB; memfd -2.028 s, -471 MB; warm/forward no change; answers bit-identical (50/50, 10/10). x86_64: peak RSS -575 MB (5/5, outside 1% floor); timings no change inside the noisy co-tenanted host's spread; answers identical to x86 P1. Dormant: no change. No path degrades, but the switch aborts any request for logits, so it is only valid for engines that never ask for them (decshim). Verdict: general opt-in, default ON inside decshim-only deployments; not a llama.cpp-wide default."
+  },
+  "e10": {
+   "commit": "60f4586c1946b68d5381b10a1a351de8596d5e7d",
+   "status": "improved",
+   "general": "general default",
+   "hypothesis": "n_ctx 4096 (= the model's max_length) instead of 16384 cuts KV memory without changing answers or the 4,096-token forward.",
+   "conclusion": "FIXED HOST, NOT LAMBDA. 0xd40: peak RSS -306 MB local, -290 MB memfd (5/5); local load -0.062 s and model_ready -0.108 s (just outside spread); memfd warm -0.007 s and 4,096 forward -0.162 s; nothing worse. Answers bit-identical (50/50, 10/10 including the full 4,096-token forward). x86_64: peak RSS -320 MB, timings no change, answers identical. Verdict: general default, set from the head config's max_length rather than a literal 4096."
+  },
+  "e5": {
+   "commit": "06b1831d0832bf55f8a199ce91d2be18feabe082",
+   "status": "improved",
+   "general": "general opt-in",
+   "hypothesis": "Dropping the embedded tokenizer vocabulary (tokenizer.ggml.model=none) shortens GGUF load and memory for engines that tokenize outside llama.cpp.",
+   "conclusion": "FIXED HOST, NOT LAMBDA. 0xd40: load -0.504 s local / -0.487 s memfd (5/5), peak RSS -83 / -67 MB; warm/forward no change; answers bit-identical (50/50, 10/10). x86_64: peak RSS -55 MB, timings no change, answers identical. The file has no usable vocabulary, so any engine that tokenizes with llama.cpp (llama-cli, llama-server, generic GGUF consumers) cannot use it. Verdict: general opt-in for decider engines that tokenize in Python; publish beside, not instead of, the full GGUF."
+  },
+  "e6": {
+   "commit": "e989e39417fe4e9283edb2e45009189f23095ce8",
+   "status": "improved",
+   "general": "general default",
+   "hypothesis": "Shipping complete unchecked-hash bytecode cuts interpreter import time on every read-only deployment.",
+   "conclusion": "FIXED HOST, NOT LAMBDA. 0xd40 (package mounted read-only): imports 0.459 -> 0.170 s (-0.288 s, 5/5), model_ready -0.276 s; load/warm/RSS no change; answers bit-identical (25/25, 5/5). x86_64 (separate interleaved p1-vs-e6 run, same compile rule applied to the x86 package): imports 0.344 -> 0.139 s (-0.209 s, 5/5), everything else no change, answers identical. It is a packaging step: on a writable filesystem CPython would write the same .pyc after the first start, so the gain there is the first start only. Verdict: general default for packaged builds (zip, container image, read-only mount), compiled with each target's own interpreter."
+  }
+ }
+}
