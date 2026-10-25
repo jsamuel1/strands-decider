@@ -222,13 +222,13 @@ dashboard.
 
 ## Follow-up implementation items
 
-| Item | Scope | Gate |
-|---|---|---|
-| Ship the ladder's best measured combination as the Lambda example's defaults | Lambda | Ladder result published |
-| General ladder: measure E8, E9, E7, E10, E5 and E6 on a fixed non-Lambda arm64 host | General | No regression on that host |
-| Lambda opt-in profile for E4, E11, E12 and E13, off by default elsewhere | Lambda | Default build unchanged off Lambda |
+| Card | Item | Scope | Blocked by |
+|---|---|---|---|
+| G (ac1b) | General ladder: measure E8, E9, E7, E10, E5 and E6 on a fixed non-Lambda arm64 host | General | none |
+| L (be0d) | Lambda opt-in profile for E4, E11, E12 and E13, off by default elsewhere | Lambda | R's ladder |
+| S (bf54) | Ship the ladder's best measured combination as the Lambda example's defaults | Lambda | G, L, R's ladder |
 
-The kanban cards for these items name their owners and blockers.
+A change that slows any non-Lambda deployment ships through L as a Lambda opt-in, never as a general default.
 
 ## Sources and reproduction
 
