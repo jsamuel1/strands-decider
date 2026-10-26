@@ -161,3 +161,17 @@ python3 results/publish_result.py <out>/p2/<rung>/results.json --validate-only  
 
 `runs/` holds this ladder's raw probe files and `out/` holds the analysis; `out/p2/<rung>/results.json` are the P2
 records (experiment ids `G-general-E*`, run id `20261025T090459Z-general`).
+
+## P2 pointers
+
+Published with `results/publish_result.py` (feat/lambda-kleidiai-results) to the P2 store and dashboard
+<https://artifactory.amazon.dev/view/lambda-kleidiai-experiments-results>, all `status: improved`:
+
+| rung | P2 run | dashboard version |
+|---|---|---|
+| E8 | `s3://strands-decider-lkai-results-apse2/runs/G-general-E8-parallel-repack/20261025T090459Z-general/result.json` | 59 |
+| E9 | `s3://strands-decider-lkai-results-apse2/runs/G-general-E9-prepacked/20261025T090459Z-general/result.json` | 60 |
+| E7 | `s3://strands-decider-lkai-results-apse2/runs/G-general-E7-skip-tied-output/20261025T090459Z-general/result.json` | 61 |
+| E10 | `s3://strands-decider-lkai-results-apse2/runs/G-general-E10-kv-size/20261025T090459Z-general/result.json` | 62 |
+| E5 | `s3://strands-decider-lkai-results-apse2/runs/G-general-E5-no-vocab-gguf/20261025T090459Z-general/result.json` | 63 |
+| E6 | `s3://strands-decider-lkai-results-apse2/runs/G-general-E6-bytecode/20261025T090459Z-general/result.json` | 64 |
