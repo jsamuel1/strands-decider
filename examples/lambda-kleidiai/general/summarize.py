@@ -509,8 +509,10 @@ def p2_result(
             "arms": sorted(arms),
             "mode": mode,
             "host_identity": ident,
-            "note": "FIXED HOST, NOT LAMBDA LATENCY. One fresh container per load; arms interleaved by cyclic "
-            "rotation of one round's order; comparisons pair rounds (arm minus p1 in the same round).",
+            "note": "FIXED HOST, NOT LAMBDA LATENCY. One fresh container per load; arms interleaved in "
+            "reversal-paired random orders (run_ladder.schedule: each arm before its control in exactly half the "
+            "rounds); page cache primed before round 0; comparisons pair rounds (arm minus p1 in the same round).",
+            "schedule_balance": cmp_.get("order"),
         },
         "classification": {
             "method": "fixed host: every load is a new process (cold); no restore exists; warm "
