@@ -109,12 +109,41 @@ def test_schedule_refuses_an_odd_round_count(rounds):
         run_ladder.schedule(4, rounds, 1)
 
 
+def test_prime_reads_every_artifact_once(tmp_path, monkeypatch):
+    pkg = tmp_path / "pkg"
+    (pkg / "lib").mkdir(parents=True)
+    (pkg / "lib" / "a.so").write_bytes(b"x" * 10)
+    (pkg / "e.py").write_bytes(b"y" * 5)
+    g = tmp_path / "m.gguf"
+    g.write_bytes(b"z" * 7)
+    r, f = tmp_path / "r.json", tmp_path / "f.json"
+    r.write_bytes(b"{}")
+    f.write_bytes(b"{}")
+    calls = []
+    monkeypatch.setattr(
+        run_ladder.subprocess,
+        "run",
+        lambda c, **k: calls.append(c) or type("P", (), {"returncode": 0})(),
+    )
+
+    class A:
+        image, platform = "img", "linux/arm64"
+
+    cfg = {"requests": str(r), "reference": str(f)}
+    arm = {"pkg": str(pkg), "gguf": str(g)}
+    pr = run_ladder.prime(cfg, [(arm, "local"), (arm, "memfd")], A)
+    assert pr["files"] == 5 and pr["bytes"] == 26 and pr["image_start_rc"] == 0 and len(calls) == 1
+
+
 def test_the_committed_runs_follow_a_balanced_schedule():
     runs = os.path.join(G, "runs")
     for run in sorted(os.listdir(runs)):
         sp = os.path.join(runs, run, "schedule.json")
         assert os.path.exists(sp), run
         plan = json.load(open(sp))
+        assert os.path.exists(os.path.join(runs, run, "prime.json")), (
+            run
+        )  # warm cache before round 0
         assert plan["rounds"] >= PRODUCTION_ROUNDS and plan["rounds"] % 2 == 0, run
         log = [json.loads(x) for x in open(os.path.join(runs, run, "runlog.jsonl"))]
         ran = {}

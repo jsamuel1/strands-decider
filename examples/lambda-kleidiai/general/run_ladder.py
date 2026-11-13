@@ -115,6 +115,48 @@ def docker_cmd(cfg: dict, arm: dict, mode: str, out_name: str, a) -> list[str]:
     return cmd + [str(x) for x in arm.get("args", [])]
 
 
+def prime(cfg: dict, cs: list[tuple[dict, str]], a) -> dict:
+    """Read every file a load will touch (each arm's package tree and GGUF, the requests and reference) once, and
+    start the image once, before round 0. The ladder measures a warm page cache in EVERY round; without this, round 0
+    pays each artifact's first disk read (a freshly started host), and that one round can flip a paired delta's sign."""
+    t0 = time.time()
+    paths = set()
+    for arm, _ in cs:
+        paths |= {os.path.realpath(arm["pkg"]), os.path.realpath(arm["gguf"])}
+    paths |= {os.path.realpath(cfg["requests"]), os.path.realpath(cfg["reference"])}
+    files = n = 0
+    for p in sorted(paths):
+        walk = [(p, [], [""])] if os.path.isfile(p) else os.walk(p)
+        for d, _, fs in walk:
+            for f in fs:
+                q = os.path.realpath(os.path.join(d, f)) if f else p
+                if not os.path.isfile(q):
+                    continue
+                with open(q, "rb") as fh:
+                    while b := fh.read(16 << 20):
+                        n += len(b)
+                files += 1
+    image = cfg.get("image") or a.image
+    rc = subprocess.run(
+        [
+            "docker",
+            "run",
+            "--rm",
+            "--platform",
+            a.platform,
+            "--network",
+            "none",
+            "--entrypoint",
+            "python3.12",
+            image,
+            "-c",
+            "pass",
+        ],
+        capture_output=True,
+    ).returncode
+    return {"files": files, "bytes": n, "image_start_rc": rc, "seconds": round(time.time() - t0, 3)}
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("arms")
@@ -148,6 +190,10 @@ def main() -> None:
             f"{sp} holds another schedule: resume with the same arms, --only, --rounds and --seed"
         )
     json.dump(plan, open(sp, "w"), indent=1)
+    if not os.path.exists(os.path.join(a.out, "prime.json")):
+        pr = prime(cfg, cs, a)
+        json.dump(pr, open(os.path.join(a.out, "prime.json"), "w"), indent=1)
+        print(json.dumps({"prime": pr}), flush=True)
     log = open(os.path.join(a.out, "runlog.jsonl"), "a")
     for r in range(a.start_round, a.rounds):
         for pos, i in enumerate(sched[r]):
