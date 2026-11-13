@@ -80,13 +80,72 @@ def test_auxv_and_status_parsers():
 
 
 # ----------------------------------------------------------------------------------------------- interleaving
-def test_rotation_is_a_latin_square_over_rounds():
-    n = 16
-    orders = [run_ladder.order(n, r) for r in range(n)]
-    for o in orders:
+PRODUCTION_ROUNDS = 6  # README / verdicts.json min_rounds: the round count the ladder actually runs
+
+
+@pytest.mark.parametrize("n", [2, 3, 10, 16])
+def test_schedule_balances_every_pair_within_the_production_round_count(n):
+    sched = run_ladder.schedule(n, PRODUCTION_ROUNDS, 20261113)
+    assert len(sched) == PRODUCTION_ROUNDS
+    for o in sched:
         assert sorted(o) == list(range(n))
-    for pos in range(n):  # every cell takes every position once over n rounds
-        assert sorted(o[pos] for o in orders) == list(range(n))
+    for i in range(n):
+        for j in range(n):
+            if i != j:  # each candidate runs before its control exactly as often as after it
+                assert run_ladder.balance(sched, i, j) == (PRODUCTION_ROUNDS // 2,) * 2
+        # and its mean position is the middle of the round: a linear drift adds the same to every cell
+        assert sum(o.index(i) for o in sched) * 2 == PRODUCTION_ROUNDS * (n - 1)
+
+
+def test_schedule_varies_neighbours_and_is_reproducible():
+    a = run_ladder.schedule(16, PRODUCTION_ROUNDS, 7)
+    assert a == run_ladder.schedule(16, PRODUCTION_ROUNDS, 7)
+    assert a[0] != a[2] != a[4]  # each reversal pair draws its own permutation
+
+
+@pytest.mark.parametrize("rounds", [0, 1, 5])
+def test_schedule_refuses_an_odd_round_count(rounds):
+    with pytest.raises(ValueError):
+        run_ladder.schedule(4, rounds, 1)
+
+
+def test_the_committed_runs_follow_a_balanced_schedule():
+    runs = os.path.join(G, "runs")
+    for run in sorted(os.listdir(runs)):
+        sp = os.path.join(runs, run, "schedule.json")
+        assert os.path.exists(sp), run
+        plan = json.load(open(sp))
+        assert plan["rounds"] >= PRODUCTION_ROUNDS and plan["rounds"] % 2 == 0, run
+        log = [json.loads(x) for x in open(os.path.join(runs, run, "runlog.jsonl"))]
+        ran = {}
+        for x in log:
+            ran.setdefault(x["round"], []).append((x["pos"], f"{x['arm']}-{x['mode']}"))
+        for r, cells in ran.items():  # the runlog is the schedule, position by position
+            assert [c for _, c in sorted(cells)] == plan["order"][r], (run, r)
+        idx = {c: i for i, c in enumerate(plan["cells"])}
+        sched = [[idx[c] for c in o] for o in plan["order"]]
+        for c in plan["cells"]:
+            if not c.startswith("p1-"):
+                ctl = "p1-" + c.split("-")[1]
+                assert run_ladder.balance(sched, idx[c], idx[ctl]) == (plan["rounds"] // 2,) * 2, (
+                    run,
+                    c,
+                )
+
+
+def test_ladder_refuses_to_resume_under_another_schedule(tmp_path, monkeypatch):
+    arms = tmp_path / "arms.json"
+    arms.write_text(
+        json.dumps({"requests": "/r", "reference": "/f", "arms": [{"name": "p1"}, {"name": "e8"}]})
+    )
+    out = tmp_path / "run"
+    out.mkdir()
+    (out / "schedule.json").write_text(
+        json.dumps({"rounds": 2, "seed": 1, "cells": [], "order": []})
+    )
+    monkeypatch.setattr(sys, "argv", ["run_ladder.py", str(arms), str(out), "--rounds", "2"])
+    with pytest.raises(SystemExit, match="another schedule"):
+        run_ladder.main()
 
 
 def test_cells_and_only_filter():
@@ -148,13 +207,17 @@ def test_make_arms_one_variable_each(tmp_path):
 
 
 # --------------------------------------------------------------------------------------------- paired verdicts
-def _row(arm, r, load, warm=0.5, ident="0xd40", mode="local", answers=None, long_ans=None):
+def _row(
+    arm, r, load, warm=0.5, ident="0xd40", mode="local", answers=None, long_ans=None, pos=None
+):
     return {
         "_arm": arm,
         "_round": r,
         "_mode": mode,
         "_identity": ident,
         "_run": "t",
+        # Balanced by default: p1 at 1, the arm before it in even rounds and after it in odd ones.
+        "_pos": pos if pos is not None else (1 if arm == "p1" else (0 if r % 2 == 0 else 2)),
         "threads": 6,
         "phases_s": {
             "imports": 0.5,
@@ -170,10 +233,13 @@ def _row(arm, r, load, warm=0.5, ident="0xd40", mode="local", answers=None, long
             "seconds": [16.0],
             "answers": long_ans or {"q": {"noul": 0.5}},
             "repeat_identical": True,
+            "window": 4096,
+            "input_tokens": 4096,
         },
         "status_end_kb": {"VmHWM": 5_000_000},
         "answers": answers or {"a": {"q": {"noul": 0.5, "type": "noul"}}},
         "answers_repeat_identical": True,
+        "repeat_compare": "canonical-json",
         "vs_reference": {"a": "identical"},
         "host_before": {"identity": ident, "machine": "aarch64", "sched_affinity": [10, 11]},
     }
@@ -303,18 +369,222 @@ def test_operator_rule_refuses_general_default_when_any_path_regresses():
         ]
     s = summ.summarize(rows)
     why = summ.guard("e8", s, "general default")
-    assert why and "GenuineIntel" in why[0] and "warm_s worse" in why[0]
+    assert any("GenuineIntel" in w and "warm_s worse" in w for w in why)
     assert summ.guard("e8", s, "general opt-in") == []
 
 
 def test_operator_rule_refuses_general_default_when_answers_differ():
-    rows = [_row("p1", r, 8.0 + 0.05 * r) for r in range(3)]
+    rows = [_row("p1", r, 8.0 + 0.05 * r) for r in range(4)]
     rows += [
-        _row("e7", r, 6.0, answers={"a": {"q": {"noul": 0.51, "type": "noul"}}}) for r in range(3)
+        _row("e7", r, 6.0, answers={"a": {"q": {"noul": 0.51, "type": "noul"}}}) for r in range(4)
     ]
     assert any(
         "answers differ" in w for w in summ.guard("e7", summ.summarize(rows), "general default")
     )
+
+
+# The operator rule fails closed: a complete, clean default passes; each missing or wrong piece of evidence refuses.
+REQ = ["0xd40|local"]
+
+
+def _clean(rounds=4, arm="e10"):
+    rows = []
+    for r in range(rounds):
+        rows += [_row("p1", r, 8.0 + 0.05 * r), _row(arm, r, 7.0)]
+    return rows
+
+
+def _guard(rows, rung="e10", **kw):
+    s = summ.summarize(rows)
+    s["failed_loads"] = kw.pop("failed", [])
+    s["control_nan_fields"] = {"0xd40": summ.correctness(rows, "p1", "0xd40")["nan_fields"]}
+    kw.setdefault("required", REQ)
+    kw.setdefault("min_rounds", 4)
+    return summ.guard(rung, s, "general default", **kw)
+
+
+def test_guard_allows_a_complete_clean_default():
+    assert _guard(_clean()) == []
+
+
+def test_guard_refuses_a_missing_required_cell():
+    why = _guard(_clean(), required=[*REQ, "GenuineIntel 6/173/1|local"])
+    assert any("GenuineIntel 6/173/1|local: required cell missing" in w for w in why)
+    assert any("required cell missing" in w for w in _guard([], rung="e10"))
+
+
+def test_guard_refuses_too_few_rounds_and_unassessed_metrics():
+    why = _guard(_clean(rounds=2))
+    assert any("2 paired rounds, needs 4" in w for w in why)
+    assert any("load_s unassessed" in w for w in why)
+
+
+def test_guard_refuses_4096_answers_that_differ():
+    rows = _clean()
+    for d in rows:
+        if d["_arm"] == "e10":
+            d["long_forward"]["answers"] = {"q": {"noul": 0.6}}
+    assert any("4096-token answers differ" in w for w in _guard(rows))
+
+
+def test_guard_refuses_a_long_forward_that_did_not_fill_the_window():
+    rows = _clean()
+    rows[1]["long_forward"]["input_tokens"] = 4000
+    assert any("did not fill the window" in w for w in _guard(rows))
+
+
+def test_guard_refuses_unexpected_failed_loads_but_not_declared_ones():
+    f = [{"run": "t", "arm": "e10", "rc": 1, "round": 2}]
+    assert any("unexpected failed load" in w for w in _guard(_clean(), failed=f))
+    assert any("t/p1: unexpected" in w for w in _guard(_clean(), failed=[f[0] | {"arm": "p1"}]))
+    assert _guard(_clean(), failed=f, expected_failures=["t/e10"]) == []
+
+
+def test_guard_refuses_non_finite_timings_and_missing_metrics():
+    rows = _clean()
+    rows[1]["phases_s"]["dec_load_total"] = float("nan")
+    assert any("load_s non-finite" in w for w in _guard(rows))
+    rows = _clean()
+    del rows[3]["phases_s"]["model_ready"]
+    assert any("model_ready_s missing" in w for w in _guard(rows))
+
+
+def test_guard_refuses_non_finite_answers_p1_does_not_return():
+    rows = _clean()
+    for d in rows:
+        if d["_arm"] == "e10":
+            d["answers"] = {"a": {"q": {"noul": float("nan"), "type": "noul"}}}
+    why = _guard(rows)
+    assert any("non-finite answers P1 does not return" in w for w in why)
+
+
+def test_guard_refuses_undeclared_control_nan_and_allows_declared():
+    rows = _clean()
+    for d in rows:
+        d["answers"] = {"a": {"q": {"noul": float("nan"), "type": "noul"}}}
+    assert any("P1 returns undeclared non-finite" in w for w in _guard(rows))
+    assert _guard(rows, control_nan={"0xd40": ["a/q/noul"]}) == []
+
+
+def test_guard_refuses_repeat_integrity_failures():
+    rows = _clean()
+    rows[1]["answers_repeat_identical"] = False
+    assert any("repeats within a load" in w for w in _guard(rows))
+    rows = _clean()
+    rows[1]["repeat_compare"] = None  # an old probe compared by object identity: not evidence
+    assert any("repeats within a load" in w for w in _guard(rows))
+
+
+def test_guard_refuses_reference_mismatch():
+    rows = _clean()
+    rows[1]["vs_reference"] = {"a": "DIFFERS"}
+    assert any("published reference" in w for w in _guard(rows))
+
+
+def test_guard_refuses_an_order_unbalanced_against_p1():
+    rows = _clean()
+    for d in rows:
+        if d["_arm"] == "e10":
+            d["_pos"] = 0  # always before p1
+    assert any("order unbalanced" in w for w in _guard(rows))
+    rows = _clean()
+    rows[1]["_pos"] = None
+    assert any("order unbalanced" in w for w in _guard(rows))
+
+
+def test_expected_refusals_must_refuse_every_round():
+    s = {"failed_loads": [{"run": "x", "arm": "e9", "rc": 1}] * 5, "rows_by_run_arm": {}}
+    assert summ.refusals_hold(s, ["x/e9"], 6)
+    s["failed_loads"].append({"run": "x", "arm": "e9", "rc": 1})
+    assert summ.refusals_hold(s, ["x/e9"], 6) == []
+    s["rows_by_run_arm"] = {"x/e9": 1}
+    assert summ.refusals_hold(s, ["x/e9"], 6)
+
+
+def test_published_status_must_follow_the_primary_cell():
+    s = summ.summarize(_clean())
+    assert summ.status_holds("e10", s, {"status": "improved"}, "0xd40") == []
+    assert summ.status_holds("e10", s, {"status": "no-change"}, "0xd40")
+    assert summ.status_holds("e5", s, {"status": "improved"}, "0xd40")
+
+
+def test_shipped_verdicts_pass_the_guard_on_the_committed_runs():
+    vs = json.load(open(os.path.join(G, "verdicts.json")))
+    s = json.load(open(os.path.join(G, "out", "ladder.json")))
+    assert vs["min_rounds"] >= PRODUCTION_ROUNDS
+    expected = [x for v in vs["rungs"].values() for x in v.get("expected_refusals", [])]
+    for r, v in vs["rungs"].items():
+        assert (
+            summ.guard(
+                r,
+                s,
+                v["general"],
+                required=v.get("required_cells", vs["required_cells"]),
+                min_rounds=vs["min_rounds"],
+                expected_failures=expected,
+                control_nan=vs.get("control_nan_fields", {}),
+            )
+            == []
+        ), r
+        assert summ.refusals_hold(s, v.get("expected_refusals", []), vs["min_rounds"]) == [], r
+        assert summ.status_holds(r, s, v, vs["primary_identity"]) == [], r
+
+
+# ------------------------------------------------------------------------------------------------- E6 bytecode
+SH = os.path.join(G, "x86_e6.sh")
+
+
+def _pkg(tmp_path, bad=False):
+    src = tmp_path / "pkg"
+    (src / "m").mkdir(parents=True)
+    (src / "m" / "ok.py").write_text("X = 1\n")
+    if bad:
+        (src / "m" / "broken.py").write_text("def (:\n")
+    return src
+
+
+def _x86_e6(src, out):
+    import subprocess
+
+    env = dict(os.environ, X86_E6_PYTHON=sys.executable)
+    return subprocess.run(["bash", SH, str(src), str(out)], capture_output=True, text=True, env=env)
+
+
+def test_x86_e6_compiles_everything_and_writes_a_manifest(tmp_path):
+    p = _x86_e6(_pkg(tmp_path), tmp_path / "e6")
+    assert p.returncode == 0 and "X86_E6_DONE" in p.stdout, p.stderr
+    m = json.load(open(str(tmp_path / "e6") + ".manifest.json"))
+    assert m["compiled"] == 1 and m["failed"] == [] and len(m["tree_sha256"]) == 64
+    assert any(f.endswith(".pyc") for _, _, fs in os.walk(tmp_path / "e6") for f in fs)
+
+
+def test_x86_e6_fails_when_one_file_does_not_compile(tmp_path):
+    p = _x86_e6(_pkg(tmp_path, bad=True), tmp_path / "e6")
+    assert p.returncode != 0 and "X86_E6_DONE" not in p.stdout
+    m = json.load(open(str(tmp_path / "e6") + ".manifest.json"))
+    assert m["failed"] == ["m/broken.py"] and m["compiled"] == 1
+
+
+def test_stage_refuses_incomplete_arm64_bytecode():
+    text = open(os.path.join(G, "stage.sh")).read()
+    i = text.index("pyc_zip.py --p1-zip")
+    assert "FATAL: E6 bytecode incomplete" in text[i : i + 600]
+
+
+def test_committed_x86_e6_package_compiled_without_failures():
+    runs = os.path.join(G, "runs")
+    x86 = [r for r in os.listdir(runs) if r.endswith("-x86")]
+    assert x86
+    for (
+        r
+    ) in x86:  # every x86 run that measured e6 carries its package's zero-failure compile manifest
+        arms = json.load(open(os.path.join(runs, r, "arms.json")))["arms"]
+        if not any(a["name"] == "e6" for a in arms):
+            continue
+        p = os.path.join(runs, r, "pkg-e6.manifest.json")
+        m = json.load(open(p))
+        assert m["failed"] == [] and m["compiled"] > 1000, p
+        assert m["compiler"]["python"].startswith("3.12"), p
 
 
 def test_failed_loads_carry_their_run(tmp_path):

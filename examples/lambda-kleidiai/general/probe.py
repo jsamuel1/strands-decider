@@ -53,6 +53,10 @@ def long_request(window: int) -> dict:
     }
 
 
+def canon(x) -> str:
+    return json.dumps(x, sort_keys=True)
+
+
 def runtime_to_probe_s() -> float | None:
     """Process start to this module's first line (interpreter start), as baseline/phases.runtime_to_import_s."""
     try:
@@ -211,7 +215,7 @@ def main() -> None:
         if want is None:
             vs_ref[rid] = "no-reference-for-identity"
         else:
-            vs_ref[rid] = "identical" if all(x == want for x in alist) else "DIFFERS"
+            vs_ref[rid] = "identical" if all(canon(x) == canon(want) for x in alist) else "DIFFERS"
     window = eng.cfg.max_length
     lr = long_request(window)
     long_s, long_ans, long_tokens = [], [], None
@@ -229,10 +233,15 @@ def main() -> None:
             "input_tokens": long_tokens,
             "seconds": long_s,
             "answers": long_ans[0] if long_ans else None,
-            "repeat_identical": all(x == long_ans[0] for x in long_ans),
+            # Canonical JSON text, not object equality: NaN != NaN would make a NaN answer read as a changed repeat.
+            "repeat_identical": bool(long_ans)
+            and all(canon(x) == canon(long_ans[0]) for x in long_ans),
         },
         "answers": {rid: alist[0] for rid, alist in answers.items()},
-        "answers_repeat_identical": all(all(x == al[0] for x in al) for al in answers.values()),
+        "answers_repeat_identical": all(
+            all(canon(x) == canon(al[0]) for x in al) for al in answers.values()
+        ),
+        "repeat_compare": "canonical-json",
         "vs_reference": vs_ref,
         "status_end_kb": host.proc_status_kb(host.read_text("/proc/self/status")),
         "host_after": {"loadavg": host.loadavg()},

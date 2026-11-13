@@ -98,8 +98,21 @@ MIN_ROUNDS = 3
 MEM_FLOOR = 0.01
 
 
+def positions(run_dir: str) -> dict[tuple[int, str, str], int]:
+    """(round, arm, mode) -> position in that round's order, for the successful loads in runlog.jsonl."""
+    p = os.path.join(run_dir, "runlog.jsonl")
+    if not os.path.exists(p):
+        return {}
+    return {
+        (r["round"], r["arm"], r["mode"]): r["pos"]
+        for r in map(json.loads, open(p))
+        if not r.get("rc")
+    }
+
+
 def load_run(run_dir: str) -> list[dict]:
     rows = []
+    pos = positions(run_dir)
     for p in sorted(glob.glob(os.path.join(run_dir, "r*-*.json"))):
         m = FNAME.match(os.path.basename(p))
         if not m:
@@ -111,6 +124,7 @@ def load_run(run_dir: str) -> list[dict]:
             m[3],
             os.path.basename(run_dir),
         )
+        d["_pos"] = pos.get((d["_round"], d["_arm"], d["_mode"]))
         d["_identity"] = (d.get("host_before") or {}).get("identity", "unknown")
         d["_machine"] = (d.get("host_before") or {}).get("machine", "unknown")
         rows.append(d)
@@ -138,11 +152,28 @@ def paired(rows: list[dict], arm: str, mode: str, ident: str, ctl: str = "p1") -
     """Per-metric comparison of `arm` with `ctl` over the rounds both ran (same identity, same mode)."""
     a, c = cell(rows, arm, mode, ident), cell(rows, ctl, mode, ident)
     rounds = sorted(set(a) & set(c))
-    out = {"rounds": rounds, "n": len(rounds), "metrics": {}}
+    known = [r for r in rounds if a[r].get("_pos") is not None and c[r].get("_pos") is not None]
+    out = {
+        "rounds": rounds,
+        "n": len(rounds),
+        "metrics": {},
+        "missing": [],
+        "non_finite": [],
+        # How often the arm ran before / after its control in the paired rounds (runlog positions).
+        "order": {
+            "arm_first": sum(1 for r in known if a[r]["_pos"] < c[r]["_pos"]),
+            "control_first": sum(1 for r in known if a[r]["_pos"] > c[r]["_pos"]),
+            "unknown": len(rounds) - len(known),
+        },
+    }
     for name, (unit, f) in METRICS.items():
         av = [f(a[r]) for r in rounds]
         cv = [f(c[r]) for r in rounds]
         if not rounds or any(v is None for v in av + cv):
+            out["missing"].append(name)
+            continue
+        if not all(math.isfinite(v) for v in av + cv):
+            out["non_finite"].append(name)
             continue
         deltas = [x - y for x, y in zip(av, cv, strict=True)]
         spread = max(cv) - min(cv)
@@ -194,6 +225,10 @@ def correctness(rows: list[dict], arm: str, ident: str) -> dict:
     long_same = sum(
         1 for d in own if p1l is not None and canon(d["long_forward"]["answers"]) == canon(p1l)
     )
+    # The long forward must actually fill the window (probe.long_request trims the state to exactly `window`).
+    long_short = sum(
+        1 for d in own if d["long_forward"].get("input_tokens") != d["long_forward"].get("window")
+    )
     flips, max_abs = 0, 0.0
     for d in own:
         for k, v in d["answers"].items():
@@ -212,9 +247,14 @@ def correctness(rows: list[dict], arm: str, ident: str) -> dict:
         "vs_reference_requests": vs_ref,
         "vs_run_p1_requests": {"identical": same_p1, "compared": total},
         "vs_run_p1_forward4096": {"identical": long_same, "compared": len(own)},
-        # probe.py compares repeats by object equality, so a NaN answer always reads False here.
-        "repeat_identical": all(
-            d["answers_repeat_identical"] and d["long_forward"]["repeat_identical"] for d in own
+        "forward4096_not_full_window": long_short,
+        # probe.py compares repeats as canonical JSON text (repeat_compare), so NaN repeats compare equal.
+        "repeat_identical": bool(own)
+        and all(
+            d.get("repeat_compare") == "canonical-json"
+            and d["answers_repeat_identical"]
+            and d["long_forward"]["repeat_identical"]
+            for d in own
         ),
         "choice_flips_vs_p1": flips,
         "max_abs_delta_vs_p1": max_abs,
@@ -512,21 +552,121 @@ def p2_result(
     return res
 
 
-def guard(rung: str, s: dict, general: str) -> list[str]:
-    """Why a 'general default' verdict is not allowed by the operator rule (empty when allowed): any measured path
-    (host identity x mode, arm64 or x86_64) where a metric got worse, or answers that differ from P1's."""
+def guard(
+    rung: str,
+    s: dict,
+    general: str,
+    required: list[str] | None = None,
+    min_rounds: int = MIN_ROUNDS,
+    expected_failures: list[str] | None = None,
+    control_nan: dict[str, list[str]] | None = None,
+) -> list[str]:
+    """Why a 'general default' verdict is not allowed by the operator rule (empty when allowed). Fail-closed: the
+    verdict needs complete, clean evidence on every required path, not merely the absence of a measured regression.
+
+    required          "<identity>|<mode>" cells that must exist for this rung (e.g. arm64 local + memfd, x86 local)
+    min_rounds        paired rounds every required cell must have
+    expected_failures "<run>/<arm>" load failures that are by design (none may hit this rung's arm, dormant or p1)
+    control_nan       per identity, the non-finite answer fields P1 itself is known to return; anything else NaN fails
+
+    Refused when: a required cell is missing or short of rounds; any headline metric is missing, non-finite,
+    unassessed or worse; the arm ran before its control more (or less) often than after; an unexpected load of the
+    arm, its dormant check or p1 failed; any request or 4,096-token answer differs from the same run's P1, or the
+    long forward did not fill the window, or repeats within a load were not identical; on an identity with a
+    published reference, any answer differs from it; the arm returns a non-finite field P1 does not, or P1 returns
+    one not declared in control_nan."""
     if general != "general default":
         return []
     why = []
-    for key, v in s["rungs"].get(rung, {}).items():
+    cells = s["rungs"].get(rung, {})
+    for key in required or []:
+        if key not in cells:
+            why.append(f"{key}: required cell missing")
+    timing_idents = {k.split("|")[0] for k in cells if not k.endswith("|correctness")}
+    for ident in sorted(timing_idents):
+        if f"{ident}|correctness" not in cells:
+            why.append(f"{ident}: no correctness record")
+    for key, v in sorted(cells.items()):
         if key.endswith("|correctness"):
-            if v["vs_run_p1_requests"]["identical"] != v["vs_run_p1_requests"]["compared"]:
-                why.append(f"{key}: answers differ from P1")
+            ident = key.split("|")[0]
+            req, fwd = v["vs_run_p1_requests"], v["vs_run_p1_forward4096"]
+            if not req["compared"] or req["identical"] != req["compared"]:
+                why.append(f"{key}: answers differ from P1 ({req['identical']}/{req['compared']})")
+            if not fwd["compared"] or fwd["identical"] != fwd["compared"]:
+                why.append(
+                    f"{key}: 4096-token answers differ from P1 ({fwd['identical']}/{fwd['compared']})"
+                )
+            if v.get("forward4096_not_full_window", 1):
+                why.append(f"{key}: long forward did not fill the window")
+            if not v["repeat_identical"]:
+                why.append(f"{key}: repeats within a load were not identical")
+            ref = v["vs_reference_requests"]
+            if ref["differs"]:
+                why.append(f"{key}: {ref['differs']} answers differ from P1's published reference")
+            ctl = set((s.get("control_nan_fields") or {}).get(ident, []))
+            extra = sorted(set(v["nan_fields"]) - ctl)
+            if extra:
+                why.append(f"{key}: non-finite answers P1 does not return: {extra}")
+            undeclared = sorted(ctl - set((control_nan or {}).get(ident, [])))
+            if undeclared:
+                why.append(f"{key}: P1 returns undeclared non-finite answers: {undeclared}")
             continue
+        if v["n"] < min_rounds:
+            why.append(f"{key}: {v['n']} paired rounds, needs {min_rounds}")
+        for name in v.get("missing", []):
+            why.append(f"{key}: {name} missing")
+        for name in v.get("non_finite", []):
+            why.append(f"{key}: {name} non-finite")
+        for name in HEADLINE:
+            if name not in v["metrics"] and name not in v.get("missing", []) + v.get(
+                "non_finite", []
+            ):
+                why.append(f"{key}: {name} not measured")
         for name, m in v["metrics"].items():
             if m["outcome"] == "worse":
                 why.append(f"{key}: {name} worse ({m['delta_median']:+.4g} {m['unit']})")
+            elif m["outcome"] == "unassessed":
+                why.append(f"{key}: {name} unassessed")
+        o = v.get("order") or {}
+        if o.get("unknown", 1) or o.get("arm_first") != o.get("control_first"):
+            why.append(f"{key}: order unbalanced vs p1 ({o})")
+    arms = {RUNGS[rung]["arm"], RUNGS[rung]["dormant"], "p1"} - {None}
+    for f in s.get("failed_loads", []):
+        if f["arm"] in arms and f"{f['run']}/{f['arm']}" not in set(expected_failures or []):
+            why.append(
+                f"{f['run']}/{f['arm']}: unexpected failed load (round {f.get('round')}, rc {f['rc']})"
+            )
     return why
+
+
+def refusals_hold(s: dict, expected: list[str], rounds: int) -> list[str]:
+    """An expected refusal is a claim too: it must have refused in every round and never produced a row."""
+    why = []
+    for key in expected:
+        run, arm = key.split("/")
+        n = sum(1 for f in s.get("failed_loads", []) if f["run"] == run and f["arm"] == arm)
+        ok = (s.get("rows_by_run_arm") or {}).get(key, 0)
+        if n != rounds or ok:
+            why.append(
+                f"{key}: expected to refuse in {rounds}/{rounds} rounds, refused {n}, loaded {ok}"
+            )
+    return why
+
+
+def status_holds(rung: str, s: dict, v: dict, primary: str) -> list[str]:
+    """The P2 status a verdict publishes must follow from the primary identity's local-file cell."""
+    m = (s["rungs"].get(rung, {}).get(f"{primary}|local") or {}).get("metrics", {})
+    outcomes = {x["outcome"] for x in m.values()}
+    want = (
+        "regressed" if "worse" in outcomes else "improved" if "better" in outcomes else "no-change"
+    )
+    if not m:
+        return [f"{primary}|local: no cell to derive status from"]
+    return (
+        []
+        if v["status"] == want
+        else [f"status {v['status']!r} but {primary}|local reads {want!r}"]
+    )
 
 
 def write_p2(out: str, rung: str, res: dict, rows: list[dict], s: dict) -> str:
@@ -554,6 +694,13 @@ def main() -> None:
     s = summarize(rows)
     s["failed_loads"] = [f for r in a.runs for f in failed_loads(r)]
     s["loads"] = len(rows)
+    s["rows_by_run_arm"] = {}
+    for d in rows:
+        k = f"{d['_run']}/{d['_arm']}"
+        s["rows_by_run_arm"][k] = s["rows_by_run_arm"].get(k, 0) + 1
+    s["control_nan_fields"] = {
+        ident: correctness(rows, "p1", ident)["nan_fields"] for ident in s["identities"]
+    }
     os.makedirs(a.out, exist_ok=True)
     json.dump(s, open(os.path.join(a.out, "ladder.json"), "w"), indent=1, sort_keys=True)
     open(os.path.join(a.out, "table.md"), "w").write(table_md(s))
@@ -561,9 +708,26 @@ def main() -> None:
     if not a.verdicts:
         return
     vs = json.load(open(a.verdicts))
-    bad = {r: guard(r, s, v["general"]) for r, v in vs["rungs"].items()}
+    bad = {
+        r: guard(
+            r,
+            s,
+            v["general"],
+            required=v.get("required_cells", vs["required_cells"]),
+            min_rounds=vs["min_rounds"],
+            expected_failures=[
+                x for w in vs["rungs"].values() for x in w.get("expected_refusals", [])
+            ],
+            control_nan=vs.get("control_nan_fields", {}),
+        )
+        + refusals_hold(s, v.get("expected_refusals", []), vs["min_rounds"])
+        + status_holds(r, s, v, vs["primary_identity"])
+        for r, v in vs["rungs"].items()
+    }
     if any(bad.values()):
-        raise SystemExit(f"general default refused by the operator rule: {bad}")
+        raise SystemExit(
+            f"verdicts refused: {json.dumps({k: w for k, w in bad.items() if w}, indent=1)}"
+        )
     arm_rows = [d for d in rows if d["_machine"] == "aarch64"]
     for rung, v in vs["rungs"].items():
         x86 = {

@@ -1,17 +1,20 @@
 #!/usr/bin/env python3
 """Run the general ladder's arms on a fixed host, interleaved, one fresh container per load. FIXED HOST, NOT LAMBDA.
 
-  python3 run_ladder.py <arms.json> <out_dir> [--rounds 5] [--cpuset 10-15] [--threads 6] [--image IMG]
-                        [--platform linux/arm64] [--only arm1,arm2] [--warm-passes 3] [--long-passes 2]
+  python3 run_ladder.py <arms.json> <out_dir> [--rounds 6] [--seed 20261113] [--cpuset 10-15] [--threads 6]
+                        [--image IMG] [--platform linux/arm64] [--only arm1,arm2] [--warm-passes 3] [--long-passes 2]
 
 arms.json: {"image": ..., "requests": ..., "reference": ..., "arms": [{"name", "pkg", "gguf", "env": {},
 "args": [], "modes": ["local", "memfd"]}]}. Paths are host paths; each load mounts the arm's unzipped package
 read-only at /var/task (as Lambda does), the GGUF read-only, and this directory.
 
-Interleaving: every (arm, mode) cell runs once per round. Round r runs the cells in the base order rotated by r
-(a cyclic Latin square over rounds when rounds >= cells), so every cell takes a different position in each round
-and drift within a round is spread over all arms instead of landing on one. Standard library only (Python 3.9+,
-the DevSpace's system python).
+Interleaving: every (arm, mode) cell runs once per round, in a reversal-paired random order. Rounds come in pairs:
+round 2k runs a seeded random permutation of the cells, round 2k+1 runs the same permutation reversed. Within the
+rounds actually run (an even count, enforced), every pair of cells is therefore in each order exactly rounds/2 times
+(so each candidate runs before its control as often as after it), and every cell's mean position is the middle of
+the round (so a linear drift within a round adds the same to every cell). Different pairs use different
+permutations, so no fixed neighbour sits next to a cell in every round. The schedule is written to schedule.json
+before the first load. Standard library only (Python 3.9+, the DevSpace's system python).
 """
 
 from __future__ import annotations
@@ -19,6 +22,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import random
 import subprocess
 import sys
 import time
@@ -36,9 +40,23 @@ def cells(arms: list[dict], only: set[str] | None = None) -> list[tuple[dict, st
     return out
 
 
-def order(n: int, r: int) -> list[int]:
-    """Round r's cell order: the base order rotated by r positions."""
-    return [(i + r) % n for i in range(n)]
+def schedule(n: int, rounds: int, seed: int) -> list[list[int]]:
+    """Every round's cell order: seeded random permutations, each followed by its reversal (rounds must be even)."""
+    if rounds < 2 or rounds % 2:
+        raise ValueError(f"rounds must be an even number >= 2 (reversal pairs), got {rounds}")
+    rng = random.Random(seed)
+    out = []
+    for _ in range(rounds // 2):
+        p = list(range(n))
+        rng.shuffle(p)
+        out += [p, p[::-1]]
+    return out
+
+
+def balance(sched: list[list[int]], i: int, j: int) -> tuple[int, int]:
+    """(rounds where cell i runs before cell j, rounds where it runs after)."""
+    before = sum(1 for o in sched if o.index(i) < o.index(j))
+    return before, len(sched) - before
 
 
 def docker_cmd(cfg: dict, arm: dict, mode: str, out_name: str, a) -> list[str]:
@@ -101,7 +119,8 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("arms")
     ap.add_argument("out")
-    ap.add_argument("--rounds", type=int, default=5)
+    ap.add_argument("--rounds", type=int, default=6)
+    ap.add_argument("--seed", type=int, default=20261113)
     ap.add_argument("--cpuset", default="10-15")
     ap.add_argument("--threads", type=int, default=6)
     ap.add_argument("--image", default="")
@@ -115,9 +134,23 @@ def main() -> None:
     os.makedirs(a.out, exist_ok=True)
     cfg = json.load(open(a.arms))
     cs = cells(cfg["arms"], set(a.only.split(",")) if a.only else None)
+    sched = schedule(len(cs), a.rounds, a.seed)
+    names = [f"{arm['name']}-{mode}" for arm, mode in cs]
+    sp = os.path.join(a.out, "schedule.json")
+    plan = {
+        "rounds": a.rounds,
+        "seed": a.seed,
+        "cells": names,
+        "order": [[names[i] for i in o] for o in sched],
+    }
+    if os.path.exists(sp) and json.load(open(sp)) != plan:
+        raise SystemExit(
+            f"{sp} holds another schedule: resume with the same arms, --only, --rounds and --seed"
+        )
+    json.dump(plan, open(sp, "w"), indent=1)
     log = open(os.path.join(a.out, "runlog.jsonl"), "a")
     for r in range(a.start_round, a.rounds):
-        for pos, i in enumerate(order(len(cs), r)):
+        for pos, i in enumerate(sched[r]):
             arm, mode = cs[i]
             name = f"r{r}-{arm['name']}-{mode}.json"
             if os.path.exists(os.path.join(a.out, name)):

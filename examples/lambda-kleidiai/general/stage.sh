@@ -55,6 +55,9 @@ if [ "$ARCH" = aarch64 ]; then
     -v "$S/e6src:/e6:ro" -v "$(readlink -f "$A/p1.zip"):/a/p1.zip:ro" \
     -v "$(readlink -f "$A/p1-manifest.json"):/a/p1-manifest.json:ro" -v "$S/e6build:/out" "$IMG" \
     /e6/pyc_zip.py --p1-zip /a/p1.zip --p1-manifest /a/p1-manifest.json --out /out > "$S/e6build/stdout.json"
+  # pyc_zip.py records compile failures in its manifest but still exits 0: a partial bytecode tree is not E6.
+  python3 -c "import json,sys; b=json.load(open(sys.argv[1]))['bytecode']; sys.exit(1 if b['failed'] or not b['compiled'] else 0)" \
+    "$S/e6build/manifest.json" || { echo "FATAL: E6 bytecode incomplete: $S/e6build/manifest.json"; exit 1; }
   unz "$S/e6build/pyc.zip" e6pyc
 fi
 python3 - "$S" "$A" "$ARCH" <<'EOF'
