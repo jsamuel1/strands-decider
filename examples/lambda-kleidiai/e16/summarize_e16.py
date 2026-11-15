@@ -50,6 +50,70 @@ s6.COLD_KEYS = {
 }
 s6.SNAPSHOT_METRICS = ("imports", "engine_import", "import_total", "model_ready")
 
+# lkai_entry.py as deployed for run 20261115T215333Z (code acc1b94). Its SnapStart branch added the same model_ready
+# span twice (fixed after the run), so every init record from a snapshot init carries 2x the span: the before_snapshot
+# records in the logs, and the init each restored environment reports on its first invocation (the snapshot's own
+# init, carried through the restore). An on-demand (cold) init records model_ready from handler._load's own span and
+# is unaffected. The two adds read the clock microseconds apart, so half the recorded value is the span to ~1 us.
+DOUBLED_MODEL_READY_HARNESS = "aa5498374931f91c5543c532056c0865506d8800df833b49ddf6e005995a78a0"
+
+
+def _halve_model_ready(init: dict | None) -> bool:
+    if not init or init.get("model_ready") is None:
+        return False
+    init["model_ready"] = round(init["model_ready"] / 2, 6)
+    return True
+
+
+def install_model_ready_correction(cond: dict) -> dict:
+    """Correct snapshot-init model_ready at the two places init records are read (the log parser and the invocation
+    rows), so every consumer sees the single span, when the run's harness is the one that doubled it. Returns the
+    correction's record for results.json, with how many records each seam corrected (filled as they are read)."""
+    harness = ((cond.get("build_manifest") or {}).get("harness_sha256") or {}).get("lkai_entry.py")
+    rec = {
+        "field": "model_ready",
+        "applies": harness == DOUBLED_MODEL_READY_HARNESS,
+        "harness_lkai_entry_sha256": harness,
+        "before_snapshot_records": 0,
+        "restore_invocation_records": 0,
+        "method": "The deployed lkai_entry.py added the snapshot init's model_ready span twice (Recorder.add "
+        "accumulates). Snapshot-init records (before_snapshot log records and each restored environment's first "
+        "invocation record) are halved before any summary reads them. On-demand cold inits are unaffected. Raw "
+        "logs and invocations keep the recorded values.",
+    }
+    if not rec["applies"]:
+        return rec
+    phases_mod = s6.p1.phases
+    parse = phases_mod.parse_lkai
+    seen: set = set()  # P1's and E6's readers both parse the logs: count each record once
+
+    def parse_lkai(log: str) -> list[dict]:
+        out = parse(log)  # fresh dicts on every parse, so each is halved exactly once
+        for r in out:
+            if r.get("kind") == "before_snapshot" and _halve_model_ready(r.get("init")):
+                key = (r.get("wall_ns"), r.get("env_id"))
+                if key not in seen:
+                    seen.add(key)
+                    rec["before_snapshot_records"] += 1
+        return out
+
+    phases_mod.parse_lkai = parse_lkai
+    load = s6.p1.load_run
+
+    def load_run(run: str):
+        cond_, rows = load(run)
+        n = 0
+        for r in rows:
+            lk = r.get("lkai") or {}
+            inv = lk.get("inv") or {}
+            if inv.get("class") == "restore" and _halve_model_ready(lk.get("init")):
+                n += 1
+        rec["restore_invocation_records"] = n
+        return cond_, rows
+
+    s6.p1.load_run = load_run
+    return rec
+
 
 def p1_summarize_arms() -> None:
     """Both E16 arms are instrumented (LKAI_PHASES=1): tell P1's summarize which arms to expect."""
@@ -230,6 +294,9 @@ def main(argv: list[str] | None = None) -> int:
     p1_summarize_arms()
     run = s6.merge_runs(a.cold, a.restore, a.out)
     meta = json.load(open(a.meta))
+    correction = install_model_ready_correction(
+        json.load(open(os.path.join(run, "conditions.json")))
+    )
     res = s6.p1.summarize(run, a.reference, a.baseline_commit, meta)
     cond, rows = s6.p1.load_run(run)
     m = cond["build_manifest"]
@@ -281,6 +348,7 @@ def main(argv: list[str] | None = None) -> int:
     res["status"] = s6.status_of(res)
     del res["e6"]
     res["conclusion"] = meta.get("conclusion")
+    res["corrections"] = [correction] if correction["applies"] else []
     res["profiling_artifacts"] = meta.get("profiling_artifacts", [])
     res["artifacts"] = {
         "invocations": "invocations.jsonl.gz",

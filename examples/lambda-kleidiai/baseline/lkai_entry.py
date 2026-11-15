@@ -175,7 +175,6 @@ else:
     else:
         # The load ran inside the import: model_ready is that import's duration.
         REC.add("model_ready", (time.monotonic_ns() - _t_app) / 1e9)
-        REC.add("model_ready", (time.monotonic_ns() - _t_app) / 1e9)
     # On demand the load runs in PR #77's background thread; the first invocation records its init_seconds
     # (handler._load's own perf_counter span) as model_ready, after waiting for it.
     REC.add("import_total", REC.since_t0())

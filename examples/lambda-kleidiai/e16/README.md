@@ -125,10 +125,19 @@ still running, and here the download hides it on both arms.
 ### SnapStart snapshot init (publish time, not on a request path)
 
 Each `before_snapshot` record is bound to its own log stream's CPU part. All 12 records (6 per arm) are linked: 0
-missing, 0 excluded. On 0xd40 the load's median finish was 0.74 s sooner (`model_ready` 69.95 → 69.21 s, 3 versions
-per arm, a median delta beyond the control spread of 0.10 s). One lazy version (70.43 s) was slower than every e6
-version, so this is a median shift, not a per-version one. On 0xd0c the median was 0.39 s sooner (all 3 lazy versions
-below every e6 version). Only publish time changes. The restore leg above shows no restore benefit.
+missing, 0 excluded. On 0xd40 the load's median finish was 0.37 s sooner (`model_ready` 34.97 → 34.61 s, 3 versions
+per arm, a median delta beyond the control spread of 0.05 s). One lazy version (35.22 s) was slower than every e6
+version, so this is a median shift, not a per-version one. On 0xd0c the median was 0.20 s sooner (46.84 → 46.64 s,
+control spread 0.13 s; one lazy version, 46.74 s, was slower than the fastest e6 version). Only publish time changes.
+The restore leg above shows no restore benefit.
+
+**Correction.** The harness deployed in this run (`lkai_entry.py` at `acc1b94`) added the snapshot init's
+`model_ready` span twice, so every recorded snapshot-init `model_ready` is 2× the span. It is fixed on this branch,
+with a regression test that runs the SnapStart path. `summarize_e16.py` halves the recorded value in every
+snapshot-init record (12 `before_snapshot` records, 60 restored-environment records) before any summary reads it,
+when the run's harness hash is the one that doubled it, and `results.json` → `corrections` records that. The two
+adds read the clock microseconds apart, so half is the span to about 1 µs. The raw logs and invocations keep the
+recorded values. No cold, restore or warm REPORT figure, and no other phase, depended on this field.
 
 ## Correctness
 

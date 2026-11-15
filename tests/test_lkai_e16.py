@@ -305,6 +305,98 @@ def test_harness_patches_a_preloaded_engine(tmp_path, monkeypatch, capsys):
     assert "shim_init" in rec["init"] and "engine_import" not in rec["init"]
 
 
+def test_snapshot_init_records_model_ready_once(tmp_path, monkeypatch, capsys):
+    """A SnapStart snapshot init (not on demand) runs the load inside app's import. model_ready is that import's
+    duration, added once: it cannot exceed import_total, the whole init measured from the same clock start."""
+    events: list = []
+    release = threading.Event()
+    release.set()
+    monkeypatch.setattr(sys, "_e16_events", events, raising=False)
+    monkeypatch.setattr(sys, "_e16_release", release, raising=False)
+    _engine_module_file(tmp_path, events)
+    (tmp_path / "app.py").write_text(
+        "import handler as _pr77\n"
+        "def handler(event, context):\n"
+        "    eng, _ = _pr77._ENGINE.result()\n"
+        "    return {'latency_ms': 1.0, 'answers': eng.evaluate(event)['answers'], 'usage': {}}\n"
+    )
+    # PR #77's SnapStart branch: the load runs at import, on the main thread. The sleep is a fixed, bounded load time
+    # that dominates the init, so a second add of the same span would put model_ready far above import_total.
+    (tmp_path / "handler.py").write_text(
+        "import time\n"
+        "from concurrent.futures import Future\n"
+        "import loader\n"
+        "def _load():\n"
+        "    loader._client()\n"
+        "    loader.download_to_memfd('b', 'k')\n"
+        "    import engine\n"
+        "    eng, _ = engine.load_engine()\n"
+        "    eng.evaluate({})\n"
+        "    time.sleep(0.2)\n"
+        "    return eng, 1.0\n"
+        "_ENGINE = Future()\n"
+        "_ENGINE.set_result(_load())\n"
+        "def _cpu_part():\n"
+        "    return '0xd40'\n"
+    )
+    hooks: dict = {}
+    srp = types.ModuleType("snapshot_restore_py")
+    srp.register_before_snapshot = lambda f: hooks.setdefault("before", f)
+    srp.register_after_restore = lambda f: hooks.setdefault("after", f)
+    monkeypatch.setitem(sys.modules, "snapshot_restore_py", srp)
+    monkeypatch.setitem(sys.modules, "loader", _stub_loader(events, release))
+    monkeypatch.syspath_prepend(str(tmp_path))
+    monkeypatch.syspath_prepend(BASE)
+    monkeypatch.setenv("LKAI_PHASES", "1")
+    monkeypatch.setenv("AWS_LAMBDA_INITIALIZATION_TYPE", "snap-start")
+    import lkai_entry  # noqa: F401  (the import is the snapshot init)
+
+    capsys.readouterr()
+    hooks["before"]()
+    rec = phases.parse_lkai(capsys.readouterr().out)[-1]
+    assert rec["kind"] == "before_snapshot"
+    init = rec["init"]
+    assert init["model_ready"] >= 0.2  # the load ran inside app's import
+    assert init["model_ready"] <= init["import_total"]  # one span, not two
+    # the rest of the init is small beside the load
+    assert init["import_total"] - init["model_ready"] < 0.2
+
+
+@pytest.mark.parametrize("doubled", [True, False], ids=["run-harness", "fixed-harness"])
+def test_summary_halves_snapshot_model_ready_only_for_the_doubling_harness(monkeypatch, doubled):
+    import summarize_e16 as s16
+
+    monkeypatch.setattr(s16.s6.p1.phases, "parse_lkai", s16.s6.p1.phases.parse_lkai)
+    monkeypatch.setattr(s16.s6.p1, "load_run", s16.s6.p1.load_run)
+    snap = {
+        "kind": "before_snapshot",
+        "wall_ns": 1,
+        "init": {"model_ready": 70.0, "imports": 0.001},
+    }
+    log = "x LKAI " + json.dumps(snap)
+    rows = [
+        {"lkai": {"inv": {"class": "restore"}, "init": {"model_ready": 70.0}}},
+        {"lkai": {"inv": {"class": "cold"}, "init": {"model_ready": 35.0}}},
+        {"lkai": {"inv": {"class": "warm"}}},
+    ]
+    monkeypatch.setattr(s16.s6.p1, "load_run", lambda run: ({}, rows))
+    sha = s16.DOUBLED_MODEL_READY_HARNESS if doubled else "0" * 64
+    rec = s16.install_model_ready_correction(
+        {"build_manifest": {"harness_sha256": {"lkai_entry.py": sha}}}
+    )
+    want = 35.0 if doubled else 70.0
+    # every parse halves its own fresh records once; a re-parse is counted once
+    assert s16.s6.p1.phases.parse_lkai(log)[0]["init"]["model_ready"] == want
+    assert s16.s6.p1.phases.parse_lkai(log)[0]["init"]["model_ready"] == want
+    _, got = s16.s6.p1.load_run("run")
+    assert got[0]["lkai"]["init"]["model_ready"] == want
+    assert got[1]["lkai"]["init"]["model_ready"] == 35.0  # an on-demand init is never touched
+    assert rec["applies"] is doubled
+    assert (rec["before_snapshot_records"], rec["restore_invocation_records"]) == (
+        (1, 1) if doubled else (0, 0)
+    )
+
+
 # ---------------------------------------------------------------------------- e16_entry
 
 

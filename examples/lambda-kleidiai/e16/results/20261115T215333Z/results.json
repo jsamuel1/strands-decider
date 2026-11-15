@@ -1987,28 +1987,28 @@
      "model_ready": {
       "unit": "s",
       "n": 6,
-      "p50": 70.014901,
-      "p90": 93.710027,
-      "p99": 93.710027,
-      "min": 69.913159,
-      "max": 93.710027,
-      "mean": 81.783836,
-      "stdev": 12.954516,
+      "p50": 35.00745,
+      "p90": 46.855013,
+      "p99": 46.855013,
+      "min": 34.956579,
+      "max": 46.855013,
+      "mean": 40.891918,
+      "stdev": 6.477258,
       "histogram": {
        "edges": [
-        69.913159,
-        71.896231,
-        73.879304,
-        75.862376,
-        77.845448,
-        79.828521,
-        81.811593,
-        83.794665,
-        85.777738,
-        87.76081,
-        89.743882,
-        91.726955,
-        93.710027
+        34.956579,
+        35.948115,
+        36.939651,
+        37.931188,
+        38.922724,
+        39.91426,
+        40.905796,
+        41.897332,
+        42.888868,
+        43.880404,
+        44.871941,
+        45.863477,
+        46.855013
        ],
        "counts": [
         3,
@@ -4548,28 +4548,28 @@
      "model_ready": {
       "unit": "s",
       "n": 6,
-      "p50": 70.433514,
-      "p90": 93.483025,
-      "p99": 93.483025,
-      "min": 69.066794,
-      "max": 93.483025,
-      "mean": 81.452247,
-      "stdev": 13.024804,
+      "p50": 35.216757,
+      "p90": 46.741512,
+      "p99": 46.741512,
+      "min": 34.533397,
+      "max": 46.741512,
+      "mean": 40.726123,
+      "stdev": 6.512402,
       "histogram": {
        "edges": [
-        69.066794,
-        71.10148,
-        73.136166,
-        75.170852,
-        77.205538,
-        79.240224,
-        81.27491,
-        83.309595,
-        85.344281,
-        87.378967,
-        89.413653,
-        91.448339,
-        93.483025
+        34.533397,
+        35.55074,
+        36.568083,
+        37.585426,
+        38.602769,
+        39.620112,
+        40.637455,
+        41.654797,
+        42.67214,
+        43.689483,
+        44.706826,
+        45.724169,
+        46.741512
        ],
        "counts": [
         3,
@@ -5549,7 +5549,7 @@
   "python3.12 examples/lambda-kleidiai/e16/offline_proxy.py pairs --ctl <e6 root> --lazy <lazy root> --pairs 30 --download-s 1.0 --out pairs.json",
   "python examples/lambda-kleidiai/results/publish_result.py examples/lambda-kleidiai/e16/results/<id>/results.json   # P2 (feat/lambda-kleidiai-results)"
  ],
- "conclusion": "Moving the model-stack import (engine: numpy, pydantic, tokenizers, strands_decider) off the init's main thread and into the load, beside the S3 download, cuts what it targets on every CPU part Lambda gave us, matched by part, both arms in every wave: cold `imports` 0.367 -> 0.004 s on 0xd40 (delta -0.364 s, 95% CI [-0.371, -0.356], n=51/44; 0xd4f -0.281 s [-0.284, -0.275], n=26/30; 0xd0c -0.558 s, n=3/6) and REPORT Init Duration 0.477 -> 0.123 s on 0xd40 (-0.354 s [-0.367, -0.338]; 0xd4f -0.283 s [-0.303, -0.274]; 0xd0c -0.559 s, n=3/6). That is about 7x the < 50 ms the card expected: on Lambda the import costs 0.28-0.56 s even with E6's bytecode, against 0.12-0.13 s offline. All 8 0xd40 and 7 0xd4f cold-imports cells are below 0 beyond the control spread. The download starts 0.36 s earlier (load_start 0.369 -> 0.006 s on 0xd40). The cold first request does NOT change on 0xd40 (-0.023 s [-0.067, +0.044]) or 0xd4f (-0.055 s [-0.123, +0.035]). The engine import still runs before the load needs it, now beside the download (0.74 s on 0xd40 on its own thread, against 0.36 s on the main thread: the two compete for the GIL and cores), and the download ends at the same time (start + download 25.80 vs 25.80 s on 0xd40, -0.004 s [-0.027, +0.018]), so the model is ready at the same time (35.79 vs 35.77 s). The download is the binding constraint, as in E6. 0xd0c (n=3/6) shows -0.66 s on the first request, but the sample is too small for a claim. Billed cold Duration is unchanged (36.14 vs 36.12 s p50 on 0xd40): the Init saved is spent waiting inside Duration. Restore (0xd40, n=29/21) +0.076 s [-0.011, +0.143] and warm (0xd40, n=284/241) +0.005 s [-0.020, +0.021]: unchanged. The SnapStart snapshot init (publish time, not on any request path) finishes the load 0.74 s sooner by median on 0xd40 (model_ready 69.95 -> 69.21 s, 3 versions per arm; one lazy version, 70.43 s, was slower than every e6 version). Answers: 540/540 lazy answers bit-identical to e6's for the same request and CPU part; all 856 answers P1's reference covers bit-identical to it. 0 errors, 0 class mismatches in 1,080 invocations. Detection floor on 0xd40 Init Duration: CI half-width 14 ms. Cost $1.94 (ceiling $10). Status no-change by the headline rule. Recommendation: adopt as a candidate ladder rung for R/S/G. It costs nothing and is a measured 0.28-0.56 s cut in Init Duration and in time to download start. It pays off on the first request only on a rung where the download is no longer the critical path (E4 streaming, E3, or a smaller/faster weight fetch). There, re-measure it, because the off-thread import then competes with the load.",
+ "conclusion": "Moving the model-stack import (engine: numpy, pydantic, tokenizers, strands_decider) off the init's main thread and into the load, beside the S3 download, cuts what it targets on every CPU part Lambda gave us, matched by part, both arms in every wave: cold `imports` 0.367 -> 0.004 s on 0xd40 (delta -0.364 s, 95% CI [-0.371, -0.356], n=51/44; 0xd4f -0.281 s [-0.284, -0.275], n=26/30; 0xd0c -0.558 s, n=3/6) and REPORT Init Duration 0.477 -> 0.123 s on 0xd40 (-0.354 s [-0.367, -0.338]; 0xd4f -0.283 s [-0.303, -0.274]; 0xd0c -0.559 s, n=3/6). That is about 7x the < 50 ms the card expected: on Lambda the import costs 0.28-0.56 s even with E6's bytecode, against 0.12-0.13 s offline. All 8 0xd40 and 7 0xd4f cold-imports cells are below 0 beyond the control spread. The download starts 0.36 s earlier (load_start 0.369 -> 0.006 s on 0xd40). The cold first request does NOT change on 0xd40 (-0.023 s [-0.067, +0.044]) or 0xd4f (-0.055 s [-0.123, +0.035]). The engine import still runs before the load needs it, now beside the download (0.74 s on 0xd40 on its own thread, against 0.36 s on the main thread: the two compete for the GIL and cores), and the download ends at the same time (start + download 25.80 vs 25.80 s on 0xd40, -0.004 s [-0.027, +0.018]), so the model is ready at the same time (35.79 vs 35.77 s). The download is the binding constraint, as in E6. 0xd0c (n=3/6) shows -0.66 s on the first request, but the sample is too small for a claim. Billed cold Duration is unchanged (36.14 vs 36.12 s p50 on 0xd40): the Init saved is spent waiting inside Duration. Restore (0xd40, n=29/21) +0.076 s [-0.011, +0.143] and warm (0xd40, n=284/241) +0.005 s [-0.020, +0.021]: unchanged. The SnapStart snapshot init (publish time, not on any request path) finishes the load 0.37 s sooner by median on 0xd40 (model_ready 34.97 -> 34.61 s, 3 versions per arm; one lazy version, 35.22 s, was slower than every e6 version). Correction: the deployed harness added the snapshot init's model_ready twice; results.json halves the 12 before_snapshot and 60 restored-environment records (results.json -> corrections), and no other figure used that field. Answers: 540/540 lazy answers bit-identical to e6's for the same request and CPU part; all 856 answers P1's reference covers bit-identical to it. 0 errors, 0 class mismatches in 1,080 invocations. Detection floor on 0xd40 Init Duration: CI half-width 14 ms. Cost $1.94 (ceiling $10). Status no-change by the headline rule. Recommendation: adopt as a candidate ladder rung for R/S/G. It costs nothing and is a measured 0.28-0.56 s cut in Init Duration and in time to download start. It pays off on the first request only on a rung where the download is no longer the critical path (E4 streaming, E3, or a smaller/faster weight fetch). There, re-measure it, because the off-thread import then competes with the load.",
  "request_coverage": {
   "e6": {
    "answered": [
@@ -7722,7 +7722,7 @@
       "imports": 0.000712,
       "engine_import": 0.590105,
       "import_total": 46.838694,
-      "model_ready": 93.671507
+      "model_ready": 46.835754
      },
      {
       "version": "1",
@@ -7735,7 +7735,7 @@
       "imports": 0.000598,
       "engine_import": 0.553643,
       "import_total": 34.958964,
-      "model_ready": 69.913159
+      "model_ready": 34.956579
      },
      {
       "version": "2",
@@ -7748,7 +7748,7 @@
       "imports": 0.000562,
       "engine_import": 0.363653,
       "import_total": 35.009725,
-      "model_ready": 70.014901
+      "model_ready": 35.00745
      },
      {
       "version": "2",
@@ -7761,7 +7761,7 @@
       "imports": 0.000651,
       "engine_import": 0.392158,
       "import_total": 46.857617,
-      "model_ready": 93.710027
+      "model_ready": 46.855013
      },
      {
       "version": "3",
@@ -7774,7 +7774,7 @@
       "imports": 0.000574,
       "engine_import": 0.368556,
       "import_total": 34.975842,
-      "model_ready": 69.947016
+      "model_ready": 34.973508
      },
      {
       "version": "3",
@@ -7787,7 +7787,7 @@
       "imports": 0.000679,
       "engine_import": 0.452395,
       "import_total": 46.726035,
-      "model_ready": 93.446406
+      "model_ready": 46.723203
      }
     ],
     "lazy": [
@@ -7802,7 +7802,7 @@
       "imports": 0.000568,
       "engine_import": 0.70583,
       "import_total": 34.607837,
-      "model_ready": 69.210977
+      "model_ready": 34.605488
      },
      {
       "version": "1",
@@ -7815,7 +7815,7 @@
       "imports": 0.000723,
       "engine_import": 0.865399,
       "import_total": 46.643161,
-      "model_ready": 93.280487
+      "model_ready": 46.640243
      },
      {
       "version": "2",
@@ -7828,7 +7828,7 @@
       "imports": 0.000671,
       "engine_import": 0.859629,
       "import_total": 46.74422,
-      "model_ready": 93.483025
+      "model_ready": 46.741512
      },
      {
       "version": "2",
@@ -7841,7 +7841,7 @@
       "imports": 0.000593,
       "engine_import": 0.730255,
       "import_total": 34.535804,
-      "model_ready": 69.066794
+      "model_ready": 34.533397
      },
      {
       "version": "3",
@@ -7854,7 +7854,7 @@
       "imports": 0.000505,
       "engine_import": 0.628823,
       "import_total": 35.218811,
-      "model_ready": 70.433514
+      "model_ready": 35.216757
      },
      {
       "version": "3",
@@ -7867,7 +7867,7 @@
       "imports": 0.000683,
       "engine_import": 0.882821,
       "import_total": 46.622122,
-      "model_ready": 93.238683
+      "model_ready": 46.619341
      }
     ]
    },
@@ -8118,32 +8118,32 @@
        },
        "per_version": {
         "e6": {
-         "1": 93.671507,
-         "2": 93.710027,
-         "3": 93.446406
+         "1": 46.835754,
+         "2": 46.855013,
+         "3": 46.723203
         },
         "lazy": {
-         "1": 93.280487,
-         "2": 93.483025,
-         "3": 93.238683
+         "1": 46.640243,
+         "2": 46.741512,
+         "3": 46.619341
         }
        },
        "median": {
-        "e6": 93.671507,
-        "lazy": 93.280487
+        "e6": 46.835754,
+        "lazy": 46.640243
        },
        "range": {
         "e6": [
-         93.446406,
-         93.710027
+         46.723203,
+         46.855013
         ],
         "lazy": [
-         93.238683,
-         93.483025
+         46.619341,
+         46.741512
         ]
        },
-       "control_spread": 0.263621,
-       "delta": -0.39102,
+       "control_spread": 0.13181,
+       "delta": -0.195511,
        "ratio": 0.995826,
        "sign": "negative",
        "outcome": "negative-beyond-control-variation"
@@ -8155,32 +8155,32 @@
        },
        "per_version": {
         "e6": {
-         "1": 69.913159,
-         "2": 70.014901,
-         "3": 69.947016
+         "1": 34.956579,
+         "2": 35.00745,
+         "3": 34.973508
         },
         "lazy": {
-         "1": 69.210977,
-         "2": 69.066794,
-         "3": 70.433514
+         "1": 34.605488,
+         "2": 34.533397,
+         "3": 35.216757
         }
        },
        "median": {
-        "e6": 69.947016,
-        "lazy": 69.210977
+        "e6": 34.973508,
+        "lazy": 34.605488
        },
        "range": {
         "e6": [
-         69.913159,
-         70.014901
+         34.956579,
+         35.00745
         ],
         "lazy": [
-         69.066794,
-         70.433514
+         34.533397,
+         35.216757
         ]
        },
-       "control_spread": 0.101742,
-       "delta": -0.736039,
+       "control_spread": 0.050871,
+       "delta": -0.36802,
        "ratio": 0.989477,
        "sign": "negative",
        "outcome": "negative-beyond-control-variation"
@@ -9351,5 +9351,15 @@
     44
    ]
   }
- }
+ },
+ "corrections": [
+  {
+   "field": "model_ready",
+   "applies": true,
+   "harness_lkai_entry_sha256": "aa5498374931f91c5543c532056c0865506d8800df833b49ddf6e005995a78a0",
+   "before_snapshot_records": 12,
+   "restore_invocation_records": 60,
+   "method": "The deployed lkai_entry.py added the snapshot init's model_ready span twice (Recorder.add accumulates). Snapshot-init records (before_snapshot log records and each restored environment's first invocation record) are halved before any summary reads them. On-demand cold inits are unaffected. Raw logs and invocations keep the recorded values."
+  }
+ ]
 }
