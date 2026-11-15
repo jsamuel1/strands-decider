@@ -69,6 +69,13 @@ def _p1_like_zip(tmp_path) -> tuple[str, str]:
         for name, data in src.items():
             z.writestr(zipfile.ZipInfo(name, date_time=STAMP), data)
         z.writestr(zipfile.ZipInfo("assets/tokenizer.json", date_time=STAMP), b"{}")
+        # a stale timestamp .pyc, as P1 ships 149 of them
+        z.writestr(
+            zipfile.ZipInfo(
+                f"pkg/__pycache__/__init__.{sys.implementation.cache_tag}.pyc", date_time=STAMP
+            ),
+            importlib.util.MAGIC_NUMBER + b"\0\0\0\0" + b"\1\0\0\0" + b"\6\0\0\0",
+        )
     sha = hashlib.sha256(path.read_bytes()).hexdigest()
     man = tmp_path / "manifest.json"
     man.write_text(
@@ -104,6 +111,8 @@ def test_zips_differ_only_in_import_placement(tmp_path):
         zipfile.ZipFile(tmp_path / "build" / "lazy.zip") as z,
     ):
         assert set(e.namelist()) == set(z.namelist())
+        for zz in (e, z):
+            assert len(zz.namelist()) == len(set(zz.namelist()))  # no entry written twice
         differ = sorted(n for n in e.namelist() if e.read(n) != z.read(n))
         tag = sys.implementation.cache_tag
         assert differ == [

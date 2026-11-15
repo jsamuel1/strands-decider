@@ -109,7 +109,8 @@ def build(p1_zip: str, p1_manifest: str, out: str) -> dict:
                 seen = set()
                 for name, info in p1_infos.items():
                     if name in compiled:
-                        continue  # P1's stale .pyc, replaced below
+                        seen.add(name)  # P1's stale .pyc, replaced below
+                        continue
                     if info.is_dir() or files.get(name) == src.read(info):
                         dst.writestr(copy.copy(info), src.read(info))  # P1's entry, byte for byte
                     else:
@@ -128,6 +129,9 @@ def build(p1_zip: str, p1_manifest: str, out: str) -> dict:
                     dst.writestr(pyc_zip._entry(name), compiled[name])
             os.replace(path + ".tmp", path)
             with zipfile.ZipFile(path) as z:
+                names = z.namelist()
+                if len(names) != len(set(names)):
+                    sys.exit(f"{arm}.zip has duplicate entries")
                 zips[arm] = {
                     "bytes": os.path.getsize(path),
                     "sha256": pyc_zip.sha256(path),
