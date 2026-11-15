@@ -18,6 +18,15 @@ Phases (seconds, CLOCK_MONOTONIC):
 Per invocation: start class (cold / restore / warm), the wait for a background load, the handler
 total, PR #77's in-function engine latency (latency_ms) and, after a restore, the gap between the
 after-restore hook and the first invocation. Lambda's REPORT line is left untouched.
+
+E16: the wrapper patches engine when engine is first imported (a one-shot import hook), wherever and whenever that
+happens, instead of importing engine itself. So it times the deployment's own import placement and leaves it unchanged.
+  imports           on demand: the main thread's imports, loader + app + handler (with engine, where app or handler
+                    import it at module level, as P1's do); on a SnapStart snapshot init: loader only, since app's
+                    import there is the whole load (model_ready) and engine_import is timed on its own
+  engine_import     engine's own import (numpy, pydantic, tokenizers, strands_decider), on whichever thread ran it
+  load_start        seconds from this module's clock start to the load's first call into loader (the download start)
+The counters name the thread that imported engine (engine_import_thread).
 """
 
 # ruff: noqa: SLF001
@@ -42,6 +51,9 @@ if not ON:
         return app.handler(event, context)
 
 else:
+    import importlib.machinery
+    import sys
+    import threading
     import uuid
 
     REC = phases.Recorder(t0_ns=T0_NS)
@@ -49,14 +61,31 @@ else:
     if _rt is not None:
         REC.init["runtime_to_import"] = _rt
     _state = {"n": 0, "env_id": uuid.uuid4().hex[:12]}
+    _ON_DEMAND = os.environ.get("AWS_LAMBDA_INITIALIZATION_TYPE") == "on-demand"
+    _t_imports = time.monotonic_ns()
 
-    with REC.phase("imports"):
-        import engine as _eng
-        import loader as _loader
+    import loader as _loader
 
+    _load_started = threading.Event()
+
+    def _mark_load_start() -> None:
+        if not _load_started.is_set():
+            _load_started.set()
+            REC.add("load_start", REC.since_t0())
+
+    _orig_client = getattr(_loader, "_client", None)
+
+    if _orig_client is not None:
+
+        def _client():
+            _mark_load_start()
+            return _orig_client()
+
+        _loader._client = _client
     _orig_download = _loader.download_to_memfd
 
     def _download(bucket: str, key: str) -> str:
+        _mark_load_start()
         with REC.phase("weight_download"):
             path = _orig_download(bucket, key)
         try:
@@ -69,45 +98,83 @@ else:
 
     _loader.download_to_memfd = _download
 
-    _OrigShim = _eng.Shim
     _DEC_PHASES = ("ggml_backend_load", "model_load_mmap", "context_init", "dec_load_total")
 
-    class _TimedShim(_OrigShim):  # type: ignore[misc,valid-type]
-        def __init__(self, *args, **kwargs):
-            with REC.phase("shim_init"):
-                super().__init__(*args, **kwargs)
-            fn = getattr(self.lib, "dec_load_phases_ns", None)
-            if fn is None:  # a shim built without the timers
-                return
-            import ctypes
+    def _patch_engine(_eng) -> None:
+        _OrigShim = _eng.Shim
 
-            buf = (ctypes.c_int64 * len(_DEC_PHASES))()
-            fn.restype = ctypes.c_int
-            fn(buf, len(_DEC_PHASES))
-            for name, ns in zip(_DEC_PHASES, buf, strict=True):
-                REC.add(name, ns / 1e9)
+        class _TimedShim(_OrigShim):  # type: ignore[misc,valid-type]
+            def __init__(self, *args, **kwargs):
+                with REC.phase("shim_init"):
+                    super().__init__(*args, **kwargs)
+                fn = getattr(self.lib, "dec_load_phases_ns", None)
+                if fn is None:  # a shim built without the timers
+                    return
+                import ctypes
 
-    _eng.Shim = _TimedShim
-    _orig_load_engine = _eng.load_engine
+                buf = (ctypes.c_int64 * len(_DEC_PHASES))()
+                fn.restype = ctypes.c_int
+                fn(buf, len(_DEC_PHASES))
+                for name, ns in zip(_DEC_PHASES, buf, strict=True):
+                    REC.add(name, ns / 1e9)
 
-    def _load_engine(*args, **kwargs):
-        with REC.phase("engine_load"):
-            out = _orig_load_engine(*args, **kwargs)
-        REC.add("assets_load", REC.init["engine_load"] - REC.init.get("shim_init", 0.0))
-        return out
+        _eng.Shim = _TimedShim
+        _orig_load_engine = _eng.load_engine
 
-    _eng.load_engine = _load_engine
-    _eng.HeadRowsEngine.evaluate = phases.first_call_timed(
-        REC, "warmup_inference", _eng.HeadRowsEngine.evaluate
-    )
+        def _load_engine(*args, **kwargs):
+            with REC.phase("engine_load"):
+                out = _orig_load_engine(*args, **kwargs)
+            REC.add("assets_load", REC.init["engine_load"] - REC.init.get("shim_init", 0.0))
+            return out
 
-    # handler.py binds load_engine at its import and runs _load there (SnapStart) or in a thread.
+        _eng.load_engine = _load_engine
+        _eng.HeadRowsEngine.evaluate = phases.first_call_timed(
+            REC, "warmup_inference", _eng.HeadRowsEngine.evaluate
+        )
+
+    class _EngineHook:
+        """One-shot meta-path finder: engine's spec, with exec_module timed and followed by _patch_engine. A module
+        is executed once, under its import lock, so a `from engine import load_engine` after it gets the patch."""
+
+        def find_spec(self, fullname, path=None, target=None):
+            if fullname != "engine":
+                return None
+            if self in sys.meta_path:
+                sys.meta_path.remove(self)
+            spec = importlib.machinery.PathFinder.find_spec(fullname, path)
+            if spec is None or spec.loader is None:
+                return spec
+            orig_exec = spec.loader.exec_module
+
+            def exec_module(module):
+                t = time.monotonic_ns()
+                orig_exec(module)
+                REC.add("engine_import", (time.monotonic_ns() - t) / 1e9)
+                REC.counters["engine_import_thread"] = threading.current_thread().name
+                _patch_engine(module)
+
+            spec.loader.exec_module = exec_module
+            return spec
+
+    if "engine" in sys.modules:  # already imported (a test stand-in): patch it now
+        _patch_engine(sys.modules["engine"])
+    else:
+        sys.meta_path.insert(0, _EngineHook())
+
+    if not _ON_DEMAND:
+        # A snapshot init runs the whole load inside app's import, so only loader's import is timed before it.
+        REC.add("imports", (time.monotonic_ns() - _t_imports) / 1e9)
+
+    # handler.py starts _load at its import (SnapStart) or in a thread (on demand).
     _t_app = time.monotonic_ns()
     import app
     import handler as _pr77
 
-    if os.environ.get("AWS_LAMBDA_INITIALIZATION_TYPE") != "on-demand":
+    if _ON_DEMAND:
+        REC.add("imports", (time.monotonic_ns() - _t_imports) / 1e9)
+    else:
         # The load ran inside the import: model_ready is that import's duration.
+        REC.add("model_ready", (time.monotonic_ns() - _t_app) / 1e9)
         REC.add("model_ready", (time.monotonic_ns() - _t_app) / 1e9)
     # On demand the load runs in PR #77's background thread; the first invocation records its init_seconds
     # (handler._load's own perf_counter span) as model_ready, after waiting for it.

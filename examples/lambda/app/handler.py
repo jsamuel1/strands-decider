@@ -11,6 +11,11 @@ loads in a background thread: Lambda gives an on-demand init 10 s, and re-runs a
 overruns inside the first invocation, which would throw away 10 s of the load on every cold
 start. Every invocation, /health included, waits for the load, so the one that started an
 environment stays open until the model is ready; Lambda never freezes it partway through.
+
+The engine module (numpy, tokenizers, pydantic and strands_decider) is imported by the load, in a
+thread that runs beside the weight download, not at module import: nothing before the download
+needs it, so the download starts without waiting for it and the import overlaps the download.
+Request handling imports the schema after the load, when the engine has already loaded it.
 """
 
 from __future__ import annotations
@@ -21,13 +26,14 @@ import logging
 import os
 import time
 from concurrent.futures import Future, ThreadPoolExecutor
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import loader
-from engine import HiddenStateEngine, load_engine
-from pydantic import ValidationError
 
-from strands_decider.schema import SystemOneRequest
+if TYPE_CHECKING:
+    from engine import HiddenStateEngine
+
+    from strands_decider.schema import SystemOneRequest
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(message)s", force=True)
 log = logging.getLogger("decider.app")
@@ -42,13 +48,30 @@ STRICT_WINDOW = os.environ.get("STRICT_WINDOW", "0") == "1"
 ROUTES = {"/health": "GET", "/v1/systemone": "POST"}
 
 
+def _import_engine() -> Any:
+    import engine
+
+    return engine
+
+
+def _s3_client() -> Any:
+    return loader._client()  # noqa: SLF001  loader's own lazily built, shared S3 client
+
+
 def _load() -> tuple[HiddenStateEngine, float]:
     t0 = time.perf_counter()
     # MODEL_PATH: a local GGUF, for local_test.sh; on Lambda the model comes from S3.
-    gguf = os.environ.get("MODEL_PATH") or loader.download_to_memfd(
-        os.environ["MODEL_BUCKET"], os.environ["MODEL_KEY"]
-    )
-    engine, _ = load_engine(
+    if os.environ.get("MODEL_PATH"):
+        gguf, engine_mod = os.environ["MODEL_PATH"], _import_engine()
+    else:
+        # The engine import is CPU work and the download is network-bound: run them side by side. The S3 client
+        # (boto3's import and setup, also CPU work) is built first, so the import does not hold back the requests.
+        _s3_client()
+        with ThreadPoolExecutor(max_workers=1, thread_name_prefix="engine-import") as pool:
+            imported = pool.submit(_import_engine)
+            gguf = loader.download_to_memfd(os.environ["MODEL_BUCKET"], os.environ["MODEL_KEY"])
+            engine_mod = imported.result()
+    engine, _ = engine_mod.load_engine(
         os.path.join(HERE, "lib", "libdecider_hidden.so"),
         gguf,
         os.path.join(HERE, "assets"),
@@ -142,6 +165,10 @@ def _http(event: dict[str, Any]) -> dict[str, Any]:
                 "max_request_tokens": MAX_REQUEST_TOKENS,
             },
         )
+    from pydantic import ValidationError
+
+    from strands_decider.schema import SystemOneRequest
+
     raw = event.get("body") or ""
     if event.get("isBase64Encoded"):
         raw = base64.b64decode(raw).decode("utf-8")
@@ -160,4 +187,6 @@ def handler(event: Any, context: Any) -> dict[str, Any]:
     if isinstance(event, dict) and "http" in event.get("requestContext", {}):
         return _http(event)
     engine, _ = _ENGINE.result()
+    from strands_decider.schema import SystemOneRequest  # loaded by the engine import
+
     return _evaluate(engine, SystemOneRequest.model_validate(event))
