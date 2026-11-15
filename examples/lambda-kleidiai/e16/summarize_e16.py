@@ -153,6 +153,70 @@ def host(rows: list[dict]) -> dict:
     }
 
 
+def download_completion(rows: list[dict], seed: int = 16) -> dict:
+    """When did the download end, and the model become ready, measured from the clock start (lkai_entry's import)?
+
+    weight_download alone is not comparable between arms: lazy's download starts earlier. load_start + the load's
+    pre-download time + weight_download is. Here, from each environment's init record:
+      pre_download   model_ready - engine_load - warmup_inference - weight_download (the load's time before the
+                     download returned that was not the download: on lazy, the wait for the engine import)
+      download_done  load_start + model_ready - engine_load - warmup_inference
+      ready          load_start + model_ready
+    lazy minus e6 medians per CPU part, bootstrap 95 % CI over environments."""
+    import random
+
+    def ci(a: list[float], b: list[float], n: int = 4000) -> list[float]:
+        rnd, d = random.Random(seed), []
+        for _ in range(n):
+            d.append(
+                statistics.median(rnd.choices(b, k=len(b)))
+                - statistics.median(rnd.choices(a, k=len(a)))
+            )
+        d.sort()
+        return [round(d[int(0.025 * n)], 4), round(d[int(0.975 * n)], 4)]
+
+    keys = ("load_start", "model_ready", "engine_load", "warmup_inference", "weight_download")
+    out: dict = {}
+    for cpu in sorted(
+        {r.get("cpu_part") for r in s6.ok_rows(rows, "cold")} - set(s6.UNKNOWN_CPU), key=str
+    ):
+        vals: dict = {}
+        for arm in (CONTROL, EXPERIMENT):
+            inits = [
+                i
+                for r in s6.ok_rows(rows, "cold")
+                if r["arm"] == arm and r.get("cpu_part") == cpu
+                if all(k in (i := (r.get("lkai") or {}).get("init") or {}) for k in keys)
+            ]
+            vals[arm] = {
+                "pre_download": [
+                    i["model_ready"]
+                    - i["engine_load"]
+                    - i["warmup_inference"]
+                    - i["weight_download"]
+                    for i in inits
+                ],
+                "download_done": [
+                    i["load_start"] + i["model_ready"] - i["engine_load"] - i["warmup_inference"]
+                    for i in inits
+                ],
+                "ready": [i["load_start"] + i["model_ready"] for i in inits],
+            }
+        for k in ("pre_download", "download_done", "ready"):
+            a, b = vals[CONTROL][k], vals[EXPERIMENT][k]
+            if not a or not b:
+                continue
+            out.setdefault(k, {})[str(cpu)] = {
+                CONTROL: round(statistics.median(a), 4),
+                EXPERIMENT: round(statistics.median(b), 4),
+                "delta": round(statistics.median(b) - statistics.median(a), 4),
+                "ci95": ci(a, b) if min(len(a), len(b)) > 1 else None,
+                "n": [len(a), len(b)],
+            }
+    out["method"] = download_completion.__doc__.split("\n\n", 1)[1].strip()
+    return out
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--cold", required=True)
@@ -208,6 +272,7 @@ def main(argv: list[str] | None = None) -> int:
             "deltas are descriptive only; host_variability contains the round-by-CPU-part cells",
         },
         "mechanism": mechanism(rows),
+        "download_completion": download_completion(rows),
         "host": host(rows),
         "arm_agreement": s6.arm_agreement(rows),
     }
@@ -223,7 +288,9 @@ def main(argv: list[str] | None = None) -> int:
         "conditions": "conditions.json",
         "build_manifest": "build-manifest.json",
         "meta": "meta.json",
-        "offline_proxy": "offline/",
+        "offline_importtime_e6": "offline/importtime_e6.json",
+        "offline_importtime_lazy": "offline/importtime_lazy.json",
+        "offline_pairs": "offline/pairs.json",
     }
     path = os.path.join(a.out, "results.json")
     json.dump(res, open(path, "w"), indent=1, allow_nan=False)

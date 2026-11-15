@@ -1,0 +1,447 @@
+{
+ "download_s": 1.0,
+ "rows": [
+  {
+   "pair": 0,
+   "arm": "ctl",
+   "main_imports_s": 0.142502,
+   "load_start_s": 0.142438,
+   "engine_at_end": true
+  },
+  {
+   "pair": 0,
+   "arm": "lazy",
+   "main_imports_s": 0.017262,
+   "load_start_s": 0.017198,
+   "engine_at_end": true
+  },
+  {
+   "pair": 1,
+   "arm": "lazy",
+   "main_imports_s": 0.017804,
+   "load_start_s": 0.017739,
+   "engine_at_end": true
+  },
+  {
+   "pair": 1,
+   "arm": "ctl",
+   "main_imports_s": 0.142265,
+   "load_start_s": 0.142197,
+   "engine_at_end": true
+  },
+  {
+   "pair": 2,
+   "arm": "ctl",
+   "main_imports_s": 0.130005,
+   "load_start_s": 0.129951,
+   "engine_at_end": true
+  },
+  {
+   "pair": 2,
+   "arm": "lazy",
+   "main_imports_s": 0.016721,
+   "load_start_s": 0.016648,
+   "engine_at_end": true
+  },
+  {
+   "pair": 3,
+   "arm": "lazy",
+   "main_imports_s": 0.0173,
+   "load_start_s": 0.017195,
+   "engine_at_end": true
+  },
+  {
+   "pair": 3,
+   "arm": "ctl",
+   "main_imports_s": 0.130611,
+   "load_start_s": 0.130555,
+   "engine_at_end": true
+  },
+  {
+   "pair": 4,
+   "arm": "ctl",
+   "main_imports_s": 0.17025,
+   "load_start_s": 0.170189,
+   "engine_at_end": true
+  },
+  {
+   "pair": 4,
+   "arm": "lazy",
+   "main_imports_s": 0.02122,
+   "load_start_s": 0.021156,
+   "engine_at_end": true
+  },
+  {
+   "pair": 5,
+   "arm": "lazy",
+   "main_imports_s": 0.017785,
+   "load_start_s": 0.017712,
+   "engine_at_end": true
+  },
+  {
+   "pair": 5,
+   "arm": "ctl",
+   "main_imports_s": 0.127651,
+   "load_start_s": 0.127603,
+   "engine_at_end": true
+  },
+  {
+   "pair": 6,
+   "arm": "ctl",
+   "main_imports_s": 0.151672,
+   "load_start_s": 0.151614,
+   "engine_at_end": true
+  },
+  {
+   "pair": 6,
+   "arm": "lazy",
+   "main_imports_s": 0.017484,
+   "load_start_s": 0.017415,
+   "engine_at_end": true
+  },
+  {
+   "pair": 7,
+   "arm": "lazy",
+   "main_imports_s": 0.017506,
+   "load_start_s": 0.017423,
+   "engine_at_end": true
+  },
+  {
+   "pair": 7,
+   "arm": "ctl",
+   "main_imports_s": 0.135556,
+   "load_start_s": 0.135515,
+   "engine_at_end": true
+  },
+  {
+   "pair": 8,
+   "arm": "ctl",
+   "main_imports_s": 0.130025,
+   "load_start_s": 0.129974,
+   "engine_at_end": true
+  },
+  {
+   "pair": 8,
+   "arm": "lazy",
+   "main_imports_s": 0.01823,
+   "load_start_s": 0.018155,
+   "engine_at_end": true
+  },
+  {
+   "pair": 9,
+   "arm": "lazy",
+   "main_imports_s": 0.022063,
+   "load_start_s": 0.021967,
+   "engine_at_end": true
+  },
+  {
+   "pair": 9,
+   "arm": "ctl",
+   "main_imports_s": 0.128937,
+   "load_start_s": 0.128885,
+   "engine_at_end": true
+  },
+  {
+   "pair": 10,
+   "arm": "ctl",
+   "main_imports_s": 0.13781,
+   "load_start_s": 0.137744,
+   "engine_at_end": true
+  },
+  {
+   "pair": 10,
+   "arm": "lazy",
+   "main_imports_s": 0.024752,
+   "load_start_s": 0.024681,
+   "engine_at_end": true
+  },
+  {
+   "pair": 11,
+   "arm": "lazy",
+   "main_imports_s": 0.018623,
+   "load_start_s": 0.018546,
+   "engine_at_end": true
+  },
+  {
+   "pair": 11,
+   "arm": "ctl",
+   "main_imports_s": 0.12563,
+   "load_start_s": 0.125571,
+   "engine_at_end": true
+  },
+  {
+   "pair": 12,
+   "arm": "ctl",
+   "main_imports_s": 0.12974,
+   "load_start_s": 0.12968,
+   "engine_at_end": true
+  },
+  {
+   "pair": 12,
+   "arm": "lazy",
+   "main_imports_s": 0.016647,
+   "load_start_s": 0.016568,
+   "engine_at_end": true
+  },
+  {
+   "pair": 13,
+   "arm": "lazy",
+   "main_imports_s": 0.017274,
+   "load_start_s": 0.017197,
+   "engine_at_end": true
+  },
+  {
+   "pair": 13,
+   "arm": "ctl",
+   "main_imports_s": 0.139412,
+   "load_start_s": 0.139347,
+   "engine_at_end": true
+  },
+  {
+   "pair": 14,
+   "arm": "ctl",
+   "main_imports_s": 0.121769,
+   "load_start_s": 0.121702,
+   "engine_at_end": true
+  },
+  {
+   "pair": 14,
+   "arm": "lazy",
+   "main_imports_s": 0.017392,
+   "load_start_s": 0.017317,
+   "engine_at_end": true
+  },
+  {
+   "pair": 15,
+   "arm": "lazy",
+   "main_imports_s": 0.017491,
+   "load_start_s": 0.017414,
+   "engine_at_end": true
+  },
+  {
+   "pair": 15,
+   "arm": "ctl",
+   "main_imports_s": 0.126158,
+   "load_start_s": 0.126094,
+   "engine_at_end": true
+  },
+  {
+   "pair": 16,
+   "arm": "ctl",
+   "main_imports_s": 0.128217,
+   "load_start_s": 0.12816,
+   "engine_at_end": true
+  },
+  {
+   "pair": 16,
+   "arm": "lazy",
+   "main_imports_s": 0.017385,
+   "load_start_s": 0.017307,
+   "engine_at_end": true
+  },
+  {
+   "pair": 17,
+   "arm": "lazy",
+   "main_imports_s": 0.019047,
+   "load_start_s": 0.018968,
+   "engine_at_end": true
+  },
+  {
+   "pair": 17,
+   "arm": "ctl",
+   "main_imports_s": 0.127657,
+   "load_start_s": 0.127584,
+   "engine_at_end": true
+  },
+  {
+   "pair": 18,
+   "arm": "ctl",
+   "main_imports_s": 0.124747,
+   "load_start_s": 0.124691,
+   "engine_at_end": true
+  },
+  {
+   "pair": 18,
+   "arm": "lazy",
+   "main_imports_s": 0.016218,
+   "load_start_s": 0.016138,
+   "engine_at_end": true
+  },
+  {
+   "pair": 19,
+   "arm": "lazy",
+   "main_imports_s": 0.01756,
+   "load_start_s": 0.017487,
+   "engine_at_end": true
+  },
+  {
+   "pair": 19,
+   "arm": "ctl",
+   "main_imports_s": 0.147692,
+   "load_start_s": 0.147624,
+   "engine_at_end": true
+  },
+  {
+   "pair": 20,
+   "arm": "ctl",
+   "main_imports_s": 0.131997,
+   "load_start_s": 0.131942,
+   "engine_at_end": true
+  },
+  {
+   "pair": 20,
+   "arm": "lazy",
+   "main_imports_s": 0.016987,
+   "load_start_s": 0.016905,
+   "engine_at_end": true
+  },
+  {
+   "pair": 21,
+   "arm": "lazy",
+   "main_imports_s": 0.017101,
+   "load_start_s": 0.017019,
+   "engine_at_end": true
+  },
+  {
+   "pair": 21,
+   "arm": "ctl",
+   "main_imports_s": 0.150141,
+   "load_start_s": 0.150074,
+   "engine_at_end": true
+  },
+  {
+   "pair": 22,
+   "arm": "ctl",
+   "main_imports_s": 0.123939,
+   "load_start_s": 0.123879,
+   "engine_at_end": true
+  },
+  {
+   "pair": 22,
+   "arm": "lazy",
+   "main_imports_s": 0.021272,
+   "load_start_s": 0.021188,
+   "engine_at_end": true
+  },
+  {
+   "pair": 23,
+   "arm": "lazy",
+   "main_imports_s": 0.016599,
+   "load_start_s": 0.016527,
+   "engine_at_end": true
+  },
+  {
+   "pair": 23,
+   "arm": "ctl",
+   "main_imports_s": 0.124285,
+   "load_start_s": 0.124217,
+   "engine_at_end": true
+  },
+  {
+   "pair": 24,
+   "arm": "ctl",
+   "main_imports_s": 0.123036,
+   "load_start_s": 0.122972,
+   "engine_at_end": true
+  },
+  {
+   "pair": 24,
+   "arm": "lazy",
+   "main_imports_s": 0.016633,
+   "load_start_s": 0.016558,
+   "engine_at_end": true
+  },
+  {
+   "pair": 25,
+   "arm": "lazy",
+   "main_imports_s": 0.016946,
+   "load_start_s": 0.016875,
+   "engine_at_end": true
+  },
+  {
+   "pair": 25,
+   "arm": "ctl",
+   "main_imports_s": 0.137434,
+   "load_start_s": 0.137377,
+   "engine_at_end": true
+  },
+  {
+   "pair": 26,
+   "arm": "ctl",
+   "main_imports_s": 0.122466,
+   "load_start_s": 0.122405,
+   "engine_at_end": true
+  },
+  {
+   "pair": 26,
+   "arm": "lazy",
+   "main_imports_s": 0.022949,
+   "load_start_s": 0.022883,
+   "engine_at_end": true
+  },
+  {
+   "pair": 27,
+   "arm": "lazy",
+   "main_imports_s": 0.016896,
+   "load_start_s": 0.016819,
+   "engine_at_end": true
+  },
+  {
+   "pair": 27,
+   "arm": "ctl",
+   "main_imports_s": 0.123674,
+   "load_start_s": 0.12361,
+   "engine_at_end": true
+  },
+  {
+   "pair": 28,
+   "arm": "ctl",
+   "main_imports_s": 0.164821,
+   "load_start_s": 0.164765,
+   "engine_at_end": true
+  },
+  {
+   "pair": 28,
+   "arm": "lazy",
+   "main_imports_s": 0.017538,
+   "load_start_s": 0.017459,
+   "engine_at_end": true
+  },
+  {
+   "pair": 29,
+   "arm": "lazy",
+   "main_imports_s": 0.026268,
+   "load_start_s": 0.026197,
+   "engine_at_end": true
+  },
+  {
+   "pair": 29,
+   "arm": "ctl",
+   "main_imports_s": 0.125838,
+   "load_start_s": 0.125778,
+   "engine_at_end": true
+  }
+ ],
+ "summary": {
+  "main_imports_s": {
+   "ctl_p50": 0.129873,
+   "lazy_p50": 0.017487,
+   "paired_delta_p50": -0.112426,
+   "pairs_below_zero": 30,
+   "pairs": 30
+  },
+  "load_start_s": {
+   "ctl_p50": 0.129816,
+   "lazy_p50": 0.017414,
+   "paired_delta_p50": -0.112441,
+   "pairs_below_zero": 30,
+   "pairs": 30
+  },
+  "engine_at_download_end": {
+   "ctl": 30,
+   "lazy": 30
+  }
+ },
+ "python": "3.12.13",
+ "machine": "x86_64"
+}

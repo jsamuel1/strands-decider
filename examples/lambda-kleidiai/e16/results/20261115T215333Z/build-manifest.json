@@ -1,0 +1,161 @@
+{
+ "schema": "lkai-e16-build-manifest/1",
+ "repo_commit": "acc1b9407a04c331fb79582b8a3902bf8cf970f6",
+ "repo_dirty": false,
+ "p1_manifest": {
+  "schema": "lkai-build-manifest/1",
+  "repo_commit": "fd96d7f4fafe27fcaed793b34691aed1a30702d9",
+  "repo_dirty": false,
+  "model": {
+   "id": "StrandsAgents/strands-decider-2B-qwen3.5-v1-2610",
+   "revision": "216d1ccb46a9e9b036eb9187b248db98480f77d4",
+   "format": "GGUF Q8_0",
+   "transform": "LoRA merged fp32 (weights/merge_export.py), H512 Hadamard fold (weights/fold_hadamard.py --block 512)",
+   "merge_report": {
+    "merged": 186,
+    "scale": 2.0,
+    "unpaired_adapter": [],
+    "base_revision": "b1485b2fa6dfa1287294f269f5fb618e03d52d7c",
+    "checkpoint": "/hf/hub/models--StrandsAgents--strands-decider-2B-qwen3.5-v1-2610/snapshots/216d1ccb46a9e9b036eb9187b248db98480f77d4"
+   },
+   "gguf_bytes": 2076712416,
+   "gguf_sha256": "8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e"
+  },
+  "llama_cpp": {
+   "commit": "f74e2fa6a31cc33ab4ee4ae516641cfe62df3924",
+   "patches": "llama/patch_llama.py (prefill,gdn,kskip,sme)",
+   "flags": "GGML_NATIVE=OFF GGML_BACKEND_DL=ON GGML_CPU_ALL_VARIANTS=ON GGML_CPU_KLEIDIAI=ON"
+  },
+  "function_zip": {
+   "bytes": 51941882,
+   "sha256": "d148d706027e1b920f489abd6d92b7021df1fbcfeddf0ba89f82f9131d0d230b",
+   "handler": "lkai_entry.handler"
+  },
+  "assets_sha256": {
+   "head.safetensors": "2492613e72eac53becb9ff855023261ac2722c5111b9f1e03be59a87328dd799",
+   "head_config.json": "3a6a6a3a135dcdbb29d6d9179d507d511fbba934d3682f354dd3d1130b9813dd",
+   "tokenizer.json": "a2cdd2e108566b09079afa8d266e9e65e7c280f27b771218237a06de5ba9cd86"
+  },
+  "images": {
+   "lambda_build": "public.ecr.aws/lambda/python@sha256:37fe9ca4183c36ec57e4c5eabb8893cd9fbc9c0f3053b903d9a57eb2bd6bafcc",
+   "weights": "python@sha256:5560e9ab8709f459489e5b8aa696eda8a07ef821e14bb122be62d91234bfa98b"
+  },
+  "toolchain": [
+   "gcc (GCC) 11.5.0 20240719 (Red Hat 11.5.0-5)",
+   "Python 3.12.15"
+  ]
+ },
+ "model": {
+  "id": "StrandsAgents/strands-decider-2B-qwen3.5-v1-2610",
+  "revision": "216d1ccb46a9e9b036eb9187b248db98480f77d4",
+  "format": "GGUF Q8_0",
+  "transform": "LoRA merged fp32 (weights/merge_export.py), H512 Hadamard fold (weights/fold_hadamard.py --block 512)",
+  "merge_report": {
+   "merged": 186,
+   "scale": 2.0,
+   "unpaired_adapter": [],
+   "base_revision": "b1485b2fa6dfa1287294f269f5fb618e03d52d7c",
+   "checkpoint": "/hf/hub/models--StrandsAgents--strands-decider-2B-qwen3.5-v1-2610/snapshots/216d1ccb46a9e9b036eb9187b248db98480f77d4"
+  },
+  "gguf_bytes": 2076712416,
+  "gguf_sha256": "8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e"
+ },
+ "llama_cpp": {
+  "commit": "f74e2fa6a31cc33ab4ee4ae516641cfe62df3924",
+  "patches": "llama/patch_llama.py (prefill,gdn,kskip,sme)",
+  "flags": "GGML_NATIVE=OFF GGML_BACKEND_DL=ON GGML_CPU_ALL_VARIANTS=ON GGML_CPU_KLEIDIAI=ON"
+ },
+ "images": {
+  "lambda_build": "public.ecr.aws/lambda/python@sha256:37fe9ca4183c36ec57e4c5eabb8893cd9fbc9c0f3053b903d9a57eb2bd6bafcc",
+  "weights": "python@sha256:5560e9ab8709f459489e5b8aa696eda8a07ef821e14bb122be62d91234bfa98b"
+ },
+ "toolchain": [
+  "gcc (GCC) 11.5.0 20240719 (Red Hat 11.5.0-5)",
+  "Python 3.12.15"
+ ],
+ "assets_sha256": {
+  "head.safetensors": "2492613e72eac53becb9ff855023261ac2722c5111b9f1e03be59a87328dd799",
+  "head_config.json": "3a6a6a3a135dcdbb29d6d9179d507d511fbba934d3682f354dd3d1130b9813dd",
+  "tokenizer.json": "a2cdd2e108566b09079afa8d266e9e65e7c280f27b771218237a06de5ba9cd86"
+ },
+ "compiler": {
+  "python": "3.12.13",
+  "magic": "cb0d0d0a",
+  "invalidation_mode": "unchecked-hash"
+ },
+ "p1_bytecode": {
+  "pyc": 149,
+  "valid": 0,
+  "stale": 149,
+  "no_source": 0,
+  "py": 1035,
+  "py_without_pyc": 886
+ },
+ "harness_sha256": {
+  "lkai_entry.py": "aa5498374931f91c5543c532056c0865506d8800df833b49ddf6e005995a78a0",
+  "hostinfo.py": "5b1aabc477a451c1a5f452813ce9eb1701190a9fc93102e4ad67edf5a25340f2",
+  "e16_entry.py": "340860ab99ea9f1fef450c9e38cfabb1181318a1d717b49f902d341f48e8c80f"
+ },
+ "placement_sha256": {
+  "e6": {
+   "handler.py": "2ebe1b9a833c51f3c4580c2874edc121eb9fb292ded8db25d9338cbfa8d68bc8",
+   "app.py": "b87c9da7068cb753514486e6442ebe54da27f2cf96acad244b169036bd3ac6a8"
+  },
+  "lazy": {
+   "handler.py": "769d500ce44e89fb3257b49238595fad0390c14d2194eaaaecf0ff6e11451f69",
+   "app.py": "5e924d3febf5d8c75a4066a0ae42446a17655eda830d2c52de1f62792bb4c94e"
+  }
+ },
+ "zips": {
+  "e6": {
+   "bytes": 59214815,
+   "sha256": "d75807e3ef6f334eeb992e9acc6c07c6ae98605ec38acb3afd4f9fdfa76e7717",
+   "handler": "e16_entry.handler",
+   "unzipped_bytes": 168863010,
+   "bytecode": {
+    "pyc": 1037,
+    "valid": 1037,
+    "stale": 0,
+    "no_source": 0,
+    "py": 1037,
+    "py_without_pyc": 0,
+    "compiled": 1037,
+    "failed": []
+   }
+  },
+  "lazy": {
+   "bytes": 59216031,
+   "sha256": "b266cff4ab8d3a42d4de5b0bd0d83b1ff97781fe35400161a026b30f30743bac",
+   "handler": "e16_entry.handler",
+   "unzipped_bytes": 168865915,
+   "bytecode": {
+    "pyc": 1037,
+    "valid": 1037,
+    "stale": 0,
+    "no_source": 0,
+    "py": 1037,
+    "py_without_pyc": 0,
+    "compiled": 1037,
+    "failed": []
+   }
+  }
+ },
+ "base": "P1 function.zip d148d706027e1b920f489abd6d92b7021df1fbcfeddf0ba89f82f9131d0d230b",
+ "function_zip": {
+  "bytes": 59216031,
+  "sha256": "b266cff4ab8d3a42d4de5b0bd0d83b1ff97781fe35400161a026b30f30743bac",
+  "handler": "e16_entry.handler",
+  "unzipped_bytes": 168865915,
+  "bytecode": {
+   "pyc": 1037,
+   "valid": 1037,
+   "stale": 0,
+   "no_source": 0,
+   "py": 1037,
+   "py_without_pyc": 0,
+   "compiled": 1037,
+   "failed": []
+  },
+  "base": "P1 function.zip d148d706027e1b920f489abd6d92b7021df1fbcfeddf0ba89f82f9131d0d230b"
+ }
+}

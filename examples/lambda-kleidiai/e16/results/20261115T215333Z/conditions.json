@@ -1,0 +1,659 @@
+{
+ "schema": "lkai-conditions/1",
+ "experiment": "E16",
+ "mode": "cold",
+ "region": "us-east-2",
+ "rounds": 8,
+ "concurrency": 10,
+ "warm_per_arm_per_round": 5,
+ "read_timeout_s": {
+  "cold": 300,
+  "restore": 120
+ },
+ "arms": [
+  "e6",
+  "lazy"
+ ],
+ "requests_file": "baseline/requests.json",
+ "requests": {
+  "schema": "lkai-requests/1",
+  "note": "Fixed request set for the lambda-kleidiai baseline. Every condition sends these exact bodies; 'probe' is the first request of every new execution environment (cold and restore), so first-inference latency is comparable across arms and rounds. Warm invocations cycle through all ids in order.",
+  "probe": "ticket-route-1q",
+  "requests": [
+   {
+    "id": "ticket-route-1q",
+    "request": {
+     "state": {
+      "ticket": "Refund issued but invoice still shows the old total."
+     },
+     "questions": {
+      "q": {
+       "type": "choice",
+       "instructions": "Route this ticket.",
+       "criteria": {
+        "billing": "payment or invoice",
+        "technical": "product defect",
+        "account": "login"
+       }
+      }
+     }
+    }
+   },
+   {
+    "id": "payouts-3q",
+    "request": {
+     "state": "Help! My payouts have been failing for 3 days!",
+     "questions": {
+      "is_urgent": {
+       "type": "noul",
+       "instructions": "Does this convey urgency?"
+      },
+      "team": {
+       "type": "choice",
+       "instructions": "Which team should handle this?",
+       "criteria": {
+        "billing": "",
+        "sales": "",
+        "retail": ""
+       }
+      },
+      "frustration": {
+       "type": "score",
+       "instructions": "How frustrated is the writer?",
+       "criteria": [
+        "calm",
+        "frustrated",
+        "depressed"
+       ]
+      }
+     }
+    }
+   },
+   {
+    "id": "cracked-screen-2q",
+    "request": {
+     "state": "Order 1182 arrived with a cracked screen. The customer wants a refund today.",
+     "questions": {
+      "q": {
+       "type": "choice",
+       "instructions": "Route the ticket.",
+       "criteria": {
+        "refunds": "money back",
+        "shipping": "delivery problems",
+        "tech": "device faults"
+       }
+      },
+      "u": {
+       "type": "noul",
+       "instructions": "Is the customer upset?"
+      }
+     }
+    }
+   },
+   {
+    "id": "agent-action-guard-2q",
+    "request": {
+     "state": {
+      "user_goal": "Clean up last quarter's test fixtures in the staging bucket.",
+      "proposed_tool_call": {
+       "name": "s3_delete_prefix",
+       "arguments": {
+        "bucket": "acme-prod-invoices",
+        "prefix": "2026/"
+       }
+      },
+      "recent_messages": [
+       "user: the staging bucket is acme-staging-fixtures, only touch that one",
+       "assistant: Understood, I will list acme-staging-fixtures first.",
+       "tool(s3_list): acme-staging-fixtures/2026/Q3/ has 412 objects"
+      ]
+     },
+     "questions": {
+      "safe": {
+       "type": "noul",
+       "instructions": "Is the proposed tool call consistent with the user's instructions?"
+      },
+      "action": {
+       "type": "choice",
+       "instructions": "What should the agent do next?",
+       "criteria": {
+        "proceed": "run the tool call as proposed",
+        "revise": "fix the arguments and retry",
+        "ask": "ask the user before doing anything"
+       }
+      }
+     }
+    }
+   },
+   {
+    "id": "incident-review-4q",
+    "request": {
+     "state": "Incident 4471 timeline. 09:02 deploy of checkout-api build 8812 starts in us-east-2. 09:06 p99 latency on /cart rises from 180 ms to 2.4 s; error rate 0.2% to 6%. 09:07 on-call paged by the latency alarm. 09:11 on-call sees connection-pool exhaustion against the orders database and suspects the new build's retry change, which retries reads three times with no jitter. 09:14 rollback to build 8807 started. 09:19 rollback complete in two of three cells; the third cell is still on 8812 because its deployment was paused by a separate change freeze. 09:23 p99 back to 210 ms in the rolled-back cells; the third cell keeps failing about 9% of requests. 09:31 the freeze owner approves the rollback for the third cell. 09:38 all cells healthy. Customer impact: about 36 minutes of degraded checkout in one region, an estimated 2,100 failed carts. The retry change had passed load tests, which ran against a database with three times the production connection limit. No runbook step covered a cell stuck behind a freeze.",
+     "questions": {
+      "root_cause": {
+       "type": "choice",
+       "instructions": "What is the most direct root cause?",
+       "criteria": {
+        "retries": "retry change without jitter exhausted the connection pool",
+        "freeze": "the change freeze",
+        "alarm": "slow alarming",
+        "capacity": "database undersized for normal load"
+       }
+      },
+      "severity": {
+       "type": "score",
+       "instructions": "How severe was the customer impact?",
+       "criteria": [
+        "negligible",
+        "minor",
+        "moderate",
+        "major",
+        "critical"
+       ]
+      },
+      "test_gap": {
+       "type": "noul",
+       "instructions": "Did a test environment difference hide the problem?"
+      },
+      "runbook": {
+       "type": "noul",
+       "instructions": "Should the runbook gain a step for cells blocked by a freeze?"
+      }
+     }
+    }
+   }
+  ]
+ },
+ "probe": "ticket-route-1q",
+ "functions": {
+  "e6": {
+   "FunctionName": "lkai-e16-e6",
+   "Runtime": "python3.12",
+   "Architectures": [
+    "arm64"
+   ],
+   "MemorySize": 10240,
+   "Timeout": 900,
+   "EphemeralStorage": {
+    "Size": 512
+   },
+   "SnapStart": {
+    "ApplyOn": "PublishedVersions",
+    "OptimizationStatus": "Off"
+   },
+   "Handler": "e16_entry.handler",
+   "CodeSha256": "11gH4+9vM07rmS6azGwHxq6YYF7Diss6/U+f36dudxc=",
+   "CodeSize": 59214815,
+   "environment": {
+    "E16_ARM": "e6",
+    "LKAI_PHASES": "1",
+    "COLD_TAG": "e16-cold-r1-1794779522.090",
+    "N_SEQ": "17",
+    "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+    "DEC_KV": "f32",
+    "DEC_UBATCH": "512"
+   },
+   "runtime_management": {
+    "UpdateRuntimeOn": "Manual",
+    "RuntimeVersionArn": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07"
+   }
+  },
+  "lazy": {
+   "FunctionName": "lkai-e16-lazy",
+   "Runtime": "python3.12",
+   "Architectures": [
+    "arm64"
+   ],
+   "MemorySize": 10240,
+   "Timeout": 900,
+   "EphemeralStorage": {
+    "Size": 512
+   },
+   "SnapStart": {
+    "ApplyOn": "PublishedVersions",
+    "OptimizationStatus": "Off"
+   },
+   "Handler": "e16_entry.handler",
+   "CodeSha256": "smbP9KuNOkLU3lsL0Ng7H/l3gf41QAFhoCazDzB0O6w=",
+   "CodeSize": 59216031,
+   "environment": {
+    "E16_ARM": "lazy",
+    "LKAI_PHASES": "1",
+    "COLD_TAG": "e16-cold-r1-1794779522.090",
+    "N_SEQ": "17",
+    "MODEL_KEY": "weights/8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e/s2b-h512-Q8_0.gguf",
+    "DEC_KV": "f32",
+    "DEC_UBATCH": "512"
+   },
+   "runtime_management": {
+    "UpdateRuntimeOn": "Manual",
+    "RuntimeVersionArn": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07"
+   }
+  }
+ },
+ "build_manifest": {
+  "schema": "lkai-e16-build-manifest/1",
+  "repo_commit": "acc1b9407a04c331fb79582b8a3902bf8cf970f6",
+  "repo_dirty": false,
+  "p1_manifest": {
+   "schema": "lkai-build-manifest/1",
+   "repo_commit": "fd96d7f4fafe27fcaed793b34691aed1a30702d9",
+   "repo_dirty": false,
+   "model": {
+    "id": "StrandsAgents/strands-decider-2B-qwen3.5-v1-2610",
+    "revision": "216d1ccb46a9e9b036eb9187b248db98480f77d4",
+    "format": "GGUF Q8_0",
+    "transform": "LoRA merged fp32 (weights/merge_export.py), H512 Hadamard fold (weights/fold_hadamard.py --block 512)",
+    "merge_report": {
+     "merged": 186,
+     "scale": 2.0,
+     "unpaired_adapter": [],
+     "base_revision": "b1485b2fa6dfa1287294f269f5fb618e03d52d7c",
+     "checkpoint": "/hf/hub/models--StrandsAgents--strands-decider-2B-qwen3.5-v1-2610/snapshots/216d1ccb46a9e9b036eb9187b248db98480f77d4"
+    },
+    "gguf_bytes": 2076712416,
+    "gguf_sha256": "8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e"
+   },
+   "llama_cpp": {
+    "commit": "f74e2fa6a31cc33ab4ee4ae516641cfe62df3924",
+    "patches": "llama/patch_llama.py (prefill,gdn,kskip,sme)",
+    "flags": "GGML_NATIVE=OFF GGML_BACKEND_DL=ON GGML_CPU_ALL_VARIANTS=ON GGML_CPU_KLEIDIAI=ON"
+   },
+   "function_zip": {
+    "bytes": 51941882,
+    "sha256": "d148d706027e1b920f489abd6d92b7021df1fbcfeddf0ba89f82f9131d0d230b",
+    "handler": "lkai_entry.handler"
+   },
+   "assets_sha256": {
+    "head.safetensors": "2492613e72eac53becb9ff855023261ac2722c5111b9f1e03be59a87328dd799",
+    "head_config.json": "3a6a6a3a135dcdbb29d6d9179d507d511fbba934d3682f354dd3d1130b9813dd",
+    "tokenizer.json": "a2cdd2e108566b09079afa8d266e9e65e7c280f27b771218237a06de5ba9cd86"
+   },
+   "images": {
+    "lambda_build": "public.ecr.aws/lambda/python@sha256:37fe9ca4183c36ec57e4c5eabb8893cd9fbc9c0f3053b903d9a57eb2bd6bafcc",
+    "weights": "python@sha256:5560e9ab8709f459489e5b8aa696eda8a07ef821e14bb122be62d91234bfa98b"
+   },
+   "toolchain": [
+    "gcc (GCC) 11.5.0 20240719 (Red Hat 11.5.0-5)",
+    "Python 3.12.15"
+   ]
+  },
+  "model": {
+   "id": "StrandsAgents/strands-decider-2B-qwen3.5-v1-2610",
+   "revision": "216d1ccb46a9e9b036eb9187b248db98480f77d4",
+   "format": "GGUF Q8_0",
+   "transform": "LoRA merged fp32 (weights/merge_export.py), H512 Hadamard fold (weights/fold_hadamard.py --block 512)",
+   "merge_report": {
+    "merged": 186,
+    "scale": 2.0,
+    "unpaired_adapter": [],
+    "base_revision": "b1485b2fa6dfa1287294f269f5fb618e03d52d7c",
+    "checkpoint": "/hf/hub/models--StrandsAgents--strands-decider-2B-qwen3.5-v1-2610/snapshots/216d1ccb46a9e9b036eb9187b248db98480f77d4"
+   },
+   "gguf_bytes": 2076712416,
+   "gguf_sha256": "8dbb8872e6af312804b8d9d82b6d023bd025a0cfc81d55703b79837d0f042d8e"
+  },
+  "llama_cpp": {
+   "commit": "f74e2fa6a31cc33ab4ee4ae516641cfe62df3924",
+   "patches": "llama/patch_llama.py (prefill,gdn,kskip,sme)",
+   "flags": "GGML_NATIVE=OFF GGML_BACKEND_DL=ON GGML_CPU_ALL_VARIANTS=ON GGML_CPU_KLEIDIAI=ON"
+  },
+  "images": {
+   "lambda_build": "public.ecr.aws/lambda/python@sha256:37fe9ca4183c36ec57e4c5eabb8893cd9fbc9c0f3053b903d9a57eb2bd6bafcc",
+   "weights": "python@sha256:5560e9ab8709f459489e5b8aa696eda8a07ef821e14bb122be62d91234bfa98b"
+  },
+  "toolchain": [
+   "gcc (GCC) 11.5.0 20240719 (Red Hat 11.5.0-5)",
+   "Python 3.12.15"
+  ],
+  "assets_sha256": {
+   "head.safetensors": "2492613e72eac53becb9ff855023261ac2722c5111b9f1e03be59a87328dd799",
+   "head_config.json": "3a6a6a3a135dcdbb29d6d9179d507d511fbba934d3682f354dd3d1130b9813dd",
+   "tokenizer.json": "a2cdd2e108566b09079afa8d266e9e65e7c280f27b771218237a06de5ba9cd86"
+  },
+  "compiler": {
+   "python": "3.12.13",
+   "magic": "cb0d0d0a",
+   "invalidation_mode": "unchecked-hash"
+  },
+  "p1_bytecode": {
+   "pyc": 149,
+   "valid": 0,
+   "stale": 149,
+   "no_source": 0,
+   "py": 1035,
+   "py_without_pyc": 886
+  },
+  "harness_sha256": {
+   "lkai_entry.py": "aa5498374931f91c5543c532056c0865506d8800df833b49ddf6e005995a78a0",
+   "hostinfo.py": "5b1aabc477a451c1a5f452813ce9eb1701190a9fc93102e4ad67edf5a25340f2",
+   "e16_entry.py": "340860ab99ea9f1fef450c9e38cfabb1181318a1d717b49f902d341f48e8c80f"
+  },
+  "placement_sha256": {
+   "e6": {
+    "handler.py": "2ebe1b9a833c51f3c4580c2874edc121eb9fb292ded8db25d9338cbfa8d68bc8",
+    "app.py": "b87c9da7068cb753514486e6442ebe54da27f2cf96acad244b169036bd3ac6a8"
+   },
+   "lazy": {
+    "handler.py": "769d500ce44e89fb3257b49238595fad0390c14d2194eaaaecf0ff6e11451f69",
+    "app.py": "5e924d3febf5d8c75a4066a0ae42446a17655eda830d2c52de1f62792bb4c94e"
+   }
+  },
+  "zips": {
+   "e6": {
+    "bytes": 59214815,
+    "sha256": "d75807e3ef6f334eeb992e9acc6c07c6ae98605ec38acb3afd4f9fdfa76e7717",
+    "handler": "e16_entry.handler",
+    "unzipped_bytes": 168863010,
+    "bytecode": {
+     "pyc": 1037,
+     "valid": 1037,
+     "stale": 0,
+     "no_source": 0,
+     "py": 1037,
+     "py_without_pyc": 0,
+     "compiled": 1037,
+     "failed": []
+    }
+   },
+   "lazy": {
+    "bytes": 59216031,
+    "sha256": "b266cff4ab8d3a42d4de5b0bd0d83b1ff97781fe35400161a026b30f30743bac",
+    "handler": "e16_entry.handler",
+    "unzipped_bytes": 168865915,
+    "bytecode": {
+     "pyc": 1037,
+     "valid": 1037,
+     "stale": 0,
+     "no_source": 0,
+     "py": 1037,
+     "py_without_pyc": 0,
+     "compiled": 1037,
+     "failed": []
+    }
+   }
+  },
+  "base": "P1 function.zip d148d706027e1b920f489abd6d92b7021df1fbcfeddf0ba89f82f9131d0d230b",
+  "function_zip": {
+   "bytes": 59216031,
+   "sha256": "b266cff4ab8d3a42d4de5b0bd0d83b1ff97781fe35400161a026b30f30743bac",
+   "handler": "e16_entry.handler",
+   "unzipped_bytes": 168865915,
+   "bytecode": {
+    "pyc": 1037,
+    "valid": 1037,
+    "stale": 0,
+    "no_source": 0,
+    "py": 1037,
+    "py_without_pyc": 0,
+    "compiled": 1037,
+    "failed": []
+   },
+   "base": "P1 function.zip d148d706027e1b920f489abd6d92b7021df1fbcfeddf0ba89f82f9131d0d230b"
+  }
+ },
+ "runtime_version_arn": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+ "client": {
+  "python": "3.12.13",
+  "boto3": "1.44.3",
+  "host": "x86_64"
+ },
+ "started": "2026-11-15T21:53:36Z",
+ "rounds_meta": [
+  {
+   "round": 0,
+   "order": [
+    "e6",
+    "lazy"
+   ],
+   "cold_tag": "e16-cold-r0-1794779616.231",
+   "t0": 1794779616.2305381,
+   "log_window": [
+    1794779616.2305381,
+    1794779701.90462
+   ],
+   "log_events": 720
+  },
+  {
+   "round": 1,
+   "order": [
+    "lazy",
+    "e6"
+   ],
+   "cold_tag": "e16-cold-r1-1794779704.636",
+   "t0": 1794779704.6359065,
+   "log_window": [
+    1794779704.6359065,
+    1794779789.5640416
+   ],
+   "log_events": 720
+  },
+  {
+   "round": 2,
+   "order": [
+    "e6",
+    "lazy"
+   ],
+   "cold_tag": "e16-cold-r2-1794779792.839",
+   "t0": 1794779792.8393052,
+   "log_window": [
+    1794779792.8393052,
+    1794779878.242913
+   ],
+   "log_events": 720
+  },
+  {
+   "round": 3,
+   "order": [
+    "lazy",
+    "e6"
+   ],
+   "cold_tag": "e16-cold-r3-1794779881.000",
+   "t0": 1794779881.0004754,
+   "log_window": [
+    1794779881.0004754,
+    1794779984.5186257
+   ],
+   "log_events": 720
+  },
+  {
+   "round": 4,
+   "order": [
+    "e6",
+    "lazy"
+   ],
+   "cold_tag": "e16-cold-r4-1794779987.250",
+   "t0": 1794779987.2503984,
+   "log_window": [
+    1794779987.2503984,
+    1794780055.8296509
+   ],
+   "log_events": 720
+  },
+  {
+   "round": 5,
+   "order": [
+    "lazy",
+    "e6"
+   ],
+   "cold_tag": "e16-cold-r5-1794780058.849",
+   "t0": 1794780058.8485348,
+   "log_window": [
+    1794780058.8485348,
+    1794780127.4860892
+   ],
+   "log_events": 720
+  },
+  {
+   "round": 6,
+   "order": [
+    "e6",
+    "lazy"
+   ],
+   "cold_tag": "e16-cold-r6-1794780130.571",
+   "t0": 1794780130.5710423,
+   "log_window": [
+    1794780130.5710423,
+    1794780215.3138263
+   ],
+   "log_events": 720
+  },
+  {
+   "round": 7,
+   "order": [
+    "lazy",
+    "e6"
+   ],
+   "cold_tag": "e16-cold-r7-1794780218.027",
+   "t0": 1794780218.0265303,
+   "log_window": [
+    1794780218.0265303,
+    1794780302.5965745
+   ],
+   "log_events": 720
+  },
+  {
+   "round": 100,
+   "order": [
+    "e6",
+    "lazy"
+   ],
+   "cold_tag": "e16-restore-r0-1794780308.320",
+   "t0": 1794780308.3203034,
+   "published": {
+    "e6": {
+     "arm": "e6",
+     "version": "1",
+     "publish_s": 144.8,
+     "t_publish": 1794780312.93407,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "11gH4+9vM07rmS6azGwHxq6YYF7Diss6/U+f36dudxc=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+     "t_deleted": 1794780469.4271178
+    },
+    "lazy": {
+     "arm": "lazy",
+     "version": "1",
+     "publish_s": 148.4,
+     "t_publish": 1794780312.9357798,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "smbP9KuNOkLU3lsL0Ng7H/l3gf41QAFhoCazDzB0O6w=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+     "t_deleted": 1794780469.763502
+    }
+   },
+   "t_versions_deleted": 1794780469.763502,
+   "log_window": [
+    1794780308.3203034,
+    1794780489.7636058
+   ],
+   "log_events": 304
+  },
+  {
+   "round": 101,
+   "order": [
+    "lazy",
+    "e6"
+   ],
+   "cold_tag": "e16-restore-r1-1794780492.005",
+   "t0": 1794780492.005257,
+   "published": {
+    "e6": {
+     "arm": "e6",
+     "version": "2",
+     "publish_s": 134.6,
+     "t_publish": 1794780496.216826,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "11gH4+9vM07rmS6azGwHxq6YYF7Diss6/U+f36dudxc=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+     "t_deleted": 1794780646.546359
+    },
+    "lazy": {
+     "arm": "lazy",
+     "version": "2",
+     "publish_s": 141.1,
+     "t_publish": 1794780496.2181132,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "smbP9KuNOkLU3lsL0Ng7H/l3gf41QAFhoCazDzB0O6w=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+     "t_deleted": 1794780646.8766623
+    }
+   },
+   "t_versions_deleted": 1794780646.8766623,
+   "log_window": [
+    1794780492.005257,
+    1794780666.8767586
+   ],
+   "log_events": 304
+  },
+  {
+   "round": 102,
+   "order": [
+    "e6",
+    "lazy"
+   ],
+   "cold_tag": "e16-restore-r2-1794780674.168",
+   "t0": 1794780674.1682165,
+   "published": {
+    "e6": {
+     "arm": "e6",
+     "version": "3",
+     "publish_s": 150.9,
+     "t_publish": 1794780678.4942067,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "11gH4+9vM07rmS6azGwHxq6YYF7Diss6/U+f36dudxc=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+     "t_deleted": 1794780838.543727
+    },
+    "lazy": {
+     "arm": "lazy",
+     "version": "3",
+     "publish_s": 134.6,
+     "t_publish": 1794780678.495581,
+     "snapstart": {
+      "ApplyOn": "PublishedVersions",
+      "OptimizationStatus": "On"
+     },
+     "code_sha256_b64": "smbP9KuNOkLU3lsL0Ng7H/l3gf41QAFhoCazDzB0O6w=",
+     "runtime_version": "arn:aws:lambda:us-east-2::runtime:0fec05b8b43b0ecfbabe4fd585b35e423f655861556712f8a10b0e8739c36c07",
+     "t_deleted": 1794780838.8788204
+    }
+   },
+   "t_versions_deleted": 1794780838.8788204,
+   "log_window": [
+    1794780674.1682165,
+    1794780858.8789191
+   ],
+   "log_events": 304
+  }
+ ],
+ "interleaving": "both arms in every wave: invokes submitted alternately into one pool, first arm alternating by round",
+ "finished": "2026-11-15T22:14:21Z",
+ "legs": {
+  "cold": {
+   "rounds": 8,
+   "started": "2026-11-15T21:53:36Z",
+   "finished": "2026-11-15T22:05:05Z"
+  },
+  "restore": {
+   "rounds": 3,
+   "started": "2026-11-15T22:05:08Z",
+   "finished": "2026-11-15T22:14:21Z"
+  }
+ }
+}

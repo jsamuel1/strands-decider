@@ -1,0 +1,435 @@
+{
+ "root": "<scratch>/proxy_e6",
+ "runs": [
+  {
+   "total_us": 384195,
+   "modules": 341,
+   "packages": {
+    "numpy": {
+     "self_us": 63667,
+     "modules": 86
+    },
+    "pydantic": {
+     "self_us": 23960,
+     "modules": 38
+    },
+    "pydantic_core": {
+     "self_us": 8336,
+     "modules": 3
+    },
+    "tokenizers": {
+     "self_us": 4007,
+     "modules": 14
+    },
+    "strands_decider": {
+     "self_us": 190867,
+     "modules": 4
+    },
+    "engine": {
+     "self_us": 367,
+     "modules": 1
+    }
+   },
+   "sys_modules": {
+    "numpy": 84,
+    "pydantic": 40,
+    "pydantic_core": 3,
+    "tokenizers": 14,
+    "strands_decider": 4,
+    "engine": 1,
+    "safetensors": 0
+   }
+  },
+  {
+   "total_us": 133243,
+   "modules": 341,
+   "packages": {
+    "numpy": {
+     "self_us": 28652,
+     "modules": 86
+    },
+    "pydantic": {
+     "self_us": 24449,
+     "modules": 38
+    },
+    "pydantic_core": {
+     "self_us": 8002,
+     "modules": 3
+    },
+    "tokenizers": {
+     "self_us": 3685,
+     "modules": 14
+    },
+    "strands_decider": {
+     "self_us": 9582,
+     "modules": 4
+    },
+    "engine": {
+     "self_us": 293,
+     "modules": 1
+    }
+   },
+   "sys_modules": {
+    "numpy": 84,
+    "pydantic": 40,
+    "pydantic_core": 3,
+    "tokenizers": 14,
+    "strands_decider": 4,
+    "engine": 1,
+    "safetensors": 0
+   }
+  },
+  {
+   "total_us": 140784,
+   "modules": 341,
+   "packages": {
+    "numpy": {
+     "self_us": 28343,
+     "modules": 86
+    },
+    "pydantic": {
+     "self_us": 26155,
+     "modules": 38
+    },
+    "pydantic_core": {
+     "self_us": 8064,
+     "modules": 3
+    },
+    "tokenizers": {
+     "self_us": 3541,
+     "modules": 14
+    },
+    "strands_decider": {
+     "self_us": 10321,
+     "modules": 4
+    },
+    "engine": {
+     "self_us": 268,
+     "modules": 1
+    }
+   },
+   "sys_modules": {
+    "numpy": 84,
+    "pydantic": 40,
+    "pydantic_core": 3,
+    "tokenizers": 14,
+    "strands_decider": 4,
+    "engine": 1,
+    "safetensors": 0
+   }
+  },
+  {
+   "total_us": 131811,
+   "modules": 341,
+   "packages": {
+    "numpy": {
+     "self_us": 29380,
+     "modules": 86
+    },
+    "pydantic": {
+     "self_us": 22331,
+     "modules": 38
+    },
+    "pydantic_core": {
+     "self_us": 7894,
+     "modules": 3
+    },
+    "tokenizers": {
+     "self_us": 3516,
+     "modules": 14
+    },
+    "strands_decider": {
+     "self_us": 9300,
+     "modules": 4
+    },
+    "engine": {
+     "self_us": 313,
+     "modules": 1
+    }
+   },
+   "sys_modules": {
+    "numpy": 84,
+    "pydantic": 40,
+    "pydantic_core": 3,
+    "tokenizers": 14,
+    "strands_decider": 4,
+    "engine": 1,
+    "safetensors": 0
+   }
+  },
+  {
+   "total_us": 130142,
+   "modules": 341,
+   "packages": {
+    "numpy": {
+     "self_us": 28099,
+     "modules": 86
+    },
+    "pydantic": {
+     "self_us": 22594,
+     "modules": 38
+    },
+    "pydantic_core": {
+     "self_us": 7863,
+     "modules": 3
+    },
+    "tokenizers": {
+     "self_us": 3311,
+     "modules": 14
+    },
+    "strands_decider": {
+     "self_us": 9160,
+     "modules": 4
+    },
+    "engine": {
+     "self_us": 293,
+     "modules": 1
+    }
+   },
+   "sys_modules": {
+    "numpy": 84,
+    "pydantic": 40,
+    "pydantic_core": 3,
+    "tokenizers": 14,
+    "strands_decider": 4,
+    "engine": 1,
+    "safetensors": 0
+   }
+  },
+  {
+   "total_us": 138468,
+   "modules": 341,
+   "packages": {
+    "numpy": {
+     "self_us": 28700,
+     "modules": 86
+    },
+    "pydantic": {
+     "self_us": 26004,
+     "modules": 38
+    },
+    "pydantic_core": {
+     "self_us": 8304,
+     "modules": 3
+    },
+    "tokenizers": {
+     "self_us": 3474,
+     "modules": 14
+    },
+    "strands_decider": {
+     "self_us": 9812,
+     "modules": 4
+    },
+    "engine": {
+     "self_us": 282,
+     "modules": 1
+    }
+   },
+   "sys_modules": {
+    "numpy": 84,
+    "pydantic": 40,
+    "pydantic_core": 3,
+    "tokenizers": 14,
+    "strands_decider": 4,
+    "engine": 1,
+    "safetensors": 0
+   }
+  },
+  {
+   "total_us": 153412,
+   "modules": 341,
+   "packages": {
+    "numpy": {
+     "self_us": 28676,
+     "modules": 86
+    },
+    "pydantic": {
+     "self_us": 24205,
+     "modules": 38
+    },
+    "pydantic_core": {
+     "self_us": 8457,
+     "modules": 3
+    },
+    "tokenizers": {
+     "self_us": 3318,
+     "modules": 14
+    },
+    "strands_decider": {
+     "self_us": 13567,
+     "modules": 4
+    },
+    "engine": {
+     "self_us": 402,
+     "modules": 1
+    }
+   },
+   "sys_modules": {
+    "numpy": 84,
+    "pydantic": 40,
+    "pydantic_core": 3,
+    "tokenizers": 14,
+    "strands_decider": 4,
+    "engine": 1,
+    "safetensors": 0
+   }
+  },
+  {
+   "total_us": 140662,
+   "modules": 341,
+   "packages": {
+    "numpy": {
+     "self_us": 30967,
+     "modules": 86
+    },
+    "pydantic": {
+     "self_us": 24089,
+     "modules": 38
+    },
+    "pydantic_core": {
+     "self_us": 8083,
+     "modules": 3
+    },
+    "tokenizers": {
+     "self_us": 3833,
+     "modules": 14
+    },
+    "strands_decider": {
+     "self_us": 9606,
+     "modules": 4
+    },
+    "engine": {
+     "self_us": 284,
+     "modules": 1
+    }
+   },
+   "sys_modules": {
+    "numpy": 84,
+    "pydantic": 40,
+    "pydantic_core": 3,
+    "tokenizers": 14,
+    "strands_decider": 4,
+    "engine": 1,
+    "safetensors": 0
+   }
+  },
+  {
+   "total_us": 136106,
+   "modules": 341,
+   "packages": {
+    "numpy": {
+     "self_us": 29889,
+     "modules": 86
+    },
+    "pydantic": {
+     "self_us": 24117,
+     "modules": 38
+    },
+    "pydantic_core": {
+     "self_us": 8547,
+     "modules": 3
+    },
+    "tokenizers": {
+     "self_us": 3241,
+     "modules": 14
+    },
+    "strands_decider": {
+     "self_us": 9352,
+     "modules": 4
+    },
+    "engine": {
+     "self_us": 277,
+     "modules": 1
+    }
+   },
+   "sys_modules": {
+    "numpy": 84,
+    "pydantic": 40,
+    "pydantic_core": 3,
+    "tokenizers": 14,
+    "strands_decider": 4,
+    "engine": 1,
+    "safetensors": 0
+   }
+  },
+  {
+   "total_us": 136526,
+   "modules": 341,
+   "packages": {
+    "numpy": {
+     "self_us": 29262,
+     "modules": 86
+    },
+    "pydantic": {
+     "self_us": 23652,
+     "modules": 38
+    },
+    "pydantic_core": {
+     "self_us": 8407,
+     "modules": 3
+    },
+    "tokenizers": {
+     "self_us": 3434,
+     "modules": 14
+    },
+    "strands_decider": {
+     "self_us": 9637,
+     "modules": 4
+    },
+    "engine": {
+     "self_us": 332,
+     "modules": 1
+    }
+   },
+   "sys_modules": {
+    "numpy": 84,
+    "pydantic": 40,
+    "pydantic_core": 3,
+    "tokenizers": 14,
+    "strands_decider": 4,
+    "engine": 1,
+    "safetensors": 0
+   }
+  },
+  {
+   "total_us": 134372,
+   "modules": 341,
+   "packages": {
+    "numpy": {
+     "self_us": 30201,
+     "modules": 86
+    },
+    "pydantic": {
+     "self_us": 22100,
+     "modules": 38
+    },
+    "pydantic_core": {
+     "self_us": 7725,
+     "modules": 3
+    },
+    "tokenizers": {
+     "self_us": 3921,
+     "modules": 14
+    },
+    "strands_decider": {
+     "self_us": 9444,
+     "modules": 4
+    },
+    "engine": {
+     "self_us": 331,
+     "modules": 1
+    }
+   },
+   "sys_modules": {
+    "numpy": 84,
+    "pydantic": 40,
+    "pydantic_core": 3,
+    "tokenizers": 14,
+    "strands_decider": 4,
+    "engine": 1,
+    "safetensors": 0
+   }
+  }
+ ],
+ "total_us_median": 136526
+}
