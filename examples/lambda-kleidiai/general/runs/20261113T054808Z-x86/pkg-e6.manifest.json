@@ -1,0 +1,11 @@
+{
+ "compiled": 1035,
+ "compiler": {
+  "invalidation_mode": "unchecked-hash",
+  "magic": "cb0d0d0a",
+  "python": "3.12.15"
+ },
+ "failed": [],
+ "schema": "lkai-general-pyc-tree/1",
+ "tree_sha256": "9c559ba74e60fa7ef8c8afce52ba3caf17cecb3f22b2bb7a0a7cc5d0b0bc53a8"
+}

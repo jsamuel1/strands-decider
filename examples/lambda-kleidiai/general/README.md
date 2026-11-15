@@ -9,21 +9,34 @@ llama.cpp/decshim engine (EC2, container, laptop)? This ladder measures each one
 
 | change | verdict | why |
 |---|---|---|
-| E8 six-thread KleidiAI repack (`GGML_KLEIDIAI_REPACK_THREADS`) | **general default** | Load −5.65 s on arm64 local-file (−5.67 s memfd). Nothing else changes. Answers are bit-identical. Inert on x86_64. Set the value to the engine's thread count. |
-| E9 pre-packed GGUF + loader | **general opt-in** (arm64 KleidiAI builds only) | Load −4.83 s, but E8 is 0.83 s faster in the same rounds. x86_64 refuses the file, as designed. **Hazard:** an unpatched engine loads it without error and returns NaN / wrong answers on both arches. |
-| E7 skip tied output head | **general opt-in** (decshim-only engines) | Load −2.03 s, peak RSS −488 MB on arm64. x86_64 RSS −575 MB. Answers bit-identical. Aborts if logits are requested, so it is not a llama.cpp-wide default. |
-| E10 `n_ctx` 4096 (model window) | **general default** | Peak RSS −306 MB arm64, −320 MB x86_64. Small load/forward gains; nothing worse. Answers bit-identical, including the full 4,096-token forward. Derive it from the head config's `max_length`. |
-| E5 no-vocab GGUF | **general opt-in** (engines that tokenize outside llama.cpp) | Load −0.50 s, RSS −83 MB arm64; RSS −55 MB x86_64. The file has no usable vocabulary for llama.cpp tokenization. Ship it beside the full GGUF. |
-| E6 complete bytecode | **general default** (packaged builds) | Imports −0.288 s arm64, −0.209 s x86_64 (read-only package). Nothing else changes. On a writable FS CPython writes the same `.pyc` after first start. |
+| E8 six-thread KleidiAI repack (`GGML_KLEIDIAI_REPACK_THREADS`) | **general default** | Load −5.67 s on arm64 local-file (−5.68 s memfd). Nothing else changes. Answers are bit-identical. Inert on x86_64. Set the value to the engine's thread count. |
+| E9 pre-packed GGUF + loader | **general opt-in** (arm64 KleidiAI builds only) | Load −4.80 s, but E8 is 0.88 s faster in the same rounds. x86_64 refuses the file, as designed (6/6). **Hazard:** an unpatched engine loads it without error and returns NaN / wrong answers on both arches. |
+| E7 skip tied output head | **general opt-in** (decshim-only engines) | Load −2.06 s, peak RSS −504 MB on arm64. x86_64 RSS −576 MB. Answers bit-identical. Aborts if logits are requested, so it is not a llama.cpp-wide default. |
+| E10 `n_ctx` 4096 (model window) | **general default** | Peak RSS −290 MB arm64, −281 MB x86_64. Every timing no change; nothing worse. Answers bit-identical, including the full 4,096-token forward. Derive it from the head config's `max_length`. |
+| E5 no-vocab GGUF | **general opt-in** (engines that tokenize outside llama.cpp) | Load −0.53 s, RSS −83 MB arm64; RSS −54 MB x86_64. The file has no usable vocabulary for llama.cpp tokenization. Ship it beside the full GGUF. |
+| E6 complete bytecode | **general default** (packaged builds) | Imports −0.296 s arm64 (read-only package). x86_64 no change inside the co-tenanted host's wide range; nothing worse. On a writable FS CPython writes the same `.pyc` after first start. |
 
-No rung degraded any measured non-Lambda path. `summarize.py --verdicts` refuses a "general default" for any rung
-with a **WORSE** cell or changed answers (operator rule, 2026-10-22). E8 vs E9, same rounds: E9 loads **0.835 s**
-slower (local) and **0.832 s** slower (memfd) than E8 (thresholds 0.066 / 0.028 s), with no other difference.
-Both remove the same repack cost, and E8 needs no new file format. Prefer E8.
+No rung degraded any measured non-Lambda path. `summarize.py --verdicts` enforces the operator rule (2026-10-22)
+fail-closed: it refuses a "general default" unless every required host/path cell (`verdicts.json`
+`required_cells`) is present with at least `min_rounds` (6) paired rounds; every headline metric is present,
+finite, assessed and not **WORSE**; the arm ran before its control exactly as often as after; no load of the arm,
+its dormant check or p1 failed unexpectedly; every request AND every 4,096-token answer is identical to the same
+run's P1, the long forward filled the window, and repeats within each load were identical; no answer differs from
+P1's published reference; and no answer is non-finite beyond the fields P1 itself returns (declared in
+`control_nan_fields`). Declared refusals (E9 on x86) must refuse in every round, and each published P2 status must
+follow from the primary cell. E8 vs E9, same rounds: E9 loads **0.884 s** slower (local) and **0.809 s** slower
+(memfd) than E8 (thresholds 0.116 / 0.163 s), with no other difference. Both remove the same repack cost, and E8
+needs no new file format. Prefer E8.
 
 ## Method
 
-- **Baseline** P1 `feat/lambda-kleidiai-baseline` @ `70eab7be69f86ddeb8c64158d94df344b5180098`. This branch is cut from it.
+- **Branch** <https://github.com/jsamuel1/strands-decider/tree/lkai/ac1b-general-ladder>, cut from P1. The
+  measurements were taken with the scripts at `c718f7e24d7bf45bab2eb0b1e836d60f902fc6ef` (the DevSpace copy of
+  `general/*.py *.sh` was byte-checked against it before the run). The analysis and P2 records were produced at
+  `5a0f7b93d82dc0c1f10d56be34910a48be119734` (`commits.ladder` in every P2 record), which changes only the P2
+  conditions note in `summarize.py`; no measurement script differs between the two. Later commits on the branch add
+  only the raw rows, generated outputs, verdict text and this README; none changes a script.
+- **Baseline** P1 `feat/lambda-kleidiai-baseline` @ `70eab7be69f86ddeb8c64158d94df344b5180098`.
 - **One variable per rung, each against P1 alone (not cumulative).** Rung commits were verified with
   `git ls-remote https://github.com/jsamuel1/strands-decider 'refs/heads/*'`:
   E8 `lkai/5a61-parallel-repack` bef9c89, E9 `lkai/f1ee-prepacked` 5dce29d, E7 `lkai/f768-skip-output-repack`
@@ -40,14 +53,24 @@ Both remove the same repack cost, and E8 needs no new file format. Prefer E8.
   `/var/task`), `--cpuset-cpus 10-15`, 6 threads. P1 env: `DEC_KV=f32 DEC_UBATCH=512 N_SEQ=17 OPENBLAS_NUM_THREADS=1`.
   Each load does: model load, first forward, first request, then P1's five requests × 3 warm passes and a
   4,096-token forward × 2. Peak RSS is `VmHWM`.
-- **Interleaving:** every round runs every cell (arm × path) in a cyclic rotation of one order. Over the rounds this
-  is a Latin square, so no arm owns a position. Comparisons are same run, same round, same path and same CPU identity.
+- **Interleaving** (`run_ladder.py schedule()`): every round runs every cell (arm × path) once. Rounds come in
+  reversal pairs: round 2k is a seeded random permutation, round 2k+1 the same permutation reversed (seed 20261114,
+  `schedule.json` in each run, written before the first load). Over the 6 rounds actually run, every candidate runs
+  before its control exactly 3 times and after it 3 times, and every cell's mean position is the middle of the
+  round, so a linear drift within a round adds the same to every cell. summarize.py records the before/after count
+  for every comparison (`order` in `ladder.json`, 3/3 in every cell) and the guard refuses an unbalanced one.
+  Comparisons are same run, same round, same path and same CPU identity.
+- **Warm cache from round 0:** before the first load, `run_ladder.py` reads every package tree, GGUF, request and
+  reference file once and starts the image once (`prime.json`). A first attempt without this step on the freshly
+  restarted DevSpace gave round 0 a cold page cache (E6 imports +0.03 s in round 0, −0.27 to −0.32 s in rounds 1–5);
+  that attempt was discarded unread for any verdict and both hosts were rerun.
 - **Pre-registered rule** (`summarize.py`), fixed before any result was read:
   1. Compute the per-round paired delta, `arm − p1`.
   2. An effect is real only if all paired deltas share a sign and |median| exceeds p1's own per-round range.
      For peak RSS, which repeats to a page, the bar is also at least 1% of p1.
-  3. Otherwise the cell is "no change". Fewer than 3 rounds is "unassessed".
-- **Bit-identity:** every answer is compared as canonical JSON text with the same run's P1. On arm64 it is also
+  3. Otherwise the cell is "no change". Fewer than 3 rounds is "unassessed" (and refuses a general default).
+- **Bit-identity:** every answer (and every repeat within a load) is compared as canonical JSON text, so NaN equals
+  NaN, with the same run's P1. On arm64 it is also
   compared with P1's published 0xd40 reference (`baseline/reference/outputs.json`). There is no x86_64 reference.
 
 ## Hosts (recorded per load in `host_before`)
@@ -57,18 +80,20 @@ Both remove the same repack cost, and E8 needs no new file format. Prefer E8.
 | host | DevSpace ds-lkai-p1-rs5ghbzv (H1's fixed host) | developer cloud desktop |
 | CPU identity | part 0xd40 (as printed; no generation inferred) | GenuineIntel family 6 model 173 stepping 1, "Xeon 6975P-C" |
 | CPUs / used | 16 / 10-15 (6 threads) | 32 vCPU / 10-15 (SMT siblings 26-31 not reserved) |
-| kernel | 6.1.188-233.393.amzn2023.aarch64 | 6.1.188-233.393.amzn2023.x86_64 |
+| kernel | 6.1.189-236.400.amzn2023.aarch64 | 6.1.189-236.400.amzn2023.x86_64 |
 | cgroup cpu.max | max 100000 (no quota) | max 100000 |
 | governor | not exposed (cpufreq absent) | not exposed |
 | ggml CPU variant | armv8.2_3 + armv8.6_1 (KleidiAI) | sapphirerapids (KleidiAI cannot be built for x86) |
-| other load (1-min loadavg) | 3.3–6.9 | **15–42: co-tenanted**, so x86 timing bars are wide |
+| other load (1-min loadavg) | 1.4–6.8 | **19–85: co-tenanted**, so x86 timing bars are wide |
 | docker | 25.0.8 | 25.0.14 |
-| run window (UTC) | 2026-10-25 09:05:52 → 10:14:23 (80 loads, 0 failed) | 09:19:01 → 10:05:53 (40 loads; 5 failed = E9 refusals by design); E6 10:17:19 → 10:29:41 (10 loads) |
+| run (UTC) | `20261113T054759Z`, 05:48 → 07:13, 96 loads, 0 failed | `20261113T054808Z-x86`, 05:48 → 07:12, 54 loads; 6 failed = E9 refusals by design |
 
 The x86_64 build (`x86_build.sh`) is P1's `container_build.sh` with two changes, recorded in
 `container_build_x86.diff`: `-DGGML_CPU_KLEIDIAI=OFF`, and no quantize step. It uses the same pinned image, by its
 amd64 digest `sha256:586cea70…f970`, which is checked against the manifest list. Each rung's llama.cpp patches are
-applied unchanged. On x86 the E8 and E9 `kleidiai.cpp` changes are not compiled in.
+applied unchanged. On x86 the E8 and E9 `kleidiai.cpp` changes are not compiled in. The x86 packages were rebuilt
+for this run; the shared libraries are not bit-reproducible (`out/sha-*.txt` are this build's), while the build
+diff and every rung's llama.cpp diff (`out/*.diff`) are byte-identical to the previous build's.
 
 ## Results (median p1 → arm (paired median Δ; ±rule threshold) outcome; n = rounds)
 
@@ -76,38 +101,33 @@ applied unchanged. On x86 the E8 and E9 `kleidiai.cpp` changes are not compiled 
 
 | rung | CPU identity | path | n | load s | load+first request s | first forward s | warm forward s | 4,096-token forward s | peak RSS MB | imports s | answers vs P1 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| e8 | 0xd40 | arm64 local | 5 | 7.934 → 2.279 (-5.649; ±0.056) **better** | 9.378 → 3.792 (-5.585; ±0.086) **better** | 0.229 → 0.228 (-0.001; ±0.003) no change | 0.565 → 0.564 (-0.003; ±0.006) no change | 15.790 → 15.822 (+0.015; ±0.257) no change | 4879 → 4880 (+0; ±49) no change | 0.459 → 0.457 (+0.001; ±0.014) no change | 50/50 req, 10/10 fwd |
-| e8 | 0xd40 | arm64 memfd | 5 | 8.009 → 2.342 (-5.666; ±0.089) **better** | 10.649 → 5.016 (-5.637; ±0.162) **better** | 0.230 → 0.229 (-0.001; ±0.005) no change | 0.565 → 0.565 (-0.001; ±0.005) no change | 15.915 → 15.953 (+0.036; ±0.116) no change | 4863 → 4880 (+17; ±49) no change | 0.456 → 0.458 (+0.001; ±0.010) no change | 50/50 req, 10/10 fwd |
-| e8 | GenuineIntel 6/173/1 | x86_64 local | 5 | 1.119 → 1.074 (-0.062; ±0.729) no change | 3.256 → 3.339 (+0.068; ±0.771) no change | 0.608 → 0.541 (-0.043; ±0.304) no change | 1.092 → 1.085 (-0.059; ±0.147) no change | 21.825 → 21.545 (-0.134; ±8.906) no change | 5183 → 5182 (-0; ±52) no change | 0.362 → 0.422 (+0.046; ±0.109) no change | 25/25 req, 5/5 fwd |
-| e9 | 0xd40 | arm64 local | 5 | 7.934 → 3.105 (-4.827; ±0.056) **better** | 9.378 → 4.546 (-4.832; ±0.086) **better** | 0.229 → 0.229 (-0.000; ±0.003) no change | 0.565 → 0.564 (-0.002; ±0.006) no change | 15.790 → 15.796 (-0.002; ±0.257) no change | 4879 → 4854 (-26; ±49) no change | 0.459 → 0.458 (-0.002; ±0.014) no change | 50/50 req, 10/10 fwd |
-| e9 | 0xd40 | arm64 memfd | 5 | 8.009 → 3.170 (-4.834; ±0.089) **better** | 10.649 → 5.779 (-4.851; ±0.162) **better** | 0.230 → 0.230 (-0.001; ±0.005) no change | 0.565 → 0.564 (-0.000; ±0.005) no change | 15.915 → 15.894 (-0.034; ±0.116) no change | 4863 → 4854 (-9; ±49) no change | 0.456 → 0.457 (+0.002; ±0.010) no change | 50/50 req, 10/10 fwd |
-| e9 | GenuineIntel 6/173/1 | x86_64 local | 5 | refused at load, 5/5 (see below) | | | | | | | — |
-| e7 | 0xd40 | arm64 local | 5 | 7.934 → 5.901 (-2.031; ±0.056) **better** | 9.378 → 7.351 (-2.012; ±0.086) **better** | 0.229 → 0.230 (+0.003; ±0.003) no change | 0.565 → 0.565 (-0.001; ±0.006) no change | 15.790 → 15.788 (-0.019; ±0.257) no change | 4879 → 4392 (-488; ±49) **better** | 0.459 → 0.459 (+0.001; ±0.014) no change | 50/50 req, 10/10 fwd |
-| e7 | 0xd40 | arm64 memfd | 5 | 8.009 → 5.980 (-2.028; ±0.089) **better** | 10.649 → 8.587 (-2.065; ±0.162) **better** | 0.230 → 0.229 (-0.001; ±0.005) no change | 0.565 → 0.565 (+0.000; ±0.005) no change | 15.915 → 15.883 (-0.022; ±0.116) no change | 4863 → 4392 (-471; ±49) **better** | 0.456 → 0.457 (+0.001; ±0.010) no change | 50/50 req, 10/10 fwd |
-| e7 | GenuineIntel 6/173/1 | x86_64 local | 5 | 1.119 → 0.960 (-0.085; ±0.729) no change | 3.256 → 2.990 (-0.420; ±0.771) no change | 0.608 → 0.465 (-0.118; ±0.304) no change | 1.092 → 1.043 (-0.055; ±0.147) no change | 21.825 → 20.792 (-1.252; ±8.906) no change | 5183 → 4606 (-575; ±52) **better** | 0.362 → 0.422 (+0.019; ±0.109) no change | 25/25 req, 5/5 fwd |
-| e10 | 0xd40 | arm64 local | 5 | 7.934 → 7.877 (-0.062; ±0.056) **better** | 9.378 → 9.286 (-0.108; ±0.086) **better** | 0.229 → 0.224 (-0.004; ±0.003) **better** | 0.565 → 0.559 (-0.006; ±0.006) no change | 15.790 → 15.726 (-0.064; ±0.257) no change | 4879 → 4573 (-306; ±49) **better** | 0.459 → 0.455 (-0.004; ±0.014) no change | 50/50 req, 10/10 fwd |
-| e10 | 0xd40 | arm64 memfd | 5 | 8.009 → 7.955 (-0.043; ±0.089) no change | 10.649 → 10.568 (-0.036; ±0.162) no change | 0.230 → 0.225 (-0.004; ±0.005) no change | 0.565 → 0.558 (-0.007; ±0.005) **better** | 15.915 → 15.719 (-0.162; ±0.116) **better** | 4863 → 4573 (-290; ±49) **better** | 0.456 → 0.457 (+0.000; ±0.010) no change | 50/50 req, 10/10 fwd |
-| e10 | GenuineIntel 6/173/1 | x86_64 local | 5 | 1.119 → 0.909 (-0.209; ±0.729) no change | 3.256 → 2.780 (-0.277; ±0.771) no change | 0.608 → 0.437 (-0.049; ±0.304) no change | 1.092 → 1.017 (-0.074; ±0.147) no change | 21.825 → 21.002 (-0.387; ±8.906) no change | 5183 → 4863 (-320; ±52) **better** | 0.362 → 0.358 (-0.008; ±0.109) no change | 25/25 req, 5/5 fwd |
-| e5 | 0xd40 | arm64 local | 5 | 7.934 → 7.436 (-0.504; ±0.056) **better** | 9.378 → 8.873 (-0.498; ±0.086) **better** | 0.229 → 0.230 (+0.002; ±0.003) no change | 0.565 → 0.565 (+0.000; ±0.006) no change | 15.790 → 15.798 (-0.020; ±0.257) no change | 4879 → 4796 (-83; ±49) **better** | 0.459 → 0.454 (-0.005; ±0.014) no change | 50/50 req, 10/10 fwd |
-| e5 | 0xd40 | arm64 memfd | 5 | 8.009 → 7.513 (-0.487; ±0.089) **better** | 10.649 → 10.124 (-0.487; ±0.162) **better** | 0.230 → 0.230 (-0.001; ±0.005) no change | 0.565 → 0.563 (-0.003; ±0.005) no change | 15.915 → 15.892 (-0.013; ±0.116) no change | 4863 → 4796 (-67; ±49) **better** | 0.456 → 0.458 (+0.001; ±0.010) no change | 50/50 req, 10/10 fwd |
-| e5 | GenuineIntel 6/173/1 | x86_64 local | 5 | 1.119 → 0.619 (-0.347; ±0.729) no change | 3.256 → 2.758 (-0.499; ±0.771) no change | 0.608 → 0.456 (-0.048; ±0.304) no change | 1.092 → 1.066 (-0.001; ±0.147) no change | 21.825 → 21.597 (-1.049; ±8.906) no change | 5183 → 5128 (-55; ±52) **better** | 0.362 → 0.387 (+0.011; ±0.109) no change | 25/25 req, 5/5 fwd |
-| e6 | 0xd40 | arm64 local | 5 | 7.934 → 7.940 (+0.019; ±0.056) no change | 9.378 → 9.101 (-0.276; ±0.086) **better** | 0.229 → 0.230 (+0.001; ±0.003) no change | 0.565 → 0.564 (-0.001; ±0.006) no change | 15.790 → 15.794 (-0.017; ±0.257) no change | 4879 → 4878 (-1; ±49) no change | 0.459 → 0.170 (-0.288; ±0.014) **better** | 25/25 req, 5/5 fwd |
-| e6 | GenuineIntel 6/173/1 | x86_64 local | 5 | 0.957 → 1.051 (+0.091; ±0.184) no change | 2.895 → 2.995 (+0.065; ±0.206) no change | 0.466 → 0.456 (+0.006; ±0.175) no change | 0.975 → 1.022 (+0.052; ±5.881) no change | 19.473 → 20.406 (+0.842; ±23.698) no change | 5182 → 5181 (-0; ±52) no change | 0.344 → 0.139 (-0.209; ±0.100) **better** | 25/25 req, 5/5 fwd |
+| e10 | 0xd40 | arm64 local | 6 | 8.085 → 8.066 (-0.021; ±0.447) no change | 9.616 → 9.606 (-0.021; ±0.578) no change | 0.235 → 0.232 (-0.002; ±0.018) no change | 0.587 → 0.576 (-0.011; ±0.045) no change | 16.188 → 16.142 (-0.076; ±0.274) no change | 4879 → 4589 (-290; ±49) **better** | 0.484 → 0.486 (+0.002; ±0.059) no change | 60/60 req, 12/12 fwd |
+| e10 | 0xd40 | arm64 memfd | 6 | 8.174 → 8.124 (-0.041; ±0.213) no change | 10.949 → 11.000 (+0.050; ±0.274) no change | 0.233 → 0.229 (-0.003; ±0.014) no change | 0.578 → 0.573 (-0.006; ±0.024) no change | 16.150 → 16.147 (+0.005; ±0.374) no change | 4879 → 4589 (-290; ±49) **better** | 0.489 → 0.493 (+0.008; ±0.025) no change | 60/60 req, 12/12 fwd |
+| e10 | GenuineIntel 6/173/1 | x86_64 local | 6 | 1.190 → 1.049 (-0.154; ±0.436) no change | 4.071 → 3.677 (-0.250; ±2.949) no change | 0.554 → 0.452 (-0.102; ±0.641) no change | 1.095 → 1.069 (-0.022; ±0.128) no change | 21.381 → 22.486 (+1.104; ±2.638) no change | 5181 → 4900 (-281; ±52) **better** | 0.368 → 0.501 (+0.128; ±1.409) no change | 30/30 req, 6/6 fwd |
+| e5 | 0xd40 | arm64 local | 6 | 8.085 → 7.575 (-0.530; ±0.447) **better** | 9.616 → 9.106 (-0.536; ±0.578) no change | 0.235 → 0.235 (+0.001; ±0.018) no change | 0.587 → 0.587 (-0.002; ±0.045) no change | 16.188 → 16.235 (+0.047; ±0.274) no change | 4879 → 4796 (-83; ±49) **better** | 0.484 → 0.484 (-0.008; ±0.059) no change | 60/60 req, 12/12 fwd |
+| e5 | 0xd40 | arm64 memfd | 6 | 8.174 → 7.606 (-0.551; ±0.213) **better** | 10.949 → 10.563 (-0.385; ±0.274) no change | 0.233 → 0.237 (+0.003; ±0.014) no change | 0.578 → 0.580 (+0.001; ±0.024) no change | 16.150 → 16.110 (-0.029; ±0.374) no change | 4879 → 4796 (-83; ±49) **better** | 0.489 → 0.480 (-0.003; ±0.025) no change | 60/60 req, 12/12 fwd |
+| e5 | GenuineIntel 6/173/1 | x86_64 local | 6 | 1.190 → 0.927 (-0.205; ±0.436) no change | 4.071 → 5.108 (+1.272; ±2.949) no change | 0.554 → 0.580 (+0.024; ±0.641) no change | 1.095 → 1.172 (+0.098; ±0.128) no change | 21.381 → 24.382 (+1.459; ±2.638) no change | 5181 → 5127 (-54; ±52) **better** | 0.368 → 0.858 (+0.248; ±1.409) no change | 30/30 req, 6/6 fwd |
+| e6 | 0xd40 | arm64 local | 6 | 8.085 → 8.139 (+0.028; ±0.447) no change | 9.616 → 9.392 (-0.249; ±0.578) no change | 0.235 → 0.235 (-0.000; ±0.018) no change | 0.587 → 0.587 (-0.005; ±0.045) no change | 16.188 → 16.210 (+0.022; ±0.274) no change | 4879 → 4879 (-1; ±49) no change | 0.484 → 0.188 (-0.296; ±0.059) **better** | 30/30 req, 6/6 fwd |
+| e6 | GenuineIntel 6/173/1 | x86_64 local | 6 | 1.190 → 1.181 (+0.099; ±0.436) no change | 4.071 → 4.267 (+0.388; ±2.949) no change | 0.554 → 0.512 (-0.007; ±0.641) no change | 1.095 → 1.144 (+0.059; ±0.128) no change | 21.381 → 24.646 (+2.498; ±2.638) no change | 5181 → 5180 (-2; ±52) no change | 0.368 → 0.598 (+0.037; ±1.409) no change | 30/30 req, 6/6 fwd |
+| e7 | 0xd40 | arm64 local | 6 | 8.085 → 6.034 (-2.064; ±0.447) **better** | 9.616 → 7.575 (-2.116; ±0.578) **better** | 0.235 → 0.234 (-0.001; ±0.018) no change | 0.587 → 0.575 (-0.009; ±0.045) no change | 16.188 → 16.176 (-0.008; ±0.274) no change | 4879 → 4375 (-504; ±49) **better** | 0.484 → 0.484 (-0.011; ±0.059) no change | 60/60 req, 12/12 fwd |
+| e7 | 0xd40 | arm64 memfd | 6 | 8.174 → 6.142 (-2.041; ±0.213) **better** | 10.949 → 8.928 (-2.044; ±0.274) **better** | 0.233 → 0.237 (+0.002; ±0.014) no change | 0.578 → 0.576 (+0.004; ±0.024) no change | 16.150 → 16.155 (-0.011; ±0.374) no change | 4879 → 4375 (-504; ±49) **better** | 0.489 → 0.488 (+0.006; ±0.025) no change | 60/60 req, 12/12 fwd |
+| e7 | GenuineIntel 6/173/1 | x86_64 local | 6 | 1.190 → 1.197 (+0.007; ±0.436) no change | 4.071 → 4.005 (-0.066; ±2.949) no change | 0.554 → 0.513 (-0.044; ±0.641) no change | 1.095 → 1.122 (+0.036; ±0.128) no change | 21.381 → 22.441 (+0.964; ±2.638) no change | 5181 → 4605 (-576; ±52) **better** | 0.368 → 0.686 (+0.240; ±1.409) no change | 30/30 req, 6/6 fwd |
+| e8 | 0xd40 | arm64 local | 6 | 8.085 → 2.432 (-5.668; ±0.447) **better** | 9.616 → 4.052 (-5.621; ±0.578) **better** | 0.235 → 0.235 (-0.002; ±0.018) no change | 0.587 → 0.578 (-0.013; ±0.045) no change | 16.188 → 16.179 (-0.014; ±0.274) no change | 4879 → 4880 (+0; ±49) no change | 0.484 → 0.493 (+0.007; ±0.059) no change | 60/60 req, 12/12 fwd |
+| e8 | 0xd40 | arm64 memfd | 6 | 8.174 → 2.537 (-5.677; ±0.213) **better** | 10.949 → 5.382 (-5.623; ±0.274) **better** | 0.233 → 0.234 (+0.001; ±0.014) no change | 0.578 → 0.581 (+0.007; ±0.024) no change | 16.150 → 16.181 (+0.034; ±0.374) no change | 4879 → 4880 (+0; ±49) no change | 0.489 → 0.484 (+0.002; ±0.025) no change | 60/60 req, 12/12 fwd |
+| e8 | GenuineIntel 6/173/1 | x86_64 local | 6 | 1.190 → 1.299 (+0.080; ±0.436) no change | 4.071 → 4.027 (-0.084; ±2.949) no change | 0.554 → 0.494 (-0.048; ±0.641) no change | 1.095 → 1.104 (+0.060; ±0.128) no change | 21.381 → 22.927 (+1.342; ±2.638) no change | 5181 → 5181 (-1; ±52) no change | 0.368 → 0.769 (+0.107; ±1.409) no change | 30/30 req, 6/6 fwd |
+| e9 | 0xd40 | arm64 local | 6 | 8.085 → 3.317 (-4.804; ±0.447) **better** | 9.616 → 4.888 (-4.788; ±0.578) **better** | 0.235 → 0.237 (+0.001; ±0.018) no change | 0.587 → 0.581 (-0.004; ±0.045) no change | 16.188 → 16.225 (+0.037; ±0.274) no change | 4879 → 4854 (-26; ±49) no change | 0.484 → 0.491 (+0.001; ±0.059) no change | 60/60 req, 12/12 fwd |
+| e9 | 0xd40 | arm64 memfd | 6 | 8.174 → 3.337 (-4.838; ±0.213) **better** | 10.949 → 6.334 (-4.608; ±0.274) **better** | 0.233 → 0.237 (+0.002; ±0.014) no change | 0.578 → 0.582 (+0.002; ±0.024) no change | 16.150 → 16.230 (+0.098; ±0.374) no change | 4879 → 4854 (-26; ±49) no change | 0.489 → 0.495 (+0.011; ±0.025) no change | 60/60 req, 12/12 fwd |
 
 On arm64, every arm's answers are also bit-identical to P1's published 0xd40 reference: E8, E9, E7, E10 and E5
-match 50/50; E6 matches 25/25 (local only). On arm64 the repeat passes within a load were identical for every arm.
+match 60/60; E6 matches 30/30 (local only). On both arches the repeat passes within every load were identical.
 
 **Dormant checks** (patched code, variable off; paired against p1, local path):
 
 | arm | 0xd40 load Δ (±) | 0xd40 answers | x86_64 |
 |---|---|---|---|
-| e8off | +0.058 s (±0.056) "worse": 0.7%, at the rule's edge | 25/25 identical | n/a (same libs as e8) |
-| e9p1 | −0.087 s (±0.056) "better" | 25/25 identical | no change, 25/25 |
-| e7off | +0.007 s, no change | 25/25 identical | no change, 25/25 |
-
-The e8off and e9p1 residues are under 0.1 s and sit just at p1's own 0.056 s range. Their signs are opposite, and
-neither is the shipped configuration (E8 ships with the switch on). Both are recorded as observations, not effects
-of a default.
+| e8off | +0.062 s (±0.447), no change | 30/30 req, 6/6 fwd identical | n/a (same libs as e8) |
+| e9p1 | −0.070 s (±0.447), no change | 30/30, 6/6 identical | no change, 30/30, 6/6 |
+| e7off | +0.056 s (±0.447), no change | 30/30, 6/6 identical | no change, 30/30, 6/6 |
 
 ## Findings beyond the timings
 
@@ -122,21 +142,26 @@ of a default.
    Removing that variant library gives finite answers (retries 0.551, freeze 0.351, alarm 0.019, capacity 0.078),
    close to arm64's (0.554 / 0.355 / 0.019 / 0.072). This predates every rung and is identical across arms, so the
    comparison is unaffected. It is still a P1 x86_64 defect (AVX-512 variant path), outside this ladder; recorded
-   for follow-up. NaN also makes probe.py's per-load `answers_repeat_identical` read False on x86 (NaN ≠ NaN).
-   summarize.py compares canonical JSON text instead.
+   for follow-up. These 12 fields are declared in `verdicts.json` `control_nan_fields`; the guard requires every
+   arm to return exactly P1's set and refuses any other non-finite answer.
 3. **E8's switch value:** the shipped value 6 equals `THREADS` here. The general default should follow the
    engine's thread count. Other counts were not measured in this ladder.
 
 ## Deviations and limits
 
-- The x86_64 host is a shared, co-tenanted desktop (loadavg 15–42), and CPUs 10-15 share SMT cores with 26-31,
-  which were not reserved. x86 timing bars are therefore wide (load ±0.73 s; 4,096 forward ±8.9 s), so x86 timing
-  can only rule out large regressions. Memory and answers are exact.
+- The x86_64 host is a shared, co-tenanted desktop (loadavg 19–85), and CPUs 10-15 share SMT cores with 26-31,
+  which were not reserved. x86 timing bars are therefore wide (load ±0.44 s; imports ±1.41 s; 4,096 forward
+  ±2.6 s), so x86 timing can only rule out large regressions. Memory and answers are exact.
+- The arm64 load range (p1 local ±0.447 s) is wider than in the October run because one p1 round read 8.51 s;
+  smaller effects (E10 load, E5 load+first request) are inside it and read "no change". The large effects
+  reproduce: the E8, E9 and E7 paired load deltas agree with the October run to within 0.04 s.
 - E6's published package was built from a P1 zip `d148d706…` (51,941,882 B). P1's published zip is `26eb2651…`
   (51,941,898 B). The arm64 e6 package was rebuilt from `26eb2651…` with `e6/pyc_zip.py` @ e989e39 in P1's image:
-  1035 compiled, 0 failed, CPython 3.12.15, magic `cb0d0d0a`. x86 e6 used `x86_e6.sh`, the same compile rule
-  (UNCHECKED_HASH, `dfile=/var/task/…`), applied to the unzipped x86 package, because `pyc_zip.py` only accepts
-  P1's arm64 zip.
+  1035 compiled, 0 failed, CPython 3.12.15, magic `cb0d0d0a`; `stage.sh` now stops if `pyc_zip.py`'s manifest
+  lists any failure. x86 e6 used `x86_e6.sh` → `pyc_tree.py`, the same compile rule (UNCHECKED_HASH,
+  `dfile=/var/task/…`), applied to the unzipped x86 package, because `pyc_zip.py` only accepts P1's arm64 zip. It
+  exits nonzero on any compile failure; the measured package's manifest is
+  `runs/20261113T054808Z-x86/pkg-e6.manifest.json` (1035 compiled, 0 failed, CPython 3.12.15, tree sha256).
 - Page cache was warm for every load, because there was no sudo to drop caches. Cold-disk load is not measured.
 - No AWS calls were made. Lambda numbers (R) are not comparable with these.
 
@@ -144,34 +169,39 @@ of a default.
 
 ```bash
 # arm64 fixed host (the DevSpace); artifacts verified against inputs.json
-general/stage.sh <artifact dir> <stage dir>                 # verifies hashes, builds pkg-*, e6 pyc
+general/stage.sh <artifact dir> <stage dir>                 # verifies hashes, builds pkg-*, e6 pyc (fails on any compile failure)
 python3 general/make_arms.py <stage dir> <artifact dir> <stage dir>/arms.json
-python3 general/run_ladder.py <stage dir>/arms.json <run dir> --rounds 5 --cpuset 10-15 --threads 6
+python3 general/run_ladder.py <stage dir>/arms.json <arm64 run> --rounds 6 --seed 20261114 --cpuset 10-15 --threads 6
 # x86_64
 general/x86_build.sh <p1.zip> <x86 dir>                     # pkg-p1/e8/e9/e7, diffs
-general/x86_e6.sh <x86 dir>/pkg-p1 <x86 dir>/pkg-e6
+general/x86_e6.sh <x86 dir>/pkg-p1 <x86 dir>/pkg-e6         # writes <x86 dir>/pkg-e6.manifest.json, fails on any compile failure
 python3 general/x86_arms.py <x86 dir> <dir with p1.gguf e9.gguf e5.gguf> <x86 dir>/arms.json
-python3 general/run_ladder.py <x86 dir>/arms.json <x86 run> --rounds 5 --platform linux/amd64 --cpuset 10-15 --threads 6 --only p1,e8,e9,e9p1,e7,e7off,e10,e5
-python3 general/run_ladder.py <x86 dir>/arms.json <x86 e6 run> --rounds 5 --platform linux/amd64 --cpuset 10-15 --threads 6 --only p1,e6
-# analysis, operator-rule guard, P2 result files
-python3 general/summarize.py <run dir> <x86 run> <x86 e6 run> --out <out> --verdicts general/verdicts.json --commit <this branch's SHA> --run-id 20261025T090459Z-general
+python3 general/run_ladder.py <x86 dir>/arms.json <x86 run> --rounds 6 --seed 20261114 --platform linux/amd64 --cpuset 10-15 --threads 6
+# analysis, fail-closed operator-rule guard, P2 result files
+python3 general/summarize.py <arm64 run> <x86 run> --out <out> --verdicts general/verdicts.json --commit <analysis SHA> --run-id 20261113T054759Z-general
 python3 general/tables.py <out>/ladder.json
 python3 results/publish_result.py <out>/p2/<rung>/results.json --validate-only   # P2 (feat/lambda-kleidiai-results)
 ```
 
 `runs/` holds this ladder's raw probe files and `out/` holds the analysis; `out/p2/<rung>/results.json` are the P2
-records (experiment ids `G-general-E*`, run id `20261025T090459Z-general`).
+records (experiment ids `G-general-E*`, run id `20261113T054759Z-general`). The earlier 5-round run
+(`20261025T090459Z-general`, rotation schedule) is superseded by this one and its rows were removed from the branch.
 
 ## P2 pointers
 
 Published with `results/publish_result.py` (feat/lambda-kleidiai-results) to the P2 store and dashboard
-<https://artifactory.amazon.dev/view/lambda-kleidiai-experiments-results>, all `status: improved`:
+<https://artifactory.amazon.dev/view/lambda-kleidiai-experiments-results>, all `status: improved`. Each stored
+`result.json` was read back and equals `out/p2/<rung>/results.json` apart from the publisher's own `published`
+block; the stored `ladder.json` / `probes.jsonl` sha256 match the committed files.
 
-| rung | P2 run | dashboard version |
+| rung | P2 run (current, 6 balanced rounds) | dashboard version |
 |---|---|---|
-| E8 | `s3://strands-decider-lkai-results-apse2/runs/G-general-E8-parallel-repack/20261025T090459Z-general/result.json` | 59 |
-| E9 | `s3://strands-decider-lkai-results-apse2/runs/G-general-E9-prepacked/20261025T090459Z-general/result.json` | 60 |
-| E7 | `s3://strands-decider-lkai-results-apse2/runs/G-general-E7-skip-tied-output/20261025T090459Z-general/result.json` | 61 |
-| E10 | `s3://strands-decider-lkai-results-apse2/runs/G-general-E10-kv-size/20261025T090459Z-general/result.json` | 62 |
-| E5 | `s3://strands-decider-lkai-results-apse2/runs/G-general-E5-no-vocab-gguf/20261025T090459Z-general/result.json` | 63 |
-| E6 | `s3://strands-decider-lkai-results-apse2/runs/G-general-E6-bytecode/20261025T090459Z-general/result.json` | 64 |
+| E8 | `s3://strands-decider-lkai-results-apse2/runs/G-general-E8-parallel-repack/20261113T054759Z-general/result.json` | 65 |
+| E9 | `s3://strands-decider-lkai-results-apse2/runs/G-general-E9-prepacked/20261113T054759Z-general/result.json` | 66 |
+| E7 | `s3://strands-decider-lkai-results-apse2/runs/G-general-E7-skip-tied-output/20261113T054759Z-general/result.json` | 67 |
+| E10 | `s3://strands-decider-lkai-results-apse2/runs/G-general-E10-kv-size/20261113T054759Z-general/result.json` | 68 |
+| E5 | `s3://strands-decider-lkai-results-apse2/runs/G-general-E5-no-vocab-gguf/20261113T054759Z-general/result.json` | 69 |
+| E6 | `s3://strands-decider-lkai-results-apse2/runs/G-general-E6-bytecode/20261113T054759Z-general/result.json` | 70 |
+
+Superseded (5-round rotation schedule, kept in the append-only store, not used for any verdict above):
+E8 `G-general-E8-parallel-repack/20261025T090459Z-general` (v59), E9 `G-general-E9-prepacked/20261025T090459Z-general` (v60), E7 `G-general-E7-skip-tied-output/20261025T090459Z-general` (v61), E10 `G-general-E10-kv-size/20261025T090459Z-general` (v62), E5 `G-general-E5-no-vocab-gguf/20261025T090459Z-general` (v63), E6 `G-general-E6-bytecode/20261025T090459Z-general` (v64).
