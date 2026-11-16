@@ -211,16 +211,18 @@ records (experiment ids `G-general-E*`, run id `20261113T054759Z-general`). The 
 Published with `results/publish_result.py` (feat/lambda-kleidiai-results) to the P2 store and dashboard
 <https://artifactory.amazon.dev/view/lambda-kleidiai-experiments-results>, all `status: improved`. Each stored
 `result.json` was read back and equals `out/p2/<rung>/results.json` apart from the publisher's own `published`
-block; the stored `ladder.json` / `probes.jsonl` sha256 match the committed files.
+block; the stored `ladder.json` / `probes.jsonl` sha256 match the committed files. The records were republished in
+place (`--replace`) after the round-paired analysis (`commits.ladder` `cd1de76`); dashboard versions 65-70 held
+the same measurements under the earlier analysis.
 
 | rung | P2 run (current, 6 balanced rounds) | dashboard version |
 |---|---|---|
-| E8 | `s3://strands-decider-lkai-results-apse2/runs/G-general-E8-parallel-repack/20261113T054759Z-general/result.json` | 65 |
-| E9 | `s3://strands-decider-lkai-results-apse2/runs/G-general-E9-prepacked/20261113T054759Z-general/result.json` | 66 |
-| E7 | `s3://strands-decider-lkai-results-apse2/runs/G-general-E7-skip-tied-output/20261113T054759Z-general/result.json` | 67 |
-| E10 | `s3://strands-decider-lkai-results-apse2/runs/G-general-E10-kv-size/20261113T054759Z-general/result.json` | 68 |
-| E5 | `s3://strands-decider-lkai-results-apse2/runs/G-general-E5-no-vocab-gguf/20261113T054759Z-general/result.json` | 69 |
-| E6 | `s3://strands-decider-lkai-results-apse2/runs/G-general-E6-bytecode/20261113T054759Z-general/result.json` | 70 |
+| E8 | `s3://strands-decider-lkai-results-apse2/runs/G-general-E8-parallel-repack/20261113T054759Z-general/result.json` | 73 |
+| E9 | `s3://strands-decider-lkai-results-apse2/runs/G-general-E9-prepacked/20261113T054759Z-general/result.json` | 74 |
+| E7 | `s3://strands-decider-lkai-results-apse2/runs/G-general-E7-skip-tied-output/20261113T054759Z-general/result.json` | 75 |
+| E10 | `s3://strands-decider-lkai-results-apse2/runs/G-general-E10-kv-size/20261113T054759Z-general/result.json` | 76 |
+| E5 | `s3://strands-decider-lkai-results-apse2/runs/G-general-E5-no-vocab-gguf/20261113T054759Z-general/result.json` | 77 |
+| E6 | `s3://strands-decider-lkai-results-apse2/runs/G-general-E6-bytecode/20261113T054759Z-general/result.json` | 78 |
 
 Superseded (5-round rotation schedule, kept in the append-only store, not used for any verdict above):
 E8 `G-general-E8-parallel-repack/20261025T090459Z-general` (v59), E9 `G-general-E9-prepacked/20261025T090459Z-general` (v60), E7 `G-general-E7-skip-tied-output/20261025T090459Z-general` (v61), E10 `G-general-E10-kv-size/20261025T090459Z-general` (v62), E5 `G-general-E5-no-vocab-gguf/20261025T090459Z-general` (v63), E6 `G-general-E6-bytecode/20261025T090459Z-general` (v64).
