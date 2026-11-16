@@ -155,7 +155,7 @@ match 60/60; E6 matches 30/30 (local only). On both arches the repeat passes wit
    one by its exact generic diagnostic and exit 1, the refusal run by that reason and exit 3. So E9 GGUFs
    must never sit where a generic loader can pick them up.
 2. **x86_64 P1 itself returns NaN for one request.** In every arm, P1 included, `incident-review-4q` returns NaN
-   probabilities (12 fields: `nan_fields` in `ladder.json`) on the auto-selected `libggml-cpu-sapphirerapids.so`.
+   probabilities (12 fields: `non_finite_fields` in `ladder.json`) on the auto-selected `libggml-cpu-sapphirerapids.so`.
    Removing that variant library gives finite answers (retries 0.551, freeze 0.351, alarm 0.019, capacity 0.078),
    close to arm64's (0.554 / 0.355 / 0.019 / 0.072). This predates every rung and is identical across arms, so the
    comparison is unaffected. It is still a P1 x86_64 defect (AVX-512 variant path), outside this ladder; recorded
