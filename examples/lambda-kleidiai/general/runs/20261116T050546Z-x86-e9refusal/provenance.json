@@ -2,13 +2,13 @@
  "schema": "lkai-general-refusal-run/1",
  "evidence": "FIXED HOST, NOT LAMBDA",
  "purpose": "Machine-readable cause for E9's x86_64 refusal (review 1794779848167-594c8d:1). Refusal-only: one arm, e9 local, 6 rounds; no timings are used.",
- "measured_with_commit": "probe.py/run_ladder.py of the commit that adds this directory (refusal record)",
+ "measured_with_commit": "399725ad176bedd7434f804e0b5188fe4f2e273f (probe.py, run_ladder.py, host.py byte-identical to it at run time)",
  "e9_gguf_sha256": "183137fb500e10a5934fa2df8c1f778d9f674fbdc196b36fff630a9ecc277ea2",
  "e9_gguf_source": "DevSpace ds-lkai-p1-rs5ghbzv ~/w/ac1b-art/e9.gguf, equal to inputs.json e9_gguf",
  "pkg_e9": "x86_build.sh RUNGS=e9 rebuilt from p1.zip 26eb2651...; llama-e9.diff identical to out/llama-e9.diff; every lib/*.so sha256 identical to out/sha-e9.txt (only function.zip's container hash differs). Per-file hashes: sha-e9.txt",
  "host": {
   "cpu": "Intel(R) Xeon(R) 6975P-C",
   "kernel": "6.1.190-237.442.amzn2023.x86_64",
-  "loadavg": "10.90 16.36 19.95 9/6336 3410906"
+  "loadavg": "17.40 17.26 19.72 11/5818 3459959"
  }
 }
