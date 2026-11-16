@@ -15,7 +15,7 @@
  "commits": {
   "baseline": "70eab7be69f86ddeb8c64158d94df344b5180098",
   "experiment": "e989e39417fe4e9283edb2e45009189f23095ce8",
-  "ladder": "5a0f7b93d82dc0c1f10d56be34910a48be119734",
+  "ladder": "cd1de7661ba995cb374fc7d5737fa4fbfe23f3fc",
   "repo_dirty_at_build": false
  },
  "conclusion": "FIXED HOST, NOT LAMBDA. 0xd40 (package mounted read-only): imports 0.484 -> 0.188 s (-0.296 s, 6/6, p1 range 0.059); load+first request -0.249 s inside range; load/warm/RSS no change; answers bit-identical (30/30, 6/6). x86_64 (same interleaved run, same compile rule via pyc_tree.py, 1035 compiled / 0 failed): imports +0.037 s median, no change: the co-tenanted host's p1 imports range is 1.409 s (loadavg 19-85), so x86 can only rule out a large regression, and none occurred; everything else no change, answers identical. It is a packaging step: on a writable filesystem CPython writes the same .pyc after the first start, so the gain there is the first start only. Verdict: general default for packaged builds (zip, container image, read-only mount), compiled with each target's own interpreter.",
@@ -53,8 +53,10 @@
    "choice_flips_vs_p1": 0,
    "forward4096_not_full_window": 0,
    "max_abs_delta_vs_p1": 0.0,
-   "nan_fields": [],
+   "non_finite_fields": [],
    "repeat_identical": true,
+   "requests_answered": 30,
+   "unpaired_rows": 0,
    "vs_reference_requests": {
     "differs": 0,
     "identical": 30,
@@ -1589,7 +1591,8 @@
   "see examples/lambda-kleidiai/general/README.md 'Reproduce'",
   "python3 general/run_ladder.py <stage>/arms.json <arm64 run> --rounds 6 --seed 20261114 --cpuset 10-15 --threads 6",
   "python3 general/run_ladder.py <x86 dir>/arms.json <x86 run> --rounds 6 --seed 20261114 --platform linux/amd64 --cpuset 10-15 --threads 6",
-  "python3 general/summarize.py <arm64 run> <x86 run> --out <dir> --verdicts general/verdicts.json --commit <analysis sha> --run-id <id>"
+  "python3 general/run_ladder.py <x86 dir>/arms.json <x86 refusal run> --rounds 6 --seed 20261114 --platform linux/amd64 --cpuset 10-15 --threads 6   # arms.json with the e9 arm only",
+  "python3 general/summarize.py <arm64 run> <x86 run> <x86 refusal run> --out <dir> --verdicts general/verdicts.json --commit <analysis sha> --run-id <id>"
  ],
  "run_id": "20261113T054759Z-general",
  "schema": "lkai-result/1",
@@ -1830,7 +1833,7 @@
    "choice_flips_vs_p1": 0,
    "forward4096_not_full_window": 0,
    "max_abs_delta_vs_p1": 0.0,
-   "nan_fields": [
+   "non_finite_fields": [
     "incident-review-4q/root_cause/probabilities/alarm",
     "incident-review-4q/root_cause/probabilities/capacity",
     "incident-review-4q/root_cause/probabilities/freeze",
@@ -1845,6 +1848,8 @@
     "incident-review-4q/test_gap/noul"
    ],
    "repeat_identical": true,
+   "requests_answered": 30,
+   "unpaired_rows": 0,
    "vs_reference_requests": {
     "differs": 0,
     "identical": 0,

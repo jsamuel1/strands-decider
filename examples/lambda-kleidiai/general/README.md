@@ -36,9 +36,11 @@ needs no new file format. Prefer E8.
 - **Branch** <https://github.com/jsamuel1/strands-decider/tree/lkai/ac1b-general-ladder>, cut from P1. The
   measurements were taken with the scripts at `c718f7e24d7bf45bab2eb0b1e836d60f902fc6ef` (the DevSpace copy of
   `general/*.py *.sh` was byte-checked against it before the run). The analysis and P2 records were produced at
-  `5a0f7b93d82dc0c1f10d56be34910a48be119734` (`commits.ladder` in every P2 record), which changes only the P2
-  conditions note in `summarize.py`; no measurement script differs between the two. Later commits on the branch add
-  only the raw rows, generated outputs, verdict text and this README; none changes a script.
+  `cd1de7661ba995cb374fc7d5737fa4fbfe23f3fc` (`commits.ladder` in every P2 record). Relative to `c718f7e` its scripts
+  change only the analysis (`summarize.py`: round-paired, fully finite correctness and per-round refusal checks) and
+  the failure path of `probe.py` / `run_ladder.py` (a refusal record), which a successful load never reaches. The x86
+  E9 refusal-only run (`runs/20261116T050546Z-x86-e9refusal`) was taken with those scripts (`399725a`, identical
+  to `cd1de76` in every script). Later commits on the branch add only generated outputs and this README.
 - **Baseline** P1 `feat/lambda-kleidiai-baseline` @ `70eab7be69f86ddeb8c64158d94df344b5180098`.
 - **One variable per rung, each against P1 alone (not cumulative).** Rung commits were verified with
   `git ls-remote https://github.com/jsamuel1/strands-decider 'refs/heads/*'`:
@@ -145,7 +147,7 @@ match 60/60; E6 matches 30/30 (local only). On both arches the repeat passes wit
    requests DIFFER from P1's 0xd40 reference, and 4/5 differ from x86 P1. Files: `hazard/arm-p1libs-e9gguf.json`,
    `hazard/x86-p1libs-e9gguf.json`. With E9's loader on x86, the file is refused. The measured x86 run's six E9
    failures only show the shim's generic `dec_load_seq failed`, because P1's shim silences llama's log. The cause
-   is therefore proven by a refusal-only x86 run, `runs/20261116T050246Z-x86-e9refusal` (6 rounds, e9 local only;
+   is therefore proven by a refusal-only x86 run, `runs/20261116T050546Z-x86-e9refusal` (6 rounds, e9 local only;
    E9 GGUF sha256 as `inputs.json`; x86 E9 package rebuilt with `x86_build.sh`, every library byte-identical to
    the measured one, `sha-e9.txt` and `provenance.json`). In every round the probe's `refusal` record carries
    llama.cpp's error `tensor 'blk.0.attn_qkv.weight' is KleidiAI-prepacked (E9) but is not in a CPU_KLEIDIAI

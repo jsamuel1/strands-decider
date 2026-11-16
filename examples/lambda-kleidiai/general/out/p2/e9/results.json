@@ -15,10 +15,10 @@
  "commits": {
   "baseline": "70eab7be69f86ddeb8c64158d94df344b5180098",
   "experiment": "5dce29dae1bd5688a9f3203cfa5ae4183f2f27f7",
-  "ladder": "5a0f7b93d82dc0c1f10d56be34910a48be119734",
+  "ladder": "cd1de7661ba995cb374fc7d5737fa4fbfe23f3fc",
   "repo_dirty_at_build": false
  },
- "conclusion": "FIXED HOST, NOT LAMBDA. 0xd40 local-file: load 8.085 -> 3.317 s (-4.804 s, 6/6); memfd -4.838 s; warm/forward/RSS no change; answers bit-identical (60/60, 12/12). Same rounds, E9 loads 0.884 s slower than E8 (local, threshold 0.116) and 0.809 s slower (memfd, threshold 0.163), with no other difference: E8 is the better general mechanism. x86_64: the E9 GGUF is refused at load in 6/6 rounds, as designed; the E9 loader with a plain GGUF is inert (answers identical, timings no change). Hazard (October hazard/ files): an UNPATCHED P1 engine loads the E9 GGUF without error and returns NaN probabilities and wrong choices on arm64 and x86_64. A format that silently corrupts answers on any loader without the patch, and needs a KleidiAI build, cannot be a general default. Verdict: general opt-in (arm64 KleidiAI builds with the E9 loader only); prefer E8.",
+ "conclusion": "FIXED HOST, NOT LAMBDA. 0xd40 local-file: load 8.085 -> 3.317 s (-4.804 s, 6/6); memfd -4.838 s; warm/forward/RSS no change; answers bit-identical (60/60, 12/12). Same rounds, E9 loads 0.884 s slower than E8 (local, threshold 0.116) and 0.809 s slower (memfd, threshold 0.163), with no other difference: E8 is the better general mechanism. x86_64: the E9 GGUF is refused at load in 6/6 rounds of the measured run (generic 'dec_load_seq failed'), and a refusal-only x86 run (20261116T050546Z-x86-e9refusal, 6/6, byte-identical E9 libraries) records the designed cause each round: llama.cpp's E9 loader error 'is KleidiAI-prepacked (E9) but is not in a CPU_KLEIDIAI buffer' (reason e9-prepacked-not-in-kleidiai-buffer); the E9 loader with a plain GGUF is inert (answers identical, timings no change). Hazard (October hazard/ files): an UNPATCHED P1 engine loads the E9 GGUF without error and returns NaN probabilities and wrong choices on arm64 and x86_64. A format that silently corrupts answers on any loader without the patch, and needs a KleidiAI build, cannot be a general default. Verdict: general opt-in (arm64 KleidiAI builds with the E9 loader only); prefer E8.",
  "conditions": {
   "arms": [
    "e9",
@@ -54,8 +54,10 @@
    "choice_flips_vs_p1": 0,
    "forward4096_not_full_window": 0,
    "max_abs_delta_vs_p1": 0.0,
-   "nan_fields": [],
+   "non_finite_fields": [],
    "repeat_identical": true,
+   "requests_answered": 60,
+   "unpaired_rows": 0,
    "vs_reference_requests": {
     "differs": 0,
     "identical": 60,
@@ -114,8 +116,10 @@
     "choice_flips_vs_p1": 0,
     "forward4096_not_full_window": 0,
     "max_abs_delta_vs_p1": 0.0,
-    "nan_fields": [],
+    "non_finite_fields": [],
     "repeat_identical": true,
+    "requests_answered": 30,
+    "unpaired_rows": 0,
     "vs_reference_requests": {
      "differs": 0,
      "identical": 30,
@@ -364,7 +368,7 @@
     "choice_flips_vs_p1": 0,
     "forward4096_not_full_window": 0,
     "max_abs_delta_vs_p1": 0.0,
-    "nan_fields": [
+    "non_finite_fields": [
      "incident-review-4q/root_cause/probabilities/alarm",
      "incident-review-4q/root_cause/probabilities/capacity",
      "incident-review-4q/root_cause/probabilities/freeze",
@@ -379,6 +383,8 @@
      "incident-review-4q/test_gap/noul"
     ],
     "repeat_identical": true,
+    "requests_answered": 30,
+    "unpaired_rows": 0,
     "vs_reference_requests": {
      "differs": 0,
      "identical": 0,
@@ -2836,7 +2842,8 @@
   "see examples/lambda-kleidiai/general/README.md 'Reproduce'",
   "python3 general/run_ladder.py <stage>/arms.json <arm64 run> --rounds 6 --seed 20261114 --cpuset 10-15 --threads 6",
   "python3 general/run_ladder.py <x86 dir>/arms.json <x86 run> --rounds 6 --seed 20261114 --platform linux/amd64 --cpuset 10-15 --threads 6",
-  "python3 general/summarize.py <arm64 run> <x86 run> --out <dir> --verdicts general/verdicts.json --commit <analysis sha> --run-id <id>"
+  "python3 general/run_ladder.py <x86 dir>/arms.json <x86 refusal run> --rounds 6 --seed 20261114 --platform linux/amd64 --cpuset 10-15 --threads 6   # arms.json with the e9 arm only",
+  "python3 general/summarize.py <arm64 run> <x86 run> <x86 refusal run> --out <dir> --verdicts general/verdicts.json --commit <analysis sha> --run-id <id>"
  ],
  "run_id": "20261113T054759Z-general",
  "schema": "lkai-result/1",
@@ -3145,6 +3152,150 @@
     "stderr": "Traceback (most recent call last):\n  File \"/g/probe.py\", line 266, in <module>\n    main()\n  File \"/g/probe.py\", line 176, in main\n    eng, shim = engine.load_engine(\n                ^^^^^^^^^^^^^^^^^^^\n  File \"/var/task/engine.py\", line 237, in load_engine\n    shim = Shim(os.path.join(os.path.dirname(lib_path), \"libdecshim.so\"), gguf_path, threads,\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/var/task/engine.py\", line 116, in __init__\n    raise RuntimeError(f\"dec_load_seq failed for {model_path}\")\nRuntimeError: dec_load_seq failed for /m/model.gguf\n",
     "stdout": "",
     "wall_s": 4.864
+   },
+   {
+    "arm": "e9",
+    "mode": "local",
+    "pos": 0,
+    "rc": 3,
+    "refusal": {
+     "arm": "e9",
+     "diagnostic_reload": "refused",
+     "exception": "RuntimeError: dec_load_seq failed for /m/model.gguf",
+     "llama_errors": [
+      "llama_model_load: error loading model: tensor 'blk.0.attn_qkv.weight' is KleidiAI-prepacked (E9) but is not in a CPU_KLEIDIAI buffer",
+      "llama_model_load_from_file_impl: failed to load model"
+     ],
+     "mode": "local",
+     "reason": "e9-prepacked-not-in-kleidiai-buffer",
+     "stage": "model_load"
+    },
+    "round": 0,
+    "run": "20261116T050546Z-x86-e9refusal",
+    "started": 1794805547.9448576,
+    "stderr": "",
+    "stdout": "LKAI_REFUSAL {\"arm\": \"e9\", \"diagnostic_reload\": \"refused\", \"exception\": \"RuntimeError: dec_load_seq failed for /m/model.gguf\", \"llama_errors\": [\"llama_model_load: error loading model: tensor 'blk.0.attn_qkv.weight' is KleidiAI-prepacked (E9) but is not in a CPU_KLEIDIAI buffer\", \"llama_model_load_from_file_impl: failed to load model\"], \"mode\": \"local\", \"reason\": \"e9-prepacked-not-in-kleidiai-buffer\", \"stage\": \"model_load\"}\n",
+    "wall_s": 2.687
+   },
+   {
+    "arm": "e9",
+    "mode": "local",
+    "pos": 0,
+    "rc": 3,
+    "refusal": {
+     "arm": "e9",
+     "diagnostic_reload": "refused",
+     "exception": "RuntimeError: dec_load_seq failed for /m/model.gguf",
+     "llama_errors": [
+      "llama_model_load: error loading model: tensor 'blk.0.attn_qkv.weight' is KleidiAI-prepacked (E9) but is not in a CPU_KLEIDIAI buffer",
+      "llama_model_load_from_file_impl: failed to load model"
+     ],
+     "mode": "local",
+     "reason": "e9-prepacked-not-in-kleidiai-buffer",
+     "stage": "model_load"
+    },
+    "round": 1,
+    "run": "20261116T050546Z-x86-e9refusal",
+    "started": 1794805550.6322794,
+    "stderr": "",
+    "stdout": "LKAI_REFUSAL {\"arm\": \"e9\", \"diagnostic_reload\": \"refused\", \"exception\": \"RuntimeError: dec_load_seq failed for /m/model.gguf\", \"llama_errors\": [\"llama_model_load: error loading model: tensor 'blk.0.attn_qkv.weight' is KleidiAI-prepacked (E9) but is not in a CPU_KLEIDIAI buffer\", \"llama_model_load_from_file_impl: failed to load model\"], \"mode\": \"local\", \"reason\": \"e9-prepacked-not-in-kleidiai-buffer\", \"stage\": \"model_load\"}\n",
+    "wall_s": 2.688
+   },
+   {
+    "arm": "e9",
+    "mode": "local",
+    "pos": 0,
+    "rc": 3,
+    "refusal": {
+     "arm": "e9",
+     "diagnostic_reload": "refused",
+     "exception": "RuntimeError: dec_load_seq failed for /m/model.gguf",
+     "llama_errors": [
+      "llama_model_load: error loading model: tensor 'blk.0.attn_qkv.weight' is KleidiAI-prepacked (E9) but is not in a CPU_KLEIDIAI buffer",
+      "llama_model_load_from_file_impl: failed to load model"
+     ],
+     "mode": "local",
+     "reason": "e9-prepacked-not-in-kleidiai-buffer",
+     "stage": "model_load"
+    },
+    "round": 2,
+    "run": "20261116T050546Z-x86-e9refusal",
+    "started": 1794805553.3203046,
+    "stderr": "",
+    "stdout": "LKAI_REFUSAL {\"arm\": \"e9\", \"diagnostic_reload\": \"refused\", \"exception\": \"RuntimeError: dec_load_seq failed for /m/model.gguf\", \"llama_errors\": [\"llama_model_load: error loading model: tensor 'blk.0.attn_qkv.weight' is KleidiAI-prepacked (E9) but is not in a CPU_KLEIDIAI buffer\", \"llama_model_load_from_file_impl: failed to load model\"], \"mode\": \"local\", \"reason\": \"e9-prepacked-not-in-kleidiai-buffer\", \"stage\": \"model_load\"}\n",
+    "wall_s": 2.717
+   },
+   {
+    "arm": "e9",
+    "mode": "local",
+    "pos": 0,
+    "rc": 3,
+    "refusal": {
+     "arm": "e9",
+     "diagnostic_reload": "refused",
+     "exception": "RuntimeError: dec_load_seq failed for /m/model.gguf",
+     "llama_errors": [
+      "llama_model_load: error loading model: tensor 'blk.0.attn_qkv.weight' is KleidiAI-prepacked (E9) but is not in a CPU_KLEIDIAI buffer",
+      "llama_model_load_from_file_impl: failed to load model"
+     ],
+     "mode": "local",
+     "reason": "e9-prepacked-not-in-kleidiai-buffer",
+     "stage": "model_load"
+    },
+    "round": 3,
+    "run": "20261116T050546Z-x86-e9refusal",
+    "started": 1794805556.0378337,
+    "stderr": "",
+    "stdout": "LKAI_REFUSAL {\"arm\": \"e9\", \"diagnostic_reload\": \"refused\", \"exception\": \"RuntimeError: dec_load_seq failed for /m/model.gguf\", \"llama_errors\": [\"llama_model_load: error loading model: tensor 'blk.0.attn_qkv.weight' is KleidiAI-prepacked (E9) but is not in a CPU_KLEIDIAI buffer\", \"llama_model_load_from_file_impl: failed to load model\"], \"mode\": \"local\", \"reason\": \"e9-prepacked-not-in-kleidiai-buffer\", \"stage\": \"model_load\"}\n",
+    "wall_s": 2.408
+   },
+   {
+    "arm": "e9",
+    "mode": "local",
+    "pos": 0,
+    "rc": 3,
+    "refusal": {
+     "arm": "e9",
+     "diagnostic_reload": "refused",
+     "exception": "RuntimeError: dec_load_seq failed for /m/model.gguf",
+     "llama_errors": [
+      "llama_model_load: error loading model: tensor 'blk.0.attn_qkv.weight' is KleidiAI-prepacked (E9) but is not in a CPU_KLEIDIAI buffer",
+      "llama_model_load_from_file_impl: failed to load model"
+     ],
+     "mode": "local",
+     "reason": "e9-prepacked-not-in-kleidiai-buffer",
+     "stage": "model_load"
+    },
+    "round": 4,
+    "run": "20261116T050546Z-x86-e9refusal",
+    "started": 1794805558.4459105,
+    "stderr": "",
+    "stdout": "LKAI_REFUSAL {\"arm\": \"e9\", \"diagnostic_reload\": \"refused\", \"exception\": \"RuntimeError: dec_load_seq failed for /m/model.gguf\", \"llama_errors\": [\"llama_model_load: error loading model: tensor 'blk.0.attn_qkv.weight' is KleidiAI-prepacked (E9) but is not in a CPU_KLEIDIAI buffer\", \"llama_model_load_from_file_impl: failed to load model\"], \"mode\": \"local\", \"reason\": \"e9-prepacked-not-in-kleidiai-buffer\", \"stage\": \"model_load\"}\n",
+    "wall_s": 2.451
+   },
+   {
+    "arm": "e9",
+    "mode": "local",
+    "pos": 0,
+    "rc": 3,
+    "refusal": {
+     "arm": "e9",
+     "diagnostic_reload": "refused",
+     "exception": "RuntimeError: dec_load_seq failed for /m/model.gguf",
+     "llama_errors": [
+      "llama_model_load: error loading model: tensor 'blk.0.attn_qkv.weight' is KleidiAI-prepacked (E9) but is not in a CPU_KLEIDIAI buffer",
+      "llama_model_load_from_file_impl: failed to load model"
+     ],
+     "mode": "local",
+     "reason": "e9-prepacked-not-in-kleidiai-buffer",
+     "stage": "model_load"
+    },
+    "round": 5,
+    "run": "20261116T050546Z-x86-e9refusal",
+    "started": 1794805560.8970137,
+    "stderr": "",
+    "stdout": "LKAI_REFUSAL {\"arm\": \"e9\", \"diagnostic_reload\": \"refused\", \"exception\": \"RuntimeError: dec_load_seq failed for /m/model.gguf\", \"llama_errors\": [\"llama_model_load: error loading model: tensor 'blk.0.attn_qkv.weight' is KleidiAI-prepacked (E9) but is not in a CPU_KLEIDIAI buffer\", \"llama_model_load_from_file_impl: failed to load model\"], \"mode\": \"local\", \"reason\": \"e9-prepacked-not-in-kleidiai-buffer\", \"stage\": \"model_load\"}\n",
+    "wall_s": 2.35
    }
   ]
  }

@@ -15,7 +15,7 @@
  "commits": {
   "baseline": "70eab7be69f86ddeb8c64158d94df344b5180098",
   "experiment": "0af73df388c3f81c580112aeaf3e0b9ea582e15a",
-  "ladder": "5a0f7b93d82dc0c1f10d56be34910a48be119734",
+  "ladder": "cd1de7661ba995cb374fc7d5737fa4fbfe23f3fc",
   "repo_dirty_at_build": false
  },
  "conclusion": "FIXED HOST, NOT LAMBDA. 0xd40 local-file: load -2.064 s (6/6), peak RSS -504 MB; memfd -2.041 s, -504 MB; warm/forward no change; answers bit-identical (60/60, 12/12). x86_64: peak RSS -576 MB (6/6, outside the 1% floor); timings no change inside the co-tenanted host's range; answers identical to x86 P1. Dormant: no change on both arches. No path degrades, but the switch aborts any request for logits, so it is only valid for engines that never ask for them (decshim). Verdict: general opt-in, default ON inside decshim-only deployments; not a llama.cpp-wide default.",
@@ -54,8 +54,10 @@
    "choice_flips_vs_p1": 0,
    "forward4096_not_full_window": 0,
    "max_abs_delta_vs_p1": 0.0,
-   "nan_fields": [],
+   "non_finite_fields": [],
    "repeat_identical": true,
+   "requests_answered": 60,
+   "unpaired_rows": 0,
    "vs_reference_requests": {
     "differs": 0,
     "identical": 60,
@@ -114,8 +116,10 @@
     "choice_flips_vs_p1": 0,
     "forward4096_not_full_window": 0,
     "max_abs_delta_vs_p1": 0.0,
-    "nan_fields": [],
+    "non_finite_fields": [],
     "repeat_identical": true,
+    "requests_answered": 30,
+    "unpaired_rows": 0,
     "vs_reference_requests": {
      "differs": 0,
      "identical": 30,
@@ -364,7 +368,7 @@
     "choice_flips_vs_p1": 0,
     "forward4096_not_full_window": 0,
     "max_abs_delta_vs_p1": 0.0,
-    "nan_fields": [
+    "non_finite_fields": [
      "incident-review-4q/root_cause/probabilities/alarm",
      "incident-review-4q/root_cause/probabilities/capacity",
      "incident-review-4q/root_cause/probabilities/freeze",
@@ -379,6 +383,8 @@
      "incident-review-4q/test_gap/noul"
     ],
     "repeat_identical": true,
+    "requests_answered": 30,
+    "unpaired_rows": 0,
     "vs_reference_requests": {
      "differs": 0,
      "identical": 0,
@@ -2836,7 +2842,8 @@
   "see examples/lambda-kleidiai/general/README.md 'Reproduce'",
   "python3 general/run_ladder.py <stage>/arms.json <arm64 run> --rounds 6 --seed 20261114 --cpuset 10-15 --threads 6",
   "python3 general/run_ladder.py <x86 dir>/arms.json <x86 run> --rounds 6 --seed 20261114 --platform linux/amd64 --cpuset 10-15 --threads 6",
-  "python3 general/summarize.py <arm64 run> <x86 run> --out <dir> --verdicts general/verdicts.json --commit <analysis sha> --run-id <id>"
+  "python3 general/run_ladder.py <x86 dir>/arms.json <x86 refusal run> --rounds 6 --seed 20261114 --platform linux/amd64 --cpuset 10-15 --threads 6   # arms.json with the e9 arm only",
+  "python3 general/summarize.py <arm64 run> <x86 run> <x86 refusal run> --out <dir> --verdicts general/verdicts.json --commit <analysis sha> --run-id <id>"
  ],
  "run_id": "20261113T054759Z-general",
  "schema": "lkai-result/1",
@@ -3077,7 +3084,7 @@
    "choice_flips_vs_p1": 0,
    "forward4096_not_full_window": 0,
    "max_abs_delta_vs_p1": 0.0,
-   "nan_fields": [
+   "non_finite_fields": [
     "incident-review-4q/root_cause/probabilities/alarm",
     "incident-review-4q/root_cause/probabilities/capacity",
     "incident-review-4q/root_cause/probabilities/freeze",
@@ -3092,6 +3099,8 @@
     "incident-review-4q/test_gap/noul"
    ],
    "repeat_identical": true,
+   "requests_answered": 30,
+   "unpaired_rows": 0,
    "vs_reference_requests": {
     "differs": 0,
     "identical": 0,
