@@ -32,7 +32,8 @@
   "see examples/lambda-kleidiai/general/README.md 'Reproduce'",
   "python3 general/run_ladder.py <stage>/arms.json <arm64 run> --rounds 6 --seed 20261114 --cpuset 10-15 --threads 6",
   "python3 general/run_ladder.py <x86 dir>/arms.json <x86 run> --rounds 6 --seed 20261114 --platform linux/amd64 --cpuset 10-15 --threads 6",
-  "python3 general/summarize.py <arm64 run> <x86 run> --out <dir> --verdicts general/verdicts.json --commit <analysis sha> --run-id <id>"
+  "python3 general/run_ladder.py <x86 dir>/arms.json <x86 refusal run> --rounds 6 --seed 20261114 --platform linux/amd64 --cpuset 10-15 --threads 6   # arms.json with the e9 arm only",
+  "python3 general/summarize.py <arm64 run> <x86 run> <x86 refusal run> --out <dir> --verdicts general/verdicts.json --commit <analysis sha> --run-id <id>"
  ],
  "rungs": {
   "e8": {
@@ -46,11 +47,25 @@
    "commit": "5dce29dae1bd5688a9f3203cfa5ae4183f2f27f7",
    "status": "improved",
    "general": "general opt-in",
-   "expected_refusals": [
-    "20261113T054808Z-x86/e9"
-   ],
+   "expected_refusals": {
+    "20261113T054808Z-x86/e9": {
+     "rc": 1,
+     "modes": [
+      "local"
+     ],
+     "diagnostic": "RuntimeError: dec_load_seq failed for /m/model.gguf",
+     "note": "measured run, before the probe recorded a cause: exact generic diagnostic only; the cause is proven by the refusal run below"
+    },
+    "20261116T050246Z-x86-e9refusal/e9": {
+     "rc": 3,
+     "modes": [
+      "local"
+     ],
+     "reason": "e9-prepacked-not-in-kleidiai-buffer"
+    }
+   },
    "hypothesis": "A KleidiAI-prepacked GGUF with the E9 loader skips the runtime repack off Lambda too; it must refuse rather than misread on a path without KleidiAI.",
-   "conclusion": "FIXED HOST, NOT LAMBDA. 0xd40 local-file: load 8.085 -> 3.317 s (-4.804 s, 6/6); memfd -4.838 s; warm/forward/RSS no change; answers bit-identical (60/60, 12/12). Same rounds, E9 loads 0.884 s slower than E8 (local, threshold 0.116) and 0.809 s slower (memfd, threshold 0.163), with no other difference: E8 is the better general mechanism. x86_64: the E9 GGUF is refused at load in 6/6 rounds, as designed; the E9 loader with a plain GGUF is inert (answers identical, timings no change). Hazard (October hazard/ files): an UNPATCHED P1 engine loads the E9 GGUF without error and returns NaN probabilities and wrong choices on arm64 and x86_64. A format that silently corrupts answers on any loader without the patch, and needs a KleidiAI build, cannot be a general default. Verdict: general opt-in (arm64 KleidiAI builds with the E9 loader only); prefer E8.",
+   "conclusion": "FIXED HOST, NOT LAMBDA. 0xd40 local-file: load 8.085 -> 3.317 s (-4.804 s, 6/6); memfd -4.838 s; warm/forward/RSS no change; answers bit-identical (60/60, 12/12). Same rounds, E9 loads 0.884 s slower than E8 (local, threshold 0.116) and 0.809 s slower (memfd, threshold 0.163), with no other difference: E8 is the better general mechanism. x86_64: the E9 GGUF is refused at load in 6/6 rounds of the measured run (generic 'dec_load_seq failed'), and a refusal-only x86 run (20261116T050246Z-x86-e9refusal, 6/6, byte-identical E9 libraries) records the designed cause each round: llama.cpp's E9 loader error 'is KleidiAI-prepacked (E9) but is not in a CPU_KLEIDIAI buffer' (reason e9-prepacked-not-in-kleidiai-buffer); the E9 loader with a plain GGUF is inert (answers identical, timings no change). Hazard (October hazard/ files): an UNPATCHED P1 engine loads the E9 GGUF without error and returns NaN probabilities and wrong choices on arm64 and x86_64. A format that silently corrupts answers on any loader without the patch, and needs a KleidiAI build, cannot be a general default. Verdict: general opt-in (arm64 KleidiAI builds with the E9 loader only); prefer E8.",
    "required_cells": [
     "0xd40|local",
     "0xd40|memfd",
@@ -92,5 +107,8 @@
    ]
   }
  },
- "control_nan_fields_note": "P1 itself returns these non-finite fields on x86_64 (libggml-cpu-sapphirerapids.so; README finding 2). Declared so the guard can require every OTHER answer to be finite and every arm to return exactly P1's set."
+ "control_nan_fields_note": "P1 itself returns these non-finite fields on x86_64 (libggml-cpu-sapphirerapids.so; README finding 2). Declared so the guard can require every OTHER answer to be finite and every arm to return exactly P1's set.",
+ "reference_identities": [
+  "0xd40"
+ ]
 }

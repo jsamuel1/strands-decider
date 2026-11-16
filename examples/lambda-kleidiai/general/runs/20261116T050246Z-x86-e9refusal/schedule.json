@@ -1,0 +1,27 @@
+{
+ "rounds": 6,
+ "seed": 20261114,
+ "cells": [
+  "e9-local"
+ ],
+ "order": [
+  [
+   "e9-local"
+  ],
+  [
+   "e9-local"
+  ],
+  [
+   "e9-local"
+  ],
+  [
+   "e9-local"
+  ],
+  [
+   "e9-local"
+  ],
+  [
+   "e9-local"
+  ]
+ ]
+}

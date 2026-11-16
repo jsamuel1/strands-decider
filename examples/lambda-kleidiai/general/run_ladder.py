@@ -115,6 +115,24 @@ def docker_cmd(cfg: dict, arm: dict, mode: str, out_name: str, a) -> list[str]:
     return cmd + [str(x) for x in arm.get("args", [])]
 
 
+REFUSAL_TAG = "LKAI_REFUSAL "  # probe.py's refusal line
+
+
+def parse_refusal(stdout: str) -> dict | None:
+    """probe.py's one `LKAI_REFUSAL <json>` line, or None. Two lines, or one that is not a JSON object, is malformed
+    and recorded as such (the analysis then refuses it), never silently dropped."""
+    lines = [ln[len(REFUSAL_TAG) :] for ln in stdout.splitlines() if ln.startswith(REFUSAL_TAG)]
+    if not lines:
+        return None
+    try:
+        r = json.loads(lines[0])
+    except ValueError:
+        r = None
+    if len(lines) != 1 or not isinstance(r, dict):
+        return {"reason": "malformed-refusal-record", "lines": len(lines)}
+    return r
+
+
 def prime(cfg: dict, cs: list[tuple[dict, str]], a) -> dict:
     """Read every file a load will touch (each arm's package tree and GGUF, the requests and reference) once, and
     start the image once, before round 0. The ladder measures a warm page cache in EVERY round; without this, round 0
@@ -214,6 +232,9 @@ def main() -> None:
                 "stdout": p.stdout[-2000:],
                 "stderr": p.stderr[-4000:],
             }
+            refusal = parse_refusal(p.stdout)
+            if refusal is not None:
+                rec["refusal"] = refusal
             log.write(json.dumps(rec) + "\n")
             log.flush()
             print(

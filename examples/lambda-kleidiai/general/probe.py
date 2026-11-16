@@ -18,6 +18,11 @@ Measured, in order: imports (engine and loader, P1's `imports` set), weight_read
 phases (ggml_backend_load, model_load_mmap, context_init), assets, the handler's warm-up evaluate (the first
 inference), the probe request (first request), every fixed request --warm-passes times, a forward that fills the
 model's whole window (--long-passes times) and the process's memory high-water mark.
+
+A load that returns NULL is a refusal, not a measurement. P1's shim silences llama.cpp's log, so the probe then loads
+once more with the shim's verbose flag and a recording log callback, classifies llama's ERROR lines against REFUSALS,
+prints one `LKAI_REFUSAL <json>` line on stdout (run_ladder.py stores it in runlog.jsonl) and exits REFUSAL_RC. Any
+other failure (an exception elsewhere, a signal, OOM) exits with another code and carries no refusal record.
 """
 
 from __future__ import annotations
@@ -34,6 +39,17 @@ WARMUP = {"state": "warm up", "questions": {"q": {"type": "noul", "instructions"
 PHASES = ("ggml_backend_load", "model_load_mmap", "context_init", "dec_load_total")
 # P1's deployed function environment (baseline/deploy.py). Without these the engine runs another KV type, ubatch and
 # sequence count, and its answers are not P1's (E8's probe_e8.py learned this the hard way).
+# Load refusals the ladder can expect by design: (machine-readable reason, exact llama.cpp diagnostic substring).
+# E9's loader (lkai/f1ee-prepacked 5dce29d e9/patch_e9.py) throws these from llama_model_load.
+REFUSALS = (
+    (
+        "e9-prepacked-not-in-kleidiai-buffer",
+        "is KleidiAI-prepacked (E9) but is not in a CPU_KLEIDIAI buffer",
+    ),
+    ("e9-prepacked-needs-mmap", "an E9 KleidiAI-prepacked GGUF needs mmap loading"),
+)
+REFUSAL_RC = 3
+REFUSAL_TAG = "LKAI_REFUSAL "
 P1_ENV = (("OPENBLAS_NUM_THREADS", "1"), ("DEC_KV", "f32"), ("DEC_UBATCH", "512"), ("N_SEQ", "17"))
 
 
@@ -77,6 +93,39 @@ def to_memfd(path: str) -> str:
         while b := f.read(64 << 20):
             os.write(fd, b)
     return f"/proc/self/fd/{fd}"
+
+
+def classify_refusal(errors: list[str]) -> str:
+    """The REFUSALS reason whose exact diagnostic appears in llama's ERROR lines, else 'unclassified'."""
+    hits = {reason for reason, text in REFUSALS for e in errors if text in e}
+    return hits.pop() if len(hits) == 1 else "unclassified"
+
+
+def diagnose_load(lib_dir: str, path: str, threads: int) -> dict:
+    """Load once more with the shim's verbose flag and a recording llama log callback (the measured load ran with
+    P1's silent logger, so its reason was discarded). Only called after the measured load failed."""
+    errors: list[str] = []
+    cb_t = ctypes.CFUNCTYPE(None, ctypes.c_int, ctypes.c_char_p, ctypes.c_void_p)
+
+    def rec(level, text, _ud):
+        if level == 4 and text:  # GGML_LOG_LEVEL_ERROR
+            errors.append(text.decode("utf-8", "replace").rstrip("\n"))
+
+    cb = cb_t(rec)
+    llama = ctypes.CDLL(os.path.join(lib_dir, "libllama.so"))
+    llama.llama_log_set.argtypes = [cb_t, ctypes.c_void_p]
+    llama.llama_log_set(cb, None)
+    shim = ctypes.CDLL(os.path.join(lib_dir, "libdecshim.so"))
+    shim.dec_load_seq.restype = ctypes.c_void_p
+    shim.dec_load_seq.argtypes = [ctypes.c_char_p] + [ctypes.c_int] * 5
+    n_seq = int(os.environ.get("N_SEQ", "17"))
+    h = shim.dec_load_seq(path.encode(), threads, 4096, 1, 1, n_seq)
+    return {
+        "stage": "model_load",
+        "diagnostic_reload": "loaded" if h else "refused",
+        "llama_errors": errors,
+        "reason": classify_refusal(errors) if not h else "reload-succeeded",
+    }
 
 
 def wrap_n_ctx(engine_mod, n_ctx: int, seen: dict) -> None:
@@ -173,9 +222,20 @@ def main() -> None:
         path = to_memfd(a.gguf)
         ph["weight_read"] = round(time.monotonic() - t, 4)
     t = time.monotonic()
-    eng, shim = engine.load_engine(
-        os.path.join(a.pkg, "lib", "libdecshim.so"), path, os.path.join(a.pkg, "assets"), threads
-    )
+    try:
+        eng, shim = engine.load_engine(
+            os.path.join(a.pkg, "lib", "libdecshim.so"),
+            path,
+            os.path.join(a.pkg, "assets"),
+            threads,
+        )
+    except RuntimeError as e:
+        if not str(e).startswith("dec_load_seq failed"):
+            raise
+        refusal = {"arm": a.arm, "mode": a.mode, "exception": f"RuntimeError: {e}"}
+        refusal |= diagnose_load(os.path.join(a.pkg, "lib"), path, threads)
+        print(REFUSAL_TAG + json.dumps(refusal, sort_keys=True), flush=True)
+        sys.exit(REFUSAL_RC)
     ph["load_engine"] = round(time.monotonic() - t, 4)
     buf = (ctypes.c_int64 * 4)()
     shim.lib.dec_load_phases_ns(buf, 4)

@@ -153,6 +153,10 @@ def test_the_committed_runs_follow_a_balanced_schedule():
             assert [c for _, c in sorted(cells)] == plan["order"][r], (run, r)
         idx = {c: i for i, c in enumerate(plan["cells"])}
         sched = [[idx[c] for c in o] for o in plan["order"]]
+        if not any(c.startswith("p1-") for c in plan["cells"]):
+            # A refusal-only run (no control) measures nothing: every one of its loads must have failed.
+            assert log and all(x["rc"] for x in log), run
+            continue
         for c in plan["cells"]:
             if not c.startswith("p1-"):
                 ctl = "p1-" + c.split("-")[1]
@@ -362,7 +366,44 @@ def test_nan_answers_compare_by_text_and_are_listed():
     rows = [_row("p1", 0, 8, answers=nan_a), _row("e8", 0, 3, answers=other)]
     c = summ.correctness(rows, "e8", "0xd40")
     assert c["vs_run_p1_requests"] == {"identical": 1, "compared": 1}
-    assert c["nan_fields"] == ["a/q/noul"] and c["max_abs_delta_vs_p1"] == 0.0
+    assert c["non_finite_fields"] == ["a/q/noul"] and c["max_abs_delta_vs_p1"] == 0.0
+
+
+def test_correctness_pairs_each_round_with_its_own_p1_round():
+    a = {"a": {"q": {"noul": 0.5, "type": "noul"}}}
+    b = {"a": {"q": {"noul": 0.6, "type": "noul"}}}
+    # P1 changes in round 1; the arm repeats round 0's answer. Against ctl[0] it would read 2/2 identical.
+    rows = [_row("p1", 0, 8, answers=a), _row("p1", 1, 8, answers=b)]
+    rows += [_row("e8", 0, 3, answers=a), _row("e8", 1, 3, answers=a)]
+    c = summ.correctness(rows, "e8", "0xd40")
+    assert c["vs_run_p1_requests"] == {"identical": 1, "compared": 2}
+    assert c["max_abs_delta_vs_p1"] == pytest.approx(0.1)
+    long_rows = [_row("p1", 0, 8), _row("p1", 1, 8, long_ans={"q": {"noul": 0.7}})]
+    long_rows += [_row("e8", 0, 3), _row("e8", 1, 3)]
+    assert summ.correctness(long_rows, "e8", "0xd40")["vs_run_p1_forward4096"] == {
+        "identical": 1,
+        "compared": 2,
+    }
+
+
+def test_correctness_counts_unpaired_rows_and_requests_missing_on_either_side():
+    rows = [_row("p1", 0, 8), _row("e8", 0, 3), _row("e8", 1, 3)]
+    c = summ.correctness(rows, "e8", "0xd40")
+    assert c["unpaired_rows"] == 1 and c["vs_run_p1_requests"] == {"identical": 1, "compared": 2}
+    rows = [_row("p1", 0, 8, answers={"a": {"q": {"noul": 0.5}}, "b": {"q": {"noul": 0.1}}})]
+    rows.append(_row("e8", 0, 3, answers={"a": {"q": {"noul": 0.5}}}))
+    assert summ.correctness(rows, "e8", "0xd40")["vs_run_p1_requests"] == {
+        "identical": 1,
+        "compared": 2,
+    }
+
+
+@pytest.mark.parametrize("bad", [float("inf"), float("-inf"), float("nan")])
+def test_every_non_finite_answer_is_listed_including_infinity_and_the_long_forward(bad):
+    rows = [_row("p1", 0, 8), _row("e8", 0, 3, answers={"a": {"q": {"noul": bad}}})]
+    assert summ.correctness(rows, "e8", "0xd40")["non_finite_fields"] == ["a/q/noul"]
+    rows = [_row("p1", 0, 8), _row("e8", 0, 3, long_ans={"q": {"p": [0.1, bad]}})]
+    assert summ.correctness(rows, "e8", "0xd40")["non_finite_fields"] == ["forward-4096/q/p/1"]
 
 
 def test_reference_differs_and_missing_identity_are_counted():
@@ -426,9 +467,10 @@ def _clean(rounds=4, arm="e10"):
 def _guard(rows, rung="e10", **kw):
     s = summ.summarize(rows)
     s["failed_loads"] = kw.pop("failed", [])
-    s["control_nan_fields"] = {"0xd40": summ.correctness(rows, "p1", "0xd40")["nan_fields"]}
+    s["control_nan_fields"] = {"0xd40": summ.correctness(rows, "p1", "0xd40")["non_finite_fields"]}
     kw.setdefault("required", REQ)
     kw.setdefault("min_rounds", 4)
+    kw.setdefault("reference_identities", ["0xd40"])
     return summ.guard(rung, s, "general default", **kw)
 
 
@@ -463,10 +505,55 @@ def test_guard_refuses_a_long_forward_that_did_not_fill_the_window():
 
 
 def test_guard_refuses_unexpected_failed_loads_but_not_declared_ones():
-    f = [{"run": "t", "arm": "e10", "rc": 1, "round": 2}]
+    f = [{"run": "t", "arm": "e10", "rc": 1, "round": 2, "mode": "local"}]
     assert any("unexpected failed load" in w for w in _guard(_clean(), failed=f))
     assert any("t/p1: unexpected" in w for w in _guard(_clean(), failed=[f[0] | {"arm": "p1"}]))
-    assert _guard(_clean(), failed=f, expected_failures=["t/e10"]) == []
+    spec = {"rc": 3, "reason": "r"}
+    ok = [f[0] | {"rc": 3, "refusal": {"reason": "r"}}]
+    assert _guard(_clean(), failed=ok, expected_failures={"t/e10": spec}) == []
+    # Declared run/arm but a different cause is still unexpected.
+    assert any(
+        "unexpected" in w for w in _guard(_clean(), failed=f, expected_failures={"t/e10": spec})
+    )
+
+
+def test_guard_refuses_a_later_round_answer_mismatch():
+    rows = _clean()
+    for d in rows:
+        if d["_arm"] == "p1" and d["_round"] == 3:
+            d["answers"] = {"a": {"q": {"noul": 0.7, "type": "noul"}}}
+    assert any("answers differ from P1 (3/4)" in w for w in _guard(rows))
+
+
+def test_guard_refuses_an_arm_row_without_a_same_round_p1_row():
+    rows = [d for d in _clean() if not (d["_arm"] == "p1" and d["_round"] == 3)]
+    assert any("without a same-round P1 row" in w for w in _guard(rows))
+
+
+def test_guard_refuses_missing_primary_reference_coverage():
+    rows = _clean()
+    for d in rows:
+        if d["_arm"] == "e10":
+            d["vs_reference"] = {"a": "no-reference-for-identity"}
+    assert any("reference coverage 0/4" in w for w in _guard(rows))
+    rows = _clean()
+    rows[1]["vs_reference"] = {}  # an answered request never compared with the reference
+    assert any("reference coverage 3/4" in w for w in _guard(rows))
+    # An identity without a published reference is not held to coverage.
+    assert _guard(rows, reference_identities=[]) == []
+
+
+@pytest.mark.parametrize("bad", [float("inf"), float("-inf")])
+def test_guard_refuses_infinite_answers(bad):
+    rows = _clean()
+    for d in rows:
+        if d["_arm"] == "e10":
+            d["answers"] = {"a": {"q": {"noul": bad, "type": "noul"}}}
+    assert any("non-finite answers P1 does not return" in w for w in _guard(rows))
+    rows = _clean()
+    for d in rows:  # identical infinity on both sides is still non-finite, and undeclared for P1
+        d["answers"] = {"a": {"q": {"noul": bad, "type": "noul"}}}
+    assert any("P1 returns undeclared non-finite" in w for w in _guard(rows))
 
 
 def test_guard_refuses_non_finite_timings_and_missing_metrics():
@@ -521,13 +608,107 @@ def test_guard_refuses_an_order_unbalanced_against_p1():
     assert any("order unbalanced" in w for w in _guard(rows))
 
 
-def test_expected_refusals_must_refuse_every_round():
-    s = {"failed_loads": [{"run": "x", "arm": "e9", "rc": 1}] * 5, "rows_by_run_arm": {}}
-    assert summ.refusals_hold(s, ["x/e9"], 6)
-    s["failed_loads"].append({"run": "x", "arm": "e9", "rc": 1})
-    assert summ.refusals_hold(s, ["x/e9"], 6) == []
+SPEC = {"rc": 3, "reason": "e9-prepacked-not-in-kleidiai-buffer"}
+
+
+def _refusal(r, **kw):
+    return (
+        {"run": "x", "arm": "e9", "mode": "local", "round": r, "rc": 3}
+        | {"refusal": {"reason": SPEC["reason"]}}
+        | kw
+    )
+
+
+def test_expected_refusals_need_one_matching_refusal_per_round():
+    s = {"failed_loads": [_refusal(r) for r in range(6)], "rows_by_run_arm": {}}
+    assert summ.refusals_hold(s, {"x/e9": SPEC}, 6) == []
     s["rows_by_run_arm"] = {"x/e9": 1}
-    assert summ.refusals_hold(s, ["x/e9"], 6)
+    assert any("produced rows" in w for w in summ.refusals_hold(s, {"x/e9": SPEC}, 6))
+
+
+def test_expected_refusals_reject_missing_and_duplicate_rounds():
+    s = {"failed_loads": [_refusal(r) for r in range(5)], "rows_by_run_arm": {}}
+    assert summ.refusals_hold(s, {"x/e9": SPEC}, 6)  # round 5 missing
+    s["failed_loads"] = [_refusal(0)] * 6  # six copies of round 0
+    assert any("expected exactly" in w for w in summ.refusals_hold(s, {"x/e9": SPEC}, 6))
+    s["failed_loads"] = [_refusal(r) for r in range(6)] + [_refusal(2)]
+    assert summ.refusals_hold(s, {"x/e9": SPEC}, 6)
+
+
+def test_expected_refusals_reject_the_wrong_cause():
+    def hold(**kw):
+        s = {"failed_loads": [_refusal(r, **kw) for r in range(6)], "rows_by_run_arm": {}}
+        return summ.refusals_hold(s, {"x/e9": SPEC}, 6)
+
+    assert any("rc 137" in w for w in hold(rc=137, refusal=None))  # OOM kill
+    assert any("reason 'unclassified'" in w for w in hold(refusal={"reason": "unclassified"}))
+    assert any("reason None" in w for w in hold(refusal=None))  # generic failure, no probe record
+    assert any("mode 'memfd'" in w for w in hold(mode="memfd"))
+
+
+def test_a_diagnostic_spec_matches_the_exact_final_stderr_line_only():
+    spec = {"rc": 1, "diagnostic": "RuntimeError: dec_load_seq failed for /m/model.gguf"}
+    f = {"rc": 1, "mode": "local", "stderr": "Traceback ...\n" + spec["diagnostic"] + "\n"}
+    assert summ.refusal_mismatch(f, spec) == ""
+    assert summ.refusal_mismatch(f | {"stderr": "MemoryError\n"}, spec)
+    assert summ.refusal_mismatch(f | {"rc": 137}, spec)
+
+
+def test_p2_metadata_rows_must_agree_within_an_identity():
+    rows = _clean()
+    assert summ.uniform_conditions(rows) == []
+    rows[3]["threads"] = 8
+    assert any("disagree on threads" in w for w in summ.uniform_conditions(rows))
+    rows = _clean()
+    rows[2]["answers"] = {"b": {"q": {"noul": 0.5}}}
+    assert any("disagree on request ids" in w for w in summ.uniform_conditions(rows))
+
+
+def test_every_failed_load_must_be_a_declared_refusal():
+    s = {"failed_loads": [_refusal(0), _refusal(0, arm="p1", rc=137, refusal=None)]}
+    why = summ.failures_accounted(s, {"x/e9": SPEC})
+    assert len(why) == 1 and "x/p1" in why[0]
+
+
+def test_committed_refusals_carry_their_declared_cause():
+    vs = json.load(open(os.path.join(G, "verdicts.json")))
+    s = json.load(open(os.path.join(G, "out", "ladder.json")))
+    exp = summ.expected_refusals(vs)
+    assert exp and summ.failures_accounted(s, exp) == []
+    # At least one declared refusal is proven by the probe's machine-readable reason, not only a generic line.
+    assert any("reason" in spec for spec in exp.values())
+    probe = _load("probe")
+    reasons = {r for r, _ in probe.REFUSALS}
+    for key, spec in exp.items():
+        if "reason" in spec:
+            assert spec["reason"] in reasons, key
+            got = [f for f in s["failed_loads"] if f"{f['run']}/{f['arm']}" == key]
+            assert got and all(f["refusal"]["reason"] == spec["reason"] for f in got), key
+
+
+def test_probe_classifies_only_an_exact_designed_diagnostic():
+    probe = _load("probe")
+    line = (
+        "llama_model_load: error loading model: tensor 'blk.0.attn_qkv.weight' is KleidiAI-prepacked "
+        "(E9) but is not in a CPU_KLEIDIAI buffer"
+    )
+    assert probe.classify_refusal([line]) == "e9-prepacked-not-in-kleidiai-buffer"
+    assert probe.classify_refusal(["llama_model_load: error loading model: out of memory"]) == (
+        "unclassified"
+    )
+    assert probe.classify_refusal([]) == "unclassified"
+
+
+def test_run_ladder_parses_exactly_one_refusal_record():
+    rec = '{"reason": "e9-prepacked-needs-mmap"}'
+    assert run_ladder.parse_refusal("x\nLKAI_REFUSAL " + rec + "\n") == {
+        "reason": "e9-prepacked-needs-mmap"
+    }
+    assert run_ladder.parse_refusal("no record\n") is None
+    assert run_ladder.parse_refusal("LKAI_REFUSAL " + rec + "\nLKAI_REFUSAL " + rec)["reason"] == (
+        "malformed-refusal-record"
+    )
+    assert run_ladder.parse_refusal("LKAI_REFUSAL [1]")["reason"] == "malformed-refusal-record"
 
 
 def test_published_status_must_follow_the_primary_cell():
@@ -541,7 +722,8 @@ def test_shipped_verdicts_pass_the_guard_on_the_committed_runs():
     vs = json.load(open(os.path.join(G, "verdicts.json")))
     s = json.load(open(os.path.join(G, "out", "ladder.json")))
     assert vs["min_rounds"] >= PRODUCTION_ROUNDS
-    expected = [x for v in vs["rungs"].values() for x in v.get("expected_refusals", [])]
+    expected = summ.expected_refusals(vs)
+    assert summ.failures_accounted(s, expected) == []
     for r, v in vs["rungs"].items():
         assert (
             summ.guard(
@@ -552,10 +734,11 @@ def test_shipped_verdicts_pass_the_guard_on_the_committed_runs():
                 min_rounds=vs["min_rounds"],
                 expected_failures=expected,
                 control_nan=vs.get("control_nan_fields", {}),
+                reference_identities=vs["reference_identities"],
             )
             == []
         ), r
-        assert summ.refusals_hold(s, v.get("expected_refusals", []), vs["min_rounds"]) == [], r
+        assert summ.refusals_hold(s, v.get("expected_refusals", {}), vs["min_rounds"]) == [], r
         assert summ.status_holds(r, s, v, vs["primary_identity"]) == [], r
 
 

@@ -10,7 +10,7 @@ llama.cpp/decshim engine (EC2, container, laptop)? This ladder measures each one
 | change | verdict | why |
 |---|---|---|
 | E8 six-thread KleidiAI repack (`GGML_KLEIDIAI_REPACK_THREADS`) | **general default** | Load −5.67 s on arm64 local-file (−5.68 s memfd). Nothing else changes. Answers are bit-identical. Inert on x86_64. Set the value to the engine's thread count. |
-| E9 pre-packed GGUF + loader | **general opt-in** (arm64 KleidiAI builds only) | Load −4.80 s, but E8 is 0.88 s faster in the same rounds. x86_64 refuses the file, as designed (6/6). **Hazard:** an unpatched engine loads it without error and returns NaN / wrong answers on both arches. |
+| E9 pre-packed GGUF + loader | **general opt-in** (arm64 KleidiAI builds only) | Load −4.80 s, but E8 is 0.88 s faster in the same rounds. x86_64 refuses the file, as designed (6/6; cause recorded by the probe in a refusal-only run, 6/6). **Hazard:** an unpatched engine loads it without error and returns NaN / wrong answers on both arches. |
 | E7 skip tied output head | **general opt-in** (decshim-only engines) | Load −2.06 s, peak RSS −504 MB on arm64. x86_64 RSS −576 MB. Answers bit-identical. Aborts if logits are requested, so it is not a llama.cpp-wide default. |
 | E10 `n_ctx` 4096 (model window) | **general default** | Peak RSS −290 MB arm64, −281 MB x86_64. Every timing no change; nothing worse. Answers bit-identical, including the full 4,096-token forward. Derive it from the head config's `max_length`. |
 | E5 no-vocab GGUF | **general opt-in** (engines that tokenize outside llama.cpp) | Load −0.53 s, RSS −83 MB arm64; RSS −54 MB x86_64. The file has no usable vocabulary for llama.cpp tokenization. Ship it beside the full GGUF. |
@@ -20,11 +20,14 @@ No rung degraded any measured non-Lambda path. `summarize.py --verdicts` enforce
 fail-closed: it refuses a "general default" unless every required host/path cell (`verdicts.json`
 `required_cells`) is present with at least `min_rounds` (6) paired rounds; every headline metric is present,
 finite, assessed and not **WORSE**; the arm ran before its control exactly as often as after; no load of the arm,
-its dormant check or p1 failed unexpectedly; every request AND every 4,096-token answer is identical to the same
-run's P1, the long forward filled the window, and repeats within each load were identical; no answer differs from
-P1's published reference; and no answer is non-finite beyond the fields P1 itself returns (declared in
-`control_nan_fields`). Declared refusals (E9 on x86) must refuse in every round, and each published P2 status must
-follow from the primary cell. E8 vs E9, same rounds: E9 loads **0.884 s** slower (local) and **0.809 s** slower
+its dormant check or p1 failed unexpectedly; every arm row has a P1 row from the same run, round and path, and
+every request AND every 4,096-token answer is identical to THAT round's P1; the long forward filled the window, and
+repeats within each load were identical; on 0xd40 (`reference_identities`) every answer was compared with P1's
+published reference and none differs; and no answer field (requests and the 4,096-token forward) is NaN or
+±Infinity beyond the fields P1 itself returns (declared in `control_nan_fields`). Declared refusals
+(`expected_refusals`) must appear exactly once per round and path, with the declared exit code and the declared
+machine-readable reason (or exact diagnostic line); every failed load in every run must be one of them; and each
+published P2 status must follow from the primary cell. E8 vs E9, same rounds: E9 loads **0.884 s** slower (local) and **0.809 s** slower
 (memfd) than E8 (thresholds 0.116 / 0.163 s), with no other difference. Both remove the same repack cost, and E8
 needs no new file format. Prefer E8.
 
@@ -70,8 +73,14 @@ needs no new file format. Prefer E8.
      For peak RSS, which repeats to a page, the bar is also at least 1% of p1.
   3. Otherwise the cell is "no change". Fewer than 3 rounds is "unassessed" (and refuses a general default).
 - **Bit-identity:** every answer (and every repeat within a load) is compared as canonical JSON text, so NaN equals
-  NaN, with the same run's P1. On arm64 it is also
-  compared with P1's published 0xd40 reference (`baseline/reference/outputs.json`). There is no x86_64 reference.
+  NaN, with the same run's P1 in the same round and path. On arm64 every answer is also compared with P1's
+  published 0xd40 reference (`baseline/reference/outputs.json`); a missing comparison refuses a general default.
+  There is no x86_64 reference.
+- **Refusals:** P1's shim silences llama.cpp's log, so a failed load only says `dec_load_seq failed`. On that
+  failure `probe.py` loads once more with the shim's verbose flag and a recording log callback, matches llama's
+  ERROR lines against its `REFUSALS` table (exact diagnostic substrings), prints one `LKAI_REFUSAL` record and
+  exits 3. `run_ladder.py` stores the record as `refusal` in `runlog.jsonl`. Any other failure exits with another
+  code and has no reason.
 
 ## Hosts (recorded per load in `host_before`)
 
@@ -134,8 +143,14 @@ match 60/60; E6 matches 30/30 (local only). On both arches the repeat passes wit
 1. **E9's file is unsafe without its loader.** On both arches, P1's unpatched engine loads
    `s2b-h512-Q8_0-e9kr8.gguf` without error. Every probabilities field comes back NaN and choices are wrong: all 5
    requests DIFFER from P1's 0xd40 reference, and 4/5 differ from x86 P1. Files: `hazard/arm-p1libs-e9gguf.json`,
-   `hazard/x86-p1libs-e9gguf.json`. With E9's loader on x86, the file is refused:
-   `tensor 'blk.0.attn_qkv.weight' is KleidiAI-prepacked (E9) but is not in a CPU_KLEIDIAI buffer`. So E9 GGUFs
+   `hazard/x86-p1libs-e9gguf.json`. With E9's loader on x86, the file is refused. The measured x86 run's six E9
+   failures only show the shim's generic `dec_load_seq failed`, because P1's shim silences llama's log. The cause
+   is therefore proven by a refusal-only x86 run, `runs/20261116T050246Z-x86-e9refusal` (6 rounds, e9 local only;
+   E9 GGUF sha256 as `inputs.json`; x86 E9 package rebuilt with `x86_build.sh`, every library byte-identical to
+   the measured one, `sha-e9.txt` and `provenance.json`). In every round the probe's `refusal` record carries
+   llama.cpp's error `tensor 'blk.0.attn_qkv.weight' is KleidiAI-prepacked (E9) but is not in a CPU_KLEIDIAI
+   buffer`, reason `e9-prepacked-not-in-kleidiai-buffer`, exit 3. `verdicts.json` declares both runs: the measured
+   one by its exact generic diagnostic and exit 1, the refusal run by that reason and exit 3. So E9 GGUFs
    must never sit where a generic loader can pick them up.
 2. **x86_64 P1 itself returns NaN for one request.** In every arm, P1 included, `incident-review-4q` returns NaN
    probabilities (12 fields: `nan_fields` in `ladder.json`) on the auto-selected `libggml-cpu-sapphirerapids.so`.
@@ -177,8 +192,10 @@ general/x86_build.sh <p1.zip> <x86 dir>                     # pkg-p1/e8/e9/e7, d
 general/x86_e6.sh <x86 dir>/pkg-p1 <x86 dir>/pkg-e6         # writes <x86 dir>/pkg-e6.manifest.json, fails on any compile failure
 python3 general/x86_arms.py <x86 dir> <dir with p1.gguf e9.gguf e5.gguf> <x86 dir>/arms.json
 python3 general/run_ladder.py <x86 dir>/arms.json <x86 run> --rounds 6 --seed 20261114 --platform linux/amd64 --cpuset 10-15 --threads 6
+# x86_64 E9 refusal cause: an arms.json with only the e9 arm (x86_arms.py writes only the packages present)
+python3 general/run_ladder.py <x86 e9 arms.json> <x86 refusal run> --rounds 6 --seed 20261114 --platform linux/amd64 --cpuset 10-15 --threads 6
 # analysis, fail-closed operator-rule guard, P2 result files
-python3 general/summarize.py <arm64 run> <x86 run> --out <out> --verdicts general/verdicts.json --commit <analysis SHA> --run-id 20261113T054759Z-general
+python3 general/summarize.py <arm64 run> <x86 run> <x86 refusal run> --out <out> --verdicts general/verdicts.json --commit <analysis SHA> --run-id 20261113T054759Z-general
 python3 general/tables.py <out>/ladder.json
 python3 results/publish_result.py <out>/p2/<rung>/results.json --validate-only   # P2 (feat/lambda-kleidiai-results)
 ```

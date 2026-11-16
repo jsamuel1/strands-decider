@@ -207,46 +207,56 @@ def paired(rows: list[dict], arm: str, mode: str, ident: str, ctl: str = "p1") -
 
 
 def correctness(rows: list[dict], arm: str, ident: str) -> dict:
-    """Answers vs P1's reference (same identity) and vs this run's P1 arm (every request, the 4096 forward)."""
+    """Answers vs P1's reference (same identity) and vs this run's P1 arm IN THE SAME ROUND AND MODE (every request,
+    the 4096 forward). An arm row without a same-(run, round, mode) P1 row is unpaired and counts as not identical;
+    a request either side lacks counts as compared and not identical."""
     own = [d for d in rows if d["_arm"] == arm and d["_identity"] == ident]
-    ctl = [d for d in rows if d["_arm"] == "p1" and d["_identity"] == ident]
+    ctl = {
+        (d["_run"], d["_round"], d["_mode"]): d
+        for d in rows
+        if d["_arm"] == "p1" and d["_identity"] == ident
+    }
     vs_ref = {"identical": 0, "differs": 0, "no_reference": 0}
     for d in own:
-        for v in d["vs_reference"].values():
+        for v in (d.get("vs_reference") or {}).values():
             key = {"identical": "identical", "DIFFERS": "differs"}.get(v, "no_reference")
             vs_ref[key] += 1
-    p1a = ctl[0]["answers"] if ctl else None
-    p1l = ctl[0]["long_forward"]["answers"] if ctl else None
-    # Canonical JSON text: NaN compares equal to NaN (bit-identity of the published answer), never by object identity.
-    same_p1 = sum(
-        1 for d in own for k, v in d["answers"].items() if p1a and canon(p1a.get(k)) == canon(v)
-    )
-    total = sum(len(d["answers"]) for d in own)
-    long_same = sum(
-        1 for d in own if p1l is not None and canon(d["long_forward"]["answers"]) == canon(p1l)
-    )
+    same_p1 = total = long_same = unpaired = 0
+    flips, max_abs = 0, 0.0
+    for d in own:
+        c = ctl.get((d["_run"], d["_round"], d["_mode"]))
+        if c is None:
+            unpaired += 1
+        ca = (c or {}).get("answers") or {}
+        rids = set(d["answers"]) | set(ca)
+        total += len(rids)
+        # Canonical JSON text: NaN compares equal to NaN (bit-identity of the published answer), never by identity.
+        same_p1 += sum(
+            1
+            for k in rids
+            if c is not None
+            and k in d["answers"]
+            and k in ca
+            and canon(ca[k]) == canon(d["answers"][k])
+        )
+        if c is not None and canon(d["long_forward"]["answers"]) == canon(
+            c["long_forward"]["answers"]
+        ):
+            long_same += 1
+        for k, v in d["answers"].items():
+            f, m = answer_delta(v, ca.get(k))
+            flips, max_abs = flips + f, max(max_abs, m)
     # The long forward must actually fill the window (probe.long_request trims the state to exactly `window`).
     long_short = sum(
         1 for d in own if d["long_forward"].get("input_tokens") != d["long_forward"].get("window")
     )
-    flips, max_abs = 0, 0.0
-    for d in own:
-        for k, v in d["answers"].items():
-            f, m = answer_delta(v, (p1a or {}).get(k))
-            flips, max_abs = flips + f, max(max_abs, m)
-    nan_fields = sorted(
-        {
-            f"{rid}{k}"
-            for d in own
-            for rid, a in d["answers"].items()
-            for k, x in _nums(a)
-            if math.isnan(x)
-        }
-    )
     return {
         "vs_reference_requests": vs_ref,
+        # Requests the probe answered; on an identity with a published reference every one must be compared with it.
+        "requests_answered": sum(len(d["answers"]) for d in own),
         "vs_run_p1_requests": {"identical": same_p1, "compared": total},
         "vs_run_p1_forward4096": {"identical": long_same, "compared": len(own)},
+        "unpaired_rows": unpaired,
         "forward4096_not_full_window": long_short,
         # probe.py compares repeats as canonical JSON text (repeat_compare), so NaN repeats compare equal.
         "repeat_identical": bool(own)
@@ -258,8 +268,18 @@ def correctness(rows: list[dict], arm: str, ident: str) -> dict:
         ),
         "choice_flips_vs_p1": flips,
         "max_abs_delta_vs_p1": max_abs,
-        "nan_fields": nan_fields,
+        "non_finite_fields": non_finite_fields(own),
     }
+
+
+def non_finite_fields(own: list[dict]) -> list[str]:
+    """Every answer field (requests and the 4096-token forward) holding NaN, +Infinity or -Infinity."""
+    out = set()
+    for d in own:
+        answers = [*d["answers"].items(), ("forward-4096", d["long_forward"]["answers"])]
+        for rid, a in answers:
+            out |= {f"{rid}{k}" for k, x in _nums(a) if not math.isfinite(x)}
+    return sorted(out)
 
 
 def canon(x) -> str:
@@ -270,6 +290,9 @@ def _nums(x, prefix=""):
     if isinstance(x, dict):
         for k, v in x.items():
             yield from _nums(v, f"{prefix}/{k}")
+    elif isinstance(x, (list, tuple)):
+        for i, v in enumerate(x):
+            yield from _nums(v, f"{prefix}/{i}")
     elif isinstance(x, (int, float)) and not isinstance(x, bool):
         yield prefix, float(x)
 
@@ -283,12 +306,12 @@ def answer_delta(a: dict | None, b: dict | None) -> tuple[int, float]:
         if a[q].get("choice") != b[q].get("choice"):
             flips += 1
     na, nb = dict(_nums(a)), dict(_nums(b))
-    # A NaN on either side is not a numeric difference: it is counted in nan_fields instead.
+    # A non-finite value on either side is not a numeric difference: it is listed in non_finite_fields instead.
     m = max(
         (
             abs(na[k] - nb[k])
             for k in set(na) & set(nb)
-            if not (math.isnan(na[k]) or math.isnan(nb[k]))
+            if math.isfinite(na[k]) and math.isfinite(nb[k])
         ),
         default=0.0,
     )
@@ -434,6 +457,24 @@ def _phases(rows: list[dict]) -> dict:
     return {"cold": cold, "restore": restore, "warm": warm}
 
 
+def uniform_conditions(rows: list[dict]) -> list[str]:
+    """p2_result publishes one host, cpuset, thread count and request set per record from its first row. Refuse
+    when the rows of one CPU identity disagree on any of them, so no first row stands for rows unlike it."""
+    why = []
+    for ident in sorted({d["_identity"] for d in rows}):
+        own = [d for d in rows if d["_identity"] == ident]
+        for name, f in (
+            ("threads", lambda d: d.get("threads")),
+            ("cpuset", lambda d: (d.get("host_before") or {}).get("sched_affinity")),
+            ("machine", lambda d: (d.get("host_before") or {}).get("machine")),
+            ("request ids", lambda d: sorted(d["answers"])),
+        ):
+            seen = {canon(f(d)) for d in own}
+            if len(seen) != 1:
+                why.append(f"{ident}: rows disagree on {name}: {sorted(seen)}")
+    return why
+
+
 def p2_result(
     rung: str,
     rows: list[dict],
@@ -560,23 +601,26 @@ def guard(
     general: str,
     required: list[str] | None = None,
     min_rounds: int = MIN_ROUNDS,
-    expected_failures: list[str] | None = None,
+    expected_failures: dict[str, dict] | None = None,
     control_nan: dict[str, list[str]] | None = None,
+    reference_identities: list[str] | None = None,
 ) -> list[str]:
     """Why a 'general default' verdict is not allowed by the operator rule (empty when allowed). Fail-closed: the
     verdict needs complete, clean evidence on every required path, not merely the absence of a measured regression.
 
     required          "<identity>|<mode>" cells that must exist for this rung (e.g. arm64 local + memfd, x86 local)
     min_rounds        paired rounds every required cell must have
-    expected_failures "<run>/<arm>" load failures that are by design (none may hit this rung's arm, dormant or p1)
-    control_nan       per identity, the non-finite answer fields P1 itself is known to return; anything else NaN fails
+    expected_failures "<run>/<arm>" -> refusal spec (refusal_mismatch): by-design load failures; any other failure of
+                      this rung's arm, dormant or p1 refuses
+    control_nan       per identity, the non-finite answer fields (NaN or +/-Infinity) P1 itself is known to return
+    reference_identities  identities with a published P1 reference: every answer there must be compared with it
 
     Refused when: a required cell is missing or short of rounds; any headline metric is missing, non-finite,
     unassessed or worse; the arm ran before its control more (or less) often than after; an unexpected load of the
-    arm, its dormant check or p1 failed; any request or 4,096-token answer differs from the same run's P1, or the
-    long forward did not fill the window, or repeats within a load were not identical; on an identity with a
-    published reference, any answer differs from it; the arm returns a non-finite field P1 does not, or P1 returns
-    one not declared in control_nan."""
+    arm, its dormant check or p1 failed; any arm row has no same-round P1 row; any request or 4,096-token answer
+    differs from the same round's P1, or the long forward did not fill the window, or repeats within a load were not
+    identical; on a reference identity, any answer differs from the reference or was not compared with it; the arm
+    returns a non-finite field P1 does not, or P1 returns one not declared in control_nan."""
     if general != "general default":
         return []
     why = []
@@ -592,6 +636,8 @@ def guard(
         if key.endswith("|correctness"):
             ident = key.split("|")[0]
             req, fwd = v["vs_run_p1_requests"], v["vs_run_p1_forward4096"]
+            if v.get("unpaired_rows", 1):
+                why.append(f"{key}: {v.get('unpaired_rows')} rows without a same-round P1 row")
             if not req["compared"] or req["identical"] != req["compared"]:
                 why.append(f"{key}: answers differ from P1 ({req['identical']}/{req['compared']})")
             if not fwd["compared"] or fwd["identical"] != fwd["compared"]:
@@ -605,8 +651,19 @@ def guard(
             ref = v["vs_reference_requests"]
             if ref["differs"]:
                 why.append(f"{key}: {ref['differs']} answers differ from P1's published reference")
+            if ident in (reference_identities or []):
+                answered = v.get("requests_answered", -1)
+                if (
+                    not answered
+                    or ref["identical"] + ref["differs"] != answered
+                    or ref["no_reference"]
+                ):
+                    why.append(
+                        f"{key}: reference coverage {ref['identical'] + ref['differs']}/{answered} "
+                        f"({ref['no_reference']} without a reference)"
+                    )
             ctl = set((s.get("control_nan_fields") or {}).get(ident, []))
-            extra = sorted(set(v["nan_fields"]) - ctl)
+            extra = sorted(set(v["non_finite_fields"]) - ctl)
             if extra:
                 why.append(f"{key}: non-finite answers P1 does not return: {extra}")
             undeclared = sorted(ctl - set((control_nan or {}).get(ident, [])))
@@ -634,25 +691,65 @@ def guard(
             why.append(f"{key}: order unbalanced vs p1 ({o})")
     arms = {RUNGS[rung]["arm"], RUNGS[rung]["dormant"], "p1"} - {None}
     for f in s.get("failed_loads", []):
-        if f["arm"] in arms and f"{f['run']}/{f['arm']}" not in set(expected_failures or []):
+        if f["arm"] in arms and refusal_mismatch(
+            f, (expected_failures or {}).get(f"{f['run']}/{f['arm']}")
+        ):
             why.append(
                 f"{f['run']}/{f['arm']}: unexpected failed load (round {f.get('round')}, rc {f['rc']})"
             )
     return why
 
 
-def refusals_hold(s: dict, expected: list[str], rounds: int) -> list[str]:
-    """An expected refusal is a claim too: it must have refused in every round and never produced a row."""
+def refusal_mismatch(f: dict, spec: dict | None) -> str:
+    """Why one failed load is not the declared refusal `spec` (empty when it is). A spec names the exit code and
+    EITHER the probe's machine-readable `reason` (its LKAI_REFUSAL record) OR the exact final stderr line
+    (`diagnostic`, for loads run before the probe recorded a reason)."""
+    if not spec:
+        return "not declared"
+    if f.get("rc") != spec["rc"]:
+        return f"rc {f.get('rc')} != {spec['rc']}"
+    if f.get("mode") not in spec.get("modes", ["local"]):
+        return f"mode {f.get('mode')!r} not declared"
+    if "reason" in spec:
+        got = (f.get("refusal") or {}).get("reason")
+        if got != spec["reason"]:
+            return f"reason {got!r} != {spec['reason']!r}"
+        return ""
+    last = ((f.get("stderr") or "").strip().splitlines() or [""])[-1]
+    return (
+        "" if last == spec["diagnostic"] else f"diagnostic {last[:120]!r} != {spec['diagnostic']!r}"
+    )
+
+
+def refusals_hold(s: dict, expected: dict[str, dict], rounds: int) -> list[str]:
+    """An expected refusal is a claim too. For each declared "<run>/<arm>": exactly one failed load per declared mode
+    in each round 0..rounds-1 (no duplicate, no missing round), every one matching the spec's rc and reason or exact
+    diagnostic, and no successful row of that arm in that run."""
     why = []
-    for key in expected:
+    for key, spec in expected.items():
         run, arm = key.split("/")
-        n = sum(1 for f in s.get("failed_loads", []) if f["run"] == run and f["arm"] == arm)
+        got = [f for f in s.get("failed_loads", []) if f["run"] == run and f["arm"] == arm]
+        want = sorted((r, m) for r in range(rounds) for m in spec.get("modes", ["local"]))
+        seen = sorted((f.get("round"), f.get("mode")) for f in got)
+        if seen != want:
+            why.append(f"{key}: refusals at (round, mode) {seen}, expected exactly {want}")
+        for f in got:
+            bad = refusal_mismatch(f, spec)
+            if bad:
+                why.append(f"{key}: round {f.get('round')} {f.get('mode')}: {bad}")
         ok = (s.get("rows_by_run_arm") or {}).get(key, 0)
-        if n != rounds or ok:
-            why.append(
-                f"{key}: expected to refuse in {rounds}/{rounds} rounds, refused {n}, loaded {ok}"
-            )
+        if ok:
+            why.append(f"{key}: expected to refuse, but {ok} loads produced rows")
     return why
+
+
+def failures_accounted(s: dict, expected: dict[str, dict]) -> list[str]:
+    """Every failed load of every run is a declared refusal of its own kind; nothing fails silently."""
+    return [
+        f"{f['run']}/{f['arm']} round {f.get('round')} {f.get('mode')}: undeclared failed load ({bad})"
+        for f in s.get("failed_loads", [])
+        if (bad := refusal_mismatch(f, expected.get(f"{f['run']}/{f['arm']}")))
+    ]
 
 
 def status_holds(rung: str, s: dict, v: dict, primary: str) -> list[str]:
@@ -669,6 +766,14 @@ def status_holds(rung: str, s: dict, v: dict, primary: str) -> list[str]:
         if v["status"] == want
         else [f"status {v['status']!r} but {primary}|local reads {want!r}"]
     )
+
+
+def expected_refusals(vs: dict) -> dict[str, dict]:
+    """Every rung's declared refusals, "<run>/<arm>" -> spec, from verdicts.json."""
+    out: dict[str, dict] = {}
+    for w in vs["rungs"].values():
+        out |= w.get("expected_refusals", {})
+    return out
 
 
 def write_p2(out: str, rung: str, res: dict, rows: list[dict], s: dict) -> str:
@@ -701,7 +806,7 @@ def main() -> None:
         k = f"{d['_run']}/{d['_arm']}"
         s["rows_by_run_arm"][k] = s["rows_by_run_arm"].get(k, 0) + 1
     s["control_nan_fields"] = {
-        ident: correctness(rows, "p1", ident)["nan_fields"] for ident in s["identities"]
+        ident: correctness(rows, "p1", ident)["non_finite_fields"] for ident in s["identities"]
     }
     os.makedirs(a.out, exist_ok=True)
     json.dump(s, open(os.path.join(a.out, "ladder.json"), "w"), indent=1, sort_keys=True)
@@ -710,6 +815,7 @@ def main() -> None:
     if not a.verdicts:
         return
     vs = json.load(open(a.verdicts))
+    expected = expected_refusals(vs)
     bad = {
         r: guard(
             r,
@@ -717,15 +823,15 @@ def main() -> None:
             v["general"],
             required=v.get("required_cells", vs["required_cells"]),
             min_rounds=vs["min_rounds"],
-            expected_failures=[
-                x for w in vs["rungs"].values() for x in w.get("expected_refusals", [])
-            ],
+            expected_failures=expected,
             control_nan=vs.get("control_nan_fields", {}),
+            reference_identities=vs["reference_identities"],
         )
-        + refusals_hold(s, v.get("expected_refusals", []), vs["min_rounds"])
+        + refusals_hold(s, v.get("expected_refusals", {}), vs["min_rounds"])
         + status_holds(r, s, v, vs["primary_identity"])
         for r, v in vs["rungs"].items()
     }
+    bad["all runs"] = failures_accounted(s, expected) + uniform_conditions(rows)
     if any(bad.values()):
         raise SystemExit(
             f"verdicts refused: {json.dumps({k: w for k, w in bad.items() if w}, indent=1)}"
@@ -740,8 +846,12 @@ def main() -> None:
         x86["failed_loads"] = [
             f for f in s["failed_loads"] if f["arm"] in (RUNGS[rung]["arm"], RUNGS[rung]["dormant"])
         ]
-        expected = set(v.get("expected_refusals", []))
-        errs = [f for f in x86["failed_loads"] if f"{f['run']}/{f['arm']}" not in expected]
+        mine = v.get("expected_refusals", {})
+        errs = [
+            f
+            for f in x86["failed_loads"]
+            if refusal_mismatch(f, mine.get(f"{f['run']}/{f['arm']}"))
+        ]
         verdict = v | {
             "started": vs["started"],
             "finished": vs["finished"],
