@@ -313,6 +313,9 @@ const char * sd_forward(void * handle, const int * state_ids, int n_state, int i
     cp.swa_full          = true;
     cp.attention_type    = LLAMA_ATTENTION_TYPE_NON_CAUSAL;
     cp.flash_attn_type   = LLAMA_FLASH_ATTN_TYPE_AUTO;
+    // For measuring precision: STRANDS_DECIDER_KV_F32=1 (an f32 KV cache), STRANDS_DECIDER_FLASH_ATTN=0 (no flash attention).
+    if (getenv("STRANDS_DECIDER_KV_F32")) cp.type_k = cp.type_v = GGML_TYPE_F32;
+    if (getenv("STRANDS_DECIDER_FLASH_ATTN") && strcmp(getenv("STRANDS_DECIDER_FLASH_ATTN"), "0") == 0) cp.flash_attn_type = LLAMA_FLASH_ATTN_TYPE_DISABLED;
     cp.cb_eval           = sd_eval_cb;
     cp.cb_eval_user_data = &cap;
     struct llama_context * ctx = llama_init_from_model(h->model, cp);
