@@ -107,6 +107,12 @@ def run(args) -> None:
         arn: boto3.client("lambda", region_name=arn.split(":")[3], config=cfg)
         for _, arn in functions
     }
+    # Invokes never retry (a retry would land on another environment); control calls do.
+    control_cfg = Config(retries={"max_attempts": 10, "mode": "standard"})
+    control = {
+        arn: boto3.client("lambda", region_name=arn.split(":")[3], config=control_cfg)
+        for _, arn in functions
+    }
 
     def latest(arn: str) -> str:
         return arn.split(":function:")[0] + ":function:" + arn.split(":function:")[1].split(":")[0]
@@ -152,7 +158,7 @@ def run(args) -> None:
     for rnd in range(args.rounds):
         epoch = f"{int(time.time())}-{rnd}"
         for _, arn in functions:
-            recycle(clients[arn], latest(arn), epoch)
+            recycle(control[arn], latest(arn), epoch)
         with ThreadPoolExecutor(args.concurrency * len(functions)) as pool:
             for label, arn in functions:
                 for w in range(args.concurrency):
