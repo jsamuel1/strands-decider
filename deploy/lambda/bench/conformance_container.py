@@ -1,4 +1,3 @@
-
 """A checkpoint's golden_vectors.jsonl through the decision image's llama.cpp, one CPU module at
 a time: the agreement tests/core_conformance.py defines (top-1, mean |dp|), per module.
 

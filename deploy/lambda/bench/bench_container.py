@@ -32,20 +32,38 @@ def main() -> None:
     p.add_argument(
         "--s3", help="s3://bucket/key for the results; a key ending in / gets a unique name"
     )
+    p.add_argument("--module", help="load only libggml-cpu-MODULE.so (a variants image)")
     args = p.parse_args()
 
     threads = int(os.environ.get("BENCH_THREADS", "6"))
     # The handler sizes llama.cpp's threads by os.cpu_count(), which on a host bigger than the
     # function counts every core, not the container's.
     os.cpu_count = lambda: threads  # type: ignore[assignment]
-    sys.path.insert(0, os.environ.get("LAMBDA_TASK_ROOT", "/var/task"))
+    root = os.environ.get("LAMBDA_TASK_ROOT", "/var/task")
+    sys.path.insert(0, root)
     sys.path.append("/var/runtime")  # boto3, as the Lambda base image ships it
+    if args.module:
+        # The handler loads the libdecision.so beside it, and the shim the modules beside that.
+        import shutil
+        import tempfile
+
+        work = tempfile.mkdtemp()
+        for f in os.listdir(root):
+            if (".so" in f and not f.startswith("libggml-cpu-")) or f == "handler.py":
+                shutil.copy2(os.path.join(root, f), work, follow_symlinks=False)
+        shutil.copy2(os.path.join(root, f"libggml-cpu-{args.module}.so"), work)
+        sys.path.insert(0, work)
 
     requests = json.loads(_read(args.requests))
     started = time.perf_counter()
     import handler  # loads the model
 
     model = handler._model.result()
+    if args.module and model.llama.cpu_backend != f"libggml-cpu-{args.module}.so":
+        print(
+            json.dumps({"label": args.label, "name": "skipped", "loaded": model.llama.cpu_backend})
+        )
+        return
     load_s = time.perf_counter() - started
     rows = [
         {
