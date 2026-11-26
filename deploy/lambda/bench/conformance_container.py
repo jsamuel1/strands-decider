@@ -19,8 +19,6 @@ import sys
 import tempfile
 import time
 
-import numpy as np
-
 
 def main() -> None:
     p = argparse.ArgumentParser()
@@ -36,6 +34,7 @@ def main() -> None:
 
     sys.path.insert(0, os.environ.get("LAMBDA_TASK_ROOT", "/var/task"))
     sys.path.append("/var/runtime")
+    import numpy as np  # the image installs it in LAMBDA_TASK_ROOT
     from strands_decider.backends.llama_cpp import LlamaCppBackend
     from strands_decider.core import DecisionConfig, load_readout
     from strands_decider.core.readout import code_probabilities, readout_logits
