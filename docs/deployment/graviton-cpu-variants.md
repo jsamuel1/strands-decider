@@ -233,6 +233,8 @@ Measured on E4B's golden vectors (1,032 text questions), each with and without K
 | Q8_0 (default) | BF16 | 99.71%, 0.00376 | 98.64%, 0.01079 | yes, both |
 | Q4_0 | BF16 | 97.09%, 0.03573 | 97.09%, 0.03575 | no |
 | Q4_K_M | Q8_0, re-quantized | 96.12%, 0.03617 | 96.12%, 0.03597 | no |
+| Q4_0 | Q8_0, re-quantized | 97.38%, 0.03363 | 97.38%, 0.03363 | no |
+| Q6_K | Q8_0, re-quantized | 98.93%, 0.01096 | 99.22%, 0.01316 | yes, both |
 
 Each cell is top-1, then mean |dp|. The repo's bar (`tests/core_conformance.py`) is top-1 ≥ 98%
 and mean |dp| ≤ 0.02.
@@ -243,11 +245,13 @@ What these results show:
   32-value block scales.
 - **The 4-bit formats lose too much on their own.** Their loss is about 3× what KleidiAI adds to
   Q8_0.
-- **Re-quantizing doesn't make KleidiAI pay off.** Q8_0 is the best format here with or without
-  KleidiAI.
+- **Q6_K conforms, with or without KleidiAI.** It lands about where Q8_0 + KleidiAI does, on a
+  6.2 GB decoder against Q8_0's 8.0 GB.
+- **KleidiAI barely changes Q6_K.** Re-quantizing 6-bit weights to per-row int8 loses little
+  relative to the 6-bit format itself.
 
 The re-quantized rows came from the shipped Q8_0, so they overstate the format's loss a
-little. Q4_K_M from BF16, and Q6_K, are still being measured.
+little. Q6_K and Q4_K_M from BF16, and Q6_K's speed, are still being measured.
 
 ## Release check
 
