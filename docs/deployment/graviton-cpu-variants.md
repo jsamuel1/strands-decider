@@ -32,6 +32,19 @@ us-east-1. None of them reports SME, Graviton5 included.
 Graviton5 is tuned for Neoverse V2 because GCC 14, the newest in the Lambda base image's
 repositories, has no `neoverse-v3`; GCC 15 does. To change it, set `GGML_CPU_GRAVITON5_TUNE`.
 
+How fast the `--lambda` build already is on each generation, before any module (ECS on EC2,
+E4B, 6 threads, median ms):
+
+| Request | Graviton2 | Graviton3 | Graviton4 | Graviton5 |
+| --- | --- | --- | --- | --- |
+| ~40 tokens | 5,712 | 3,769 | 3,061 | 2,279 |
+| ~1.1k tokens | 37,776 | 24,921 | 20,432 | 15,073 |
+| ~4.1k tokens | 180,136 | 121,160 | 101,129 | 71,977 |
+| one image | 18,115 | 12,043 | 9,811 | 7,212 |
+
+Graviton5 is about 2.5× Graviton2 on the same build. Lambda gave Graviton2, 3 and 4 hosts in
+us-east-1, and Fargate gave Graviton3.
+
 The variants build needs GCC 14 (`gcc14`, `gcc14-c++` from the Amazon Linux 2023 repositories).
 The base image's libstdc++ is GCC 14's, so what it builds runs on the unchanged base image.
 
@@ -73,6 +86,10 @@ What these results show:
   0.00376, max 0.0508. That is inside `tests/core_conformance.py`'s bound (top-1 ≥ 98%, mean
   |dp| ≤ 0.02).
 
+- **SVE's accuracy is fine on the real checkpoint.** On Graviton3, `graviton3_sve` scored 99.61%
+  top-1 and 0.00384 mean |dp|, and `armv8.2_3` (SVE without i8mm) 99.81% and 0.00361, against
+  `--lambda`'s 99.71% and 0.00374. SVE is left out for speed alone.
+
 `build_native.sh` fails the build if a Graviton3, 4 or 5 module contains an SVE instruction.
 
 ### The image build's tiny-model check
@@ -91,6 +108,11 @@ on one question, `team`, a near-tie:
 The failures don't reflect a real accuracy loss. On the real checkpoint, `graviton4` matches
 `--lambda` exactly (above). The tolerance is tighter than the normal spread between correct
 kernels on that question, and `--lambda` itself uses 0.0068 of it.
+
+The check also misses a real loss. KleidiAI's answers on the tiny model were identical to the
+plain modules', while on E4B it gets 11 more questions wrong ([KleidiAI](#kleidiai--c-kleidiaitrue)).
+My guess, not verified, is that the tiny model's matrices are too small for KleidiAI's kernels
+to be used. So the tiny model rejects sound kernels and can pass lossy ones.
 
 So a variants build's modules are held to 0.015 on this check (`check_variants.sh` passes
 `shim_check.py --golden-dp 0.015`), and the `--lambda` build stays at 0.01. Because the tiny model
@@ -152,9 +174,62 @@ What these results show:
 - **The cause is KleidiAI's own kernels.** The numbers are identical on every generation, so
   they don't come from the Graviton module underneath.
 
+Why, from `ggml-cpu/kleidiai/kleidiai.cpp` at `c56be86`:
+
+- **Q8_0 and Q6_K weights are quantized a second time.** KleidiAI dequantizes each weight row,
+  then quantizes it again to int8 with one scale for the whole row (`max|w| / 127`; its
+  `qsi8cx` format). That throws away Q8_0's scale per 32 values.
+- **Activations are quantized per row too (`qai8dx`),** where ggml uses 32-value blocks.
+- **Q4_0 is KleidiAI's native format.** Its Q4_0 repack (`qsi4c32pscalef16`) keeps the 32-value
+  blocks and their f16 scales, and its activations are quantized in 32-value blocks (`qsi8d32`),
+  as ggml's are. So KleidiAI on Q4_0 should answer like ggml on Q4_0.
+- **Q4_K is re-packed into 32-value blocks with f16 scales.** Its per-block minimums may not
+  carry over exactly, so measure it rather than assume.
+
+This is a different problem from SVE's:
+
+| | SVE modules | KleidiAI |
+| --- | --- | --- |
+| E4B golden vectors | same as `--lambda` | 11 more wrong, ~3× the mean error |
+| Tiny-model check | fails (0.0116), like other sound kernels | passes |
+| Cause | normal rounding spread between correct kernels | Q8_0 weights re-quantized per row |
+| Change from `--lambda` on the bench requests | at most 0.005–0.007 | up to 0.046 |
+
 Turn it on for a deployment only where that accuracy cost is acceptable for its questions. On
 Lambda, KleidiAI with the earlier SVE modules was slower on Graviton3 and 4. Use it only with the
 default `+nosve` modules.
+
+## Decoder quantization (`-c decoder_quant=`)
+
+The build quantizes the decoder to Q8_0 unless `-c decoder_quant=` picks another type. It
+accepts `Q8_0`, `Q6_K`, `Q4_K_M` and `Q4_0`. The vision tower stays Q8_0.
+
+What llama.cpp offers at `c56be86`, and which formats have fast Arm kernels:
+
+| Types | ggml's Arm kernels | KleidiAI |
+| --- | --- | --- |
+| F32, BF16, F16 | plain | none on Graviton (its f16/bf16 kernels need SME) |
+| Q8_0 | repacked, i8mm/dotprod GEMM | re-quantized per row: lossy |
+| Q6_K | repacked | re-quantized per row: lossy |
+| Q5_K_M, Q5_K_S | repacked | none |
+| Q4_K_M, Q4_K_S | repacked | re-packed into 32-value blocks |
+| Q4_0 | repacked | native, no re-quantization |
+| IQ4_NL | repacked | none |
+| Q5_0, Q5_1, Q4_1, IQ4_XS, Q3_K_*, IQ3_*, Q2_K*, IQ2_*, IQ1_*, TQ1_0, TQ2_0, Q1_0, Q2_0, MXFP4 | some repacked (Q2_K, Q1_0, MXFP4) | none |
+
+Limits on what can ship:
+
+- **Lambda's image limit is 10 GB.** E4B's files are 8.2 GB at Q8_0, so F16 and BF16
+  (about 16 GB) can't ship on Lambda. They can on ECS, but the build refuses them today.
+- **Lambda's memory is 10,240 MB.** The build refuses a model whose resident weights exceed
+  6.0 GB.
+- **Formats below 4 bits** are unlikely to hold `tests/core_conformance.py`'s bound. They're
+  unmeasured.
+
+Measurements are in progress: Q4_0 and Q4_K_M from the BF16 checkpoint, and Q4_0, Q4_K_M and
+Q6_K re-quantized from Q8_0. Each runs with and without KleidiAI, against E4B's golden vectors.
+The aim is to find whether a Q4 format with KleidiAI beats Q8_0 without it, on accuracy and on
+speed.
 
 ## Release check
 
