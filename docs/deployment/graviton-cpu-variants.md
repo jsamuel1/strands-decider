@@ -297,6 +297,35 @@ fastest at that accuracy. `-c decoder_quant=Q6_K` is for a deployment that needs
 image more than the speed. Pair it with `kleidiai=true`, because without KleidiAI it's slower
 than Q8_0.
 
+### Rotations
+
+Rotating weights and activations with an orthogonal matrix, usually a Hadamard transform, spreads
+outlier values out before quantizing. QuaRot and SpinQuant use it to make 4-bit nearly lossless.
+Our two losses come from outliers:
+
+- **The Q4 formats:** their 32-value blocks are dominated by outlier weights and activations.
+- **KleidiAI on Q8_0:** its per-row int8 scale is set by each row's largest value.
+
+What the pinned llama.cpp supports, and what would be needed:
+
+- **Only the KV cache is rotated.** llama.cpp applies a Walsh–Hadamard rotation to the KV cache,
+  and only when the cache is quantized and the head size is a multiple of 64. The function's
+  cache is f16, so the rotation never runs.
+- **Rotating the residual stream offline (QuaRot's R1) is not exact for Gemma 4.** It assumes a
+  model with RMSNorms only before each sublayer. Gemma 4 also has RMSNorms with learned scales
+  after each one (`post_attention_layernorm`, `post_feedforward_layernorm`,
+  `post_per_layer_input_norm`). A rotation commutes with the normalization but not with the
+  per-channel scale applied after it.
+- **Rotating each linear layer's input is exact,** because x·W = (x·H)(Hᵀ·W). The weights would be
+  stored as Hᵀ·W, and each layer's input rotated by H at run time. It leaves the residual
+  stream, the norms, the per-layer embeddings and the readout untouched. It needs:
+  - a llama.cpp patch to Gemma 4's graph;
+  - a conversion step that rotates the weights;
+  - a GGUF flag, so unrotated models are unaffected.
+
+  E4B's hidden size isn't a power of two, so H would be block-diagonal. llama.cpp has a fast
+  Hadamard multiply (`llama_mul_mat_hadamard`) that could do it.
+
 ## Release check
 
 Run this whenever `LLAMA_CPP_REV` or `patches/` change, and before changing a default here. The
