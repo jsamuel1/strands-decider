@@ -109,10 +109,23 @@ export class DecisionFunctionStack extends Stack {
     // Builds the image in AWS CodeBuild during `cdk deploy` (deploy-time-build) and publishes it to
     // an ECR repository that belongs to the stack. The build downloads the checkpoint and converts
     // it with llama.cpp's own converter, so the image holds the model.
+    // `-c cpu=variants` builds every Arm tier of ggml's CPU backend, picked per host at load
+    // (Graviton2 to 5); the default, `baseline`, is one build for Graviton2's features.
+    // `-c kleidiai=true` adds Arm's KleidiAI kernels to either.
+    const cpu = String(ctx("cpu") ?? "baseline");
+    if (cpu !== "baseline" && cpu !== "variants") {
+      throw new Error(`cpu must be baseline or variants, not ${cpu}`);
+    }
+    const kleidiai = String(ctx("kleidiai") ?? "false");
+    if (kleidiai !== "true" && kleidiai !== "false") {
+      throw new Error(`kleidiai must be true or false, not ${kleidiai}`);
+    }
     const buildArgs = {
       MODEL: checkpoint,
       MODEL_REVISION: String(ctx("model_revision") ?? "main"),
       MODEL_DIGEST: digest,
+      NATIVE: cpu === "variants" ? "--lambda-variants" : "--lambda",
+      KLEIDIAI: kleidiai === "true" ? "1" : "0",
     };
     const image = new ContainerImageBuild(this, "Image", {
       directory: REPO_ROOT,

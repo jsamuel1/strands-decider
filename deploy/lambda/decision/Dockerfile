@@ -13,10 +13,23 @@ ARG BASE=public.ecr.aws/lambda/python:3.12@sha256:21c21867e3c999a5b9471c16e089bb
 # apply; static, with mtmd, its multimodal library; and the shim linked against it into one
 # library, for every Graviton Lambda runs: the build fails if the library is not arm64 or holds an
 # instruction Graviton2 lacks (scripts/build_native.sh).
+# NATIVE=--lambda-variants builds ggml's CPU backend once per Arm tier and once per Graviton
+# generation, 2 to 5, each tuned for its core, and the shim picks the host's at load; KLEIDIAI=1
+# adds Arm's KleidiAI kernels. /build/lib is what the
+# function ships either way: libdecision.so, and with the variants every library beside it.
 FROM ${BASE} AS llama
-RUN dnf -y install cmake gcc gcc-c++ git binutils && dnf clean all
+ARG NATIVE=--lambda
+ARG KLEIDIAI=0
+# GCC 14, from the base image's own repositories, for the variants (-mcpu=neoverse-v2, armv9.2-a, +sme); the
+# base image's libstdc++ is GCC 14's, so what it builds runs on the final stage unchanged. The
+# Graviton2 build stays on the base image's GCC 11.
+RUN dnf -y install cmake gcc gcc-c++ gcc14 gcc14-c++ git binutils && dnf clean all
 COPY deploy/lambda/decision/ /opt/decision/
-RUN sh /opt/decision/scripts/build_native.sh /llama /build --lambda && rm -rf /llama/.git
+RUN if [ "${NATIVE}" = --lambda-variants ]; then export CC=gcc14-gcc CXX=gcc14-g++; fi \
+    && KLEIDIAI=${KLEIDIAI} sh /opt/decision/scripts/build_native.sh /llama /build ${NATIVE} \
+    && rm -rf /llama/.git && mkdir -p /build/lib \
+    && if [ "${NATIVE}" = --lambda-variants ]; then cp /build/bin/*.so /build/bin/llama-quantize /build/lib/; \
+       else cp /build/libdecision.so /build/bin/llama-quantize /build/lib/; fi
 
 # The model: the checkpoint converted by llama.cpp's own converter (scripts/build_artifact.py),
 # which needs torch, on CPU. Before it, scripts/shim_check.py converts a tiny random checkpoint and
@@ -32,12 +45,13 @@ RUN pip install torch==2.11.0 --index-url https://download.pytorch.org/whl/cpu \
       "protobuf>=4.21,<5" pyyaml==6.0.3 tqdm==4.70.1 tokenizers==0.23.2 pillow==13.0.0 \
       pydantic==2.14.3 boto3==1.43.127
 COPY --from=llama /llama /llama
-COPY --from=llama /build/bin/llama-quantize /usr/local/bin/
-COPY --from=llama /build/libdecision.so /opt/libdecision.so
+COPY --from=llama /build/lib /opt/lib
+# A --lambda-variants llama-quantize finds libllama and its CPU backends there.
+ENV LD_LIBRARY_PATH=/opt/lib
 COPY src /opt/strands-decider/src
 COPY deploy/lambda/decision/scripts /opt/scripts
 ENV PYTHONPATH=/opt/strands-decider/src
-RUN python /opt/scripts/shim_check.py --llama-cpp /llama --lib /opt/libdecision.so
+RUN python /opt/scripts/shim_check.py --llama-cpp /llama --lib /opt/lib/libdecision.so
 ARG MODEL
 ARG MODEL_REVISION=main
 # The sha256 of the checkpoint's manifest (README.md, What the build does), to refuse any other.
@@ -51,7 +65,7 @@ RUN --mount=type=secret,id=aws_container_credentials_uri --mount=type=tmpfs,targ
       export AWS_CONTAINER_CREDENTIALS_RELATIVE_URI="$(cat /run/secrets/aws_container_credentials_uri)"; fi \
     && python /opt/scripts/build_artifact.py "${MODEL}" /model \
       --revision "${MODEL_REVISION}" --expect-digest "${MODEL_DIGEST}" --llama-cpp /llama \
-      --quantize /usr/local/bin/llama-quantize --work /tmp/build --gguf-tmp /tmp/gguf \
+      --quantize /opt/lib/llama-quantize --work /tmp/build --gguf-tmp /tmp/gguf \
     && rm -rf /tmp/build /tmp/hf \
     && chmod -R a+rX /model  # Lambda runs the function as a user other than root
 
@@ -69,7 +83,8 @@ RUN pip install --target "${LAMBDA_TASK_ROOT}" numpy==2.5.4 tokenizers==0.23.2 p
     && SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0+lambda pip install --target "${LAMBDA_TASK_ROOT}" \
       --no-deps /tmp/strands-decider \
     && rm -rf /tmp/strands-decider
-COPY --from=llama /build/libdecision.so ${LAMBDA_TASK_ROOT}/
+COPY --from=llama /build/lib/ ${LAMBDA_TASK_ROOT}/
+RUN rm ${LAMBDA_TASK_ROOT}/llama-quantize
 COPY deploy/lambda/decision/handler.py ${LAMBDA_TASK_ROOT}/
 # numpy's OpenBLAS would start a thread per core beside llama's OpenMP threads.
 ENV OPENBLAS_NUM_THREADS=1
