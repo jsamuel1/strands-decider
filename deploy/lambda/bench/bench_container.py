@@ -76,6 +76,7 @@ def main() -> None:
             "load_s": round(load_s, 1),
             "instance": _instance_type(),
             "platform": platform.platform(),
+            **_memory(),  # after the load: the weights, ggml's repacked copies, KleidiAI's
         }
     ]
     print(json.dumps(rows[0]), flush=True)
@@ -97,6 +98,7 @@ def main() -> None:
                 "cpu_part": handler._CPU_PART,
                 "cpu_backend": model.llama.cpu_backend,
                 "instance": rows[0]["instance"],
+                **_memory(),
             }
             rows.append(row)
             print(json.dumps(row), flush=True)
@@ -129,6 +131,22 @@ def _numbers(answers: dict) -> dict[str, float]:
             out[q] = a["noul"]
         for o, v in (a.get("probabilities") or {}).items():
             out[f"{q}.{o}"] = v
+    return out
+
+
+def _memory() -> dict[str, int]:
+    """This process's memory in MB, from /proc/self/status. RssAnon is what the kernel can't
+    reclaim, the weights' repacked copies and the state's buffers; RssFile is the mapped GGUF,
+    which the page cache can drop; VmHWM is the peak RSS so far (both together)."""
+    out = {}
+    try:
+        with open("/proc/self/status") as f:
+            for line in f:
+                key, _, value = line.partition(":")
+                if key in ("RssAnon", "RssFile", "VmHWM", "VmRSS"):
+                    out[f"{key.lower()}_mb"] = int(value.split()[0]) // 1024
+    except OSError:
+        pass
     return out
 
 
