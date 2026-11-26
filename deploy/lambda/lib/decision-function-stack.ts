@@ -124,6 +124,11 @@ export class DecisionFunctionStack extends Stack {
     if (gravitonSve !== "true" && gravitonSve !== "false") {
       throw new Error(`graviton_sve must be true or false, not ${gravitonSve}`);
     }
+    // `-c decoder_quant=Q4_0` and the like: the decoder GGUF's type, Q8_0 by default.
+    const decoderQuant = String(ctx("decoder_quant") ?? "Q8_0");
+    if (!["Q8_0", "Q6_K", "Q4_K_M", "Q4_0"].includes(decoderQuant)) {
+      throw new Error(`decoder_quant must be Q8_0, Q6_K, Q4_K_M or Q4_0, not ${decoderQuant}`);
+    }
     const buildArgs = {
       MODEL: checkpoint,
       MODEL_REVISION: String(ctx("model_revision") ?? "main"),
@@ -131,6 +136,7 @@ export class DecisionFunctionStack extends Stack {
       NATIVE: cpu === "variants" ? "--lambda-variants" : "--lambda",
       KLEIDIAI: kleidiai === "true" ? "1" : "0",
       GRAVITON_SVE: gravitonSve === "true" ? "1" : "0",
+      DECODER_QUANT: decoderQuant,
     };
     const image = new ContainerImageBuild(this, "Image", {
       directory: REPO_ROOT,
