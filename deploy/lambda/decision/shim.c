@@ -154,6 +154,8 @@ void * sd_load(const char * path, int n_threads, int * n_embd, int * n_embd_inp)
     mp.kv_overrides = h->overrides;
     mp.lazy_mode    = LLAMA_LAZY_MODE_ON;
     mp.load_mode    = LLAMA_LOAD_MODE_MMAP;
+    // STRANDS_DECIDER_NO_REPACK=1 keeps ggml from repacking weights for its GEMM kernels (llama.cpp's --no-repack), for measuring.
+    if (getenv("STRANDS_DECIDER_NO_REPACK")) mp.use_extra_bufts = false;
     h->model = llama_model_load_from_file(path, mp);
     if (!h->model) {
         free(h);
