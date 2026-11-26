@@ -109,16 +109,20 @@ export class DecisionFunctionStack extends Stack {
     // Builds the image in AWS CodeBuild during `cdk deploy` (deploy-time-build) and publishes it to
     // an ECR repository that belongs to the stack. The build downloads the checkpoint and converts
     // it with llama.cpp's own converter, so the image holds the model.
-    // `-c cpu=variants` builds every Arm tier of ggml's CPU backend, picked per host at load
-    // (Graviton2 to 5); the default, `baseline`, is one build for Graviton2's features.
-    // `-c kleidiai=true` adds Arm's KleidiAI kernels to either.
+    // `-c cpu=variants`: a CPU backend module per Arm tier and Graviton generation (docs/deployment/graviton-cpu-variants.md).
     const cpu = String(ctx("cpu") ?? "baseline");
     if (cpu !== "baseline" && cpu !== "variants") {
       throw new Error(`cpu must be baseline or variants, not ${cpu}`);
     }
+    // `-c kleidiai=true` adds Arm's KleidiAI kernels.
     const kleidiai = String(ctx("kleidiai") ?? "false");
     if (kleidiai !== "true" && kleidiai !== "false") {
       throw new Error(`kleidiai must be true or false, not ${kleidiai}`);
+    }
+    // `-c graviton_sve=true` adds SVE Graviton modules; off by default, see docs/deployment/graviton-cpu-variants.md.
+    const gravitonSve = String(ctx("graviton_sve") ?? "false");
+    if (gravitonSve !== "true" && gravitonSve !== "false") {
+      throw new Error(`graviton_sve must be true or false, not ${gravitonSve}`);
     }
     const buildArgs = {
       MODEL: checkpoint,
@@ -126,6 +130,7 @@ export class DecisionFunctionStack extends Stack {
       MODEL_DIGEST: digest,
       NATIVE: cpu === "variants" ? "--lambda-variants" : "--lambda",
       KLEIDIAI: kleidiai === "true" ? "1" : "0",
+      GRAVITON_SVE: gravitonSve === "true" ? "1" : "0",
     };
     const image = new ContainerImageBuild(this, "Image", {
       directory: REPO_ROOT,

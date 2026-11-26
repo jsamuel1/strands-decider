@@ -89,6 +89,9 @@ test("the CPU build is Graviton2's by default, every Arm tier with cpu=variants"
   assert.match(command(synth({ ...S3, cpu: "variants", kleidiai: "true" })), /KLEIDIAI=1/);
   assert.throws(() => synth({ ...S3, cpu: "native" }), /cpu must be baseline or variants/);
   assert.throws(() => synth({ ...S3, kleidiai: "yes" }), /kleidiai must be true or false/);
+  assert.match(command(synth(S3)), /GRAVITON_SVE=0/);
+  assert.match(command(synth({ ...S3, cpu: "variants", graviton_sve: "true" })), /GRAVITON_SVE=1/);
+  assert.throws(() => synth({ ...S3, graviton_sve: "on" }), /graviton_sve must be true or false/);
 });
 
 test("v1's settings are refused, whatever their value", () => {

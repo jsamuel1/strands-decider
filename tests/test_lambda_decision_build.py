@@ -110,3 +110,4 @@ def test_the_variants_image_keeps_the_libraries_versioned_names():
 
     dockerfile = (Path(__file__).parents[1] / "deploy/lambda/decision/Dockerfile").read_text()
     assert "cp -a /build/bin/*.so* " in dockerfile
+    assert "check_variants.sh /llama /opt/lib" in dockerfile

@@ -13,18 +13,9 @@
 # it must be arm64 and hold none of the instructions Graviton2 lacks (i8mm, bf16, SVE), which kill
 # the process there. Without it the build is native, for the machine it runs on (tests, the cluster).
 #
-# --lambda-variants builds ggml's CPU backend as one module per Arm tier, libggml-cpu-*.so, beside a
-# shared libllama, libmtmd and libdecision.so, and the shim loads the best one its host supports
-# at its first sd_load. Beside ggml's generic tiers (GGML_CPU_ALL_VARIANTS: armv8.0 up to
-# SVE2+i8mm and SME) are one per Graviton generation (patches/0002), each tuned for its core
-# (-mcpu=neoverse-n1, -v1, -v2; Graviton5 armv9.2-a, -mtune=neoverse-v2 until GCC 15 brings
-# neoverse-v3) and loaded only on it, by MIDR part number: Graviton2 runs
-# dotprod+fp16, Graviton3 SVE+i8mm, Graviton4 SVE2+i8mm and Graviton5 SVE2+i8mm, with SME where
-# the host has it. Any other CPU gets the best generic tier. It needs GCC 14 (CC and CXX), for
-# armv9.2-a and +sme. Every library is in BUILD/bin; the Graviton2 check holds for all of
-# them but the modules ggml loads only where the host has SVE, i8mm or SME.
-# KLEIDIAI=1 adds Arm's KleidiAI kernels, which pick theirs by the host's features at run time;
-# with it the check holds for every library but the CPU modules, which all hold KleidiAI's.
+# --lambda-variants builds a CPU backend module per Arm tier and per Graviton generation (needs GCC 14); see docs/deployment/graviton-cpu-variants.md.
+# GRAVITON_SVE=1 adds SVE Graviton modules, off by default: why, and when to change that, is in that doc.
+# KLEIDIAI=1 adds Arm's KleidiAI kernels; the CPU modules then hold its runtime-dispatched SVE/SME code and skip the instruction checks.
 set -eu
 
 DECISION=$(cd "$(dirname "$0")/.." && pwd)
@@ -68,6 +59,9 @@ elif [ "$LAMBDA" = "--lambda-variants" ]; then
     fi
     SHARED=ON
     ARCH_FLAGS="-DGGML_NATIVE=OFF -DGGML_BACKEND_DL=ON -DGGML_CPU_ALL_VARIANTS=ON -DGGML_CPU_GRAVITON_VARIANTS=ON"
+    if [ "${GRAVITON_SVE:-0}" = 1 ]; then
+        ARCH_FLAGS="$ARCH_FLAGS -DGGML_CPU_GRAVITON_SVE=ON"
+    fi
 elif [ -n "$LAMBDA" ]; then
     echo "build_native.sh: unknown option $LAMBDA" >&2
     exit 1
@@ -115,6 +109,16 @@ graviton2_clean() {
     rm -f "$1.s"
     echo "$(basename "$1"): arm64, no i8mm, bf16 or SVE"
 }
+# The Graviton3-5 modules are +nosve (docs/deployment/graviton-cpu-variants.md): no z or p register.
+no_sve() {
+    objdump -d --no-show-raw-insn "$1" > "$1.s"
+    if grep -qE '\s[a-z0-9.]+\s+[^;]*\b(z[0-9]{1,2}\.[bhsdq]|p[0-9]{1,2}/[mz])\b' "$1.s"; then
+        echo "build_native.sh: $(basename "$1") holds SVE instructions; it is meant to be +nosve" >&2
+        exit 1
+    fi
+    rm -f "$1.s"
+    echo "$(basename "$1"): arm64, no SVE"
+}
 if [ "$LAMBDA" = "--lambda" ]; then
     graviton2_clean "$LIB"
 elif [ "$LAMBDA" = "--lambda-variants" ]; then
@@ -122,7 +126,8 @@ elif [ "$LAMBDA" = "--lambda-variants" ]; then
         case $(basename "$so") in
             # Loaded only where the host has SVE, i8mm or SME (ggml-cpu/arch/arm/cpu-feats.cpp).
             libggml-cpu-armv8.2_3.so | libggml-cpu-armv8.6_*.so | libggml-cpu-armv9.*.so) ;;
-            libggml-cpu-graviton[345]*.so) ;;
+            libggml-cpu-graviton[345]_s*.so) ;;  # GRAVITON_SVE=1's
+            libggml-cpu-graviton[345].so) [ "${KLEIDIAI:-0}" = 1 ] || no_sve "$so" ;;
             libggml-cpu-*.so) [ "${KLEIDIAI:-0}" = 1 ] || graviton2_clean "$so" ;;
             *) graviton2_clean "$so" ;;
         esac

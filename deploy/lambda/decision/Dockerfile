@@ -13,20 +13,17 @@ ARG BASE=public.ecr.aws/lambda/python:3.12@sha256:21c21867e3c999a5b9471c16e089bb
 # apply; static, with mtmd, its multimodal library; and the shim linked against it into one
 # library, for every Graviton Lambda runs: the build fails if the library is not arm64 or holds an
 # instruction Graviton2 lacks (scripts/build_native.sh).
-# NATIVE=--lambda-variants builds ggml's CPU backend once per Arm tier and once per Graviton
-# generation, 2 to 5, each tuned for its core, and the shim picks the host's at load; KLEIDIAI=1
-# adds Arm's KleidiAI kernels. /build/lib is what the
-# function ships either way: libdecision.so, and with the variants every library beside it.
+# NATIVE=--lambda-variants: a CPU backend module per Arm tier and Graviton generation (docs/deployment/graviton-cpu-variants.md).
+# /build/lib is what the function ships: libdecision.so, and with the variants every library beside it.
 FROM ${BASE} AS llama
 ARG NATIVE=--lambda
 ARG KLEIDIAI=0
-# GCC 14, from the base image's own repositories, for the variants (-mcpu=neoverse-v2, armv9.2-a, +sme); the
-# base image's libstdc++ is GCC 14's, so what it builds runs on the final stage unchanged. The
-# Graviton2 build stays on the base image's GCC 11.
+ARG GRAVITON_SVE=0
+# GCC 14 for the variants, from the base image's repositories; its libstdc++ is GCC 14's, so the final stage runs them unchanged.
 RUN dnf -y install cmake gcc gcc-c++ gcc14 gcc14-c++ git binutils && dnf clean all
 COPY deploy/lambda/decision/ /opt/decision/
 RUN if [ "${NATIVE}" = --lambda-variants ]; then export CC=gcc14-gcc CXX=gcc14-g++; fi \
-    && KLEIDIAI=${KLEIDIAI} sh /opt/decision/scripts/build_native.sh /llama /build ${NATIVE} \
+    && KLEIDIAI=${KLEIDIAI} GRAVITON_SVE=${GRAVITON_SVE} sh /opt/decision/scripts/build_native.sh /llama /build ${NATIVE} \
     && rm -rf /llama/.git && mkdir -p /build/lib \
     && if [ "${NATIVE}" = --lambda-variants ]; then cp -a /build/bin/*.so* /build/bin/llama-quantize /build/lib/; \
        else cp /build/libdecision.so /build/bin/llama-quantize /build/lib/; fi
@@ -51,7 +48,9 @@ ENV LD_LIBRARY_PATH=/opt/lib
 COPY src /opt/strands-decider/src
 COPY deploy/lambda/decision/scripts /opt/scripts
 ENV PYTHONPATH=/opt/strands-decider/src
-RUN python /opt/scripts/shim_check.py --llama-cpp /llama --lib /opt/lib/libdecision.so
+# A variants build checks each CPU module this build host loads, each alone (docs/deployment/graviton-cpu-variants.md#checking-a-build).
+RUN if [ -e /opt/lib/libggml.so ]; then sh /opt/scripts/check_variants.sh /llama /opt/lib; \
+    else python /opt/scripts/shim_check.py --llama-cpp /llama --lib /opt/lib/libdecision.so; fi
 ARG MODEL
 ARG MODEL_REVISION=main
 # The sha256 of the checkpoint's manifest (README.md, What the build does), to refuse any other.
