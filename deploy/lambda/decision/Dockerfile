@@ -28,7 +28,7 @@ COPY deploy/lambda/decision/ /opt/decision/
 RUN if [ "${NATIVE}" = --lambda-variants ]; then export CC=gcc14-gcc CXX=gcc14-g++; fi \
     && KLEIDIAI=${KLEIDIAI} sh /opt/decision/scripts/build_native.sh /llama /build ${NATIVE} \
     && rm -rf /llama/.git && mkdir -p /build/lib \
-    && if [ "${NATIVE}" = --lambda-variants ]; then cp /build/bin/*.so /build/bin/llama-quantize /build/lib/; \
+    && if [ "${NATIVE}" = --lambda-variants ]; then cp -a /build/bin/*.so* /build/bin/llama-quantize /build/lib/; \
        else cp /build/libdecision.so /build/bin/llama-quantize /build/lib/; fi
 
 # The model: the checkpoint converted by llama.cpp's own converter (scripts/build_artifact.py),
