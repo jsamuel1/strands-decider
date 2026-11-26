@@ -274,6 +274,7 @@ Measured on E4B's golden vectors (1,032 text questions), each with and without K
 | Q4_K_M | BF16 | 96.03%, 0.03147 | 96.03%, 0.03154 | no |
 | Q6_K | BF16 | 99.22%, 0.00815 | 98.35%, 0.01229 | yes, both |
 | Q4_0, importance matrix | BF16 | 97.77%, 0.03331 | 97.77%, 0.03328 | no |
+| Q4_K_M, importance matrix | BF16 | 97.09%, 0.02219 | — | no |
 | Q6_K, importance matrix | BF16 | 99.32%, 0.00733 | — | yes |
 | Q4_K_M | Q8_0, re-quantized | 96.12%, 0.03617 | 96.12%, 0.03597 | no |
 | Q4_0 | Q8_0, re-quantized | 97.38%, 0.03363 | 97.38%, 0.03363 | no |
@@ -321,8 +322,9 @@ What these results show:
 - **Q6_K + KleidiAI runs exactly as fast as Q8_0 + KleidiAI.** KleidiAI re-quantizes both to
   the same per-row int8, so they do the same work, but Q6_K is slightly less accurate.
 - **Q6_K saves only image size,** 6.2 GB against 8.0 GB for E4B's decoder.
-- **The importance matrix helps but doesn't rescue Q4_0.** It took Q4_0 from 97.09% to 97.77%
-  top-1, still short of 98%, with a mean |dp| still about 1.7× the bound. On Q6_K it cut the mean
+- **The importance matrix helps but doesn't rescue the 4-bit formats.** It took Q4_0 from
+  97.09% to 97.77% top-1, with a mean |dp| still about 1.7× the bound. It took Q4_K_M from 96.03%
+  to 97.09%, with a mean |dp| of 0.0222 against the 0.02 bound. Both are still short of 98%. On Q6_K it cut the mean
   error by 10% and the worst case by 24%. KleidiAI re-quantizes Q6_K's weights per row, so with
   KleidiAI that gain would probably be lost.
 
@@ -359,6 +361,24 @@ What the pinned llama.cpp supports, and what would be needed:
 
   E4B's hidden size isn't a power of two, so H would be block-diagonal. llama.cpp has a fast
   Hadamard multiply (`llama_mul_mat_hadamard`) that could do it.
+
+## Memory
+
+On Lambda, every build's memory figures sit at the 10,240 MB ceiling. That's true of the
+handler's `maxrss_mb` (median 10,167–10,173 MB) and of Lambda's Max Memory Used (10,227–10,234 MB),
+for `--lambda`, `cpu=variants` and `kleidiai=true` alike, on every generation Lambda gave.
+E4B's weights are memory-mapped, so the page cache counts toward both metrics and fills whatever
+memory the function has. Those figures measure the limit, not the build.
+
+The figure that decides whether a request is killed is the memory the kernel can't reclaim:
+anonymous memory, `RssAnon` in `/proc/self/status`. That covers ggml's repacked weights,
+KleidiAI's re-quantized copy, the KV cache and the compute buffers. The memory-mapped GGUF
+(`RssFile`) can be dropped from the page cache under pressure.
+
+`bench_container.py` records `RssAnon`, `RssFile` and `VmHWM` after the model loads and after
+each request. The memory pass runs each build on its own, with no container memory limit and a
+cold page cache, on requests of ~40, ~4.1k and ~9.6k tokens and one image. E4B's request limit
+is 12,288 tokens. Results are in progress.
 
 ## Release check
 
