@@ -29,7 +29,9 @@ def main() -> None:
     )
     p.add_argument("--label", required=True)
     p.add_argument("--rounds", type=int, default=3)
-    p.add_argument("--s3", help="s3://bucket/key for the results")
+    p.add_argument(
+        "--s3", help="s3://bucket/key for the results; a key ending in / gets a unique name"
+    )
     args = p.parse_args()
 
     threads = int(os.environ.get("BENCH_THREADS", "6"))
@@ -84,6 +86,10 @@ def main() -> None:
         import boto3
 
         bucket, key = args.s3[5:].split("/", 1)
+        if key.endswith("/"):
+            import uuid
+
+            key += f"{args.label}-{uuid.uuid4()}.jsonl"
         body = "".join(json.dumps(r) + "\n" for r in rows).encode()
         boto3.client("s3").put_object(Bucket=bucket, Key=key, Body=body)
 
@@ -109,15 +115,11 @@ def _numbers(answers: dict) -> dict[str, float]:
 
 
 def _instance_type() -> str:
-    """The EC2 instance type, the Fargate task's CPU architecture, or "?"."""
+    """The EC2 instance type (EC2, ECS on EC2), else the ECS task's launch type and size
+    (Fargate, which has no instance metadata), else "?"."""
     import urllib.request
 
-    meta = os.environ.get("ECS_CONTAINER_METADATA_URI_V4")
     try:
-        if meta:
-            with urllib.request.urlopen(meta + "/task", timeout=2) as r:
-                task = json.load(r)
-            return f"{task.get('LaunchType', 'ECS')}:{task.get('Limits', {})}"
         req = urllib.request.Request(
             "http://169.254.169.254/latest/api/token",
             method="PUT",
@@ -132,7 +134,16 @@ def _instance_type() -> str:
         with urllib.request.urlopen(req, timeout=2) as r:
             return r.read().decode()
     except Exception:
-        return "?"
+        pass
+    meta = os.environ.get("ECS_CONTAINER_METADATA_URI_V4")
+    try:
+        if meta:
+            with urllib.request.urlopen(meta + "/task", timeout=2) as r:
+                task = json.load(r)
+            return f"{task.get('LaunchType', 'ECS')}:{task.get('Limits', {})}"
+    except Exception:
+        pass
+    return "?"
 
 
 if __name__ == "__main__":
