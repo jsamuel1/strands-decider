@@ -114,6 +114,30 @@ plain modules', while on E4B it gets 11 more questions wrong ([KleidiAI](#kleidi
 My guess, not verified, is that the tiny model's matrices are too small for KleidiAI's kernels
 to be used. So the tiny model rejects sound kernels and can pass lossy ones.
 
+What moves `graviton4` on this check, measured on Graviton4 with each switch the shim has for
+measuring precision:
+
+| Setting | `armv8.2_2` (urgent / team / severity) | `graviton4` |
+| --- | --- | --- |
+| default | 0.0048 / 0.0068 / 0.0006 | 0.0048 / 0.0116 / 0.0006 |
+| no weight repacking (`STRANDS_DECIDER_NO_REPACK=1`) | unchanged | unchanged |
+| f32 KV cache (`STRANDS_DECIDER_KV_F32=1`) | unchanged | unchanged |
+| no flash attention (`STRANDS_DECIDER_FLASH_ATTN=0`) | 0.0032 / 0.0010 / 0.0006 | 0.0032 / 0.0096 / 0.0009 |
+| both | 0.0079 / 0.0067 / 0.0039 | 0.0079 / 0.0077 / 0.0006 |
+
+What these results show:
+
+- **`graviton4` differs from `armv8.2_2` on one question only, `team`.** The SVE modules move all
+  three.
+- **Turning flash attention off brings `graviton4` under 0.01.** That isn't a precision fix in
+  principle. Batches the size of the state use ggml's tiled flash-attention kernel, which is all
+  f32 (it converts K and V to f32 and uses an f32 GEMM). The path without flash attention rounds
+  Q and the softmax output to f16.
+- **These are all paths within about 0.01 of the reference.** Which one lands nearest it on a
+  near-tie looks arbitrary.
+- **Turning flash attention off also costs memory.** Without it, llama.cpp materializes the full
+  attention-score matrix. At 16k tokens, run as one batch, that exceeds Lambda's 10 GB.
+
 So a variants build's modules are held to 0.015 on this check (`check_variants.sh` passes
 `shim_check.py --golden-dp 0.015`), and the `--lambda` build stays at 0.01. Because the tiny model
 is a weak signal for these kernels, the variants build also has a release check on the real
