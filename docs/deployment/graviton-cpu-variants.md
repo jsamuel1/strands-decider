@@ -37,62 +37,79 @@ The base image's libstdc++ is GCC 14's, so what it builds runs on the unchanged 
 
 ## Why the Graviton modules are `+nosve`
 
-ggml's SVE kernels move the function's answers further from the float32 reference than its NEON
-ones do.
+At llama.cpp `c56be86`, ggml's SVE paths are slower than its NEON ones on every Graviton,
+and much slower on long requests.
 
-Measured on Graviton4 (`m8g`) at llama.cpp `c56be86`, with `shim_check.py`'s tiny Gemma 4 and
-one module loaded at a time (`scripts/check_variants.sh`). Each cell is the largest probability
-difference from transformers on that golden question; the tolerance is 0.01:
+Measured on ECS, E4B (Q8_0), 6 threads, one module loaded at a time, median ms
+(`deploy/lambda/bench/ecs_bench.py`; Fargate gave Graviton3 and agreed with EC2 to within 4%):
 
-| Module | Adds | urgent | team | severity | Result |
-| --- | --- | --- | --- | --- | --- |
-| `armv8.2_2` | NEON, dotprod+fp16 (what `--lambda` builds) | 0.0048 | 0.0068 | 0.0006 | passes |
-| `armv8.2_3` | + SVE | 0.0079 | 0.0116 | 0.0040 | fails |
-| `armv8.6_1` | + i8mm | 0.0079 | 0.0116 | 0.0040 | fails |
-| `armv8.6_2` | + SVE2 | 0.0079 | 0.0116 | 0.0040 | fails |
-| `graviton4` with SVE | + neoverse-v2 tuning | 0.0079 | 0.0116 | 0.0040 | fails |
+| Generation | Request | `--lambda` (static) | NEON + i8mm module | SVE module |
+| --- | --- | --- | --- | --- |
+| Graviton3 (`c7g`) | ~40 tokens | 3,769 | 3,269 (1.15×) | 4,419 (0.85×) |
+| | ~1.1k tokens | 24,921 | 22,022 (1.13×) | 64,001 (0.39×) |
+| | ~4.1k tokens | 121,160 | 111,543 (1.09×) | 582,924 (0.21×) |
+| | one image | 12,043 | 10,505 (1.15×) | 27,410 (0.44×) |
+| Graviton4 (`c8g`) | ~40 tokens | 3,061 | 2,655 (1.15×) | 3,502 (0.87×) |
+| | ~1.1k tokens | 20,432 | 17,993 (1.14×) | 47,560 (0.43×) |
+| | ~4.1k tokens | 101,129 | 89,338 (1.13×) | 424,028 (0.24×) |
+| | one image | 9,811 | 8,832 (1.11×) | 23,019 (0.43×) |
+| Graviton5 (`c9g`) | ~40 tokens | 2,279 | 1,961 (1.16×) | 2,686 (0.85×) |
+| | ~1.1k tokens | 15,073 | 12,923 (1.17×) | 38,095 (0.40×) |
+| | ~4.1k tokens | 71,977 | 63,913 (1.13×) | 346,899 (0.21×) |
+| | one image | 7,212 | 6,371 (1.13×) | 18,367 (0.39×) |
 
 What these results show:
 
-- **SVE alone causes the loss.** i8mm, SVE2 and the core's tuning add none.
-- **i8mm doesn't need SVE.** i8mm is the Q8_0 matrix multiply (`smmla`), so the modules keep it.
-- **SVE adds no width on Graviton4 and 5.** Both implement SVE at 128 bits, NEON's width. Only
-  Graviton3's SVE is 256 bits.
-- **KleidiAI didn't change it.** With `KLEIDIAI=1`, the answers on this model were identical.
-
-This test has a thin margin, and SVE isn't the only kernel path that crosses it:
-
-- Baseline already uses 0.0068 of the 0.01 tolerance on `team`, a near-tie on a random tiny
-  model.
-- On x86, ggml's `sandybridge` module (AVX without FMA or F16C) also misses `team`, at 0.0106,
-  while every other x86 module passes.
-
-So the failure says the SVE path is less precise than the NEON one, not that it is wrong. On the
-real checkpoints, precondition 2 below is what decides it.
+- **SVE costs speed everywhere.** That includes Graviton3, whose SVE is 256 bits wide.
+  Graviton4 and 5 implement SVE at 128 bits, NEON's width, so there SVE never adds width.
+- **The cost grows with context length.** At this pin, several of ggml's SVE branches fall back
+  to scalar loops (`ggml_vec_mad_f32_unroll` and `ggml_vec_mad1_f32` in `ggml-cpu/vec.h` are
+  marked "TODO: Write SVE code").
+- **i8mm is the gain, and it doesn't need SVE.** i8mm is the Q8_0 matrix multiply (`smmla`), so
+  the modules keep it and leave SVE out.
+- **The modules answer like the build that ships today.** On E4B's `golden_vectors.jsonl`
+  (1,032 text questions; `deploy/lambda/bench/conformance_container.py`), `graviton4` and
+  `graviton5` scored exactly what `--lambda` scored on the same host: 99.71% top-1, mean |dp|
+  0.00376, max 0.0508. That is inside `tests/core_conformance.py`'s bound (top-1 ≥ 98%, mean
+  |dp| ≤ 0.02).
 
 `build_native.sh` fails the build if a Graviton3, 4 or 5 module contains an SVE instruction.
+
+### The image build's tiny-model check
+
+`shim_check.py` holds the shim to transformers on a tiny random Gemma 4, with each golden
+question within 0.01. On that check, every module faster than Graviton2's instruction set fails
+on one question, `team`, a near-tie:
+
+| Module | Features | urgent | team | severity |
+| --- | --- | --- | --- | --- |
+| `armv8.2_2` | NEON, dotprod + fp16 (`--lambda`'s ISA) | 0.0048 | 0.0068 | 0.0006 |
+| `armv8.2_3` | + SVE, no i8mm | 0.0079 | 0.0116 | 0.0040 |
+| `graviton4` | + i8mm, no SVE | 0.0079 | 0.0116 | 0.0040 |
+| x86 `sandybridge` | AVX, no FMA | — | 0.0106 | — |
+
+The failures don't reflect a real accuracy loss. On the real checkpoint, `graviton4` matches
+`--lambda` exactly (above). The tolerance is tighter than the normal spread between correct
+kernels on that question, and `--lambda` itself uses 0.0068 of it.
 
 ### Preconditions for turning SVE on
 
 `GRAVITON_SVE=1` (`-c graviton_sve=true`) adds `graviton3_sve`, `graviton4_sve`, `graviton5_sve`
-and `graviton5_sme`. They take precedence over the NEON modules, for measuring.
+and `graviton5_sme`. They take precedence over the NEON modules, for measuring only.
 
 Make SVE the default only when all of the following hold at the llama.cpp pin it would ship with.
 Re-check them after each bump of `LLAMA_CPP_REV`, because ggml's SVE kernels change upstream.
 
-1. **Every SVE module passes on every generation that loads it.** `scripts/check_variants.sh`
-   must pass on `c7g` (256-bit SVE), `c8g` and `c9g` (128-bit).
-   - The image build's own `shim_check.py` tests only the module its build host loads.
-   - CodeBuild's arm64 hosts are Graviton2, so they load none of the SVE modules.
+1. **SVE is faster than the NEON + i8mm modules where it would run.** On each generation it
+   would load on (`c7g`, `c8g`, `c9g`), on Lambda and on ECS, at every request size in the bench
+   mix, by enough to matter. Use `graviton_bench.py` and `ecs_bench.py` with the same requests
+   and the same thread count. At `c56be86` it is 0.21–0.87× of them (above).
 2. **The shipped checkpoints agree at least as well.** On E2B and E4B, against their
-   `golden_vectors.jsonl`, the SVE modules must match the reference at least as well as the NEON
-   ones on the same host:
-   - as many top answers as the reference's;
-   - no larger a mean probability difference. The [Lambda README](https://github.com/strands-labs/strands-decider/tree/main/deploy/lambda)'s
-     v2 measurements are E4B 398 of 400 and 0.0047.
-3. **SVE is faster where it would run.** `deploy/lambda/bench/` must show SVE beating the NEON
-   modules on that generation, on Lambda and on ECS, by enough to matter. Use
-   `graviton_bench.py` and `ecs_bench.py` with the same requests and the same thread count.
+   `golden_vectors.jsonl`, the SVE modules must score at least the NEON modules' top-1 and no
+   larger a mean |dp| on the same host (`conformance_container.py --module`).
+3. **Every SVE module passes `scripts/check_variants.sh` on every generation that loads it.**
+   - The image build's own check covers only the modules its build host loads.
+   - CodeBuild's arm64 hosts are Graviton2, so they load none of the SVE modules.
 
 SME (`graviton5_sme`) also needs a Graviton that reports SME.
 
