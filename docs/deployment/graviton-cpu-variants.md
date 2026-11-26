@@ -271,8 +271,31 @@ What these results show:
   relative to the 6-bit format itself.
 
 The re-quantized rows came from the shipped Q8_0, so they overstate the format's loss a
-little, though Q4_K_M from BF16 scored no better than from Q8_0. Q6_K's speed is still being
-measured.
+little, though Q4_K_M from BF16 scored no better than from Q8_0.
+
+Q6_K's speed, measured on ECS (E4B, 6 threads), against the Q8_0 `--lambda` build:
+
+| Generation | Q8_0 module | Q8_0 + KleidiAI | Q6_K module | Q6_K + KleidiAI |
+| --- | --- | --- | --- | --- |
+| Graviton2 | 0.99–1.01× | 1.18–1.34× | 0.72–0.81× | 1.18–1.34× |
+| Graviton3 | 1.09–1.15× | 1.38–1.70× | 0.79–0.91× | 1.37–1.70× |
+| Graviton4 | 1.11–1.15× | 1.28–1.49× | 0.79–0.88× | 1.28–1.49× |
+| Graviton5 | 1.13–1.17× | 1.32–1.53× | 0.80–0.90× | 1.32–1.54× |
+
+Fargate gave Graviton3 and agreed with EC2 to within 3%.
+
+What these results show:
+
+- **Plain Q6_K is slower than the shipped build.** ggml's Q6_K kernels are slower than its Q8_0
+  i8mm path, so the smaller file doesn't buy speed.
+- **Q6_K + KleidiAI runs exactly as fast as Q8_0 + KleidiAI.** KleidiAI re-quantizes both to
+  the same per-row int8, so they do the same work, but Q6_K is slightly less accurate.
+- **Q6_K saves only image size,** 6.2 GB against 8.0 GB for E4B's decoder.
+
+**Q8_0 stays the default.** It is the most accurate format and, with the Graviton modules, the
+fastest at that accuracy. `-c decoder_quant=Q6_K` is for a deployment that needs the smaller
+image more than the speed. Pair it with `kleidiai=true`, because without KleidiAI it's slower
+than Q8_0.
 
 ## Release check
 
