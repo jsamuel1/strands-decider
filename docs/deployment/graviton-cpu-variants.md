@@ -247,6 +247,7 @@ Measured on E4B's golden vectors (1,032 text questions), each with and without K
 | --- | --- | --- | --- | --- |
 | Q8_0 (default) | BF16 | 99.71%, 0.00376 | 98.64%, 0.01079 | yes, both |
 | Q4_0 | BF16 | 97.09%, 0.03573 | 97.09%, 0.03575 | no |
+| Q4_K_M | BF16 | 96.03%, 0.03147 | 96.03%, 0.03154 | no |
 | Q4_K_M | Q8_0, re-quantized | 96.12%, 0.03617 | 96.12%, 0.03597 | no |
 | Q4_0 | Q8_0, re-quantized | 97.38%, 0.03363 | 97.38%, 0.03363 | no |
 | Q6_K | Q8_0, re-quantized | 98.93%, 0.01096 | 99.22%, 0.01316 | yes, both |
@@ -266,7 +267,8 @@ What these results show:
   relative to the 6-bit format itself.
 
 The re-quantized rows came from the shipped Q8_0, so they overstate the format's loss a
-little. Q6_K and Q4_K_M from BF16, and Q6_K's speed, are still being measured.
+little, though Q4_K_M from BF16 scored no better than from Q8_0. Q6_K from BF16, and Q6_K's
+speed, are still being measured.
 
 ## Release check
 
