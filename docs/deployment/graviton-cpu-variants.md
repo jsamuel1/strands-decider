@@ -195,6 +195,21 @@ This is a different problem from SVE's:
 | Cause | normal rounding spread between correct kernels | Q8_0 weights re-quantized per row |
 | Change from `--lambda` on the bench requests | at most 0.005–0.007 | up to 0.046 |
 
+On Lambda (us-east-1, E4B, warm requests, median), the speedups match ECS's:
+
+| Host Lambda gave | `cpu=variants` | `cpu=variants`, `kleidiai=true` |
+| --- | --- | --- |
+| Graviton2 (most hosts) | 0.99–1.01× | 1.19–1.36× |
+| Graviton3 | 1.08–1.12× | 1.39–1.67× |
+| Graviton4 | 1.12–1.16× | 1.34–1.56× |
+
+Each Lambda host loaded its own Graviton module (`cpu_backend` in the function's log). Lambda
+gave no Graviton5 hosts in these runs.
+
+KleidiAI also costs cold-start time. It re-quantizes every Q8_0 weight matrix when the model
+loads. The median model load of a new environment was 107 s with KleidiAI, against 79 s for
+`--lambda` and 73 s for `cpu=variants`.
+
 Turn it on for a deployment only where that accuracy cost is acceptable for its questions. On
 Lambda, KleidiAI with the earlier SVE modules was slower on Graviton3 and 4. Use it only with the
 default `+nosve` modules.
