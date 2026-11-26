@@ -137,6 +137,13 @@ What these results show:
   near-tie looks arbitrary.
 - **Turning flash attention off also costs memory.** Without it, llama.cpp materializes the full
   attention-score matrix. At 16k tokens, run as one batch, that exceeds Lambda's 10 GB.
+- **On the real checkpoint, turning flash attention off doesn't help.** On E4B's golden vectors
+  on Graviton4, `graviton4` scored 99.71% and 0.00381 without flash attention, against 99.71% and
+  0.00374 with it. `armv8.2_2` scored 99.71% and 0.00364, against 99.61% and 0.00353. Without flash
+  attention it was also 34–39% slower.
+
+So no setting brings `graviton4` under 0.01 on this check without costing the real model. Flash
+attention stays on.
 
 So a variants build's modules are held to 0.015 on this check (`check_variants.sh` passes
 `shim_check.py --golden-dp 0.015`), and the `--lambda` build stays at 0.01. Because the tiny model
