@@ -387,7 +387,8 @@ each request. The memory pass runs each build on its own, with no container memo
 cold page cache, on requests of ~40, ~4.1k and ~9.6k tokens and one image. E4B's request limit
 is 12,288 tokens.
 
-Graviton4 (`c8g.8xlarge`, 6 threads), E4B:
+Graviton4 (`c8g.8xlarge`, 6 threads), E4B. Memory in MB; `RssAnon` and `RssFile` after load,
+peak over every request:
 
 | Build | `RssAnon` after load | `RssFile` | Peak RSS (`VmHWM`), to the ~9.6k-token request |
 | --- | --- | --- | --- |
@@ -398,6 +399,10 @@ Graviton4 (`c8g.8xlarge`, 6 threads), E4B:
 | Q6_K + KleidiAI | 5,295 MB | 3,745 MB | 12,004 MB |
 
 What these results show:
+
+Graviton2 (`c6g.8xlarge`) matched to within 60 MB for every build: `--lambda` 5,486 MB and
+13,280 MB, `cpu=variants` 5,490 and 13,285, Q8_0 + KleidiAI 5,260 and 13,049, Q6_K 4,424 and
+11,146, Q6_K + KleidiAI 5,243 and 11,952. Memory depends on the build, not the generation.
 
 - **The Graviton modules cost no memory.** `cpu=variants` matches `--lambda` to within 10 MB.
 - **KleidiAI replaces ggml's repacked copy of the weights; it doesn't add one.** It uses about
