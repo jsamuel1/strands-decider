@@ -1,3 +1,4 @@
+# ruff: noqa: SLF001  -- the bench reads the handler's own module state, as the function logs it
 """The decision function's image, benchmarked in place: on EC2 (docker run), on ECS (a task), or
 anywhere the image runs. It imports the Lambda handler, so the model, the shim and its CPU
 backend are exactly the function's, and runs a request set through it with a fixed number of
