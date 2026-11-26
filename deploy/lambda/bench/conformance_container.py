@@ -26,6 +26,9 @@ def main() -> None:
     p.add_argument("--lib", default="/var/task/libdecision.so")
     p.add_argument("--module", help="force libggml-cpu-MODULE.so")
     p.add_argument("--model-dir", default="/opt/model")
+    p.add_argument(
+        "--gguf", help="another decoder GGUF than MODEL_DIR/model.gguf (e.g. requantized)"
+    )
     p.add_argument("--max-state", type=int, default=5000, help="skip rows with longer states")
     p.add_argument("--threads", type=int, default=os.cpu_count())
     p.add_argument("--label", default="")
@@ -52,7 +55,9 @@ def main() -> None:
 
     config = DecisionConfig.load(args.model_dir)
     weight = load_readout(args.model_dir)
-    backend = LlamaCppBackend(lib, os.path.join(args.model_dir, "model.gguf"), threads=args.threads)
+    backend = LlamaCppBackend(
+        lib, args.gguf or os.path.join(args.model_dir, "model.gguf"), threads=args.threads
+    )
     loaded = backend.cpu_backend
     if args.module and loaded != f"libggml-cpu-{args.module}.so":
         print(json.dumps({"module": args.module, "skipped": f"loaded {loaded}"}))
@@ -82,6 +87,7 @@ def main() -> None:
     out = {
         "label": args.label,
         "module": args.module or loaded,
+        "gguf": os.path.basename(args.gguf) if args.gguf else "model.gguf",
         "cpu_part": _cpu_part(),
         "questions": n,
         "top1": round(top1 / n, 4) if n else None,
@@ -98,7 +104,7 @@ def main() -> None:
 
         bucket, prefix = args.s3[5:].split("/", 1)
         body = json.dumps({**out, "per_question": per_question}).encode()
-        key = f"{prefix}{args.label or 'run'}-{out['module']}-{uuid.uuid4()}.json"
+        key = f"{prefix}{args.label or 'run'}-{out['module']}-{out['gguf']}-{uuid.uuid4()}.json"
         boto3.client("s3").put_object(Bucket=bucket, Key=key, Body=body)
 
 

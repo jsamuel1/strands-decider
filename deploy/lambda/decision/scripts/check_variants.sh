@@ -31,7 +31,8 @@ EOF
         echo "$name: skipped (this host does not load it)"
         continue
     fi
-    if python3 "$SCRIPTS/shim_check.py" --llama-cpp "$SRC" --lib "$dir/libdecision.so" > "$WORK/$name.json" 2> "$WORK/$name.err"; then
+    # 0.015, not 0.01: docs/deployment/graviton-cpu-variants.md#the-image-builds-tiny-model-check
+    if python3 "$SCRIPTS/shim_check.py" --llama-cpp "$SRC" --lib "$dir/libdecision.so" --golden-dp 0.015 > "$WORK/$name.json" 2> "$WORK/$name.err"; then
         echo "$name: passed"
     else
         echo "$name: FAILED"; tail -5 "$WORK/$name.err"

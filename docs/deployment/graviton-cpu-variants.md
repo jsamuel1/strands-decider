@@ -92,6 +92,11 @@ The failures don't reflect a real accuracy loss. On the real checkpoint, `gravit
 `--lambda` exactly (above). The tolerance is tighter than the normal spread between correct
 kernels on that question, and `--lambda` itself uses 0.0068 of it.
 
+So a variants build's modules are held to 0.015 on this check (`check_variants.sh` passes
+`shim_check.py --golden-dp 0.015`), and the `--lambda` build stays at 0.01. Because the tiny model
+is a weak signal for these kernels, the variants build also has a release check on the real
+checkpoint ([Release check](#release-check)).
+
 ### Preconditions for turning SVE on
 
 `GRAVITON_SVE=1` (`-c graviton_sve=true`) adds `graviton3_sve`, `graviton4_sve`, `graviton5_sve`
@@ -150,6 +155,41 @@ What these results show:
 Turn it on for a deployment only where that accuracy cost is acceptable for its questions. On
 Lambda, KleidiAI with the earlier SVE modules was slower on Graviton3 and 4. Use it only with the
 default `+nosve` modules.
+
+## Release check
+
+Run this whenever `LLAMA_CPP_REV` or `patches/` change, and before changing a default here. The
+image build can't run it, because CodeBuild's arm64 hosts are Graviton2 and load none of the
+Graviton3–5 modules.
+
+1. **Build a measurement image.** Build `deploy/lambda/decision/Dockerfile` with
+   `NATIVE=--lambda-variants`, then the `--lambda` build. Push both to an ECR repository the hosts
+   can pull from.
+2. **Run every module on every generation.** On one instance of each generation (`c6g`, `c7g`,
+   `c8g`, `c9g`), run `deploy/lambda/bench/conformance_container.py` inside each image, against
+   the checkpoint's `golden_vectors.jsonl`:
+   - in the `--lambda` image, with no `--module`;
+   - in the variants image, once per Graviton module, with `--module graviton<N>`;
+   - in a `KLEIDIAI=1` image too, for the opt-in KleidiAI results.
+
+   Write all the results to one S3 prefix with `--s3`. Accuracy doesn't depend on the thread
+   count, so a large instance with `--threads 24` or more is fine.
+3. **Check the results.** `deploy/lambda/bench/conformance_report.py s3://<bucket>/<prefix>`
+   fails unless every module conforms (`tests/core_conformance.py`). Each module must also be no
+   worse than the `--lambda` build on its host: at most 2 more wrong top answers per 1,032
+   questions, and a mean |dp| at most 10% higher. KleidiAI results are reported but don't fail
+   the check.
+
+Results at `c56be86` (E4B, 1,032 questions):
+
+| Generation | `--lambda` | Graviton module | Graviton module + KleidiAI |
+| --- | --- | --- | --- |
+| Graviton2 | 99.71%, 0.00376 | 99.61%, 0.00354 | 98.64%, 0.01079 |
+| Graviton3 | 99.71%, 0.00374 | 99.71%, 0.00374 | — |
+| Graviton4 | 99.71%, 0.00376 | 99.71%, 0.00376 | 98.64%, 0.01079 |
+| Graviton5 | 99.71%, 0.00376 | 99.71%, 0.00376 | 98.64%, 0.01079 |
+
+Each cell is top-1, then mean |dp|.
 
 ## Checking a build
 
