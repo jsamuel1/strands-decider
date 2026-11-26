@@ -224,9 +224,14 @@ def main() -> None:
     r.add_argument("--function", action="append", required=True, help="label=function ARN")
     r.add_argument("--rounds", type=int, default=3)
     r.add_argument("--concurrency", type=int, default=4)
+    q = sub.add_parser("requests", help="write the request mix as JSON, for bench_container.py")
+    q.add_argument("golden")
     s = sub.add_parser("report")
     s.add_argument("results", nargs="+")
     args = p.parse_args()
+    if args.cmd == "requests":
+        print(json.dumps(pick_requests(args.golden)))
+        return
     (run if args.cmd == "run" else report)(args)
 
 
