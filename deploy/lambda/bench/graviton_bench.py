@@ -160,39 +160,60 @@ def run(args) -> None:
 
 
 def report(args) -> None:
+    # Lambda rows (this file's run), and bench_container.py's from ECS on EC2 and Fargate, whose
+    # first line per task is the host's ("host"): its features go with that task's rows.
     rows = [json.loads(line) for path in args.results for line in open(path)]
+    features = {}
+    for r in rows:
+        r.setdefault("where", "lambda")
+        r["cpu"] = CPU.get(r.get("cpu_part"), r.get("cpu") or r.get("cpu_part"))
+        if r["name"] == "host":
+            features[(r["where"], r["label"], r.get("instance"), r["cpu"])] = r.get("cpu_features")
+    for r in rows:
+        r.setdefault(
+            "cpu_features", features.get((r["where"], r["label"], r.get("instance"), r["cpu"]))
+        )
     ok = [
         r
         for r in rows
-        if not r.get("error") and r.get("latency_ms") is not None and r["name"] != "cold"
+        if not r.get("error")
+        and r.get("latency_ms") is not None
+        and r["name"] not in ("cold", "host")
     ]
     groups: dict[tuple, list[float]] = defaultdict(list)
     backends: dict[tuple, set] = defaultdict(set)
     for r in ok:
-        groups[(r["cpu"], r["name"], r["label"])].append(r["latency_ms"])
-        backends[(r["cpu"], r["label"])].add(f"{r.get('cpu_backend')} [{r.get('cpu_features')}]")
-    labels = sorted({r["label"] for r in ok})
+        groups[(r["where"], r["cpu"], r["name"], r["label"])].append(r["latency_ms"])
+        backends[(r["where"], r["cpu"], r["label"])].add(
+            f"{r.get('cpu_backend')} [{r.get('cpu_features')}]"
+        )
+    order = ["baseline", "variants", "kleidiai"]
+    labels = sorted(
+        {r["label"] for r in ok}, key=lambda x: (order.index(x) if x in order else 9, x)
+    )
     names = ["text40", "text1k", "text4k", "image1"]
     print("Median server latency (ms) [n], and speedup against the first label\n")
-    print("| CPU | request | " + " | ".join(labels) + " |")
-    print("|---|---|" + "---|" * len(labels))
-    for cpu in sorted({r["cpu"] for r in ok}):
-        for name in names:
-            cells, base = [], None
-            for label in labels:
-                xs = groups.get((cpu, name, label))
-                if not xs:
-                    cells.append("-")
-                    continue
-                med = statistics.median(xs)
-                base = base or med
-                cells.append(
-                    f"{med:,.0f} [{len(xs)}]" + (f" ({base / med:.2f}x)" if med != base else "")
-                )
-            print(f"| {cpu} | {name} | " + " | ".join(cells) + " |")
+    print("| where | CPU | request | " + " | ".join(labels) + " |")
+    print("|---|---|---|" + "---|" * len(labels))
+    for where in sorted({r["where"] for r in ok}):
+        for cpu in sorted({r["cpu"] for r in ok if r["where"] == where}):
+            for name in names:
+                cells, base = [], None
+                for label in labels:
+                    xs = groups.get((where, cpu, name, label))
+                    if not xs:
+                        cells.append("-")
+                        continue
+                    med = statistics.median(xs)
+                    base = base or med
+                    cells.append(
+                        f"{med:,.0f} [{len(xs)}]" + (f" ({base / med:.2f}x)" if med != base else "")
+                    )
+                if any(c != "-" for c in cells):
+                    print(f"| {where} | {cpu} | {name} | " + " | ".join(cells) + " |")
     print("\nCPU backends loaded:")
-    for (cpu, label), b in sorted(backends.items()):
-        print(f"  {cpu:9} {label:12} {sorted(map(str, b))}")
+    for (where, cpu, label), b in sorted(backends.items()):
+        print(f"  {where:8} {cpu:9} {label:10} {sorted(map(str, b))}")
     print(f"\nAnswers against {labels[0]}'s for the same request (largest probability difference):")
     ref = {}
     for r in ok:
