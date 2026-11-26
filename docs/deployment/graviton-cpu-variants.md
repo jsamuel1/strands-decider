@@ -385,7 +385,33 @@ KleidiAI's re-quantized copy, the KV cache and the compute buffers. The memory-m
 `bench_container.py` records `RssAnon`, `RssFile` and `VmHWM` after the model loads and after
 each request. The memory pass runs each build on its own, with no container memory limit and a
 cold page cache, on requests of ~40, ~4.1k and ~9.6k tokens and one image. E4B's request limit
-is 12,288 tokens. Results are in progress.
+is 12,288 tokens.
+
+Graviton4 (`c8g.8xlarge`, 6 threads), E4B:
+
+| Build | `RssAnon` after load | `RssFile` | Peak RSS (`VmHWM`), to the ~9.6k-token request |
+| --- | --- | --- | --- |
+| `--lambda` (Q8_0) | 5,494 MB | 4,823 MB | 13,288 MB |
+| `cpu=variants` (Q8_0) | 5,486 MB | 4,824 MB | 13,282 MB |
+| Q8_0 + KleidiAI | 5,283 MB | 4,825 MB | 13,073 MB |
+| Q6_K | 4,460 MB | 3,745 MB | 11,181 MB |
+| Q6_K + KleidiAI | 5,295 MB | 3,745 MB | 12,004 MB |
+
+What these results show:
+
+- **The Graviton modules cost no memory.** `cpu=variants` matches `--lambda` to within 10 MB.
+- **KleidiAI replaces ggml's repacked copy of the weights; it doesn't add one.** It uses about
+  200 MB less. Its cold-start cost is time spent re-quantizing, not memory.
+- **Q6_K uses about 1 GB less unreclaimable memory, and 2.1 GB less at peak.** That is its real
+  advantage. With KleidiAI the saving goes, because KleidiAI re-quantizes Q6_K to per-row int8,
+  the same size as Q8_0's.
+- **The state's buffers grow with the request on every build.** Peak RSS rises by about 1.1 GB
+  at ~4.1k tokens and 2.9 GB at ~9.6k. The KV cache and compute buffers are freed after each
+  request.
+- **Q8_0 leaves a thin margin on Lambda.** Unreclaimable memory is about 5.5 GB after load, plus
+  about 2.9 GB at ~9.6k tokens, against 10,240 MB. Lambda drops the GGUF's file pages under
+  pressure. This is what E4B's 12,288-token request limit allows for. Q6_K would leave about
+  1 GB more.
 
 ## Release check
 
