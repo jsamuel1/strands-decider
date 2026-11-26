@@ -113,6 +113,44 @@ Re-check them after each bump of `LLAMA_CPP_REV`, because ggml's SVE kernels cha
 
 SME (`graviton5_sme`) also needs a Graviton that reports SME.
 
+## KleidiAI (`-c kleidiai=true`)
+
+KleidiAI is Arm's set of hand-tuned matrix-multiply kernels, which ggml can call in place of its
+own. With the Graviton modules it is the fastest build on every generation, Graviton2 included.
+It is also measurably less accurate. It is off by default.
+
+Speed, measured on ECS (E4B, 6 threads; the ranges cover the ~40-token, ~1.1k-token, ~4.1k-token
+and one-image requests):
+
+| Generation | Graviton module | Graviton module + KleidiAI |
+| --- | --- | --- |
+| Graviton2 | 0.99–1.01× | 1.18–1.34× |
+| Graviton3 | 1.09–1.15× | 1.38–1.70× (Fargate 1.41–1.73×) |
+| Graviton4 | 1.11–1.15× | 1.28–1.49× |
+| Graviton5 | 1.13–1.17× | 1.32–1.53× |
+
+Accuracy, on E4B's golden vectors (1,032 text questions). KleidiAI scored the same on every
+generation:
+
+| Build | Top-1 | Wrong | Mean \|dp\| | Max \|dp\| |
+| --- | --- | --- | --- | --- |
+| `--lambda`, and the Graviton4/5 modules | 99.71% | 3 | 0.00376 | 0.0508 |
+| `graviton2` module | 99.61% | 4 | 0.00354 | 0.0423 |
+| any Graviton module + KleidiAI | 98.64% | 14 | 0.01079 | 0.1304 |
+
+What these results show:
+
+- **KleidiAI conforms, narrowly.** It is inside `tests/core_conformance.py`'s bound (top-1 ≥
+  98%, mean |dp| ≤ 0.02), but 0.6 points above the top-1 floor.
+- **It costs real accuracy.** It gets 11 more top answers wrong out of 1,032, its mean error is
+  nearly 3× the static build's, and one question moves by 0.13.
+- **The cause is KleidiAI's own kernels.** The numbers are identical on every generation, so
+  they don't come from the Graviton module underneath.
+
+Turn it on for a deployment only where that accuracy cost is acceptable for its questions. On
+Lambda, KleidiAI with the earlier SVE modules was slower on Graviton3 and 4. Use it only with the
+default `+nosve` modules.
+
 ## Checking a build
 
 Run `scripts/check_variants.sh SRC LIBDIR` on each generation a change can reach. It runs
