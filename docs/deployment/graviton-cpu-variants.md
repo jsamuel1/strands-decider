@@ -556,6 +556,49 @@ What these results show:
   benchmarks here pin 6 cores to match Lambda, so a deployed task with more vCPUs is faster than
   they show.
 
+## Larger checkpoints on ECS and EC2
+
+The 12B and 26B-A4B v2 checkpoints are too big for Lambda. `LAMBDA_LIMITS=0` builds them for ECS
+or EC2, without the image-size and resident-memory limits. The 26B-A4B is a mixture of experts,
+with about 4B parameters active per token; the 31B is not meant to run on CPU.
+
+Measured with the final build (`cpu=variants`, Q8_0, the default modules) on `.8xlarge` hosts,
+6 threads on cores 0–5 or 32 threads on all cores, median ms:
+
+| Model | Generation | Threads | ~40 tokens | ~1.1k | ~4.1k | one image |
+| --- | --- | --- | --- | --- | --- | --- |
+| 12B | Graviton2 | 6 / 32 | 14,264 / 3,190 | 100,139 / 22,061 | 526,524 / 111,638 | 28,314 / 6,535 |
+| 12B | Graviton3 | 6 / 32 | 7,148 / 1,864 | 47,779 / 13,123 | 265,110 / 70,848 | 13,903 / 3,820 |
+| 12B | Graviton5 | 6 / 32 | 5,113 / 1,266 | 33,698 / 8,087 | 180,221 / 42,575 | 9,945 / 2,438 |
+| 26B-A4B | Graviton2 | 6 / 32 | 5,547 / 1,390 | 40,923 / 10,003 | 249,196 / 55,361 | 47,615 / 9,983 |
+| 26B-A4B | Graviton3 | 6 / 32 | 3,603 / 1,046 | 25,708 / 7,459 | 147,879 / 41,318 | 30,445 / 7,011 |
+| 26B-A4B | Graviton5 | 6 / 32 | 2,426 / 733 | 16,568 / 4,526 | 96,560 / 24,633 | 18,394 / 4,243 |
+| *(E4B)* | *Graviton5* | *6* | *1,840* | *—* | *60,952* | *6,314* |
+
+| Model | `RssAnon` after load | Peak RSS (no limit) | Model load | Golden vectors (Graviton5) |
+| --- | --- | --- | --- | --- |
+| 12B | 12.7 GB | 27.8 GB | 111 s | 99.52% top-1, mean \|dp\| 0.00532 |
+| 26B-A4B | 27.0 GB | 54.8 GB | 238 s | 99.03%, 0.00801 |
+
+Memory was the same on every generation.
+
+What these results show:
+
+- **The 26B-A4B is 1.7–2.3× faster than the 12B on text, on every generation.** As a mixture of
+  experts it runs only its active experts per token. It is slower on images, whose vision tower
+  is heavier.
+- **Both conform on their golden vectors.** The 26B-A4B is the least precise of the checkpoints,
+  but inside the bound.
+- **Both scale with cores.** 32 threads is 3.7–4.7× faster than 6. On a 32-vCPU Graviton5, both
+  answer a ~4.1k-token request faster than E4B does on Lambda's 6 vCPUs.
+- **Memory sizes the task.** The 12B needs about 13 GB that can't be reclaimed, plus the state's
+  buffers: an ECS task of 24 GB or more. The 26B-A4B needs about 27 GB: 48 GB or more.
+- **Most of that memory is ggml's repacked copy of the weights** (see [Memory](#memory)).
+  Repacking at load takes too little time to show up in the load time above, so the cost is
+  memory, not time. Shipping the repacked layouts in the image would make them file-backed and
+  reclaimable, at full speed. That's an option for ECS and EC2, where images aren't limited to
+  10 GB.
+
 ## Release check
 
 Run this whenever `LLAMA_CPP_REV` or `patches/` change, and before changing a default here. The
