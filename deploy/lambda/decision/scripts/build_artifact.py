@@ -218,12 +218,12 @@ def main() -> None:
     size = sum(p.stat().st_size for p in files.values())
     lazy = lazy_ranges(files["model.gguf"])
     resident = size - sum(end - start for start, end in lazy)
-    if size > _MAX_FILE_BYTES:
+    if size > _MAX_FILE_BYTES and not a.no_lambda_limits:
         raise SystemExit(
             f"the converted model is {size:,} bytes, over the {_MAX_FILE_BYTES:,} that fit in a "
             "Lambda container image beside the runtime"
         )
-    if resident > _MAX_RESIDENT_BYTES:
+    if resident > _MAX_RESIDENT_BYTES and not a.no_lambda_limits:
         raise SystemExit(
             f"the converted model holds {resident:,} bytes in memory (its {size:,} less the lazily "
             f"read per-layer embeddings), over the {_MAX_RESIDENT_BYTES:,} that leave a 10,240 MB "
