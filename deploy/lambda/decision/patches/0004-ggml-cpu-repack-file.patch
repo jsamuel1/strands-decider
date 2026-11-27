@@ -1,0 +1,74 @@
+diff --git a/ggml/src/ggml-cpu/repack.cpp b/ggml/src/ggml-cpu/repack.cpp
+index 9282ca2..c349fbe 100644
+--- a/ggml/src/ggml-cpu/repack.cpp
++++ b/ggml/src/ggml-cpu/repack.cpp
+@@ -15,6 +15,13 @@
+ #include <cstring>
+ #include <cassert>
+ #include <cstdio>  // for GGML_ASSERT
++#include <cstdlib>
++#include <string>
++
++#if !defined(_WIN32)
++#include <sys/mman.h>
++#include <unistd.h>
++#endif
+ 
+ #include "repack.h"
+ 
+@@ -5170,8 +5177,54 @@ static const char * ggml_backend_cpu_repack_buffer_type_get_name(ggml_backend_bu
+     GGML_UNUSED(buft);
+ }
+ 
++#if !defined(_WIN32)
++static void ggml_backend_cpu_repack_file_buffer_free(ggml_backend_buffer_t buffer) {
++    munmap(buffer->context, buffer->size);
++}
++
++// GGML_CPU_REPACK_FILE_DIR=<dir> puts the repacked weights in an unlinked file in <dir>, mapped
++// shared, instead of anonymous memory: the kernel can then write them back and drop them under
++// memory pressure, and read them in again, as it does the GGUF's own mapped weights. NULL, and the
++// caller allocates as usual, when the variable is unset or the file cannot be made.
++static ggml_backend_buffer_t ggml_backend_cpu_repack_file_buffer(size_t size) {
++    const char * dir = getenv("GGML_CPU_REPACK_FILE_DIR");
++    if (dir == nullptr || *dir == 0 || size == 0) {
++        return nullptr;
++    }
++    std::string path = std::string(dir) + "/ggml-repack-XXXXXX";
++    const int fd = mkstemp(&path[0]);
++    if (fd < 0) {
++        GGML_LOG_WARN("%s: cannot create a file in %s; repacking into memory\n", __func__, dir);
++        return nullptr;
++    }
++    unlink(path.c_str());
++    void * ptr = MAP_FAILED;
++    if (ftruncate(fd, (off_t) size) == 0) {
++        ptr = mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
++    }
++    close(fd);
++    if (ptr == MAP_FAILED) {
++        GGML_LOG_WARN("%s: cannot map %zu bytes of a file in %s; repacking into memory\n", __func__, size, dir);
++        return nullptr;
++    }
++    ggml_backend_buffer_t buffer = ggml_backend_cpu_buffer_from_ptr(ptr, size);
++    if (buffer == nullptr) {
++        munmap(ptr, size);
++        return nullptr;
++    }
++    buffer->iface.free_buffer = ggml_backend_cpu_repack_file_buffer_free;
++    return buffer;
++}
++#endif
++
+ static ggml_backend_buffer_t ggml_backend_cpu_repack_buffer_type_alloc_buffer(ggml_backend_buffer_type_t buft, size_t size) {
+-    ggml_backend_buffer_t buffer = ggml_backend_buft_alloc_buffer(ggml_backend_cpu_buffer_type(), size);
++    ggml_backend_buffer_t buffer = nullptr;
++#if !defined(_WIN32)
++    buffer = ggml_backend_cpu_repack_file_buffer(size);
++#endif
++    if (buffer == nullptr) {
++        buffer = ggml_backend_buft_alloc_buffer(ggml_backend_cpu_buffer_type(), size);
++    }
+ 
+     if (buffer == nullptr) {
+         return nullptr;
