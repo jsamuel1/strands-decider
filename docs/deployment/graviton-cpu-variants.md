@@ -577,6 +577,56 @@ What these results show:
   is slower than gp3. And it doesn't combine with SnapStart, which allows 512 MB of ephemeral
   storage.
 
+#### The 26B-A4B
+
+The 26B-A4B is a mixture of experts, with about 4B of its parameters active per token. Measured the
+same way, with the final build's model files (`DECIDER_MODEL_DIR`) and the `feat/repack-file` code:
+
+| Repack, limit | ~40 tokens | ~1.1k | ~4.1k | image | `RssAnon` after load | peak RSS | load |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| memory, none | 1.00× | 1.00× | 1.00× | 1.00× | 27,020 MB | 54,815 MB | 54.5 s |
+| file, none | 1.00× | 1.00× | 1.00× | 1.00× | 1,459 MB | 54,817 MB | 62.2 s |
+| memory, 32 GB | 1.01× | 1.00× | 1.00× | 1.00× | 27,004 MB | 32,667 MB | 60.4 s |
+| file, 32 GB | 0.99× | 0.94× | 1.00× | 0.98× | 1,451 MB | 32,654 MB | 99.4 s |
+| file, 16 GB | 0.09× | 0.32× | 0.66× | 0.40× | 1,455 MB | 16,335 MB | 225.3 s |
+| file, 10 GB | 0.03× | 0.17× | 0.55× | 0.20× | 1,367 MB | 10,196 MB | 275.0 s |
+| no repacking, 10 GB | 0.02× | 0.11× | 0.36× | 0.14× | 1,367 MB | 10,197 MB | 226.1 s |
+
+The file-backed runs' answers were identical to the in-memory repack's. Without repacking, they
+differ by up to 0.034, as on E4B.
+
+What these results show:
+
+- **Unreclaimable memory falls from 27 GB to 1.5 GB,** and with room to spare the file costs
+  nothing, as with the dense models. A 32 GB limit fits either repack at full speed.
+- **Being a mixture of experts doesn't shrink the working set.** The state is decoded as one batch,
+  and its tokens route to almost every expert of every layer: each token picks 8 of 128, so even 40
+  tokens touch about 92% of them. Below the weights' size, every request reads nearly all of them
+  back: the ~40-token request takes 30.7 s at 16 GB and 74.9 s at 10 GB, against 2.6 s, about what
+  re-reading the 27 GB file from gp3 takes. Long requests suffer least, since they spend more time
+  computing per weight read.
+- **It runs in 10 GB, slowly.** At Lambda's memory size, on a fast local disk, the 26B-A4B answers
+  a ~4.1k-token request in 178 s, 0.55× its full speed, and short ones at 0.03–0.20×. Repacking
+  into the file beats no repacking at every size of request.
+
+#### The 26B-A4B on Lambda, from S3 Files
+
+The 26B-A4B's 27 GB GGUF fits neither a Lambda image (10 GB) nor `/tmp` (10 GB). An S3 Files file
+system, mounted on the function, maps it from S3: files over 128 KiB aren't copied to the file
+system's own storage, so reads stream from the bucket at the price of S3 GETs. The test function
+ran the `e4b-repackfile` image with 10,240 MB, `DECIDER_MODEL_DIR` on the mount and repacking off,
+since the repack file wouldn't fit `/tmp`.
+
+**It doesn't work.** The function read the model at about 75 MB/s: the handler's prefetch, 32
+readers in 4 MiB blocks, took 370.8 s for 27 GB. From EC2, the same mount gave 77 MB/s for one
+sequential reader and 800 MB/s for 16, so the function's client is held to about one reader's rate.
+With 10 GB of memory, each forward pass then re-reads most of the weights at that rate, about six
+minutes a pass: the first invocation was still loading and warming up when it timed out at 900 s,
+and a timeout resets the environment, so it never gets further.
+
+S3 Files on Lambda would serve a model whose working set fits the function's memory, read once per
+environment. A model that must be re-read on every request needs a local disk.
+
 SnapStart would save the time repacking takes (and KleidiAI's re-quantization) on every new
 environment, since the repacked buffer is in the snapshot. It wouldn't reduce memory. SnapStart
 supports container images on the Python 3.12 base image, but not ephemeral storage over 512 MB,
@@ -646,7 +696,8 @@ What these results show:
 - **Memory sizes the task.** The 12B needs about 13 GB that can't be reclaimed, plus the state's
   buffers; it ran at full speed in a 16 GB container limit (see
   [Repacking into a mapped file](#repacking-into-a-mapped-file)). The 26B-A4B needs about 27 GB
-  that can't be reclaimed, so a task of 32 GB or more; that isn't measured under a limit.
+  that can't be reclaimed; it runs at full speed in a 32 GB limit, and with the repack in a file, in
+  16 GB or even 10 GB, slowly (see [The 26B-A4B](#the-26b-a4b)).
 - **Most of that memory is ggml's repacked copy of the weights** (see [Memory](#memory)).
   Repacking at load takes too little time to show up in the load time above, so the cost is
   memory, not time.
