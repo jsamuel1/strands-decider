@@ -178,6 +178,11 @@ def _args() -> argparse.Namespace:
     ap.add_argument(
         "--decoder-quant", choices=_QUANTS, default=_QUANT, help="the decoder GGUF's type"
     )
+    ap.add_argument(
+        "--no-lambda-limits",
+        action="store_true",
+        help="a model too big for Lambda (ECS/EC2): skip the image-size and resident-memory limits",
+    )
     ap.add_argument("--work", type=Path, default=Path("/tmp/decision-build"))
     ap.add_argument(
         "--gguf-tmp", type=Path, default=None, help="where the BF16 GGUF goes; --work by default"
