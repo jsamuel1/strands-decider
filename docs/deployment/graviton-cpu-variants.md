@@ -525,6 +525,58 @@ What these results show:
   mostly compute buffers, not KV, and CPU flash attention dequantizes Q8_0 K and V on every
   access.
 
+### Repacking into a mapped file
+
+`patches/0004` adds `GGML_CPU_REPACK_FILE_DIR=<dir>`, for measuring. With it, ggml repacks exactly
+as before, but into an unlinked file in `<dir>` mapped shared, instead of anonymous memory. The
+kernel can then write the repacked weights back to the file and drop them under memory pressure,
+as it does the GGUF's own mapped pages, and read them in again when they're used. Unset, or if the
+file can't be made, nothing changes.
+
+Measured on Graviton5 (`c9g.8xlarge`, cores 0–5, 6 threads, `cpu=variants`, gp3 at 16,000 IOPS
+and 1,000 MB/s), with a container memory limit (`--memory`, no swap). Speed is median latency
+against the same model's in-memory repack with no limit:
+
+| Model, repack, limit | ~40 tokens | ~1.1k | ~4.1k | image | `RssAnon` after load | peak RSS | load |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| E4B, memory, none | 1.00× | 1.00× | 1.00× | 1.00× | 5,555 MB | 11,581 MB | 16.2 s |
+| E4B, file, none | 1.00× | 1.00× | 1.00× | 1.00× | 821 MB | 11,580 MB | 15.7 s |
+| E4B, memory, 10 GB | 1.00× | 1.00× | 1.00× | 1.00× | 5,555 MB | 10,199 MB | 17.3 s |
+| E4B, file, 10 GB | 1.00× | 1.00× | 1.00× | 1.00× | 821 MB | 10,186 MB | 20.3 s |
+| E4B, memory, 6 GB | killed (out of memory) | | | | | | |
+| E4B, file, 6 GB | 0.99× | 0.99× | 0.83× | 0.86× | 821 MB | 6,116 MB | 37.0 s |
+| 12B, memory, none | 1.00× | 1.00× | 1.00× | 1.00× | 12,702 MB | 27,834 MB | 26.3 s |
+| 12B, file, none | 1.00× | 1.00× | 1.00× | 1.00× | 637 MB | 27,834 MB | 26.4 s |
+| 12B, memory, 16 GB | 1.00× | 1.00× | 1.00× | 1.01× | 12,702 MB | 16,332 MB | 27.8 s |
+| 12B, file, 16 GB | 1.03× | 1.01× | 1.00× | 1.03× | 637 MB | 16,322 MB | 53.0 s |
+| 12B, memory, 12 GB | killed (out of memory) | | | | | | |
+| 12B, file, 12 GB | 0.15× | 0.53× | 0.85× | 0.26× | 637 MB | 12,258 MB | 144.8 s |
+
+Every run's answers were identical to the in-memory repack's, to the last digit: it's the same
+repack in a different kind of memory. Loads here read the GGUF from local gp3, so they're faster
+than the Lambda and ECS loads above.
+
+What these results show:
+
+- **The repacked weights become reclaimable.** Unreclaimable memory falls by 85% for E4B
+  (5.5 GB to 0.8 GB) and 95% for the 12B (12.7 GB to 0.6 GB), the same as no repacking, but at
+  full speed.
+- **With room to spare, it costs nothing.** Speed, answers and load time match the in-memory
+  repack. Writing the file under a limit slows the load (53 s against 28 s for the 12B at 16 GB),
+  because the kernel writes pages back while ggml is still repacking.
+- **It lowers the smallest limit a model runs in.** With the in-memory repack, the limit must hold
+  the repacked copy plus the state's buffers. E4B is killed at 6 GB and the 12B at 12 GB. With the
+  file, both complete, with the kernel reading weights back from disk. E4B at 6 GB loses 17% on a
+  ~4.1k-token request; the 12B at 12 GB runs 0.15–0.85×, worst on short requests, which spend
+  their time reading weights in.
+- **A 16 GB limit already fits the 12B with the in-memory repack.** The kernel drops the GGUF
+  pages of weights that were repacked, so the 12B needs a 16 GB task, not the 24 GB estimated
+  from its peak RSS above. The file adds headroom there, not a smaller task.
+- **On Lambda, the file goes in `/tmp`.** E4B's repack is 4.7 GB, inside the 10 GB of ephemeral
+  storage, and it's written on every new environment. It's not measured on Lambda, whose `/tmp`
+  is slower than gp3. And it doesn't combine with SnapStart, which allows 512 MB of ephemeral
+  storage.
+
 SnapStart would save the time repacking takes (and KleidiAI's re-quantization) on every new
 environment, since the repacked buffer is in the snapshot. It wouldn't reduce memory. SnapStart
 supports container images on the Python 3.12 base image, but not ephemeral storage over 512 MB,
@@ -592,15 +644,17 @@ What these results show:
 - **Both scale with cores.** 32 threads is 3.7–4.7× faster than 6. On a 32-vCPU Graviton5, both
   answer a ~4.1k-token request faster than E4B does on Lambda's 6 vCPUs.
 - **Memory sizes the task.** The 12B needs about 13 GB that can't be reclaimed, plus the state's
-  buffers: an ECS task of 24 GB or more. The 26B-A4B needs about 27 GB: 48 GB or more.
+  buffers; it ran at full speed in a 16 GB container limit (see
+  [Repacking into a mapped file](#repacking-into-a-mapped-file)). The 26B-A4B needs about 27 GB
+  that can't be reclaimed, so a task of 32 GB or more; that isn't measured under a limit.
 - **Most of that memory is ggml's repacked copy of the weights** (see [Memory](#memory)).
   Repacking at load takes too little time to show up in the load time above, so the cost is
   memory, not time.
 - **The repack stays at launch.** Shipping the repacked layouts in the image (one per layout,
   about another 12–27 GB per model) would slow every launch's image pull more than repacking
-  costs. If memory limits a deployment, the launch-time option is repacking into a file mapped
-  from local disk rather than into anonymous memory. The image stays the same size, and the
-  repacked weights become reclaimable. It's not built or measured.
+  costs. If memory limits a deployment, repack into a file mapped from local disk instead (see
+  [Repacking into a mapped file](#repacking-into-a-mapped-file)): the 12B then runs in a 16 GB
+  task at full speed, and in 12 GB more slowly.
 
 ## Release check
 
