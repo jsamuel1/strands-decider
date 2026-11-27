@@ -595,9 +595,12 @@ What these results show:
   buffers: an ECS task of 24 GB or more. The 26B-A4B needs about 27 GB: 48 GB or more.
 - **Most of that memory is ggml's repacked copy of the weights** (see [Memory](#memory)).
   Repacking at load takes too little time to show up in the load time above, so the cost is
-  memory, not time. Shipping the repacked layouts in the image would make them file-backed and
-  reclaimable, at full speed. That's an option for ECS and EC2, where images aren't limited to
-  10 GB.
+  memory, not time.
+- **The repack stays at launch.** Shipping the repacked layouts in the image (one per layout,
+  about another 12–27 GB per model) would slow every launch's image pull more than repacking
+  costs. If memory limits a deployment, the launch-time option is repacking into a file mapped
+  from local disk rather than into anonymous memory. The image stays the same size, and the
+  repacked weights become reclaimable. It's not built or measured.
 
 ## Release check
 
