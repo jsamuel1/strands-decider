@@ -80,7 +80,7 @@ class _Model:
                 _prefetch(path)
         else:
             # Files bigger than memory would evict themselves as they were read; llama.cpp reads
-            # what it uses (docs/deployment/running-with-low-memory.md, Skip the prefetch).
+            # what it uses (docs/deployment/graviton-cpu-low-memory.md, Skip the prefetch).
             _log.info(
                 "not prefetched: %d MB of model files, %d MB of memory", size >> 20, limit >> 20
             )

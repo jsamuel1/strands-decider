@@ -1,8 +1,12 @@
-# Running with low memory
+# Serving on Graviton CPUs with low memory
 
-This page is for running a checkpoint in less memory than it normally takes: E4B in under 10 GB, the
-12B in a smaller ECS task, or the 26B-A4B (a mixture of experts) in 16 or 10 GB. It covers what
-holds the memory, each option for reducing it, and what each costs in speed and accuracy.
+This page is for running a checkpoint in less memory than it normally takes, on Graviton CPUs with
+llama.cpp (the Lambda and ECS/EC2 decision image): E4B in under 10 GB, the 12B in a smaller ECS
+task, or the 26B-A4B (a mixture of experts) in 16 or 10 GB. It covers what holds the memory, each
+option for reducing it, and what each costs in speed and accuracy.
+
+It doesn't cover GPUs. SageMaker, Lambda Managed Instances and `serve --device cuda` run the
+transformers backend in bf16 on CUDA, which keeps its weights in VRAM and has no repack.
 
 Most options here are measurement switches on the `feat/repack-file` branch, not defaults. The
 [switches](#the-switches) are listed at the end. For how the builds and CPU modules themselves

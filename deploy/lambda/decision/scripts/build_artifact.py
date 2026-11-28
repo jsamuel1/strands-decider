@@ -44,7 +44,7 @@ from strands_decider.core.config import IMAGE
 _QUANT = "Q8_0"  # the default; --decoder-quant picks another (docs/deployment/graviton-cpu-variants.md, Decoder quantization)
 _QUANTS = ("Q8_0", "Q6_K", "Q4_K_M", "Q4_0")
 _VISION_OUTTYPE = "q8_0"
-# --expert-quant gives a mixture of experts' expert weights their own type (docs/deployment/running-with-low-memory.md, Quantize only the experts); 32-wide blocks, since the 26B-A4B's down experts are 704 wide.
+# --expert-quant gives a mixture of experts' expert weights their own type (docs/deployment/graviton-cpu-low-memory.md, Quantize only the experts); 32-wide blocks, since the 26B-A4B's down experts are 704 wide.
 _EXPERT_QUANTS = ("Q4_0", "IQ4_NL", "Q8_0")
 # What the function holds in memory, the files less the lazily read per-layer embedding table, must
 # leave llama.cpp's buffers, Python and a request's state room within Lambda's 10,240 MB: E2B's are

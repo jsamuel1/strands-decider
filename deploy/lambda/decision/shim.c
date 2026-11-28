@@ -75,7 +75,7 @@ static void sd_log(enum ggml_log_level level, const char * text, void * user_dat
 
 // STRANDS_DECIDER_EXPERT_STATS=<path>, for measuring: counts the experts each layer's router picks
 // for every token of every decode (its "ffn_moe_topk-<layer>" tensor), written to <path> as JSON at
-// exit (docs/deployment/running-with-low-memory.md, Which experts are used).
+// exit (docs/deployment/graviton-cpu-low-memory.md, Which experts are used).
 #define SD_MAX_LAYERS  128
 #define SD_MAX_EXPERTS 512
 static uint64_t *   sd_expert_counts;  // [SD_MAX_LAYERS][SD_MAX_EXPERTS], or NULL when not counting

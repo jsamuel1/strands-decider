@@ -59,7 +59,7 @@ ARG MODEL_DIGEST=
 ARG DECODER_QUANT=Q8_0
 # LAMBDA_LIMITS=0 builds a model too big for Lambda, for ECS or EC2: no image-size or memory limit.
 ARG LAMBDA_LIMITS=1
-# EXPERT_QUANT gives a mixture of experts' expert weights their own type, for measuring (docs/deployment/running-with-low-memory.md, Quantize only the experts).
+# EXPERT_QUANT gives a mixture of experts' expert weights their own type, for measuring (docs/deployment/graviton-cpu-low-memory.md, Quantize only the experts).
 ARG EXPERT_QUANT=
 # The checkpoint goes to the container's disk and the BF16 GGUF to memory (/tmp/gguf): written to
 # Docker's storage in CodeBuild, the converter's write fails with "Not enough free space" with

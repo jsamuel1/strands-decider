@@ -529,16 +529,16 @@ What these results show:
 
 Repacking into a file mapped from local disk makes ggml's repacked weights reclaimable: E4B's
 unreclaimable memory falls from 5.5 GB to 0.8 GB at full speed. It's measured in
-[running-with-low-memory.md](running-with-low-memory.md#repack-into-a-file), with the other ways to
+[graviton-cpu-low-memory.md](graviton-cpu-low-memory.md#repack-into-a-file), with the other ways to
 run in less memory.
 
 #### The 26B-A4B
 
-See [running-with-low-memory.md](running-with-low-memory.md#the-26b-a4b).
+See [graviton-cpu-low-memory.md](graviton-cpu-low-memory.md#the-26b-a4b).
 
 #### The 26B-A4B on Lambda, from S3 Files
 
-See [running-with-low-memory.md](running-with-low-memory.md#lambda).
+See [graviton-cpu-low-memory.md](graviton-cpu-low-memory.md#lambda).
 
 SnapStart would save the time repacking takes (and KleidiAI's re-quantization) on every new
 environment, since the repacked buffer is in the snapshot. It wouldn't reduce memory. SnapStart
@@ -609,7 +609,7 @@ What these results show:
 - **Memory sizes the task.** The 12B needs about 13 GB that can't be reclaimed, plus the state's
   buffers; it runs at full speed in a 16 GB container limit. The 26B-A4B needs about 27 GB; it runs
   at full speed in a 32 GB limit, and with 4-bit experts and the repack in a file, in 16 GB at
-  0.86–0.95×. See [running-with-low-memory.md](running-with-low-memory.md).
+  0.86–0.95×. See [graviton-cpu-low-memory.md](graviton-cpu-low-memory.md).
 - **Most of that memory is ggml's repacked copy of the weights** (see [Memory](#memory)).
   Repacking at load takes too little time to show up in the load time above, so the cost is
   memory, not time.
@@ -617,7 +617,7 @@ What these results show:
   about another 12–27 GB per model) would slow every launch's image pull more than repacking
   costs. If memory limits a deployment, repack into a file mapped from local disk instead, shared
   by every process on the host
-  ([running-with-low-memory.md](running-with-low-memory.md#share-one-repack-file-across-processes)).
+  ([graviton-cpu-low-memory.md](graviton-cpu-low-memory.md#share-one-repack-file-across-processes)).
 
 ## Release check
 
