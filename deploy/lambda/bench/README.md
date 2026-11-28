@@ -3,7 +3,9 @@
 These scripts measure the decision image's builds on Lambda, on ECS (EC2 and Fargate) and on
 plain EC2 hosts. They measure speed, accuracy against a checkpoint's golden vectors, and memory.
 The results and the reasoning behind the defaults are in
-[docs/deployment/graviton-cpu-variants.md](../../../docs/deployment/graviton-cpu-variants.md).
+[docs/deployment/graviton-cpu-variants.md](../../../docs/deployment/graviton-cpu-variants.md), and
+the ways to run in less memory in
+[docs/deployment/running-with-low-memory.md](../../../docs/deployment/running-with-low-memory.md).
 
 ## Building a variant
 
