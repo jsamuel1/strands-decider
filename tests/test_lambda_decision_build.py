@@ -111,3 +111,8 @@ def test_the_variants_image_keeps_the_libraries_versioned_names():
     dockerfile = (Path(__file__).parents[1] / "deploy/lambda/decision/Dockerfile").read_text()
     assert "cp -a /build/bin/*.so* " in dockerfile
     assert "check_variants.sh /llama /opt/lib" in dockerfile
+
+
+def test_the_expert_type_goes_to_llama_quantize_before_its_arguments(build_artifact):
+    assert build_artifact.quantize_options(None) == []
+    assert build_artifact.quantize_options("IQ4_NL") == ["--tensor-type", r"_exps\.weight=iq4_nl"]

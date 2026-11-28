@@ -39,9 +39,11 @@
 #include "mtmd.h"
 
 #include <dlfcn.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <time.h>
 
 typedef struct {
@@ -71,8 +73,56 @@ static void sd_log(enum ggml_log_level level, const char * text, void * user_dat
     if (sd_verbose || shown >= GGML_LOG_LEVEL_WARN) fputs(text, stderr);
 }
 
-// Observe only "result_norm", the final-norm hidden state of the output rows.
+// STRANDS_DECIDER_EXPERT_STATS=<path>, for measuring: counts the experts each layer's router picks
+// for every token of every decode (its "ffn_moe_topk-<layer>" tensor), written to <path> as JSON at
+// exit (docs/deployment/graviton-cpu-variants.md, Which experts are used).
+#define SD_MAX_LAYERS  128
+#define SD_MAX_EXPERTS 512
+static uint64_t *   sd_expert_counts;  // [SD_MAX_LAYERS][SD_MAX_EXPERTS], or NULL when not counting
+static uint64_t     sd_expert_tokens[SD_MAX_LAYERS];
+static int          sd_expert_layers, sd_expert_max;
+static const char * sd_expert_path;
+
+static void sd_expert_write(void) {
+    FILE * f = fopen(sd_expert_path, "w");
+    if (!f) return;
+    fprintf(f, "{\"layers\": %d, \"experts\": %d, \"tokens\": [", sd_expert_layers, sd_expert_max + 1);
+    for (int l = 0; l < sd_expert_layers; l++) fprintf(f, "%s%llu", l ? ", " : "", (unsigned long long) sd_expert_tokens[l]);
+    fprintf(f, "], \"counts\": [");
+    for (int l = 0; l < sd_expert_layers; l++) {
+        fprintf(f, "%s[", l ? ", " : "");
+        for (int e = 0; e <= sd_expert_max; e++) {
+            fprintf(f, "%s%llu", e ? ", " : "", (unsigned long long) sd_expert_counts[l * SD_MAX_EXPERTS + e]);
+        }
+        fprintf(f, "]");
+    }
+    fprintf(f, "]}\n");
+    fclose(f);
+}
+
+static void sd_expert_count(struct ggml_tensor * t) {
+    const int layer = atoi(t->name + strlen("ffn_moe_topk-"));
+    if (t->type != GGML_TYPE_I32 || layer < 0 || layer >= SD_MAX_LAYERS || t->ne[0] > 64) return;
+    int32_t ids[64];
+    for (int64_t i = 0; i < t->ne[1]; i++) {  // a token's row of ne[0] expert ids; rows may be strided
+        ggml_backend_tensor_get(t, ids, (size_t) i * t->nb[1], sizeof(int32_t) * t->ne[0]);
+        for (int64_t k = 0; k < t->ne[0]; k++) {
+            if (ids[k] < 0 || ids[k] >= SD_MAX_EXPERTS) continue;
+            sd_expert_counts[layer * SD_MAX_EXPERTS + ids[k]]++;
+            if (ids[k] > sd_expert_max) sd_expert_max = ids[k];
+        }
+    }
+    sd_expert_tokens[layer] += (uint64_t) t->ne[1];
+    if (layer + 1 > sd_expert_layers) sd_expert_layers = layer + 1;
+}
+
+// Observe "result_norm", the final-norm hidden state of the output rows, and when counting experts,
+// each layer's routing.
 static bool sd_eval_cb(struct ggml_tensor * t, bool ask, void * user_data) {
+    if (sd_expert_counts && strncmp(t->name, "ffn_moe_topk-", strlen("ffn_moe_topk-")) == 0) {
+        if (!ask) sd_expert_count(t);
+        return true;
+    }
     if (strcmp(t->name, "result_norm") != 0) return !ask;
     if (ask) return true;
     sd_capture * c = (sd_capture *) user_data;
@@ -97,18 +147,23 @@ static void sd_override_int(struct llama_model_kv_override * o, const char * key
 }
 
 // The CPU backend variant in use: the libggml-cpu-<tag>.so ggml picked for this host, "static" when
-// the CPU backend is linked in, or "none" before the first sd_load.
+// the CPU backend is linked in, or "none" before the first sd_load. sd_cpu_path is the library that
+// holds it: the module, or this one.
 static char sd_cpu_variant[64] = "none";
+static char sd_cpu_path[4096]  = "";
 
 // A --lambda-variants build (scripts/build_native.sh) links no CPU backend: ggml loads the best
 // libggml-cpu-*.so its host supports, from this library's own directory, since ggml's default
 // search (the executable's directory and the working directory) is Python's, not ours.
 static void sd_load_backends(void) {
+    Dl_info info;
     if (ggml_backend_dev_by_type(GGML_BACKEND_DEVICE_TYPE_CPU)) {
         if (strcmp(sd_cpu_variant, "none") == 0) snprintf(sd_cpu_variant, sizeof(sd_cpu_variant), "static");
+        if (!sd_cpu_path[0] && dladdr((void *) sd_load_backends, &info) && info.dli_fname) {
+            snprintf(sd_cpu_path, sizeof(sd_cpu_path), "%s", info.dli_fname);
+        }
         return;
     }
-    Dl_info info;
     char    dir[4096] = ".";
     if (dladdr((void *) sd_load_backends, &info) && info.dli_fname) {
         snprintf(dir, sizeof(dir), "%s", info.dli_fname);
@@ -128,11 +183,37 @@ static void sd_load_backends(void) {
     if (fn && dladdr(fn, &info) && info.dli_fname) {
         const char * base = strrchr(info.dli_fname, '/');
         name = base ? base + 1 : info.dli_fname;
+        snprintf(sd_cpu_path, sizeof(sd_cpu_path), "%s", info.dli_fname);
     }
     snprintf(sd_cpu_variant, sizeof(sd_cpu_variant), "%s", name);
 }
 
 const char * sd_cpu_backend(void) { return sd_cpu_variant; }
+
+// STRANDS_DECIDER_REPACK_CACHE=<dir> keeps ggml's repacked weights in files in <dir>, shared by every
+// process that loads the same model with the same CPU module, and kept for the next (patches/0005):
+// the first writes them, the rest map them and skip repacking. The files' key is the GGUF's and the
+// module's size and modification time, so a new model or build writes new ones.
+static void sd_repack_cache(const char * gguf) {
+    const char * dir = getenv("STRANDS_DECIDER_REPACK_CACHE");
+    struct stat  g, m;
+    if (!dir || !*dir || stat(gguf, &g) != 0 || !sd_cpu_path[0] || stat(sd_cpu_path, &m) != 0) return;
+    const char * module = strrchr(sd_cpu_path, '/');
+    char         key[256];
+    snprintf(key, sizeof(key), "%llx-%llx-%s-%llx-%llx", (unsigned long long) g.st_size, (unsigned long long) g.st_mtime,
+             module ? module + 1 : sd_cpu_path, (unsigned long long) m.st_size, (unsigned long long) m.st_mtime);
+    setenv("GGML_CPU_REPACK_FILE_DIR", dir, 1);
+    setenv("GGML_CPU_REPACK_FILE_KEY", key, 1);
+}
+
+// Renames the repack files this process wrote into place, once the model has loaded.
+static void sd_repack_commit(void) {
+    ggml_backend_dev_t cpu = ggml_backend_dev_by_type(GGML_BACKEND_DEVICE_TYPE_CPU);
+    if (!cpu) return;
+    void (*commit)(void) = (void (*)(void)) ggml_backend_reg_get_proc_address(
+        ggml_backend_dev_backend_reg(cpu), "ggml_backend_cpu_repack_file_commit");
+    if (commit) commit();
+}
 
 // Load a Gemma 4 GGUF, mapped, and give its hidden size and its input embedding size (an image
 // row's). The per-layer embedding table, half of E2B's weights, is read lazily
@@ -156,7 +237,22 @@ void * sd_load(const char * path, int n_threads, int * n_embd, int * n_embd_inp)
     mp.load_mode    = LLAMA_LOAD_MODE_MMAP;
     // STRANDS_DECIDER_NO_REPACK=1 keeps ggml from repacking weights for its GEMM kernels (llama.cpp's --no-repack), for measuring.
     if (getenv("STRANDS_DECIDER_NO_REPACK")) mp.use_extra_bufts = false;
+    // STRANDS_DECIDER_NO_EXPERT_REPACK=1 repacks all but a mixture of experts' expert weights, which stay mapped from the GGUF (llama.cpp's --override-tensor), for measuring.
+    static struct llama_model_tensor_buft_override no_expert_repack[2];
+    if (getenv("STRANDS_DECIDER_NO_EXPERT_REPACK")) {
+        no_expert_repack[0].pattern = "_exps\\.weight";
+        no_expert_repack[0].buft    = ggml_backend_cpu_buffer_type();
+        no_expert_repack[1].pattern = NULL;
+        mp.tensor_buft_overrides    = no_expert_repack;
+    }
+    if (getenv("STRANDS_DECIDER_EXPERT_STATS") && !sd_expert_counts) {
+        sd_expert_counts = (uint64_t *) calloc((size_t) SD_MAX_LAYERS * SD_MAX_EXPERTS, sizeof(uint64_t));
+        sd_expert_path   = getenv("STRANDS_DECIDER_EXPERT_STATS");
+        if (sd_expert_counts) atexit(sd_expert_write);
+    }
+    sd_repack_cache(path);
     h->model = llama_model_load_from_file(path, mp);
+    sd_repack_commit();
     if (!h->model) {
         free(h);
         return NULL;

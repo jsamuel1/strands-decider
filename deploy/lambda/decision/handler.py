@@ -73,9 +73,17 @@ class _Model:
         self.max_request_tokens = max_request_tokens
         gguf = os.path.join(model_dir, "model.gguf")
         mmproj = os.path.join(model_dir, "mmproj.gguf") if IMAGE in self.config.inputs else None
-        for path in (gguf, mmproj):
-            if path:
+        files = [p for p in (gguf, mmproj) if p]
+        size, limit = sum(os.path.getsize(p) for p in files), _memory_limit()
+        if size < limit:
+            for path in files:
                 _prefetch(path)
+        else:
+            # Files bigger than memory would evict themselves as they were read; llama.cpp reads
+            # what it uses (docs/deployment/graviton-cpu-variants.md, Skipping the prefetch).
+            _log.info(
+                "not prefetched: %d MB of model files, %d MB of memory", size >> 20, limit >> 20
+            )
         # The prefetch brings the per-layer embedding table into this host's image cache, so its
         # rows read quickly later; dropping it from the page cache now, before llama.cpp loads,
         # keeps E4B's 3 GB of it from counting against the function's memory while the weights load.
@@ -131,6 +139,23 @@ class _Model:
             "max_length": self.config.max_length_validated,
             "max_request_tokens": self.max_request_tokens,
         }
+
+
+def _memory_limit() -> int:
+    """The memory this environment may use, in bytes: the Lambda function's size, else the
+    container's cgroup limit (v2, then v1), else the host's memory."""
+    mb = os.environ.get("AWS_LAMBDA_FUNCTION_MEMORY_SIZE", "").strip()
+    if mb.isdigit():
+        return int(mb) << 20
+    for path in ("/sys/fs/cgroup/memory.max", "/sys/fs/cgroup/memory/memory.limit_in_bytes"):
+        try:
+            with open(path, encoding="ascii") as f:
+                raw = f.read().strip()
+        except OSError:
+            continue
+        if raw.isdigit():  # cgroup v2 says "max" for no limit
+            return int(raw)
+    return os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES")
 
 
 def _prefetch(path: str, readers: int = 32) -> None:

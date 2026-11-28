@@ -1,0 +1,218 @@
+diff --git a/ggml/src/ggml-cpu/ggml-cpu.cpp b/ggml/src/ggml-cpu/ggml-cpu.cpp
+index 2978340..82a0903 100644
+--- a/ggml/src/ggml-cpu/ggml-cpu.cpp
++++ b/ggml/src/ggml-cpu/ggml-cpu.cpp
+@@ -657,6 +657,9 @@ static ggml_backend_feature * ggml_backend_cpu_get_features(ggml_backend_reg_t r
+ }
+ 
+ static void * ggml_backend_cpu_get_proc_address(ggml_backend_reg_t reg, const char * name) {
++    if (strcmp(name, "ggml_backend_cpu_repack_file_commit") == 0) {
++        return (void *)ggml_backend_cpu_repack_file_commit;
++    }
+     if (strcmp(name, "ggml_backend_set_n_threads") == 0) {
+         ggml_backend_set_n_threads_t fct = ggml_backend_cpu_set_n_threads;
+         return (void *)fct;
+diff --git a/ggml/src/ggml-cpu/repack.cpp b/ggml/src/ggml-cpu/repack.cpp
+index c349fbe..509bf5b 100644
+--- a/ggml/src/ggml-cpu/repack.cpp
++++ b/ggml/src/ggml-cpu/repack.cpp
+@@ -19,8 +19,14 @@
+ #include <string>
+ 
+ #if !defined(_WIN32)
++#include <fcntl.h>
++#include <mutex>
++#include <set>
++#include <sys/file.h>
+ #include <sys/mman.h>
++#include <sys/stat.h>
+ #include <unistd.h>
++#include <vector>
+ #endif
+ 
+ #include "repack.h"
+@@ -5159,10 +5165,19 @@ static enum ggml_status ggml_backend_cpu_repack_buffer_init_tensor(ggml_backend_
+     return GGML_STATUS_SUCCESS;
+ }
+ 
++#if !defined(_WIN32)
++static bool ggml_backend_cpu_repack_file_prefilled(const void * base);
++#endif
++
+ static void ggml_backend_cpu_repack_buffer_set_tensor(ggml_backend_buffer_t buffer, struct ggml_tensor * tensor,
+                                                        const void * data, size_t offset, size_t size) {
+     GGML_ASSERT(offset == 0);
+     GGML_ASSERT(size == ggml_nbytes(tensor));
++#if !defined(_WIN32)
++    if (ggml_backend_cpu_repack_file_prefilled(buffer->context)) {
++        return;  // a finished repack file: the tensor is already repacked in it
++    }
++#endif
+ 
+     auto tensor_traits = (ggml::cpu::repack::tensor_traits_base *) tensor->extra;
+     auto OK            = tensor_traits->repack(tensor, data, size);
+@@ -5178,19 +5193,113 @@ static const char * ggml_backend_cpu_repack_buffer_type_get_name(ggml_backend_bu
+ }
+ 
+ #if !defined(_WIN32)
++// GGML_CPU_REPACK_FILE_DIR=<dir> puts the repacked weights in a file in <dir>, mapped shared, instead
++// of anonymous memory: the kernel can then write them back and drop them under memory pressure, and
++// read them in again, as it does the GGUF's own mapped weights. Alone, the file is unlinked, the
++// process's own. With GGML_CPU_REPACK_FILE_KEY=<key> it's named, and shared: <dir>/ggml-repack-<key>-
++// <n>-<size> holds the process's nth repack buffer. A finished file is mapped read-only and its
++// tensors aren't repacked again. The first process to find none writes <name>.partial under an
++// exclusive lock, and ggml_backend_cpu_repack_file_commit(), once the model has loaded, renames it
++// into place; a process that finds another writing uses an unlinked file. The key must change
++// whenever the repacked bytes would: the caller makes it from the model file and this CPU module.
++// NULL, and the caller allocates as usual, when the variable is unset or no file can be made.
++struct repack_file_pending {
++    std::string partial;
++    std::string name;
++    int         fd;
++    void *      ptr;
++};
++
++static std::mutex                       repack_file_mutex;
++static std::vector<repack_file_pending> repack_file_pending_list;
++static std::set<const void *>           repack_file_prefilled_bases;
++static int                              repack_file_count = 0;
++
++static bool ggml_backend_cpu_repack_file_prefilled(const void * base) {
++    std::lock_guard<std::mutex> lock(repack_file_mutex);
++    return repack_file_prefilled_bases.count(base) > 0;
++}
++
+ static void ggml_backend_cpu_repack_file_buffer_free(ggml_backend_buffer_t buffer) {
++    std::lock_guard<std::mutex> lock(repack_file_mutex);
++    repack_file_prefilled_bases.erase(buffer->context);
++    for (auto it = repack_file_pending_list.begin(); it != repack_file_pending_list.end(); ++it) {
++        if (it->ptr == buffer->context) {
++            close(it->fd);  // unfinished: the next process takes the lock and writes it again
++            repack_file_pending_list.erase(it);
++            break;
++        }
++    }
+     munmap(buffer->context, buffer->size);
+ }
+ 
+-// GGML_CPU_REPACK_FILE_DIR=<dir> puts the repacked weights in an unlinked file in <dir>, mapped
+-// shared, instead of anonymous memory: the kernel can then write them back and drop them under
+-// memory pressure, and read them in again, as it does the GGUF's own mapped weights. NULL, and the
+-// caller allocates as usual, when the variable is unset or the file cannot be made.
++static ggml_backend_buffer_t ggml_backend_cpu_repack_file_wrap(void * ptr, size_t size) {
++    ggml_backend_buffer_t buffer = ggml_backend_cpu_buffer_from_ptr(ptr, size);
++    if (buffer == nullptr) {
++        munmap(ptr, size);
++        return nullptr;
++    }
++    buffer->iface.free_buffer = ggml_backend_cpu_repack_file_buffer_free;
++    return buffer;
++}
++
++// The named file: a finished one mapped, or a partial one this process writes. NULL if another
++// process is writing it, or it can't be made.
++static ggml_backend_buffer_t ggml_backend_cpu_repack_file_named(const std::string & dir, const char * key, size_t size) {
++    std::lock_guard<std::mutex> lock(repack_file_mutex);
++    const std::string name = dir + "/ggml-repack-" + key + "-" + std::to_string(repack_file_count++) + "-" + std::to_string(size);
++    int fd = open(name.c_str(), O_RDONLY | O_CLOEXEC);
++    if (fd >= 0) {
++        struct stat st;
++        void *      ptr = MAP_FAILED;
++        if (fstat(fd, &st) == 0 && (size_t) st.st_size == size) {
++            ptr = mmap(nullptr, size, PROT_READ, MAP_SHARED, fd, 0);
++        }
++        close(fd);
++        if (ptr != MAP_FAILED) {
++            ggml_backend_buffer_t buffer = ggml_backend_cpu_repack_file_wrap(ptr, size);
++            if (buffer != nullptr) {
++                repack_file_prefilled_bases.insert(ptr);
++                GGML_LOG_INFO("%s: mapped the finished %s\n", __func__, name.c_str());
++            }
++            return buffer;
++        }
++    }
++    const std::string partial = name + ".partial";
++    fd = open(partial.c_str(), O_RDWR | O_CREAT | O_CLOEXEC, 0644);
++    if (fd < 0) {
++        return nullptr;
++    }
++    void * ptr = MAP_FAILED;
++    if (flock(fd, LOCK_EX | LOCK_NB) == 0 && ftruncate(fd, 0) == 0 && ftruncate(fd, (off_t) size) == 0) {
++        ptr = mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
++    }
++    if (ptr == MAP_FAILED) {
++        close(fd);
++        GGML_LOG_INFO("%s: another process is writing %s; repacking into a file of this process's own\n", __func__, partial.c_str());
++        return nullptr;
++    }
++    ggml_backend_buffer_t buffer = ggml_backend_cpu_repack_file_wrap(ptr, size);
++    if (buffer == nullptr) {
++        close(fd);
++        return nullptr;
++    }
++    repack_file_pending_list.push_back({ partial, name, fd, ptr });
++    return buffer;
++}
++
+ static ggml_backend_buffer_t ggml_backend_cpu_repack_file_buffer(size_t size) {
+     const char * dir = getenv("GGML_CPU_REPACK_FILE_DIR");
+     if (dir == nullptr || *dir == 0 || size == 0) {
+         return nullptr;
+     }
++    const char * key = getenv("GGML_CPU_REPACK_FILE_KEY");
++    if (key != nullptr && *key != 0) {
++        ggml_backend_buffer_t buffer = ggml_backend_cpu_repack_file_named(dir, key, size);
++        if (buffer != nullptr) {
++            return buffer;
++        }
++    }
+     std::string path = std::string(dir) + "/ggml-repack-XXXXXX";
+     const int fd = mkstemp(&path[0]);
+     if (fd < 0) {
+@@ -5207,16 +5316,25 @@ static ggml_backend_buffer_t ggml_backend_cpu_repack_file_buffer(size_t size) {
+         GGML_LOG_WARN("%s: cannot map %zu bytes of a file in %s; repacking into memory\n", __func__, size, dir);
+         return nullptr;
+     }
+-    ggml_backend_buffer_t buffer = ggml_backend_cpu_buffer_from_ptr(ptr, size);
+-    if (buffer == nullptr) {
+-        munmap(ptr, size);
+-        return nullptr;
+-    }
+-    buffer->iface.free_buffer = ggml_backend_cpu_repack_file_buffer_free;
+-    return buffer;
++    return ggml_backend_cpu_repack_file_wrap(ptr, size);
+ }
+ #endif
+ 
++// Renames the named repack files this process wrote into place, once every tensor is in them (after
++// the model's load); flushed first, so a finished file is never a partial one. Nothing without them.
++extern "C" void ggml_backend_cpu_repack_file_commit(void) {
++#if !defined(_WIN32)
++    std::lock_guard<std::mutex> lock(repack_file_mutex);
++    for (const auto & p : repack_file_pending_list) {
++        if (fdatasync(p.fd) != 0 || rename(p.partial.c_str(), p.name.c_str()) != 0) {
++            GGML_LOG_WARN("%s: could not finish %s\n", __func__, p.name.c_str());
++        }
++        close(p.fd);
++    }
++    repack_file_pending_list.clear();
++#endif
++}
++
+ static ggml_backend_buffer_t ggml_backend_cpu_repack_buffer_type_alloc_buffer(ggml_backend_buffer_type_t buft, size_t size) {
+     ggml_backend_buffer_t buffer = nullptr;
+ #if !defined(_WIN32)
+diff --git a/ggml/src/ggml-cpu/repack.h b/ggml/src/ggml-cpu/repack.h
+index fc6715c..eabe0d9 100644
+--- a/ggml/src/ggml-cpu/repack.h
++++ b/ggml/src/ggml-cpu/repack.h
+@@ -10,6 +10,9 @@
+ 
+ ggml_backend_buffer_type_t ggml_backend_cpu_repack_buffer_type(void);
+ 
++// Renames the named repack files this process wrote into place (repack.cpp, GGML_CPU_REPACK_FILE_KEY).
++extern "C" void ggml_backend_cpu_repack_file_commit(void);
++
+ template <int K> constexpr int QK_0() {
+     if constexpr (K == 1) {
+         return QK1_0;

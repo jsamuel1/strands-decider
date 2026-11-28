@@ -116,7 +116,11 @@ def load(tmp_path, monkeypatch):
     def load(directory: Path | None = None, **env: str):
         directory = directory or write_checkpoint(tmp_path / "model")
         monkeypatch.setenv("DECIDER_MODEL_DIR", str(directory))
-        for key in ("AWS_LAMBDA_INITIALIZATION_TYPE", "DECIDER_MAX_REQUEST_TOKENS"):
+        for key in (
+            "AWS_LAMBDA_INITIALIZATION_TYPE",
+            "DECIDER_MAX_REQUEST_TOKENS",
+            "AWS_LAMBDA_FUNCTION_MEMORY_SIZE",
+        ):
             monkeypatch.delenv(key, raising=False)
         for key, value in env.items():
             monkeypatch.setenv(key, value)
@@ -170,6 +174,20 @@ def test_the_load_warms_up_then_drops_the_pages_it_is_done_with(
     # whole, once mtmd has read it; the table's range again after the warm-ups.
     assert load.dropped == dropped
     assert call(handler, url_event("GET", "/health"))[1]["inputs"] == inputs
+
+
+def test_model_files_bigger_than_memory_are_not_prefetched(load, monkeypatch):
+    reads: list[int] = []
+    pread = os.pread
+    monkeypatch.setattr(
+        os, "pread", lambda fd, n, offset: reads.append(offset) or pread(fd, n, offset)
+    )
+    load(AWS_LAMBDA_FUNCTION_MEMORY_SIZE="1")  # 1 MB, more than the fixture's 1 KB GGUF
+    assert reads == [0, 0]  # the GGUF and the vision tower, each one block
+    reads.clear()
+    load(AWS_LAMBDA_FUNCTION_MEMORY_SIZE="0")
+    assert reads == []
+    assert load.backends[-1].args[1].endswith("model.gguf")  # it loads all the same
 
 
 def test_answers(load):

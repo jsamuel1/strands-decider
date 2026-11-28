@@ -59,6 +59,8 @@ ARG MODEL_DIGEST=
 ARG DECODER_QUANT=Q8_0
 # LAMBDA_LIMITS=0 builds a model too big for Lambda, for ECS or EC2: no image-size or memory limit.
 ARG LAMBDA_LIMITS=1
+# EXPERT_QUANT gives a mixture of experts' expert weights their own type, for measuring (docs/deployment/graviton-cpu-variants.md, Quantizing only the experts).
+ARG EXPERT_QUANT=
 # The checkpoint goes to the container's disk and the BF16 GGUF to memory (/tmp/gguf): written to
 # Docker's storage in CodeBuild, the converter's write fails with "Not enough free space" with
 # hundreds of GB free. Both are gone when the step ends. An s3:// checkpoint is read with the
@@ -68,7 +70,7 @@ RUN --mount=type=secret,id=aws_container_credentials_uri --mount=type=tmpfs,targ
       export AWS_CONTAINER_CREDENTIALS_RELATIVE_URI="$(cat /run/secrets/aws_container_credentials_uri)"; fi \
     && python /opt/scripts/build_artifact.py "${MODEL}" /model \
       --revision "${MODEL_REVISION}" --expect-digest "${MODEL_DIGEST}" --llama-cpp /llama \
-      --quantize /opt/lib/llama-quantize --decoder-quant "${DECODER_QUANT}" $([ "${LAMBDA_LIMITS}" = 0 ] && echo --no-lambda-limits) --work /tmp/build --gguf-tmp /tmp/gguf \
+      --quantize /opt/lib/llama-quantize --decoder-quant "${DECODER_QUANT}" $([ "${LAMBDA_LIMITS}" = 0 ] && echo --no-lambda-limits) $([ -n "${EXPERT_QUANT}" ] && echo --expert-quant "${EXPERT_QUANT}") --work /tmp/build --gguf-tmp /tmp/gguf \
     && rm -rf /tmp/build /tmp/hf \
     && chmod -R a+rX /model  # Lambda runs the function as a user other than root
 
