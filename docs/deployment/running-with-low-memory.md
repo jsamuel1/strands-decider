@@ -269,23 +269,54 @@ tensors). Over the states of the 26B-A4B's 1,032 golden-vector questions (234,11
 - **The skew doesn't shrink a request's working set.** The cold experts are each picked rarely, but
   a request of thousands of tokens still picks most of them at least once.
 
-### Which experts are repacked
+### Which experts to repack
 
-All of them, at load, whether or not they're used. Each layer's experts are one 3-D tensor per
-projection (`ffn_gate_up_exps.weight`, 2816 × 1408 × 128, and `ffn_down_exps.weight`), and ggml
-repacks whole tensors as llama.cpp loads them, before any routing. So the 27 GB repacked copy holds
-all 3,840 experts, including layer 29's 54 that are never picked.
+**Today ggml repacks all of them, at load, whether or not they're used.** Each layer's experts are
+one 3-D tensor per projection (`ffn_gate_up_exps.weight`, 2816 × 1408 × 128, and
+`ffn_down_exps.weight`), and ggml repacks whole tensors as llama.cpp loads them, before any routing.
+The 27 GB repacked copy holds all 3,840 experts, including layer 29's 54 that are never picked. The
+choice it offers is all or none:
 
-| Option | Experts repacked | What memory holds afterwards |
+| Option | Experts repacked | What memory holds afterwards | Speed with enough memory |
+| --- | --- | --- | --- |
+| Repack in memory (the default) | all, at every load | all of them, unreclaimable | 1.00× |
+| Repack into a file | all, written at every load | the ones in use; the rest can be dropped | 1.00× |
+| Share one repack file | all, written once per host | the ones in use, shared by every process | 1.00× |
+| Leave the experts unrepacked | none | the ones in use, in the GGUF's layout | 0.78–0.94× |
+
+**The routing says which ones would be worth it:** a repacked expert pays off in proportion to how
+often it's picked. From the [routing counts](#which-experts-are-used), per layer:
+
+| Experts repacked per layer | Share of routing on the fast layout (typical layer) | Repacked copy, of 24.3 GB |
 | --- | --- | --- |
-| Repack in memory (the default) | all, at every load | all of them, unreclaimable |
-| Repack into a file | all, written at every load | the ones in use; the rest can be dropped |
-| Share one repack file | all, written once per host | the ones in use, shared by every process |
-| Leave the experts unrepacked | none | the ones in use, in the GGUF's layout |
+| all 128 (today) | 100% | 24.3 GB |
+| the busiest 91 | 99% | about 17 GB |
+| the busiest 46 | 90% | about 8.7 GB |
+| the busiest 12 | 50% | about 2.3 GB |
+| none (`patches/0006`) | 0% | 0 |
 
-With a repack file, an unused expert costs disk, not memory: it's written once, and the kernel can
-drop its pages. Repacking only the experts a request uses would need a ggml change, since the
-`MUL_MAT_ID` kernels assume one layout for a whole tensor (see [Not yet tried](#not-yet-tried)).
+Repacking a layer's busiest 46 would put 90% of the expert work on the fast layout, for about 36%
+of the repacked copy. The other 10% would run at the unrepacked kernels' speed, so it would land
+between 0.78–0.94× and full speed, nearer full. The busiest experts differ by layer, so it's a
+per-layer list, taken from routing counts on representative states. Layer 29 needs only 17 for
+90%.
+
+**When it would help:**
+
+- **On a host where the model fits in memory but a full repack file doesn't fit on disk,** or is
+  too slow to write at load.
+- **Where unreclaimable memory must be small and no file can be written:** 8.7 GB instead of
+  24.3 GB, nearer full speed than `patches/0006`.
+
+**When it wouldn't:** below the model's size. A request of thousands of tokens still picks most of
+the cold experts at least once, and they're re-read from disk either way.
+
+**Repacking a subset isn't possible today.** ggml's `MUL_MAT_ID` kernels assume one layout for a
+whole tensor. Repacking only some experts needs a ggml change: splitting each layer's expert tensors
+into a hot part (repacked) and a cold part (left in the GGUF's layout) and routing each token to
+the right one, or kernels that know expert by expert which layout they're reading (see
+[Not yet tried](#not-yet-tried)). Repacking an expert the first time a request routes to it would
+need the same kernel change, plus repacking in the middle of a forward pass.
 
 ## The 26B-A4B
 
@@ -352,11 +383,9 @@ For Lambda, E4B remains the model.
 
 - **Pruning the rarely used experts,** measured against the release check: about 8 GB of the 26B-A4B,
   if accuracy holds (see [Which experts are used](#which-experts-are-used)).
-- **Repacking only the busiest experts,** leaving the rest in the GGUF's layout, by splitting each
-  layer's expert tensors into hot and cold parts. A typical layer's busiest 46 experts carry 90% of
-  its routing, so this could keep most of the repack's speed for about 36% of its memory, when the
-  model fits. It helps where a full repack file doesn't fit on disk or is too slow to write. Below
-  the model's size it doesn't help: each request still touches many cold experts. A ggml change.
+- **Repacking only the busiest experts:** each layer's busiest 46 for 90% of the routing on the fast
+  layout, for about 36% of the repacked copy. A ggml change (see
+  [Which experts to repack](#which-experts-to-repack)).
 - **Local NVMe:** Graviton instances with instance storage (the `d` variants, such as c7gd or
   m8gd) would re-read weights several times faster than gp3, which is what limits every run below
   a model's size.
