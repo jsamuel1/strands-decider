@@ -175,11 +175,11 @@ Both bring the 26B-A4B's file from 26.9 GB to 15.4 GB.
 | Q4_0 experts, repack in memory, none | 1.06× | 0.97× | 0.98× | 1.00× | 16,161 MB | 31,004 MB | 37.5 s |
 | Q4_0 experts, repack in a file, 16 GB | 0.93× | 0.91× | 0.95× | 0.93× | 1,487 MB | 16,327 MB | 71.5 s |
 | Q4_0 experts, repack in a file, 10 GB | 0.12× | 0.42× | 0.71× | 0.47× | 1,238 MB | 10,215 MB | 128.0 s |
-| Q4_0 experts, experts unrepacked, 10 GB | *pending* | | | | | | |
+| Q4_0 experts, experts unrepacked, 10 GB | 0.07× | 0.21× | 0.56× | 0.30× | 3,654 MB | 10,215 MB | 114.7 s |
 | IQ4_NL experts, repack in memory, none | 1.00× | 0.91× | 0.94× | 0.99× | 16,117 MB | 30,960 MB | 37.6 s |
 | IQ4_NL experts, repack in a file, 16 GB | 0.91× | 0.86× | 0.91× | 0.92× | 1,443 MB | 16,327 MB | 70.5 s |
 | IQ4_NL experts, repack in a file, 10 GB | 0.12× | 0.34× | 0.70× | 0.47× | 1,239 MB | 10,215 MB | 127.5 s |
-| IQ4_NL experts, experts unrepacked, 10 GB | *pending* | | | | | | |
+| IQ4_NL experts, experts unrepacked, 10 GB | 0.07× | 0.22× | 0.55× | 0.29× | 3,654 MB | 10,214 MB | 116.4 s |
 
 On Graviton4's golden vectors:
 
@@ -192,6 +192,8 @@ On Graviton4's golden vectors:
 - **4-bit experts make the 26B-A4B fit 16 GB at nearly full speed:** 0.86–0.95× with the repack in
   a file, against 0.10–0.68× for Q8_0. At 10 GB they're 1.3–3× faster than Q8_0, since there's
   less to re-read.
+- **Under a limit, the repack file still beats leaving the experts unrepacked,** as with Q8_0: at
+  10 GB, 0.12–0.71× against 0.07–0.56×.
 - **With enough memory they run at about full speed,** Q4_0 0.97–1.06× and IQ4_NL 0.91–1.00×,
   and load in 37.5 s, against 54.5 s.
 - **Both conform to the standard but fail the release check,** like KleidiAI on E4B (98.64%).
@@ -267,6 +269,24 @@ tensors). Over the states of the 26B-A4B's 1,032 golden-vector questions (234,11
 - **The skew doesn't shrink a request's working set.** The cold experts are each picked rarely, but
   a request of thousands of tokens still picks most of them at least once.
 
+### Which experts are repacked
+
+All of them, at load, whether or not they're used. Each layer's experts are one 3-D tensor per
+projection (`ffn_gate_up_exps.weight`, 2816 × 1408 × 128, and `ffn_down_exps.weight`), and ggml
+repacks whole tensors as llama.cpp loads them, before any routing. So the 27 GB repacked copy holds
+all 3,840 experts, including layer 29's 54 that are never picked.
+
+| Option | Experts repacked | What memory holds afterwards |
+| --- | --- | --- |
+| Repack in memory (the default) | all, at every load | all of them, unreclaimable |
+| Repack into a file | all, written at every load | the ones in use; the rest can be dropped |
+| Share one repack file | all, written once per host | the ones in use, shared by every process |
+| Leave the experts unrepacked | none | the ones in use, in the GGUF's layout |
+
+With a repack file, an unused expert costs disk, not memory: it's written once, and the kernel can
+drop its pages. Repacking only the experts a request uses would need a ggml change, since the
+`MUL_MAT_ID` kernels assume one layout for a whole tensor (see [Not yet tried](#not-yet-tried)).
+
 ## The 26B-A4B
 
 All the 26B-A4B's runs, on Graviton5 with the model on local gp3:
@@ -286,6 +306,7 @@ All the 26B-A4B's runs, on Graviton5 with the model on local gp3:
 | Q8_0, no repacking, 10 GB | 0.02× | 0.11× | 0.36× | 0.14× | 1,367 MB | 10,197 MB | 226.1 s |
 | Q4_0 experts, repack in a file, 10 GB | 0.12× | 0.42× | 0.71× | 0.47× | 1,238 MB | 10,215 MB | 128.0 s |
 | IQ4_NL experts, repack in a file, 10 GB | 0.12× | 0.34× | 0.70× | 0.47× | 1,239 MB | 10,215 MB | 127.5 s |
+| IQ4_NL experts, experts unrepacked, 10 GB | 0.07× | 0.22× | 0.55× | 0.29× | 3,654 MB | 10,214 MB | 116.4 s |
 
 The 16 GB and 10 GB rows with a repack file skipped the prefetch; the earlier runs with it, at
 225.3 s and 275.0 s, ran at the same speed.
@@ -331,6 +352,11 @@ For Lambda, E4B remains the model.
 
 - **Pruning the rarely used experts,** measured against the release check: about 8 GB of the 26B-A4B,
   if accuracy holds (see [Which experts are used](#which-experts-are-used)).
+- **Repacking only the busiest experts,** leaving the rest in the GGUF's layout, by splitting each
+  layer's expert tensors into hot and cold parts. A typical layer's busiest 46 experts carry 90% of
+  its routing, so this could keep most of the repack's speed for about 36% of its memory, when the
+  model fits. It helps where a full repack file doesn't fit on disk or is too slow to write. Below
+  the model's size it doesn't help: each request still touches many cold experts. A ggml change.
 - **Local NVMe:** Graviton instances with instance storage (the `d` variants, such as c7gd or
   m8gd) would re-read weights several times faster than gp3, which is what limits every run below
   a model's size.
