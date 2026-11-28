@@ -237,14 +237,8 @@ void * sd_load(const char * path, int n_threads, int * n_embd, int * n_embd_inp)
     mp.load_mode    = LLAMA_LOAD_MODE_MMAP;
     // STRANDS_DECIDER_NO_REPACK=1 keeps ggml from repacking weights for its GEMM kernels (llama.cpp's --no-repack), for measuring.
     if (getenv("STRANDS_DECIDER_NO_REPACK")) mp.use_extra_bufts = false;
-    // STRANDS_DECIDER_NO_EXPERT_REPACK=1 repacks all but a mixture of experts' expert weights, which stay mapped from the GGUF (llama.cpp's --override-tensor), for measuring.
-    static struct llama_model_tensor_buft_override no_expert_repack[2];
-    if (getenv("STRANDS_DECIDER_NO_EXPERT_REPACK")) {
-        no_expert_repack[0].pattern = "_exps\\.weight";
-        no_expert_repack[0].buft    = ggml_backend_cpu_buffer_type();
-        no_expert_repack[1].pattern = NULL;
-        mp.tensor_buft_overrides    = no_expert_repack;
-    }
+    // STRANDS_DECIDER_NO_EXPERT_REPACK=1 repacks all but a mixture of experts' expert weights, which stay mapped from the GGUF (patches/0006), for measuring.
+    if (getenv("STRANDS_DECIDER_NO_EXPERT_REPACK")) setenv("GGML_CPU_REPACK_NO_EXPERTS", "1", 1);
     if (getenv("STRANDS_DECIDER_EXPERT_STATS") && !sd_expert_counts) {
         sd_expert_counts = (uint64_t *) calloc((size_t) SD_MAX_LAYERS * SD_MAX_EXPERTS, sizeof(uint64_t));
         sd_expert_path   = getenv("STRANDS_DECIDER_EXPERT_STATS");

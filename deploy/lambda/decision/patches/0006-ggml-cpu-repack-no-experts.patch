@@ -1,0 +1,27 @@
+diff --git a/ggml/src/ggml-cpu/repack.cpp b/ggml/src/ggml-cpu/repack.cpp
+index 509bf5b..e7801d4 100644
+--- a/ggml/src/ggml-cpu/repack.cpp
++++ b/ggml/src/ggml-cpu/repack.cpp
+@@ -5362,6 +5362,14 @@ static size_t ggml_backend_cpu_repack_buffer_type_get_alignment(ggml_backend_buf
+     GGML_UNUSED(buft);
+ }
+ 
++// GGML_CPU_REPACK_NO_EXPERTS=1 leaves a mixture of experts' expert weights (MUL_MAT_ID's) unrepacked, in the
++// buffer the model loader picks next, mapped from the model file, and repacks the rest. llama.cpp's
++// tensor overrides can't: one to the CPU buffer still considers the repack.
++static bool ggml_cpu_repack_no_experts(void) {
++    static const bool no_experts = getenv("GGML_CPU_REPACK_NO_EXPERTS") != nullptr;
++    return no_experts;
++}
++
+ namespace ggml::cpu::repack {
+ class extra_buffer_type : ggml::cpu::extra_buffer_type {
+     bool supports_op(ggml_backend_dev_t, const struct ggml_tensor * op) override {
+@@ -5382,6 +5390,7 @@ class extra_buffer_type : ggml::cpu::extra_buffer_type {
+             //}
+             // may be possible if Q8_0 packed...
+         } else if (op->op == GGML_OP_MUL_MAT_ID
++                && !ggml_cpu_repack_no_experts()
+                 && op->src[0]->buffer
+                 && (ggml_n_dims(op->src[0]) == 3)
+                 && op->src[0]->buffer->buft == ggml_backend_cpu_repack_buffer_type()
